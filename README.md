@@ -56,7 +56,7 @@ To set up and run **Seelai** on your local environment:
 2. **Navigate to the project folder:**
    
    ```bash
-   cd Seelai
+   cd seelai_app
    ```
 
 3. **Install dependencies:**
