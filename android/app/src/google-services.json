@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "697931553557",
+    "project_id": "seelai-4b026",
+    "storage_bucket": "seelai-4b026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:697931553557:android:4a747185ba437d8015a71c",
+        "android_client_info": {
+          "package_name": "com.example.seelai_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCpdRUgnEgn3Ox81MQGEe07ydZoTIWNk9M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
