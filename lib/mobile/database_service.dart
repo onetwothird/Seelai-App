@@ -46,22 +46,10 @@ class DatabaseService {
         // Admin (MSDWD)-specific fields
         userData['employeeId'] = employeeId ?? '';
         userData['department'] = department ?? '';
-        userData['permissions'] = {
-          'view_users': true,
-          'manage_reports': true,
-          'manage_caretakers': true,
-          'manage_patients': true,
-        };
       } else if (role == 'visually_impaired') {
         // Visually Impaired User-specific fields
         userData['assignedCaretakers'] = {}; // Empty map for assigned caretakers
         userData['emergencyContacts'] = {}; // Empty map for emergency contacts
-        userData['medicalInfo'] = {
-          'conditions': [],
-          'medications': [],
-          'allergies': [],
-          'lastCheckup': '',
-        };
         userData['deviceSettings'] = {
           'voiceEnabled': true,
           'fontSize': 'medium',
@@ -95,7 +83,8 @@ class DatabaseService {
     if (currentUserId == null) return null;
     return await getUserData(currentUserId!);
   }
-/// Test database connection
+
+  /// Test database connection
   Future<void> testConnection() async {
     try {
       await _database.ref('test').set({
@@ -107,6 +96,7 @@ class DatabaseService {
       print('❌ Database connection failed: $e');
     }
   }
+
   /// Update user profile (role-specific updates)
   Future<void> updateUserProfile({
     required String userId,
