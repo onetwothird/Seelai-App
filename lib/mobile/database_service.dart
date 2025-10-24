@@ -8,6 +8,20 @@ class DatabaseService {
   // Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
 
+  // Helper method to get the correct path based on role
+  String _getUserPath(String role, String userId) {
+    switch (role) {
+      case 'visually_impaired':
+        return 'users/visually_impaired/$userId';
+      case 'caretaker':
+        return 'users/caretaker/$userId';
+      case 'admin':
+        return 'users/msdwd/$userId';
+      default:
+        throw Exception('Invalid role: $role');
+    }
+  }
+
   // ==================== USER MANAGEMENT ====================
 
   /// Create a new user document in Realtime Database
@@ -57,17 +71,43 @@ class DatabaseService {
         };
       }
 
-      // Save to database
-      await _database.ref('users/$userId').set(userData);
+      // Save to database using role-based path
+      String path = _getUserPath(role, userId);
+      await _database.ref(path).set(userData);
     } catch (e) {
       throw Exception('Failed to create user document: $e');
     }
   }
 
-  /// Get user data by user ID
+  /// Get user data by user ID (searches all role paths)
   Future<Map<String, dynamic>?> getUserData(String userId) async {
     try {
-      DatabaseEvent event = await _database.ref('users/$userId').once();
+      // Try each role path
+      List<String> rolePaths = [
+        'users/visually_impaired/$userId',
+        'users/caretaker/$userId',
+        'users/msdwd/$userId',
+      ];
+
+      for (String path in rolePaths) {
+        DatabaseEvent event = await _database.ref(path).once();
+        
+        if (event.snapshot.exists) {
+          return Map<String, dynamic>.from(event.snapshot.value as Map);
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      throw Exception('Failed to get user data: $e');
+    }
+  }
+
+  /// Get user data when you already know the role
+  Future<Map<String, dynamic>?> getUserDataByRole(String userId, String role) async {
+    try {
+      String path = _getUserPath(role, userId);
+      DatabaseEvent event = await _database.ref(path).once();
       
       if (event.snapshot.exists) {
         return Map<String, dynamic>.from(event.snapshot.value as Map);
@@ -100,6 +140,7 @@ class DatabaseService {
   /// Update user profile (role-specific updates)
   Future<void> updateUserProfile({
     required String userId,
+    required String role,
     String? name,
     int? age,
     String? phone,
@@ -123,15 +164,17 @@ class DatabaseService {
       if (employeeId != null) updates['employeeId'] = employeeId;
       if (department != null) updates['department'] = department;
 
-      await _database.ref('users/$userId').update(updates);
+      String path = _getUserPath(role, userId);
+      await _database.ref(path).update(updates);
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
     }
   }
 
   /// Stream of user data (real-time updates)
-  Stream<Map<String, dynamic>?> streamUserData(String userId) {
-    return _database.ref('users/$userId').onValue.map((event) {
+  Stream<Map<String, dynamic>?> streamUserData(String userId, String role) {
+    String path = _getUserPath(role, userId);
+    return _database.ref(path).onValue.map((event) {
       if (event.snapshot.exists) {
         return Map<String, dynamic>.from(event.snapshot.value as Map);
       }
@@ -172,14 +215,14 @@ class DatabaseService {
   }) async {
     try {
       // Add patient to caretaker's list
-      await _database.ref('users/$caretakerId/assignedPatients/$patientId').set(true);
+      await _database.ref('users/caretaker/$caretakerId/assignedPatients/$patientId').set(true);
       
       // Add caretaker to patient's list
-      await _database.ref('users/$patientId/assignedCaretakers/$caretakerId').set(true);
+      await _database.ref('users/visually_impaired/$patientId/assignedCaretakers/$caretakerId').set(true);
       
       // Update timestamps
-      await _database.ref('users/$caretakerId/updatedAt').set(ServerValue.timestamp);
-      await _database.ref('users/$patientId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('users/caretaker/$caretakerId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('users/visually_impaired/$patientId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
       throw Exception('Failed to assign caretaker: $e');
     }
@@ -192,14 +235,14 @@ class DatabaseService {
   }) async {
     try {
       // Remove patient from caretaker's list
-      await _database.ref('users/$caretakerId/assignedPatients/$patientId').remove();
+      await _database.ref('users/caretaker/$caretakerId/assignedPatients/$patientId').remove();
       
       // Remove caretaker from patient's list
-      await _database.ref('users/$patientId/assignedCaretakers/$caretakerId').remove();
+      await _database.ref('users/visually_impaired/$patientId/assignedCaretakers/$caretakerId').remove();
       
       // Update timestamps
-      await _database.ref('users/$caretakerId/updatedAt').set(ServerValue.timestamp);
-      await _database.ref('users/$patientId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('users/caretaker/$caretakerId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('users/visually_impaired/$patientId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
       throw Exception('Failed to remove caretaker: $e');
     }
@@ -208,7 +251,7 @@ class DatabaseService {
   /// Get all patients assigned to a caretaker
   Future<List<Map<String, dynamic>>> getCaretakerPatients(String caretakerId) async {
     try {
-      Map<String, dynamic>? caretakerData = await getUserData(caretakerId);
+      Map<String, dynamic>? caretakerData = await getUserDataByRole(caretakerId, 'caretaker');
       if (caretakerData == null) return [];
 
       Map<dynamic, dynamic>? patientIdsMap = caretakerData['assignedPatients'] as Map?;
@@ -217,7 +260,7 @@ class DatabaseService {
       List<Map<String, dynamic>> patients = [];
 
       for (String patientId in patientIdsMap.keys) {
-        Map<String, dynamic>? patientData = await getUserData(patientId);
+        Map<String, dynamic>? patientData = await getUserDataByRole(patientId, 'visually_impaired');
         if (patientData != null) {
           patients.add({...patientData, 'userId': patientId});
         }
@@ -232,7 +275,7 @@ class DatabaseService {
   /// Get all caretakers assigned to a patient
   Future<List<Map<String, dynamic>>> getPatientCaretakers(String patientId) async {
     try {
-      Map<String, dynamic>? patientData = await getUserData(patientId);
+      Map<String, dynamic>? patientData = await getUserDataByRole(patientId, 'visually_impaired');
       if (patientData == null) return [];
 
       Map<dynamic, dynamic>? caretakerIdsMap = patientData['assignedCaretakers'] as Map?;
@@ -241,7 +284,7 @@ class DatabaseService {
       List<Map<String, dynamic>> caretakers = [];
 
       for (String caretakerId in caretakerIdsMap.keys) {
-        Map<String, dynamic>? caretakerData = await getUserData(caretakerId);
+        Map<String, dynamic>? caretakerData = await getUserDataByRole(caretakerId, 'caretaker');
         if (caretakerData != null) {
           caretakers.add({...caretakerData, 'userId': caretakerId});
         }
@@ -270,10 +313,11 @@ class DatabaseService {
         'addedAt': ServerValue.timestamp,
       };
 
-      String contactId = _database.ref('users/$userId/emergencyContacts').push().key!;
+      String path = 'users/visually_impaired/$userId/emergencyContacts';
+      String contactId = _database.ref(path).push().key!;
       
-      await _database.ref('users/$userId/emergencyContacts/$contactId').set(contact);
-      await _database.ref('users/$userId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('$path/$contactId').set(contact);
+      await _database.ref('users/visually_impaired/$userId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
       throw Exception('Failed to add emergency contact: $e');
     }
@@ -285,8 +329,8 @@ class DatabaseService {
     required String contactId,
   }) async {
     try {
-      await _database.ref('users/$userId/emergencyContacts/$contactId').remove();
-      await _database.ref('users/$userId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('users/visually_impaired/$userId/emergencyContacts/$contactId').remove();
+      await _database.ref('users/visually_impaired/$userId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
       throw Exception('Failed to remove emergency contact: $e');
     }
@@ -295,7 +339,7 @@ class DatabaseService {
   /// Get all emergency contacts for a user
   Future<List<Map<String, dynamic>>> getEmergencyContacts(String userId) async {
     try {
-      DatabaseEvent event = await _database.ref('users/$userId/emergencyContacts').once();
+      DatabaseEvent event = await _database.ref('users/visually_impaired/$userId/emergencyContacts').once();
       
       if (!event.snapshot.exists) return [];
       
@@ -334,7 +378,7 @@ class DatabaseService {
       
       updates['updatedAt'] = ServerValue.timestamp;
 
-      await _database.ref('users/$userId').update(updates);
+      await _database.ref('users/visually_impaired/$userId').update(updates);
     } catch (e) {
       throw Exception('Failed to update medical info: $e');
     }
@@ -345,20 +389,42 @@ class DatabaseService {
   /// Get all users (Admin only)
   Future<List<Map<String, dynamic>>> getAllUsers() async {
     try {
-      DatabaseEvent event = await _database.ref('users').once();
+      List<Map<String, dynamic>> allUsers = [];
       
-      if (!event.snapshot.exists) return [];
+      // Get visually impaired users
+      DatabaseEvent viEvent = await _database.ref('users/visually_impaired').once();
+      if (viEvent.snapshot.exists) {
+        Map<dynamic, dynamic> viMap = viEvent.snapshot.value as Map;
+        viMap.forEach((key, value) {
+          Map<String, dynamic> userData = Map<String, dynamic>.from(value as Map);
+          userData['userId'] = key;
+          allUsers.add(userData);
+        });
+      }
       
-      Map<dynamic, dynamic> usersMap = event.snapshot.value as Map;
-      List<Map<String, dynamic>> users = [];
+      // Get caretaker users
+      DatabaseEvent ctEvent = await _database.ref('users/caretaker').once();
+      if (ctEvent.snapshot.exists) {
+        Map<dynamic, dynamic> ctMap = ctEvent.snapshot.value as Map;
+        ctMap.forEach((key, value) {
+          Map<String, dynamic> userData = Map<String, dynamic>.from(value as Map);
+          userData['userId'] = key;
+          allUsers.add(userData);
+        });
+      }
       
-      usersMap.forEach((key, value) {
-        Map<String, dynamic> userData = Map<String, dynamic>.from(value as Map);
-        userData['userId'] = key;
-        users.add(userData);
-      });
+      // Get MSDWD users
+      DatabaseEvent msdwdEvent = await _database.ref('users/msdwd').once();
+      if (msdwdEvent.snapshot.exists) {
+        Map<dynamic, dynamic> msdwdMap = msdwdEvent.snapshot.value as Map;
+        msdwdMap.forEach((key, value) {
+          Map<String, dynamic> userData = Map<String, dynamic>.from(value as Map);
+          userData['userId'] = key;
+          allUsers.add(userData);
+        });
+      }
       
-      return users;
+      return allUsers;
     } catch (e) {
       throw Exception('Failed to get all users: $e');
     }
@@ -367,11 +433,8 @@ class DatabaseService {
   /// Get users by role
   Future<List<Map<String, dynamic>>> getUsersByRole(String role) async {
     try {
-      DatabaseEvent event = await _database
-          .ref('users')
-          .orderByChild('role')
-          .equalTo(role)
-          .once();
+      String path = role == 'admin' ? 'users/msdwd' : 'users/$role';
+      DatabaseEvent event = await _database.ref(path).once();
       
       if (!event.snapshot.exists) return [];
       
@@ -391,9 +454,10 @@ class DatabaseService {
   }
 
   /// Deactivate user account (Admin only)
-  Future<void> deactivateUser(String userId) async {
+  Future<void> deactivateUser(String userId, String role) async {
     try {
-      await _database.ref('users/$userId').update({
+      String path = _getUserPath(role, userId);
+      await _database.ref(path).update({
         'isActive': false,
         'deactivatedAt': ServerValue.timestamp,
         'updatedAt': ServerValue.timestamp,
@@ -404,16 +468,17 @@ class DatabaseService {
   }
 
   /// Reactivate user account (Admin only)
-  Future<void> reactivateUser(String userId) async {
+  Future<void> reactivateUser(String userId, String role) async {
     try {
+      String path = _getUserPath(role, userId);
       Map<String, dynamic> updates = {
         'isActive': true,
         'updatedAt': ServerValue.timestamp,
       };
       
       // Remove deactivatedAt field
-      await _database.ref('users/$userId/deactivatedAt').remove();
-      await _database.ref('users/$userId').update(updates);
+      await _database.ref('$path/deactivatedAt').remove();
+      await _database.ref(path).update(updates);
     } catch (e) {
       throw Exception('Failed to reactivate user: $e');
     }
@@ -506,21 +571,19 @@ class DatabaseService {
   // ==================== USER DELETION ====================
 
   /// Delete user data from Realtime Database (called when deleting account)
-  Future<void> deleteUserData(String userId) async {
+  Future<void> deleteUserData(String userId, String role) async {
     try {
       // Get user data first to clean up relationships
-      Map<String, dynamic>? userData = await getUserData(userId);
+      Map<String, dynamic>? userData = await getUserDataByRole(userId, role);
       
       if (userData != null) {
-        String role = userData['role'] ?? '';
-        
         // Clean up relationships based on role
         if (role == 'caretaker') {
           // Remove this caretaker from all assigned patients
           Map<dynamic, dynamic>? assignedPatients = userData['assignedPatients'] as Map?;
           if (assignedPatients != null) {
             for (String patientId in assignedPatients.keys) {
-              await _database.ref('users/$patientId/assignedCaretakers/$userId').remove();
+              await _database.ref('users/visually_impaired/$patientId/assignedCaretakers/$userId').remove();
             }
           }
         } else if (role == 'visually_impaired') {
@@ -528,14 +591,15 @@ class DatabaseService {
           Map<dynamic, dynamic>? assignedCaretakers = userData['assignedCaretakers'] as Map?;
           if (assignedCaretakers != null) {
             for (String caretakerId in assignedCaretakers.keys) {
-              await _database.ref('users/$caretakerId/assignedPatients/$userId').remove();
+              await _database.ref('users/caretaker/$caretakerId/assignedPatients/$userId').remove();
             }
           }
         }
       }
       
       // Delete user document
-      await _database.ref('users/$userId').remove();
+      String path = _getUserPath(role, userId);
+      await _database.ref(path).remove();
       
       // Delete activity logs
       DatabaseEvent event = await _database
