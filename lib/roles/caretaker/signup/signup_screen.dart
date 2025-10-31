@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/mobile/auth_service.dart';
-import 'package:seelai_app/mobile/database_service.dart';
+import 'package:seelai_app/service/auth_service.dart';
+import 'package:seelai_app/service/database_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 

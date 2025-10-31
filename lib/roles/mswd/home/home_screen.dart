@@ -1,29 +1,31 @@
-// File: lib/roles/visually_impaired/home/home_screen.dart
+// File: lib/roles/mswd/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/service/auth_service.dart';
 
-class VisuallyImpairedHomeScreen extends StatefulWidget {
+class MSWDHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const VisuallyImpairedHomeScreen({
+  const MSWDHomeScreen({
     super.key,
     required this.userData,
   });
 
   @override
-  State<VisuallyImpairedHomeScreen> createState() => _VisuallyImpairedHomeScreenState();
+  State<MSWDHomeScreen> createState() => _MSWDHomeScreenState();
 }
 
-class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen> {
+class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final userName = widget.userData['name'] ?? 'User';
+    final userName = widget.userData['name'] ?? 'Staff';
     final userEmail = widget.userData['email'] ?? '';
     final userAge = widget.userData['age'] ?? 0;
+    final employeeId = widget.userData['employeeId'] ?? 'Not assigned';
+    final department = widget.userData['department'] ?? 'Not specified';
 
     return Scaffold(
       body: Container(
@@ -108,10 +110,10 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.accessibility_new_rounded, color: white, size: 20),
+                      Icon(Icons.admin_panel_settings_rounded, color: white, size: 20),
                       SizedBox(width: 8),
                       Text(
-                        'User Account',
+                        'MSWD Staff Account',
                         style: bodyBold.copyWith(
                           color: white,
                           fontWeight: FontWeight.w600,
@@ -164,14 +166,16 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                               _buildInfoRow('Name', userName),
                               _buildInfoRow('Email', userEmail),
                               _buildInfoRow('Age', '$userAge years old'),
-                              _buildInfoRow('Role', 'User'),
+                              _buildInfoRow('Employee ID', employeeId),
+                              _buildInfoRow('Department', department),
+                              _buildInfoRow('Role', 'MSWD Staff'),
                             ],
                           ),
                         ),
 
                         SizedBox(height: 20),
 
-                        // Quick Actions Card
+                        // Quick Actions
                         Container(
                           width: double.infinity,
                           padding: EdgeInsets.all(24),
@@ -183,98 +187,20 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      gradient: primaryGradient,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(Icons.dashboard_rounded, color: white, size: 24),
-                                  ),
-                                  SizedBox(width: 16),
-                                  Text(
-                                    'Quick Actions',
-                                    style: bodyBold.copyWith(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                'Quick Actions',
+                                style: bodyBold.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               SizedBox(height: 16),
                               Text(
-                                'Your personalized dashboard is being prepared. More features coming soon!',
+                                'Your MSWD staff dashboard is being prepared. More features coming soon!',
                                 style: body.copyWith(
                                   color: grey,
                                   fontSize: 14,
-                                  height: 1.5,
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: 20),
-
-                        // Accessibility Features Card
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                primary.withOpacity(0.1),
-                                secondary.withOpacity(0.1),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(radiusLarge),
-                            border: Border.all(
-                              color: primary.withOpacity(0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.accessibility_new_rounded,
-                                    color: primary,
-                                    size: 28,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Text(
-                                    'Accessibility Features',
-                                    style: bodyBold.copyWith(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 16),
-                              _buildFeatureItem(
-                                Icons.hearing_rounded,
-                                'Voice Assistance',
-                                'Coming Soon',
-                              ),
-                              SizedBox(height: 12),
-                              _buildFeatureItem(
-                                Icons.text_fields_rounded,
-                                'Text to Speech',
-                                'Coming Soon',
-                              ),
-                              SizedBox(height: 12),
-                              _buildFeatureItem(
-                                Icons.visibility_rounded,
-                                'High Contrast Mode',
-                                'Coming Soon',
                               ),
                             ],
                           ),
@@ -300,7 +226,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               '$label:',
               style: body.copyWith(
@@ -320,50 +246,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildFeatureItem(IconData icon, String title, String status) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: white,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: primary,
-            size: 20,
-          ),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            title,
-            style: body.copyWith(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            status,
-            style: caption.copyWith(
-              color: grey,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

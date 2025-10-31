@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/roles/caretaker/signup/signup_screen.dart';
-import 'package:seelai_app/mobile/auth_service.dart';
-import 'package:seelai_app/mobile/database_service.dart';
+import 'package:seelai_app/roles/caretaker/home/home_screen.dart';
+import 'package:seelai_app/service/auth_service.dart';
+import 'package:seelai_app/service/database_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -526,12 +527,27 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
         );
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Welcome back, Caretaker!'),
-              backgroundColor: success,
+          // Navigate to home screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CaretakerHomeScreen(
+                userData: userData,
+              ),
             ),
           );
+          
+          // Show welcome message after navigation
+          Future.delayed(Duration(milliseconds: 500), () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Welcome back, Caretaker!'),
+                  backgroundColor: success,
+                ),
+              );
+            }
+          });
         }
       }
       

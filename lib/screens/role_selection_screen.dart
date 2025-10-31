@@ -5,8 +5,8 @@ import 'package:seelai_app/roles/visually_impaired/login/login_screen.dart';
 import 'package:seelai_app/roles/visually_impaired/signup/signup_screen.dart';
 import 'package:seelai_app/roles/caretaker/login/login_screen.dart';
 import 'package:seelai_app/roles/caretaker/signup/signup_screen.dart';
-import 'package:seelai_app/roles/msdwd/login/login_screen.dart';
-import 'package:seelai_app/roles/msdwd/signup/signup_screen.dart';
+import 'package:seelai_app/roles/mswd/login/login_screen.dart';
+import 'package:seelai_app/roles/mswd/signup/signup_screen.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -235,7 +235,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                             _buildModernRoleCard(
                               role: 'admin',
                               icon: Icons.admin_panel_settings_rounded,
-                              title: 'MSDWD Staff',
+                              title: 'MSWD Staff',
                               description: 'Department administrator',
                               gradient: LinearGradient(
                                 colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
@@ -507,7 +507,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
         loginScreen = CaretakerLoginScreen();
         break;
       case 'admin':
-        loginScreen = MSDWDLoginScreen();
+        loginScreen = MSWDLoginScreen();
         break;
       default:
         return;
@@ -530,7 +530,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
         signupScreen = CaretakerSignupScreen();
         break;
       case 'admin':
-        signupScreen = MSDWDSignupScreen();
+        signupScreen = MSWDSignupScreen();
         break;
       default:
         return;
