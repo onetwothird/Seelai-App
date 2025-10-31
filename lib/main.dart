@@ -7,10 +7,20 @@ void main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // Initialize Firebase only if not already initialized
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    // If Firebase is already initialized, catch the error and continue
+    if (e.toString().contains('duplicate-app')) {
+      print('Firebase already initialized, skipping...');
+    } else {
+      // If it's a different error, rethrow it
+      rethrow;
+    }
+  }
   
   runApp(const MainApp());
 }
