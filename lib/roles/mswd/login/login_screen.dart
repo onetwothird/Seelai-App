@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/roles/msdwd/signup/signup_screen.dart';
-import 'package:seelai_app/mobile/auth_service.dart';
-import 'package:seelai_app/mobile/database_service.dart';
+import 'package:seelai_app/roles/mswd/signup/signup_screen.dart';
+import 'package:seelai_app/service/auth_service.dart';
+import 'package:seelai_app/service/database_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:seelai_app/roles/mswd/home/home_screen.dart';
 
-class MSDWDLoginScreen extends StatefulWidget {
-  const MSDWDLoginScreen({super.key});
+class MSWDLoginScreen extends StatefulWidget {
+  const MSWDLoginScreen({super.key});
 
   @override
-  State<MSDWDLoginScreen> createState() => _MSDWDLoginScreenState();
+  State<MSWDLoginScreen> createState() => _MSWDLoginScreenState();
 }
 
-class _MSDWDLoginScreenState extends State<MSDWDLoginScreen> with TickerProviderStateMixin {
+class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _floatController;
   late Animation<double> _fadeAnimation;
@@ -148,7 +149,7 @@ class _MSDWDLoginScreenState extends State<MSDWDLoginScreen> with TickerProvider
                         ShaderMask(
                           shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                           child: Text(
-                            "MSDWD Login",
+                            "MSWD Login",
                             style: h1.copyWith(
                               fontSize: screenWidth * 0.095,
                               color: white,
@@ -191,7 +192,7 @@ class _MSDWDLoginScreenState extends State<MSDWDLoginScreen> with TickerProvider
                               Icon(Icons.admin_panel_settings_rounded, color: white, size: 20),
                               SizedBox(width: 8),
                               Text(
-                                'MSDWD Staff Account',
+                                'MSWD Staff Account',
                                 style: bodyBold.copyWith(
                                   color: white,
                                   fontWeight: FontWeight.w600,
@@ -356,7 +357,7 @@ class _MSDWDLoginScreenState extends State<MSDWDLoginScreen> with TickerProvider
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => MSDWDSignupScreen(),
+                                  builder: (context) => MSWDSignupScreen(),
                                 ),
                               );
                             },
@@ -510,7 +511,7 @@ class _MSDWDLoginScreenState extends State<MSDWDLoginScreen> with TickerProvider
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('This account is not registered as MSDWD staff'),
+                content: Text('This account is not registered as MSWD staff'),
                 backgroundColor: error,
               ),
             );
@@ -522,16 +523,31 @@ class _MSDWDLoginScreenState extends State<MSDWDLoginScreen> with TickerProvider
         await databaseService.logActivity(
           userId: userCredential.user!.uid,
           action: 'login',
-          details: 'MSDWD staff logged in',
+          details: 'MSWD staff logged in',
         );
         
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Welcome, MSDWD Staff!'),
-              backgroundColor: success,
+          // Navigate to home screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MSWDHomeScreen(
+                userData: userData,
+              ),
             ),
           );
+          
+          // Show welcome message after navigation
+          Future.delayed(Duration(milliseconds: 500), () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Welcome, MSWD Staff!'),
+                  backgroundColor: success,
+                ),
+              );
+            }
+          });
         }
       }
       

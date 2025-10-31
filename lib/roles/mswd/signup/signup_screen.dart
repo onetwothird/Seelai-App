@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/mobile/auth_service.dart';
-import 'package:seelai_app/mobile/database_service.dart';
+import 'package:seelai_app/service/auth_service.dart';
+import 'package:seelai_app/service/database_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class MSDWDSignupScreen extends StatefulWidget {
-  const MSDWDSignupScreen({super.key});
+class MSWDSignupScreen extends StatefulWidget {
+  const MSWDSignupScreen({super.key});
 
   @override
-  State<MSDWDSignupScreen> createState() => _MSDWDSignupScreenState();
+  State<MSWDSignupScreen> createState() => _MSWDSignupScreenState();
 }
 
-class _MSDWDSignupScreenState extends State<MSDWDSignupScreen> with TickerProviderStateMixin {
+class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _floatController;
   late Animation<double> _fadeAnimation;
@@ -154,7 +154,7 @@ class _MSDWDSignupScreenState extends State<MSDWDSignupScreen> with TickerProvid
                         ShaderMask(
                           shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                           child: Text(
-                            "MSDWD Signup",
+                            "MSWD Signup",
                             style: h1.copyWith(
                               fontSize: screenWidth * 0.09,
                               color: white,
@@ -164,7 +164,7 @@ class _MSDWDSignupScreenState extends State<MSDWDSignupScreen> with TickerProvid
                         ),
                         SizedBox(height: screenHeight * 0.01),
                         Text(
-                          "Join the MSDWD team",
+                          "Join the MSWD team",
                           style: body.copyWith(
                             fontSize: screenWidth * 0.042,
                           ),
@@ -193,7 +193,7 @@ class _MSDWDSignupScreenState extends State<MSDWDSignupScreen> with TickerProvid
                               Icon(Icons.admin_panel_settings_rounded, color: white, size: 20),
                               SizedBox(width: 8),
                               Text(
-                                'MSDWD Staff Account',
+                                'MSWD Staff Account',
                                 style: bodyBold.copyWith(
                                   color: white,
                                   fontWeight: FontWeight.w600,
@@ -567,14 +567,14 @@ class _MSDWDSignupScreenState extends State<MSDWDSignupScreen> with TickerProvid
       await databaseService.logActivity(
         userId: userCredential.user!.uid,
         action: 'account_created',
-        details: 'MSDWD staff account created',
+        details: 'MSWD staff account created',
       );
 
       // Success!
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('MSDWD account created successfully!'),
+            content: Text('MSWD account created successfully!'),
             backgroundColor: success,
             duration: Duration(seconds: 2),
           ),
