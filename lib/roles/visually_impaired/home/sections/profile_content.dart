@@ -61,7 +61,7 @@ class ProfileContent extends StatelessWidget {
               _buildInfoRow('Name', userName, theme.textColor, theme.subtextColor),
               _buildInfoRow('Email', userEmail, theme.textColor, theme.subtextColor),
               _buildInfoRow('Age', '$userAge years old', theme.textColor, theme.subtextColor),
-              _buildInfoRow('Role', 'User', theme.textColor, theme.subtextColor),
+              _buildInfoRow('Role', 'Visually Impaired', theme.textColor, theme.subtextColor),
               
               SizedBox(height: spacingXLarge),
               
