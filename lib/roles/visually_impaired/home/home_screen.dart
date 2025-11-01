@@ -1,11 +1,14 @@
 // File: lib/roles/visually_impaired/home/home_screen.dart
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
-import 'package:intl/intl.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/service/auth_service.dart';
+import 'package:seelai_app/roles/visually_impaired/home/widgets/header_section.dart';
+import 'package:seelai_app/roles/visually_impaired/home/widgets/bottom_navigation.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/home_content.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/profile_content.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activities_content.dart';
+import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
+import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
+import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -19,143 +22,38 @@ class VisuallyImpairedHomeScreen extends StatefulWidget {
   State<VisuallyImpairedHomeScreen> createState() => _VisuallyImpairedHomeScreenState();
 }
 
-class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen> with SingleTickerProviderStateMixin {
-  // Camera controller
-  CameraController? _cameraController;
-  bool _isCameraInitialized = false;
+class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen> 
+    with SingleTickerProviderStateMixin {
+  // Services
+  late final CameraService _cameraService;
+  late final PermissionService _permissionService;
+  late final AccessibilityService _accessibilityService;
   
-  // Permission states
-  bool _hasPermissions = false;
-  String _permissionStatus = 'Checking permissions...';
-  
-  // Dark mode toggle (renamed from high contrast)
+  // UI State
   bool _isDarkMode = false;
-  
-  // Bottom navigation
   int _selectedIndex = 0;
   
-  // Animation controller for smooth transitions
+  // Animation
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  // Notification message
+  // Notification
   String _notificationMessage = 'Welcome to SeelAI';
 
   @override
   void initState() {
     super.initState();
+    _initializeServices();
     _initializeAnimations();
     _requestPermissions();
   }
 
-  // Request all required permissions
-  Future<void> _requestPermissions() async {
-    try {
-      // Request camera permission
-      final cameraStatus = await Permission.camera.request();
-      
-      // Request storage permissions based on Android version
-      PermissionStatus storageStatus;
-      if (await _isAndroid13OrHigher()) {
-        // For Android 13+, request media permissions
-        final photos = await Permission.photos.request();
-        final videos = await Permission.videos.request();
-        storageStatus = (photos.isGranted && videos.isGranted) 
-          ? PermissionStatus.granted 
-          : PermissionStatus.denied;
-      } else {
-        // For Android 12 and below
-        storageStatus = await Permission.storage.request();
-      }
-
-      if (mounted) {
-        setState(() {
-          _hasPermissions = cameraStatus.isGranted && storageStatus.isGranted;
-          
-          if (_hasPermissions) {
-            _permissionStatus = 'All permissions granted';
-            _notificationMessage = 'Camera and storage access enabled';
-            _initializeCamera();
-          } else {
-            _permissionStatus = _getPermissionDeniedMessage(cameraStatus, storageStatus);
-            _notificationMessage = 'Some permissions were denied';
-          }
-        });
-      }
-    } catch (e) {
-      debugPrint('Permission request error: $e');
-      if (mounted) {
-        setState(() {
-          _permissionStatus = 'Error requesting permissions';
-          _notificationMessage = 'Unable to request permissions';
-        });
-      }
-    }
+  void _initializeServices() {
+    _cameraService = CameraService();
+    _permissionService = PermissionService();
+    _accessibilityService = AccessibilityService();
   }
 
-  // Check if Android version is 13 or higher
-  Future<bool> _isAndroid13OrHigher() async {
-    // This is a simple check, you might want to use a platform-specific plugin
-    // for more accurate version detection
-    return false; // Default to false for iOS and older Android
-  }
-
-  // Get detailed permission denial message
-  String _getPermissionDeniedMessage(PermissionStatus camera, PermissionStatus storage) {
-    List<String> denied = [];
-    
-    if (!camera.isGranted) denied.add('Camera');
-    if (!storage.isGranted) denied.add('Storage');
-    
-    if (denied.isEmpty) return 'All permissions granted';
-    
-    return '${denied.join(' and ')} permission${denied.length > 1 ? 's' : ''} denied';
-  }
-
-  // Initialize camera
-  Future<void> _initializeCamera() async {
-    if (!_hasPermissions) {
-      debugPrint('Cannot initialize camera: permissions not granted');
-      return;
-    }
-
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) {
-        if (mounted) {
-          setState(() {
-            _permissionStatus = 'No cameras available';
-            _notificationMessage = 'No camera found on device';
-          });
-        }
-        return;
-      }
-      
-      _cameraController = CameraController(
-        cameras[0],
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
-      
-      await _cameraController!.initialize();
-      
-      if (mounted) {
-        setState(() {
-          _isCameraInitialized = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Camera initialization error: $e');
-      if (mounted) {
-        setState(() {
-          _permissionStatus = 'Camera initialization failed';
-          _notificationMessage = 'Unable to initialize camera';
-        });
-      }
-    }
-  }
-
-  // Initialize animations
   void _initializeAnimations() {
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 400),
@@ -169,46 +67,47 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _animationController.forward();
   }
 
-  @override
-  void dispose() {
-    _cameraController?.dispose();
-    _animationController.dispose();
-    super.dispose();
+  Future<void> _requestPermissions() async {
+    final result = await _permissionService.requestAllPermissions();
+    
+    if (mounted) {
+      setState(() {
+        _notificationMessage = result.message;
+      });
+
+      if (result.hasAllPermissions) {
+        await _initializeCamera();
+      }
+    }
   }
 
-  // Toggle dark mode
+  Future<void> _initializeCamera() async {
+    final success = await _cameraService.initialize();
+    
+    if (mounted) {
+      setState(() {
+        if (!success) {
+          _notificationMessage = 'Unable to initialize camera';
+        }
+      });
+    }
+  }
+
   void _toggleDarkMode() {
     setState(() {
       _isDarkMode = !_isDarkMode;
     });
     
-    // Announce to screen reader
-    _announceToScreenReader(
-      _isDarkMode 
-        ? 'Dark mode enabled' 
-        : 'Light mode enabled'
+    _accessibilityService.announce(
+      _isDarkMode ? 'Dark mode enabled' : 'Light mode enabled'
     );
   }
 
-  // Voice assistant action
   void _activateVoiceAssistant() {
-    _announceToScreenReader('Voice assistant activated. Listening...');
+    _accessibilityService.announce('Voice assistant activated. Listening...');
     // TODO: Implement voice command functionality
   }
 
-  // Announce to screen reader
-  void _announceToScreenReader(String message) {
-    setState(() {
-      _notificationMessage = message;
-    });
-  }
-
-  // Open app settings for manual permission grant
-  Future<void> _openAppSettings() async {
-    await openAppSettings();
-  }
-
-  // Handle bottom navigation
   void _onNavItemTapped(int index) {
     _animationController.reset();
     setState(() {
@@ -216,9 +115,21 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     });
     _animationController.forward();
     
-    // Announce navigation change
     final labels = ['Home', 'Profile', 'Recent Activities'];
-    _announceToScreenReader('Navigated to ${labels[index]}');
+    _accessibilityService.announce('Navigated to ${labels[index]}');
+  }
+
+  void _updateNotification(String message) {
+    setState(() {
+      _notificationMessage = message;
+    });
+  }
+
+  @override
+  void dispose() {
+    _cameraService.dispose();
+    _animationController.dispose();
+    super.dispose();
   }
 
   @override
@@ -227,1031 +138,123 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     final userName = widget.userData['name'] ?? 'User';
 
-    // Dynamic colors based on dark mode
-    final bgColor = _isDarkMode ? Color(0xFF0A0E27) : backgroundPrimary;
-    final textColor = _isDarkMode ? white : black;
-    final cardColor = _isDarkMode ? Color(0xFF1A1F3A) : white;
-    final subtextColor = _isDarkMode ? Color(0xFFB0B8D4) : grey;
+    final theme = _isDarkMode 
+      ? _getDarkTheme() 
+      : _getLightTheme();
 
     return Scaffold(
-      extendBody: true, // Allow content to extend behind navigation
+      extendBody: true,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: _isDarkMode 
-            ? LinearGradient(
-                colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A), Color(0xFF2A2F4A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                stops: [0.0, 0.5, 1.0],
-              )
-            : LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
-                stops: [0.0, 0.5, 1.0],
-              ),
-        ),
+        decoration: BoxDecoration(gradient: theme.backgroundGradient),
         child: SafeArea(
-          bottom: false, // Don't apply safe area to bottom
+          bottom: false,
           child: Column(
             children: [
-              // Header Section
-              _buildHeader(screenWidth, screenHeight, userName, textColor, subtextColor),
+              HeaderSection(
+                userName: userName,
+                isDarkMode: _isDarkMode,
+                notificationMessage: _notificationMessage,
+                onVoiceAssistant: _activateVoiceAssistant,
+                onToggleDarkMode: _toggleDarkMode,
+                textColor: theme.textColor,
+                subtextColor: theme.subtextColor,
+              ),
               
-              // Main Content
               Expanded(
                 child: FadeTransition(
                   opacity: _fadeAnimation,
-                  child: _buildMainContent(screenWidth, screenHeight, cardColor, textColor, subtextColor),
+                  child: _buildMainContent(
+                    screenWidth,
+                    screenHeight,
+                    theme,
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(textColor, subtextColor),
-    );
-  }
-
-  // Header with greeting and date
-  Widget _buildHeader(double width, double height, String name, Color textColor, Color subtextColor) {
-    final now = DateTime.now();
-    final formattedDate = DateFormat('EEEE, MMMM d, yyyy').format(now);
-    
-    return Semantics(
-      label: 'Header section. Hi $name. Today is $formattedDate',
-      child: Container(
-        padding: EdgeInsets.all(width * 0.06),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Greeting and controls row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Semantics(
-                        label: 'Greeting',
-                        child: Text(
-                          'Hi, $name 👋',
-                          style: h1.copyWith(
-                            fontSize: width * 0.075,
-                            fontWeight: FontWeight.w800,
-                            color: textColor,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: spacingXSmall),
-                      Semantics(
-                        label: 'Today\'s date',
-                        child: Text(
-                          formattedDate,
-                          style: body.copyWith(
-                            fontSize: width * 0.04,
-                            color: subtextColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Voice Assistant Button
-                Semantics(
-                  label: 'Voice assistant button',
-                  hint: 'Double tap to activate voice commands',
-                  button: true,
-                  child: _buildIconButton(
-                    icon: Icons.mic_rounded,
-                    onPressed: _activateVoiceAssistant,
-                    size: 28,
-                  ),
-                ),
-                
-                SizedBox(width: spacingSmall),
-                
-                // Dark Mode Toggle
-                Semantics(
-                  label: _isDarkMode 
-                    ? 'Dark mode is on' 
-                    : 'Light mode is on',
-                  hint: 'Double tap to toggle theme mode',
-                  button: true,
-                  child: _buildIconButton(
-                    icon: _isDarkMode 
-                      ? Icons.dark_mode_rounded 
-                      : Icons.light_mode_rounded,
-                    onPressed: _toggleDarkMode,
-                    size: 28,
-                    isSpecial: _isDarkMode,
-                  ),
-                ),
-              ],
-            ),
-            
-            SizedBox(height: spacingMedium),
-            
-            // Notification Area with TTS support
-            Semantics(
-              label: 'Notification',
-              liveRegion: true,
-              child: AnimatedContainer(
-                duration: Duration(milliseconds: 300),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                decoration: BoxDecoration(
-                  gradient: _isDarkMode 
-                    ? LinearGradient(
-                        colors: [
-                          primary.withOpacity(0.25), 
-                          accent.withOpacity(0.2)
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      )
-                    : LinearGradient(
-                        colors: [
-                          primaryLight.withOpacity(0.15), 
-                          accent.withOpacity(0.1)
-                        ],
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                      ),
-                  borderRadius: BorderRadius.circular(radiusLarge),
-                  border: Border.all(
-                    color: _isDarkMode 
-                      ? primary.withOpacity(0.4) 
-                      : primary.withOpacity(0.25),
-                    width: 1.5,
-                  ),
-                  boxShadow: _isDarkMode 
-                    ? [
-                        BoxShadow(
-                          color: primary.withOpacity(0.2),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ]
-                    : softShadow,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.notifications_active_rounded,
-                      color: _isDarkMode ? primaryLight : primary,
-                      size: 22,
-                    ),
-                    SizedBox(width: spacingMedium),
-                    Expanded(
-                      child: Text(
-                        _notificationMessage,
-                        style: bodyBold.copyWith(
-                          fontSize: 15,
-                          color: _isDarkMode ? white : primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+      bottomNavigationBar: CustomBottomNavigation(
+        selectedIndex: _selectedIndex,
+        isDarkMode: _isDarkMode,
+        onItemTapped: _onNavItemTapped,
+        textColor: theme.textColor,
+        subtextColor: theme.subtextColor,
       ),
     );
   }
 
-  // Icon button helper with glassmorphism effect
-  Widget _buildIconButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    double size = 28,
-    bool isSpecial = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: _isDarkMode 
-          ? [
-              BoxShadow(
-                color: (isSpecial ? accent : primary).withOpacity(0.3),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ]
-          : softShadow,
-        borderRadius: BorderRadius.circular(radiusMedium),
-      ),
-      child: Material(
-        color: _isDarkMode 
-          ? (isSpecial ? accent.withOpacity(0.25) : primary.withOpacity(0.2))
-          : primaryLight.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(radiusMedium),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(radiusMedium),
-          splashColor: primary.withOpacity(0.3),
-          child: Container(
-            padding: EdgeInsets.all(spacingMedium),
-            child: Icon(
-              icon,
-              size: size,
-              color: _isDarkMode 
-                ? (isSpecial ? accent : primaryLight)
-                : primary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Main content based on selected navigation
-  Widget _buildMainContent(double width, double height, Color cardColor, Color textColor, Color subtextColor) {
+  Widget _buildMainContent(double width, double height, _AppTheme theme) {
     switch (_selectedIndex) {
       case 0:
-        return _buildHomeContent(width, height, cardColor, textColor, subtextColor);
+        return HomeContent(
+          cameraService: _cameraService,
+          permissionService: _permissionService,
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          onNotificationUpdate: _updateNotification,
+        );
       case 1:
-        return _buildProfileContent(width, height, cardColor, textColor, subtextColor);
+        return ProfileContent(
+          userData: widget.userData,
+          isDarkMode: _isDarkMode,
+          theme: theme,
+        );
       case 2:
-        return _buildRecentActivitiesContent(width, height, cardColor, textColor, subtextColor);
+        return RecentActivitiesContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+        );
       default:
-        return _buildHomeContent(width, height, cardColor, textColor, subtextColor);
+        return HomeContent(
+          cameraService: _cameraService,
+          permissionService: _permissionService,
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          onNotificationUpdate: _updateNotification,
+        );
     }
   }
 
-  // Home content with camera preview
-  Widget _buildHomeContent(double width, double height, Color cardColor, Color textColor, Color subtextColor) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: width * 0.06,
-        right: width * 0.06,
-        bottom: 100, // Add padding for floating navigation
+  _AppTheme _getDarkTheme() {
+    return _AppTheme(
+      backgroundGradient: LinearGradient(
+        colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A), Color(0xFF2A2F4A)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        stops: [0.0, 0.5, 1.0],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Camera Preview Section
-          Semantics(
-            label: 'Camera preview section',
-            hint: 'Real-time camera feed for visual assistance',
-            child: Container(
-              height: height * 0.38,
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(radiusXLarge),
-                boxShadow: _isDarkMode 
-                  ? [
-                      BoxShadow(
-                        color: primary.withOpacity(0.15),
-                        blurRadius: 20,
-                        offset: Offset(0, 8),
-                      ),
-                    ]
-                  : cardShadow,
-                border: _isDarkMode 
-                  ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
-                  : Border.all(color: greyLighter.withOpacity(0.5), width: 1),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(radiusXLarge),
-                child: _isCameraInitialized && _cameraController != null
-                  ? Stack(
-                      children: [
-                        CameraPreview(_cameraController!),
-                        // Camera overlay gradient
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 80,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.bottomCenter,
-                                end: Alignment.topCenter,
-                                colors: [
-                                  Colors.black.withOpacity(0.7),
-                                  Colors.transparent,
-                                ],
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.all(spacingMedium),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.green.withOpacity(0.6),
-                                          blurRadius: 8,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(width: spacingSmall),
-                                  Text(
-                                    'Camera Active',
-                                    style: caption.copyWith(
-                                      color: white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(spacingLarge),
-                            decoration: BoxDecoration(
-                              gradient: _hasPermissions ? primaryGradient : LinearGradient(
-                                colors: [grey, grey.withOpacity(0.8)],
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: _hasPermissions ? glowShadow : [],
-                            ),
-                            child: Icon(
-                              _hasPermissions ? Icons.camera_alt_rounded : Icons.no_photography_rounded,
-                              size: 48,
-                              color: white,
-                            ),
-                          ),
-                          SizedBox(height: spacingLarge),
-                          Text(
-                            _permissionStatus,
-                            textAlign: TextAlign.center,
-                            style: h3.copyWith(
-                              color: textColor,
-                              fontSize: 20,
-                            ),
-                          ),
-                          SizedBox(height: spacingMedium),
-                          if (!_hasPermissions)
-                            Semantics(
-                              label: 'Open settings button',
-                              button: true,
-                              hint: 'Double tap to open app settings and grant permissions',
-                              child: TextButton.icon(
-                                onPressed: _openAppSettings,
-                                icon: Icon(Icons.settings_rounded),
-                                label: Text('Open Settings'),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: _isDarkMode ? primaryLight : primary,
-                                  textStyle: bodyBold.copyWith(fontSize: 16),
-                                ),
-                              ),
-                            )
-                          else
-                            SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  _isDarkMode ? primaryLight : primary,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-              ),
-            ),
-          ),
-          
-          SizedBox(height: spacingXLarge),
-          
-          // Quick Action Buttons
-          Semantics(
-            label: 'Quick actions section',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Quick Actions',
-                  style: h2.copyWith(
-                    fontSize: 24,
-                    color: textColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                SizedBox(height: spacingMedium),
-                Text(
-                  'Tap any button to activate assistance',
-                  style: body.copyWith(
-                    color: subtextColor,
-                    fontSize: 14,
-                  ),
-                ),
-                SizedBox(height: spacingLarge),
-                
-                // Action buttons grid
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildActionButton(
-                        'Scan Object',
-                        Icons.qr_code_scanner_rounded,
-                        () => _announceToScreenReader('Object scanning started'),
-                        cardColor,
-                        textColor,
-                      ),
-                    ),
-                    SizedBox(width: spacingMedium),
-                    Expanded(
-                      child: _buildActionButton(
-                        'Read Text',
-                        Icons.text_fields_rounded,
-                        () => _announceToScreenReader('Text reading activated'),
-                        cardColor,
-                        textColor,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: spacingMedium),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildActionButton(
-                        'Detect Colors',
-                        Icons.palette_rounded,
-                        () => _announceToScreenReader('Color detection started'),
-                        cardColor,
-                        textColor,
-                      ),
-                    ),
-                    SizedBox(width: spacingMedium),
-                    Expanded(
-                      child: _buildActionButton(
-                        'Emergency',
-                        Icons.emergency_rounded,
-                        () => _announceToScreenReader('Emergency assistance activated'),
-                        cardColor,
-                        textColor,
-                        isEmergency: true,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          SizedBox(height: spacingXLarge),
-        ],
-      ),
+      textColor: white,
+      subtextColor: Color(0xFFB0B8D4),
+      cardColor: Color(0xFF1A1F3A),
     );
   }
 
-  // Action button widget with modern glassmorphism
-  Widget _buildActionButton(
-    String label,
-    IconData icon,
-    VoidCallback onPressed,
-    Color cardColor,
-    Color textColor, {
-    bool isEmergency = false,
-  }) {
-    return Semantics(
-      label: '$label button',
-      button: true,
-      hint: 'Double tap to activate $label',
-      child: Container(
-        decoration: BoxDecoration(
-          boxShadow: _isDarkMode 
-            ? [
-                BoxShadow(
-                  color: (isEmergency ? error : primary).withOpacity(0.2),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : softShadow,
-          borderRadius: BorderRadius.circular(radiusLarge),
-        ),
-        child: Material(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(radiusLarge),
-            splashColor: primary.withOpacity(0.2),
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: spacingLarge * 1.2),
-              decoration: BoxDecoration(
-                gradient: isEmergency
-                  ? LinearGradient(
-                      colors: [
-                        error.withOpacity(_isDarkMode ? 0.25 : 0.1), 
-                        error.withOpacity(_isDarkMode ? 0.15 : 0.05)
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
-                borderRadius: BorderRadius.circular(radiusLarge),
-                border: _isDarkMode 
-                  ? Border.all(
-                      color: isEmergency 
-                        ? error.withOpacity(0.4)
-                        : primary.withOpacity(0.3), 
-                      width: 1.5
-                    )
-                  : Border.all(
-                      color: isEmergency 
-                        ? error.withOpacity(0.3)
-                        : greyLighter,
-                      width: 1.5,
-                    ),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(spacingMedium * 1.2),
-                    decoration: BoxDecoration(
-                      gradient: isEmergency 
-                        ? LinearGradient(colors: [error, error.withOpacity(0.8)])
-                        : primaryGradient,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: (isEmergency ? error : primary).withOpacity(0.4),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 28,
-                      color: white,
-                    ),
-                  ),
-                  SizedBox(height: spacingMedium),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    style: bodyBold.copyWith(
-                      fontSize: 15,
-                      color: textColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+  _AppTheme _getLightTheme() {
+    return _AppTheme(
+      backgroundGradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
+        stops: [0.0, 0.5, 1.0],
       ),
+      textColor: black,
+      subtextColor: grey,
+      cardColor: white,
     );
   }
+}
 
-  // Profile content
-  Widget _buildProfileContent(double width, double height, Color cardColor, Color textColor, Color subtextColor) {
-    final userName = widget.userData['name'] ?? 'User';
-    final userEmail = widget.userData['email'] ?? '';
-    final userAge = widget.userData['age'] ?? 0;
-    
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: width * 0.06,
-        right: width * 0.06,
-        bottom: 100,
-      ),
-      child: Semantics(
-        label: 'Profile information section',
-        child: Container(
-          padding: EdgeInsets.all(spacingXLarge),
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(radiusXLarge),
-            boxShadow: _isDarkMode 
-              ? [
-                  BoxShadow(
-                    color: primary.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ]
-              : cardShadow,
-            border: _isDarkMode 
-              ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
-              : Border.all(color: greyLighter.withOpacity(0.5), width: 1),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile header
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(spacingLarge),
-                    decoration: BoxDecoration(
-                      gradient: primaryGradient,
-                      borderRadius: BorderRadius.circular(radiusMedium),
-                      boxShadow: glowShadow,
-                    ),
-                    child: Icon(Icons.person_rounded, color: white, size: 36),
-                  ),
-                  SizedBox(width: spacingLarge),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Profile',
-                          style: h2.copyWith(
-                            fontSize: 26,
-                            color: textColor,
-                          ),
-                        ),
-                        SizedBox(height: spacingXSmall),
-                        Text(
-                          'Your account information',
-                          style: caption.copyWith(
-                            color: subtextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              
-              SizedBox(height: spacingXLarge),
-              
-              // Profile info
-              _buildInfoRow('Name', userName, textColor, subtextColor),
-              _buildInfoRow('Email', userEmail, textColor, subtextColor),
-              _buildInfoRow('Age', '$userAge years old', textColor, subtextColor),
-              _buildInfoRow('Role', 'User', textColor, subtextColor),
-              
-              SizedBox(height: spacingXLarge),
-              
-              // Sign out button
-              Semantics(
-                label: 'Sign out button',
-                button: true,
-                hint: 'Double tap to sign out of your account',
-                child: CustomButton(
-                  text: 'Sign Out',
-                  isLarge: true,
-                  onPressed: () async {
-                    await authService.value.signOut();
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+class _AppTheme {
+  final LinearGradient backgroundGradient;
+  final Color textColor;
+  final Color subtextColor;
+  final Color cardColor;
 
-  // Recent activities content
-  Widget _buildRecentActivitiesContent(double width, double height, Color cardColor, Color textColor, Color subtextColor) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: width * 0.06,
-        right: width * 0.06,
-        bottom: 100,
-      ),
-      child: Semantics(
-        label: 'Recent activities section',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Recent Activities',
-              style: h2.copyWith(
-                fontSize: 26,
-                color: textColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: spacingSmall),
-            Text(
-              'Your latest interactions with SeelAI',
-              style: body.copyWith(
-                color: subtextColor,
-                fontSize: 14,
-              ),
-            ),
-            SizedBox(height: spacingLarge),
-            
-            _buildActivityCard(
-              'Object Scanned',
-              'Water Bottle - 2 minutes ago',
-              Icons.qr_code_scanner_rounded,
-              cardColor,
-              textColor,
-              subtextColor,
-            ),
-            SizedBox(height: spacingMedium),
-            _buildActivityCard(
-              'Text Read',
-              'Product Label - 15 minutes ago',
-              Icons.text_fields_rounded,
-              cardColor,
-              textColor,
-              subtextColor,
-            ),
-            SizedBox(height: spacingMedium),
-            _buildActivityCard(
-              'Color Detected',
-              'Blue Fabric - 1 hour ago',
-              Icons.palette_rounded,
-              cardColor,
-              textColor,
-              subtextColor,
-            ),
-            SizedBox(height: spacingMedium),
-            _buildActivityCard(
-              'Emergency Called',
-              'Contact alerted - 2 hours ago',
-              Icons.emergency_rounded,
-              cardColor,
-              textColor,
-              subtextColor,
-              isEmergency: true,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Activity card widget
-  Widget _buildActivityCard(
-    String title,
-    String time,
-    IconData icon,
-    Color cardColor,
-    Color textColor,
-    Color subtextColor, {
-    bool isEmergency = false,
-  }) {
-    return Semantics(
-      label: '$title, $time',
-      child: Container(
-        padding: EdgeInsets.all(spacingLarge),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          boxShadow: _isDarkMode 
-            ? [
-                BoxShadow(
-                  color: (isEmergency ? error : primary).withOpacity(0.15),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : softShadow,
-          border: _isDarkMode 
-            ? Border.all(
-                color: isEmergency 
-                  ? error.withOpacity(0.4)
-                  : primary.withOpacity(0.3),
-                width: 1.5,
-              )
-            : Border.all(
-                color: isEmergency 
-                  ? error.withOpacity(0.3)
-                  : greyLighter,
-                width: 1.5,
-              ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(spacingMedium),
-              decoration: BoxDecoration(
-                gradient: isEmergency 
-                  ? LinearGradient(colors: [error, error.withOpacity(0.8)])
-                  : primaryGradient,
-                borderRadius: BorderRadius.circular(radiusMedium),
-                boxShadow: [
-                  BoxShadow(
-                    color: (isEmergency ? error : primary).withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Icon(icon, color: white, size: 24),
-            ),
-            SizedBox(width: spacingLarge),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: bodyBold.copyWith(
-                      fontSize: 17,
-                      color: textColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(height: spacingXSmall),
-                  Text(
-                    time,
-                    style: caption.copyWith(
-                      fontSize: 14,
-                      color: subtextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: subtextColor,
-              size: 24,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Info row helper
-  Widget _buildInfoRow(String label, String value, Color textColor, Color subtextColor) {
-    return Semantics(
-      label: '$label: $value',
-      child: Padding(
-        padding: EdgeInsets.only(bottom: spacingLarge),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(
-              width: 100,
-              child: Text(
-                '$label:',
-                style: body.copyWith(
-                  fontSize: 16,
-                  color: subtextColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Text(
-                value,
-                style: bodyBold.copyWith(
-                  fontSize: 16,
-                  color: textColor,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Bottom Navigation Bar - Floating with glassmorphism
-  Widget _buildBottomNavBar(Color textColor, Color subtextColor) {
-    return Semantics(
-      label: 'Bottom navigation bar',
-      child: Container(
-        margin: EdgeInsets.only(
-          left: 20,
-          right: 20,
-          bottom: 20,
-        ),
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          gradient: _isDarkMode
-            ? LinearGradient(
-                colors: [
-                  Color(0xFF1A1F3A).withOpacity(0.95),
-                  Color(0xFF2A2F4A).withOpacity(0.95),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : LinearGradient(
-                colors: [
-                  white.withOpacity(0.95),
-                  white.withOpacity(0.90),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: _isDarkMode 
-              ? primary.withOpacity(0.3)
-              : greyLighter.withOpacity(0.5),
-            width: 1.5,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: _isDarkMode 
-                ? primary.withOpacity(0.2)
-                : Colors.black.withOpacity(0.1),
-              blurRadius: 24,
-              offset: Offset(0, 8),
-              spreadRadius: -4,
-            ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildNavItem(0, Icons.home_rounded, 'Home', textColor, subtextColor),
-            _buildNavItem(1, Icons.person_rounded, 'Profile', textColor, subtextColor),
-            _buildNavItem(2, Icons.history_rounded, 'Recent', textColor, subtextColor),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Navigation item with modern pill design
-  Widget _buildNavItem(int index, IconData icon, String label, Color textColor, Color subtextColor) {
-    final isSelected = _selectedIndex == index;
-    
-    return Semantics(
-      label: '$label tab',
-      selected: isSelected,
-      button: true,
-      hint: 'Double tap to navigate to $label',
-      child: GestureDetector(
-        onTap: () => _onNavItemTapped(index),
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          padding: EdgeInsets.symmetric(
-            horizontal: isSelected ? spacingLarge * 1.5 : spacingMedium,
-            vertical: spacingMedium,
-          ),
-          decoration: BoxDecoration(
-            gradient: isSelected 
-              ? primaryGradient
-              : null,
-            color: isSelected 
-              ? null
-              : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: primary.withOpacity(0.4),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                    spreadRadius: -2,
-                  ),
-                ]
-              : [],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isSelected 
-                  ? white 
-                  : _isDarkMode ? subtextColor : grey,
-              ),
-              if (isSelected) ...[
-                SizedBox(width: 8),
-                Text(
-                  label,
-                  style: caption.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: white,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  _AppTheme({
+    required this.backgroundGradient,
+    required this.textColor,
+    required this.subtextColor,
+    required this.cardColor,
+  });
 }
