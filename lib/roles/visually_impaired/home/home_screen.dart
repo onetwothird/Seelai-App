@@ -28,8 +28,8 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   bool _hasPermissions = false;
   String _permissionStatus = 'Checking permissions...';
   
-  // High contrast mode toggle
-  bool _isHighContrastMode = false;
+  // Dark mode toggle (renamed from high contrast)
+  bool _isDarkMode = false;
   
   // Bottom navigation
   int _selectedIndex = 0;
@@ -176,17 +176,17 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     super.dispose();
   }
 
-  // Toggle high contrast mode
-  void _toggleHighContrast() {
+  // Toggle dark mode
+  void _toggleDarkMode() {
     setState(() {
-      _isHighContrastMode = !_isHighContrastMode;
+      _isDarkMode = !_isDarkMode;
     });
     
     // Announce to screen reader
     _announceToScreenReader(
-      _isHighContrastMode 
-        ? 'High contrast mode enabled' 
-        : 'High contrast mode disabled'
+      _isDarkMode 
+        ? 'Dark mode enabled' 
+        : 'Light mode enabled'
     );
   }
 
@@ -227,20 +227,22 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     final userName = widget.userData['name'] ?? 'User';
 
-    // Dynamic colors based on contrast mode
-    final bgColor = _isHighContrastMode ? Colors.black : backgroundPrimary;
-    final textColor = _isHighContrastMode ? white : black;
-    final cardColor = _isHighContrastMode ? Color(0xFF1A1A1A) : white;
-    final subtextColor = _isHighContrastMode ? Colors.white70 : grey;
+    // Dynamic colors based on dark mode
+    final bgColor = _isDarkMode ? Color(0xFF0A0E27) : backgroundPrimary;
+    final textColor = _isDarkMode ? white : black;
+    final cardColor = _isDarkMode ? Color(0xFF1A1F3A) : white;
+    final subtextColor = _isDarkMode ? Color(0xFFB0B8D4) : grey;
 
     return Scaffold(
+      extendBody: true, // Allow content to extend behind navigation
       body: Container(
         decoration: BoxDecoration(
-          gradient: _isHighContrastMode 
+          gradient: _isDarkMode 
             ? LinearGradient(
-                colors: [Colors.black, Color(0xFF1A1A1A)],
+                colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A), Color(0xFF2A2F4A)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
+                stops: [0.0, 0.5, 1.0],
               )
             : LinearGradient(
                 begin: Alignment.topLeft,
@@ -250,6 +252,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               ),
         ),
         child: SafeArea(
+          bottom: false, // Don't apply safe area to bottom
           child: Column(
             children: [
               // Header Section
@@ -326,26 +329,26 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                   child: _buildIconButton(
                     icon: Icons.mic_rounded,
                     onPressed: _activateVoiceAssistant,
-                    size: 32,
+                    size: 28,
                   ),
                 ),
                 
                 SizedBox(width: spacingSmall),
                 
-                // High Contrast Toggle
+                // Dark Mode Toggle
                 Semantics(
-                  label: _isHighContrastMode 
-                    ? 'High contrast mode is on' 
-                    : 'High contrast mode is off',
-                  hint: 'Double tap to toggle high contrast mode',
+                  label: _isDarkMode 
+                    ? 'Dark mode is on' 
+                    : 'Light mode is on',
+                  hint: 'Double tap to toggle theme mode',
                   button: true,
                   child: _buildIconButton(
-                    icon: _isHighContrastMode 
-                      ? Icons.contrast_rounded 
-                      : Icons.brightness_6_rounded,
-                    onPressed: _toggleHighContrast,
-                    size: 32,
-                    isSpecial: _isHighContrastMode,
+                    icon: _isDarkMode 
+                      ? Icons.dark_mode_rounded 
+                      : Icons.light_mode_rounded,
+                    onPressed: _toggleDarkMode,
+                    size: 28,
+                    isSpecial: _isDarkMode,
                   ),
                 ),
               ],
@@ -361,25 +364,45 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 duration: Duration(milliseconds: 300),
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                 decoration: BoxDecoration(
-                  gradient: _isHighContrastMode 
-                    ? LinearGradient(colors: [white, white])
+                  gradient: _isDarkMode 
+                    ? LinearGradient(
+                        colors: [
+                          primary.withOpacity(0.25), 
+                          accent.withOpacity(0.2)
+                        ],
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                      )
                     : LinearGradient(
-                        colors: [primaryLight.withOpacity(0.15), accent.withOpacity(0.1)],
+                        colors: [
+                          primaryLight.withOpacity(0.15), 
+                          accent.withOpacity(0.1)
+                        ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
                       ),
                   borderRadius: BorderRadius.circular(radiusLarge),
                   border: Border.all(
-                    color: _isHighContrastMode ? white : primary.withOpacity(0.25),
-                    width: _isHighContrastMode ? 2 : 1.5,
+                    color: _isDarkMode 
+                      ? primary.withOpacity(0.4) 
+                      : primary.withOpacity(0.25),
+                    width: 1.5,
                   ),
-                  boxShadow: _isHighContrastMode ? [] : softShadow,
+                  boxShadow: _isDarkMode 
+                    ? [
+                        BoxShadow(
+                          color: primary.withOpacity(0.2),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ]
+                    : softShadow,
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.notifications_active_rounded,
-                      color: _isHighContrastMode ? black : primary,
+                      color: _isDarkMode ? primaryLight : primary,
                       size: 22,
                     ),
                     SizedBox(width: spacingMedium),
@@ -388,7 +411,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                         _notificationMessage,
                         style: bodyBold.copyWith(
                           fontSize: 15,
-                          color: _isHighContrastMode ? black : primary,
+                          color: _isDarkMode ? white : primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -403,7 +426,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
-  // Icon button helper
+  // Icon button helper with glassmorphism effect
   Widget _buildIconButton({
     required IconData icon,
     required VoidCallback onPressed,
@@ -412,31 +435,33 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        boxShadow: _isHighContrastMode ? [] : softShadow,
+        boxShadow: _isDarkMode 
+          ? [
+              BoxShadow(
+                color: (isSpecial ? accent : primary).withOpacity(0.3),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ]
+          : softShadow,
         borderRadius: BorderRadius.circular(radiusMedium),
       ),
       child: Material(
-        color: _isHighContrastMode 
-          ? (isSpecial ? Colors.yellow : white)
+        color: _isDarkMode 
+          ? (isSpecial ? accent.withOpacity(0.25) : primary.withOpacity(0.2))
           : primaryLight.withOpacity(0.12),
         borderRadius: BorderRadius.circular(radiusMedium),
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(radiusMedium),
-          splashColor: primary.withOpacity(0.2),
+          splashColor: primary.withOpacity(0.3),
           child: Container(
             padding: EdgeInsets.all(spacingMedium),
-            decoration: BoxDecoration(
-              border: _isHighContrastMode 
-                ? Border.all(color: white, width: 2)
-                : null,
-              borderRadius: BorderRadius.circular(radiusMedium),
-            ),
             child: Icon(
               icon,
               size: size,
-              color: _isHighContrastMode 
-                ? (isSpecial ? Colors.black : Colors.black)
+              color: _isDarkMode 
+                ? (isSpecial ? accent : primaryLight)
                 : primary,
             ),
           ),
@@ -462,7 +487,11 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   // Home content with camera preview
   Widget _buildHomeContent(double width, double height, Color cardColor, Color textColor, Color subtextColor) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+      padding: EdgeInsets.only(
+        left: width * 0.06,
+        right: width * 0.06,
+        bottom: 100, // Add padding for floating navigation
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -475,9 +504,17 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               decoration: BoxDecoration(
                 color: cardColor,
                 borderRadius: BorderRadius.circular(radiusXLarge),
-                boxShadow: _isHighContrastMode ? [] : cardShadow,
-                border: _isHighContrastMode 
-                  ? Border.all(color: white, width: 2.5)
+                boxShadow: _isDarkMode 
+                  ? [
+                      BoxShadow(
+                        color: primary.withOpacity(0.15),
+                        blurRadius: 20,
+                        offset: Offset(0, 8),
+                      ),
+                    ]
+                  : cardShadow,
+                border: _isDarkMode 
+                  ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
                   : Border.all(color: greyLighter.withOpacity(0.5), width: 1),
               ),
               child: ClipRRect(
@@ -498,7 +535,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
                                 colors: [
-                                  Colors.black.withOpacity(0.6),
+                                  Colors.black.withOpacity(0.7),
                                   Colors.transparent,
                                 ],
                               ),
@@ -508,7 +545,21 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.camera_alt_rounded, color: white, size: 18),
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green.withOpacity(0.6),
+                                          blurRadius: 8,
+                                          spreadRadius: 2,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                   SizedBox(width: spacingSmall),
                                   Text(
                                     'Camera Active',
@@ -563,7 +614,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                                 icon: Icon(Icons.settings_rounded),
                                 label: Text('Open Settings'),
                                 style: TextButton.styleFrom(
-                                  foregroundColor: _isHighContrastMode ? white : primary,
+                                  foregroundColor: _isDarkMode ? primaryLight : primary,
                                   textStyle: bodyBold.copyWith(fontSize: 16),
                                 ),
                               ),
@@ -575,7 +626,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                               child: CircularProgressIndicator(
                                 strokeWidth: 3,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  _isHighContrastMode ? white : primary,
+                                  _isDarkMode ? primaryLight : primary,
                                 ),
                               ),
                             ),
@@ -599,6 +650,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                   style: h2.copyWith(
                     fontSize: 24,
                     color: textColor,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 SizedBox(height: spacingMedium),
@@ -670,7 +722,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
-  // Action button widget
+  // Action button widget with modern glassmorphism
   Widget _buildActionButton(
     String label,
     IconData icon,
@@ -685,31 +737,45 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       hint: 'Double tap to activate $label',
       child: Container(
         decoration: BoxDecoration(
-          boxShadow: _isHighContrastMode ? [] : softShadow,
+          boxShadow: _isDarkMode 
+            ? [
+                BoxShadow(
+                  color: (isEmergency ? error : primary).withOpacity(0.2),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : softShadow,
           borderRadius: BorderRadius.circular(radiusLarge),
         ),
         child: Material(
-          color: _isHighContrastMode 
-            ? (isEmergency ? error : white)
-            : cardColor,
+          color: cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
           child: InkWell(
             onTap: onPressed,
             borderRadius: BorderRadius.circular(radiusLarge),
-            splashColor: primary.withOpacity(0.1),
+            splashColor: primary.withOpacity(0.2),
             child: Container(
-              padding: EdgeInsets.symmetric(vertical: spacingLarge),
+              padding: EdgeInsets.symmetric(vertical: spacingLarge * 1.2),
               decoration: BoxDecoration(
-                gradient: isEmergency && !_isHighContrastMode
+                gradient: isEmergency
                   ? LinearGradient(
-                      colors: [error.withOpacity(0.1), error.withOpacity(0.05)],
+                      colors: [
+                        error.withOpacity(_isDarkMode ? 0.25 : 0.1), 
+                        error.withOpacity(_isDarkMode ? 0.15 : 0.05)
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : null,
                 borderRadius: BorderRadius.circular(radiusLarge),
-                border: _isHighContrastMode 
-                  ? Border.all(color: isEmergency ? white : white, width: 2.5)
+                border: _isDarkMode 
+                  ? Border.all(
+                      color: isEmergency 
+                        ? error.withOpacity(0.4)
+                        : primary.withOpacity(0.3), 
+                      width: 1.5
+                    )
                   : Border.all(
                       color: isEmergency 
                         ? error.withOpacity(0.3)
@@ -720,13 +786,19 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               child: Column(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(spacingMedium),
+                    padding: EdgeInsets.all(spacingMedium * 1.2),
                     decoration: BoxDecoration(
                       gradient: isEmergency 
                         ? LinearGradient(colors: [error, error.withOpacity(0.8)])
                         : primaryGradient,
                       shape: BoxShape.circle,
-                      boxShadow: isEmergency ? [] : glowShadow,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (isEmergency ? error : primary).withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Icon(
                       icon,
@@ -740,9 +812,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                     textAlign: TextAlign.center,
                     style: bodyBold.copyWith(
                       fontSize: 15,
-                      color: _isHighContrastMode 
-                        ? (isEmergency ? white : black)
-                        : textColor,
+                      color: textColor,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -762,7 +832,11 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     final userAge = widget.userData['age'] ?? 0;
     
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+      padding: EdgeInsets.only(
+        left: width * 0.06,
+        right: width * 0.06,
+        bottom: 100,
+      ),
       child: Semantics(
         label: 'Profile information section',
         child: Container(
@@ -770,9 +844,17 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           decoration: BoxDecoration(
             color: cardColor,
             borderRadius: BorderRadius.circular(radiusXLarge),
-            boxShadow: _isHighContrastMode ? [] : cardShadow,
-            border: _isHighContrastMode 
-              ? Border.all(color: white, width: 2.5)
+            boxShadow: _isDarkMode 
+              ? [
+                  BoxShadow(
+                    color: primary.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
+                  ),
+                ]
+              : cardShadow,
+            border: _isDarkMode 
+              ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
               : Border.all(color: greyLighter.withOpacity(0.5), width: 1),
           ),
           child: Column(
@@ -848,7 +930,11 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   // Recent activities content
   Widget _buildRecentActivitiesContent(double width, double height, Color cardColor, Color textColor, Color subtextColor) {
     return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+      padding: EdgeInsets.only(
+        left: width * 0.06,
+        right: width * 0.06,
+        bottom: 100,
+      ),
       child: Semantics(
         label: 'Recent activities section',
         child: Column(
@@ -859,6 +945,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               style: h2.copyWith(
                 fontSize: 26,
                 color: textColor,
+                fontWeight: FontWeight.w700,
               ),
             ),
             SizedBox(height: spacingSmall),
@@ -930,9 +1017,22 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
-          boxShadow: _isHighContrastMode ? [] : softShadow,
-          border: _isHighContrastMode 
-            ? Border.all(color: white, width: 2)
+          boxShadow: _isDarkMode 
+            ? [
+                BoxShadow(
+                  color: (isEmergency ? error : primary).withOpacity(0.15),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : softShadow,
+          border: _isDarkMode 
+            ? Border.all(
+                color: isEmergency 
+                  ? error.withOpacity(0.4)
+                  : primary.withOpacity(0.3),
+                width: 1.5,
+              )
             : Border.all(
                 color: isEmergency 
                   ? error.withOpacity(0.3)
@@ -949,7 +1049,13 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                   ? LinearGradient(colors: [error, error.withOpacity(0.8)])
                   : primaryGradient,
                 borderRadius: BorderRadius.circular(radiusMedium),
-                boxShadow: isEmergency ? [] : glowShadow,
+                boxShadow: [
+                  BoxShadow(
+                    color: (isEmergency ? error : primary).withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
               ),
               child: Icon(icon, color: white, size: 24),
             ),
@@ -1024,45 +1130,66 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
-  // Bottom Navigation Bar
+  // Bottom Navigation Bar - Floating with glassmorphism
   Widget _buildBottomNavBar(Color textColor, Color subtextColor) {
     return Semantics(
       label: 'Bottom navigation bar',
       child: Container(
-        decoration: BoxDecoration(
-          color: _isHighContrastMode ? Colors.black : white,
-          boxShadow: _isHighContrastMode 
-            ? [] 
-            : [
-                BoxShadow(
-                  color: primary.withOpacity(0.08),
-                  blurRadius: 20,
-                  offset: Offset(0, -4),
-                  spreadRadius: -2,
-                ),
-              ],
-          border: _isHighContrastMode 
-            ? Border(top: BorderSide(color: white, width: 2.5))
-            : Border(top: BorderSide(color: greyLighter.withOpacity(0.5), width: 1)),
+        margin: EdgeInsets.only(
+          left: 20,
+          right: 20,
+          bottom: 20,
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: spacingMedium),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.home_rounded, 'Home', textColor, subtextColor),
-                _buildNavItem(1, Icons.person_rounded, 'Profile', textColor, subtextColor),
-                _buildNavItem(2, Icons.history_rounded, 'Recent', textColor, subtextColor),
-              ],
-            ),
+        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          gradient: _isDarkMode
+            ? LinearGradient(
+                colors: [
+                  Color(0xFF1A1F3A).withOpacity(0.95),
+                  Color(0xFF2A2F4A).withOpacity(0.95),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [
+                  white.withOpacity(0.95),
+                  white.withOpacity(0.90),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: _isDarkMode 
+              ? primary.withOpacity(0.3)
+              : greyLighter.withOpacity(0.5),
+            width: 1.5,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: _isDarkMode 
+                ? primary.withOpacity(0.2)
+                : Colors.black.withOpacity(0.1),
+              blurRadius: 24,
+              offset: Offset(0, 8),
+              spreadRadius: -4,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(0, Icons.home_rounded, 'Home', textColor, subtextColor),
+            _buildNavItem(1, Icons.person_rounded, 'Profile', textColor, subtextColor),
+            _buildNavItem(2, Icons.history_rounded, 'Recent', textColor, subtextColor),
+          ],
         ),
       ),
     );
   }
 
-  // Navigation item
+  // Navigation item with modern pill design
   Widget _buildNavItem(int index, IconData icon, String label, Color textColor, Color subtextColor) {
     final isSelected = _selectedIndex == index;
     
@@ -1077,7 +1204,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           duration: Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,
           padding: EdgeInsets.symmetric(
-            horizontal: spacingLarge,
+            horizontal: isSelected ? spacingLarge * 1.5 : spacingMedium,
             vertical: spacingMedium,
           ),
           decoration: BoxDecoration(
@@ -1087,14 +1214,11 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
             color: isSelected 
               ? null
               : Colors.transparent,
-            borderRadius: BorderRadius.circular(radiusMedium),
-            border: _isHighContrastMode && isSelected
-              ? Border.all(color: white, width: 2.5)
-              : null,
-            boxShadow: isSelected && !_isHighContrastMode
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: primary.withOpacity(0.3),
+                    color: primary.withOpacity(0.4),
                     blurRadius: 12,
                     offset: Offset(0, 4),
                     spreadRadius: -2,
@@ -1102,28 +1226,28 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 ]
               : [],
           ),
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 28,
+                size: 24,
                 color: isSelected 
                   ? white 
-                  : _isHighContrastMode ? white : grey,
+                  : _isDarkMode ? subtextColor : grey,
               ),
-              SizedBox(height: spacingXSmall),
-              Text(
-                label,
-                style: caption.copyWith(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  color: isSelected 
-                    ? white 
-                    : _isHighContrastMode ? white : grey,
-                  letterSpacing: 0.3,
+              if (isSelected) ...[
+                SizedBox(width: 8),
+                Text(
+                  label,
+                  style: caption.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: white,
+                    letterSpacing: 0.3,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
