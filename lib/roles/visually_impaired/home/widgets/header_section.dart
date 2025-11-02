@@ -48,7 +48,7 @@ class HeaderSection extends StatelessWidget {
                       Semantics(
                         label: 'Greeting',
                         child: Text(
-                          'Hi, $userName',
+                          'Hi, $userName!',
                           style: h1.copyWith(
                             fontSize: width * 0.075,
                             fontWeight: FontWeight.w800,
