@@ -26,7 +26,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _employeeIdController = TextEditingController();
   final TextEditingController _departmentController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -63,7 +62,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     _nameController.dispose();
     _ageController.dispose();
     _emailController.dispose();
-    _employeeIdController.dispose();
     _departmentController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -225,15 +223,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                           hint: 'Email address',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
-                          screenHeight: screenHeight,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        _buildTextField(
-                          controller: _employeeIdController,
-                          hint: 'Employee ID',
-                          icon: Icons.badge_outlined,
                           screenHeight: screenHeight,
                         ),
 
@@ -488,7 +477,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     if (_nameController.text.trim().isEmpty ||
         _ageController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
-        _employeeIdController.text.trim().isEmpty ||
         _departmentController.text.trim().isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
@@ -555,7 +543,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
         age: age,
         email: _emailController.text.trim(),
         role: 'admin',
-        employeeId: _employeeIdController.text.trim(),
         department: _departmentController.text.trim(),
       );
 
