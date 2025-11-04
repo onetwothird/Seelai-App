@@ -77,11 +77,10 @@ class QuickActionsSection extends StatelessWidget {
             children: [
               Expanded(
                 child: ActionButton(
-                  label: 'Navigate Path',
-                  icon: Icons.navigation_rounded,
-                  onPressed: () => onAction('Navigation assistance started'),
+                  label: 'Scan Caretaker',
+                  icon: Icons.badge_rounded,
+                  onPressed: () => onAction('Caretaker scanning started'),
                   isDarkMode: isDarkMode,
-                  // Clear and accessible color scheme for navigation
                   cardColor: cardColor,
                   textColor: textColor,
                 ),
@@ -93,8 +92,8 @@ class QuickActionsSection extends StatelessWidget {
                   icon: Icons.phone_in_talk_rounded,
                   onPressed: onEmergencyHotlines,
                   isDarkMode: isDarkMode,
-                  cardColor: isDarkMode ? Colors.red.shade700 : Colors.red.shade100,
-                  textColor: isDarkMode ? Colors.white : Colors.red.shade900,
+                  cardColor: isDarkMode ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade100,
+                  textColor: isDarkMode ? Colors.red.shade100 : Colors.red.shade900,
                   isEmergency: true,
                 ),
               ),
