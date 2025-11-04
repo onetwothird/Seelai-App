@@ -17,6 +17,8 @@
     <uses-feature android:name="android.camera" android:required="false" />
     <uses-feature android:name="android.camera.autofocus" android:required="false" />
 
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+
     <application
         android:label="seelai_app"
         android:name="${applicationName}"
@@ -60,4 +62,12 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
+     <intent>
+        <action android:name="android.intent.action.DIAL" />
+        <data android:scheme="tel" />
+    </intent>
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="https" />
+    </intent>
 </manifest>
