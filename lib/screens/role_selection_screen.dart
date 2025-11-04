@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/roles/visually_impaired/login/login_screen.dart';
-import 'package:seelai_app/roles/visually_impaired/signup/signup_screen.dart';
+import 'package:seelai_app/roles/visually_impaired/auth/login/login_screen.dart';
+import 'package:seelai_app/roles/visually_impaired/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/caretaker/login/login_screen.dart';
 import 'package:seelai_app/roles/caretaker/signup/signup_screen.dart';
 import 'package:seelai_app/roles/mswd/login/login_screen.dart';
