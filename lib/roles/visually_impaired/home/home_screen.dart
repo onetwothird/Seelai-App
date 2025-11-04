@@ -336,6 +336,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 notificationMessage: _notificationMessage,
                 onVoiceAssistant: _activateVoiceAssistant,
                 onToggleDarkMode: _toggleDarkMode,
+                   
                 textColor: theme.textColor,
                 subtextColor: theme.subtextColor,
               ),
