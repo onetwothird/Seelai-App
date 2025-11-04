@@ -65,8 +65,9 @@ class CustomBottomNavigation extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(0, Icons.home_rounded, 'Home'),
-            _buildNavItem(1, Icons.person_rounded, 'Profile'),
-            _buildNavItem(2, Icons.history_rounded, 'Recent'),
+            _buildNavItem(1, Icons.contacts_rounded, 'Contacts'),
+            _buildNavItem(2, Icons.person_rounded, 'Profile'),
+            _buildNavItem(3, Icons.history_rounded, 'Recent'),
           ],
         ),
       ),
@@ -87,7 +88,7 @@ class CustomBottomNavigation extends StatelessWidget {
           duration: Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,
           padding: EdgeInsets.symmetric(
-            horizontal: isSelected ? spacingLarge * 1.5 : spacingMedium,
+            horizontal: isSelected ? spacingLarge * 1.2 : spacingMedium,
             vertical: spacingMedium,
           ),
           decoration: BoxDecoration(
