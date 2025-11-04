@@ -4,6 +4,7 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/home_content.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/contacts_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/profile_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activities_content.dart';
 import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
@@ -131,7 +132,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     });
     _animationController.forward();
     
-    final labels = ['Home', 'Profile', 'Recent Activities'];
+    final labels = ['Home', 'Contacts', 'Profile', 'Recent Activities'];
     _accessibilityService.announce('Navigated to ${labels[index]}');
   }
 
@@ -336,7 +337,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 notificationMessage: _notificationMessage,
                 onVoiceAssistant: _activateVoiceAssistant,
                 onToggleDarkMode: _toggleDarkMode,
-                   
                 textColor: theme.textColor,
                 subtextColor: theme.subtextColor,
               ),
@@ -377,12 +377,17 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           onRequestCaretaker: _requestCaretaker,
         );
       case 1:
+        return ContactsContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+        );
+      case 2:
         return ProfileContent(
           userData: widget.userData,
           isDarkMode: _isDarkMode,
           theme: theme,
         );
-      case 2:
+      case 3:
         return RecentActivitiesContent(
           isDarkMode: _isDarkMode,
           theme: theme,
