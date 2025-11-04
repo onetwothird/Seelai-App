@@ -9,7 +9,7 @@ class QuickActionsSection extends StatelessWidget {
   final Color textColor;
   final Color subtextColor;
   final Function(String) onAction;
-  final VoidCallback onEmergencyHotlines;
+  final VoidCallback onEmergency;
 
   const QuickActionsSection({
     super.key,
@@ -18,7 +18,7 @@ class QuickActionsSection extends StatelessWidget {
     required this.textColor,
     required this.subtextColor,
     required this.onAction,
-    required this.onEmergencyHotlines,
+    required this.onEmergency,
   });
 
   @override
@@ -89,7 +89,7 @@ class QuickActionsSection extends StatelessWidget {
                 child: ActionButton(
                   label: 'Emergency',
                   icon: Icons.phone_in_talk_rounded,
-                  onPressed: onEmergencyHotlines,
+                  onPressed: onEmergency,
                   isDarkMode: isDarkMode,
                   cardColor: isDarkMode ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade100,
                   textColor: isDarkMode ? Colors.red.shade100 : Colors.red.shade900,
