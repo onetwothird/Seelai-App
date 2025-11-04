@@ -18,7 +18,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   late AnimationController _floatController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  late Animation<double> _floatAnimation;
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -53,9 +52,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
 
-    _floatAnimation = Tween<double>(begin: -8, end: 8).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
 
     _fadeController.forward();
   }
