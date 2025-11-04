@@ -26,58 +26,101 @@ class DatabaseService {
 
   /// Create a new user document in Realtime Database
   /// Called during signup after Firebase Auth account creation
-  Future<void> createUserDocument({
-    required String userId,
-    required String name,
-    required int age,
-    required String email,
-    required String role, // 'visually_impaired', 'caretaker', or 'admin'
-    String? phone,
-    String? relationship,
-    String? employeeId,
-    String? department,
-  }) async {
-    try {
-      // Base user data - common to all roles
-      Map<String, dynamic> userData = {
-        'name': name,
-        'age': age,
-        'email': email,
-        'role': role,
-        'createdAt': ServerValue.timestamp,
-        'updatedAt': ServerValue.timestamp,
-        'isActive': true,
-        'profileImageUrl': '',
-      };
+ Future<void> createUserDocument({
+  required String userId,
+  required String name,
+  required int age,
+  required String email,
+  required String role, // 'visually_impaired', 'caretaker', or 'admin'
+  // Optional fields for all roles
+  String? idNumber,
+  String? sex,
+  DateTime? birthdate,
+  String? disabilityType,
+  String? diagnosis,
+  String? address,
+  String? contactNumber,
+  // Caretaker-specific
+  String? phone,
+  String? relationship,
+  // Admin-specific
+  String? department,
+}) async {
+  try {
+    // Base user data - common to all roles
+    Map<String, dynamic> userData = {
+      'name': name,
+      'age': age,
+      'email': email,
+      'role': role,
+      'createdAt': ServerValue.timestamp,
+      'updatedAt': ServerValue.timestamp,
+      'isActive': true,
+      'profileImageUrl': '',
+    };
 
-      // Add role-specific fields based on the selected role
-      if (role == 'caretaker') {
-        // Caretaker-specific fields
-        userData['phone'] = phone ?? '';
-        userData['relationship'] = relationship ?? '';
-        userData['assignedPatients'] = {}; // Empty map for assigned patients
-      } else if (role == 'admin') {
-        // Admin (MSWD)-specific fields
-        userData['employeeId'] = employeeId ?? '';
-        userData['department'] = department ?? '';
-      } else if (role == 'visually_impaired') {
-        // Visually Impaired User-specific fields
-        userData['assignedCaretakers'] = {}; // Empty map for assigned caretakers
-        userData['emergencyContacts'] = {}; // Empty map for emergency contacts
-        userData['deviceSettings'] = {
-          'voiceEnabled': true,
-          'fontSize': 'medium',
-          'highContrast': false,
-        };
+    // Add role-specific fields based on the selected role
+    if (role == 'caretaker') {
+      // Caretaker-specific fields
+      userData['phone'] = phone ?? '';
+      userData['relationship'] = relationship ?? '';
+      userData['contactNumber'] = phone ?? contactNumber ?? '';
+      userData['assignedPatients'] = {}; // Empty map for assigned patients
+      
+      // Optional fields with defaults
+      userData['idNumber'] = idNumber ?? '';
+      userData['sex'] = sex ?? 'Not Specified';
+      userData['birthdate'] = birthdate?.toIso8601String() ?? 
+          DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
+      userData['disabilityType'] = disabilityType ?? 'N/A';
+      userData['diagnosis'] = diagnosis ?? 'N/A';
+      userData['address'] = address ?? '';
+      
+    } else if (role == 'admin') {
+      // Admin (MSWD)-specific fields
+      userData['department'] = department ?? '';
+      
+      // Optional fields with defaults
+      userData['sex'] = sex ?? 'Not Specified';
+      userData['birthdate'] = birthdate?.toIso8601String() ?? 
+          DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
+      userData['disabilityType'] = disabilityType ?? 'N/A';
+      userData['diagnosis'] = diagnosis ?? 'N/A';
+      userData['address'] = address ?? '';
+      userData['contactNumber'] = contactNumber ?? '';
+      
+    } else if (role == 'visually_impaired') {
+      // Visually Impaired User - all fields required
+      if (idNumber == null || sex == null || birthdate == null || 
+          disabilityType == null || diagnosis == null || 
+          address == null || contactNumber == null) {
+        throw Exception('All fields are required for visually impaired users');
       }
-
-      // Save to database using role-based path
-      String path = _getUserPath(role, userId);
-      await _database.ref(path).set(userData);
-    } catch (e) {
-      throw Exception('Failed to create user document: $e');
+      
+      // Visually Impaired User-specific fields
+      userData['idNumber'] = idNumber;
+      userData['sex'] = sex;
+      userData['birthdate'] = birthdate.toIso8601String();
+      userData['disabilityType'] = disabilityType;
+      userData['diagnosis'] = diagnosis;
+      userData['address'] = address;
+      userData['contactNumber'] = contactNumber;
+      userData['assignedCaretakers'] = {}; // Empty map for assigned caretakers
+      userData['emergencyContacts'] = {}; // Empty map for emergency contacts
+      userData['deviceSettings'] = {
+        'voiceEnabled': true,
+        'fontSize': 'medium',
+        'highContrast': false,
+      };
     }
+
+    // Save to database using role-based path
+    String path = _getUserPath(role, userId);
+    await _database.ref(path).set(userData);
+  } catch (e) {
+    throw Exception('Failed to create user document: $e');
   }
+}
 
   /// Get user data by user ID (searches all role paths)
   Future<Map<String, dynamic>?> getUserData(String userId) async {
@@ -141,12 +184,18 @@ class DatabaseService {
   Future<void> updateUserProfile({
     required String userId,
     required String role,
+    String? idNumber,
     String? name,
+    String? sex,
     int? age,
+    DateTime? birthdate,
+    String? disabilityType,
+    String? diagnosis,
+    String? address,
+    String? contactNumber,
     String? phone,
     String? profileImageUrl,
     String? relationship,
-    String? employeeId,
     String? department,
   }) async {
     try {
@@ -154,14 +203,20 @@ class DatabaseService {
         'updatedAt': ServerValue.timestamp,
       };
 
+      if (idNumber != null) updates['idNumber'] = idNumber;
       if (name != null) updates['name'] = name;
+      if (sex != null) updates['sex'] = sex;
       if (age != null) updates['age'] = age;
+      if (birthdate != null) updates['birthdate'] = birthdate.toIso8601String();
+      if (disabilityType != null) updates['disabilityType'] = disabilityType;
+      if (diagnosis != null) updates['diagnosis'] = diagnosis;
+      if (address != null) updates['address'] = address;
+      if (contactNumber != null) updates['contactNumber'] = contactNumber;
       if (profileImageUrl != null) updates['profileImageUrl'] = profileImageUrl;
       
       // Role-specific updates
       if (phone != null) updates['phone'] = phone;
       if (relationship != null) updates['relationship'] = relationship;
-      if (employeeId != null) updates['employeeId'] = employeeId;
       if (department != null) updates['department'] = department;
 
       String path = _getUserPath(role, userId);
