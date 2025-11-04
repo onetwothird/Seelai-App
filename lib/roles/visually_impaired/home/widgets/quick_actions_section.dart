@@ -77,10 +77,11 @@ class QuickActionsSection extends StatelessWidget {
             children: [
               Expanded(
                 child: ActionButton(
-                  label: 'Detect Colors',
-                  icon: Icons.palette_rounded,
-                  onPressed: () => onAction('Color detection started'),
+                  label: 'Navigate Path',
+                  icon: Icons.navigation_rounded,
+                  onPressed: () => onAction('Navigation assistance started'),
                   isDarkMode: isDarkMode,
+                  // Clear and accessible color scheme for navigation
                   cardColor: cardColor,
                   textColor: textColor,
                 ),
@@ -92,8 +93,8 @@ class QuickActionsSection extends StatelessWidget {
                   icon: Icons.phone_in_talk_rounded,
                   onPressed: onEmergencyHotlines,
                   isDarkMode: isDarkMode,
-                  cardColor: cardColor,
-                  textColor: textColor,
+                  cardColor: isDarkMode ? Colors.red.shade700 : Colors.red.shade100,
+                  textColor: isDarkMode ? Colors.white : Colors.red.shade900,
                   isEmergency: true,
                 ),
               ),
