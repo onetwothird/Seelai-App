@@ -20,7 +20,6 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
   late AnimationController _floatController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  late Animation<double> _floatAnimation;
 
   bool _obscurePassword = true;
   bool _isLoading = false;
@@ -49,9 +48,6 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic));
 
-    _floatAnimation = Tween<double>(begin: -10, end: 10).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
 
     _fadeController.forward();
   }
