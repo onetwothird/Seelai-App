@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
-import 'package:seelai_app/roles/visually_impaired/home/widgets/camera_preview_section.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/quick_actions_section.dart';
 import 'package:seelai_app/roles/visually_impaired/screens/emergency_hotlines_screen.dart';
 
@@ -28,7 +27,6 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
@@ -39,15 +37,6 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CameraPreviewSection(
-            cameraService: cameraService,
-            permissionService: permissionService,
-            isDarkMode: isDarkMode,
-            cardColor: theme.cardColor,
-            textColor: theme.textColor,
-            height: height * 0.38,
-          ),
-          
           SizedBox(height: spacingXLarge),
           
           QuickActionsSection(
