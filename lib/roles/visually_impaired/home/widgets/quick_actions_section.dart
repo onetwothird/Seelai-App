@@ -46,7 +46,6 @@ class QuickActionsSection extends StatelessWidget {
           ),
           SizedBox(height: spacingLarge),
           
-          // Action buttons grid
           Row(
             children: [
               Expanded(
