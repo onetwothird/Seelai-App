@@ -4,7 +4,7 @@ import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:seelai_app/core/firebase_options.dart';
 
 void main() async {
-  // Ensure Flutter binding is initialized
+
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Firebase only if not already initialized
