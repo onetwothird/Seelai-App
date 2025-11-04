@@ -23,11 +23,29 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
 
+  final TextEditingController _idNumberController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _contactNumberController = TextEditingController();
+  final TextEditingController _diagnosisController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+
+  String? _selectedSex; // Changed to nullable
+  String _selectedDisabilityType = 'Visual Impairment';
+  DateTime? _selectedBirthdate;
+
+  final List<String> _sexOptions = ['Male', 'Female'];
+  final List<String> _disabilityTypes = [
+    'Visual Impairment',
+    'Hearing Impairment',
+    'Physical Disability',
+    'Intellectual Disability',
+    'Multiple Disabilities',
+    'Other',
+  ];
 
   @override
   void initState() {
@@ -50,7 +68,6 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
 
-
     _fadeController.forward();
   }
 
@@ -58,12 +75,44 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   void dispose() {
     _fadeController.dispose();
     _floatController.dispose();
+    _idNumberController.dispose();
     _nameController.dispose();
     _ageController.dispose();
+    _addressController.dispose();
+    _contactNumberController.dispose();
+    _diagnosisController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectBirthdate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: primary,
+              onPrimary: white,
+              surface: white,
+              onSurface: black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedBirthdate = picked;
+      });
+    }
   }
 
   @override
@@ -174,9 +223,33 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                         SizedBox(height: screenHeight * 0.04),
 
                         _buildTextField(
+                          controller: _idNumberController,
+                          hint: 'ID Number',
+                          icon: Icons.badge_outlined,
+                          screenHeight: screenHeight,
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        _buildTextField(
                           controller: _nameController,
                           hint: 'Full Name',
                           icon: Icons.person_outline,
+                          screenHeight: screenHeight,
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        _buildDropdownField(
+                          value: _selectedSex,
+                          items: _sexOptions,
+                          hint: 'Sex',
+                          icon: Icons.wc_outlined,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedSex = value;
+                            });
+                          },
                           screenHeight: screenHeight,
                         ),
 
@@ -187,6 +260,59 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                           hint: 'Age',
                           icon: Icons.cake_outlined,
                           keyboardType: TextInputType.number,
+                          screenHeight: screenHeight,
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        _buildDateField(
+                          selectedDate: _selectedBirthdate,
+                          hint: 'Birthdate',
+                          icon: Icons.calendar_today_outlined,
+                          onTap: _selectBirthdate,
+                          screenHeight: screenHeight,
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        _buildDropdownField(
+                          value: _selectedDisabilityType,
+                          items: _disabilityTypes,
+                          hint: 'Type of Disability',
+                          icon: Icons.accessible_outlined,
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedDisabilityType = value!;
+                            });
+                          },
+                          screenHeight: screenHeight,
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        _buildTextField(
+                          controller: _diagnosisController,
+                          hint: 'Diagnosis',
+                          icon: Icons.medical_information_outlined,
+                          screenHeight: screenHeight,
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        _buildTextField(
+                          controller: _addressController,
+                          hint: 'Address',
+                          icon: Icons.home_outlined,
+                          screenHeight: screenHeight,
+                        ),
+
+                        SizedBox(height: screenHeight * 0.02),
+
+                        _buildTextField(
+                          controller: _contactNumberController,
+                          hint: 'Contact Number',
+                          icon: Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
                           screenHeight: screenHeight,
                         ),
 
@@ -214,7 +340,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                             style: body.copyWith(
                               fontSize: 16,
                               color: black,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                             decoration: InputDecoration(
                               fillColor: white,
@@ -277,7 +403,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                             style: body.copyWith(
                               fontSize: 16,
                               color: black,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                             decoration: InputDecoration(
                               fillColor: white,
@@ -401,7 +527,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         style: body.copyWith(
           fontSize: 16,
           color: black,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
         ),
         decoration: InputDecoration(
           fillColor: white,
@@ -437,10 +563,138 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
     );
   }
 
+  Widget _buildDropdownField({
+    required String? value,
+    required List<String> items,
+    required String hint,
+    required IconData icon,
+    required Function(String?) onChanged,
+    required double screenHeight,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: softShadow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        items: items.map((String item) {
+          return DropdownMenuItem<String>(
+            value: item,
+            child: Text(item),
+          );
+        }).toList(),
+        onChanged: _isLoading ? null : onChanged,
+        style: body.copyWith(
+          fontSize: 16,
+          color: black,
+          fontWeight: FontWeight.w400,
+        ),
+        decoration: InputDecoration(
+          fillColor: white,
+          filled: true,
+          hintText: hint,
+          hintStyle: body.copyWith(
+            color: grey.withOpacity(0.5),
+            fontWeight: FontWeight.w400,
+          ),
+          prefixIcon: Container(
+            padding: const EdgeInsets.all(12),
+            child: Icon(
+              icon,
+              color: primary,
+              size: 24,
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: lightBlue, width: 1.5),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: lightBlue, width: 1.5),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: primary, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateField({
+    required DateTime? selectedDate,
+    required String hint,
+    required IconData icon,
+    required VoidCallback onTap,
+    required double screenHeight,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: softShadow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: InkWell(
+        onTap: _isLoading ? null : onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: InputDecorator(
+          decoration: InputDecoration(
+            fillColor: white,
+            filled: true,
+            hintText: hint,
+            hintStyle: body.copyWith(
+              color: grey.withOpacity(0.5),
+              fontWeight: FontWeight.w400,
+            ),
+            prefixIcon: Container(
+              padding: const EdgeInsets.all(12),
+              child: Icon(
+                icon,
+                color: primary,
+                size: 24,
+              ),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: lightBlue, width: 1.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: lightBlue, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: primary, width: 2),
+            ),
+          ),
+          child: Text(
+            selectedDate != null
+                ? '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}'
+                : hint,
+            style: body.copyWith(
+              fontSize: 16,
+              color: selectedDate != null ? black : grey.withOpacity(0.5),
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleSignup() async {
     // Validation checks
-    if (_nameController.text.trim().isEmpty ||
+    if (_idNumberController.text.trim().isEmpty ||
+        _nameController.text.trim().isEmpty ||
+        _selectedSex == null ||
         _ageController.text.trim().isEmpty ||
+        _selectedBirthdate == null ||
+        _diagnosisController.text.trim().isEmpty ||
+        _addressController.text.trim().isEmpty ||
+        _contactNumberController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
@@ -503,8 +757,15 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
       // Step 3: Create user document in Realtime Database
       await databaseService.createUserDocument(
         userId: userCredential.user!.uid,
+        idNumber: _idNumberController.text.trim(),
         name: _nameController.text.trim(),
+        sex: _selectedSex!,
         age: age,
+        birthdate: _selectedBirthdate!,
+        disabilityType: _selectedDisabilityType,
+        diagnosis: _diagnosisController.text.trim(),
+        address: _addressController.text.trim(),
+        contactNumber: _contactNumberController.text.trim(),
         email: _emailController.text.trim(),
         role: 'visually_impaired',
       );
