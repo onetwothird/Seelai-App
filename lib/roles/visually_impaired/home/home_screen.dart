@@ -9,6 +9,7 @@ import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activiti
 import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
+import 'package:seelai_app/roles/visually_impaired/services/caretaker_request_service.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -28,6 +29,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   late final CameraService _cameraService;
   late final PermissionService _permissionService;
   late final AccessibilityService _accessibilityService;
+  late final CaretakerRequestService _caretakerRequestService;
   
   // UI State
   bool _isDarkMode = false;
@@ -45,13 +47,14 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     super.initState();
     _initializeServices();
     _initializeAnimations();
-    _requestPermissions();
+    _requestPermissionsAndInitialize();
   }
 
   void _initializeServices() {
     _cameraService = CameraService();
     _permissionService = PermissionService();
     _accessibilityService = AccessibilityService();
+    _caretakerRequestService = CaretakerRequestService();
   }
 
   void _initializeAnimations() {
@@ -67,7 +70,8 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _animationController.forward();
   }
 
-  Future<void> _requestPermissions() async {
+  Future<void> _requestPermissionsAndInitialize() async {
+    // Request permissions first
     final result = await _permissionService.requestAllPermissions();
     
     if (mounted) {
@@ -75,18 +79,30 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         _notificationMessage = result.message;
       });
 
+      // If permissions granted, automatically initialize camera
       if (result.hasAllPermissions) {
         await _initializeCamera();
+      } else {
+        // Show message about camera not being available
+        setState(() {
+          _notificationMessage = 'Camera access required for full functionality';
+        });
       }
     }
   }
 
   Future<void> _initializeCamera() async {
+    setState(() {
+      _notificationMessage = 'Initializing camera...';
+    });
+
     final success = await _cameraService.initialize();
     
     if (mounted) {
       setState(() {
-        if (!success) {
+        if (success) {
+          _notificationMessage = 'Camera ready';
+        } else {
           _notificationMessage = 'Unable to initialize camera';
         }
       });
@@ -125,10 +141,174 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     });
   }
 
+  Future<void> _requestCaretaker() async {
+    final userName = widget.userData['name'] ?? 'User';
+    
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: EdgeInsets.all(spacingXLarge),
+          margin: EdgeInsets.symmetric(horizontal: spacingXLarge),
+          decoration: BoxDecoration(
+            color: _isDarkMode ? Color(0xFF1A1F3A) : white,
+            borderRadius: BorderRadius.circular(radiusLarge),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: spacingLarge),
+              Text(
+                'Checking caretaker availability...',
+                style: bodyBold.copyWith(
+                  color: _isDarkMode ? white : black,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    // Check availability
+    final isAvailable = await _caretakerRequestService.checkCaretakerAvailability('caretaker_1');
+    
+    // Close loading dialog
+    if (mounted) Navigator.pop(context);
+    
+    if (isAvailable) {
+      // Show request dialog
+      _showCaretakerRequestDialog(userName);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No caretaker is currently available'),
+            backgroundColor: error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showCaretakerRequestDialog(String userName) {
+    final requestTypes = [
+      'General Assistance',
+      'Navigation Help',
+      'Reading Assistance',
+      'Emergency',
+      'Other',
+    ];
+    
+    String selectedType = requestTypes[0];
+    final messageController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Request Caretaker Assistance'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Type of Assistance:', style: bodyBold),
+                SizedBox(height: spacingSmall),
+                DropdownButtonFormField<String>(
+                  value: selectedType,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: requestTypes.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedType = value!;
+                    });
+                  },
+                ),
+                SizedBox(height: spacingMedium),
+                Text('Message (Optional):', style: bodyBold),
+                SizedBox(height: spacingSmall),
+                TextField(
+                  controller: messageController,
+                  decoration: InputDecoration(
+                    hintText: 'Describe what you need help with...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                  maxLines: 3,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                
+                final success = await _caretakerRequestService.sendCaretakerRequest(
+                  userId: widget.userData['uid'] ?? '',
+                  userName: userName,
+                  requestType: selectedType,
+                  message: messageController.text.isNotEmpty 
+                    ? messageController.text 
+                    : 'User needs $selectedType',
+                );
+                
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        success 
+                          ? 'Request sent to caretaker' 
+                          : 'Failed to send request'
+                      ),
+                      backgroundColor: success ? Colors.green : error,
+                    ),
+                  );
+                  
+                  if (success) {
+                    setState(() {
+                      _notificationMessage = 'Waiting for caretaker response...';
+                    });
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: white,
+              ),
+              child: Text('Send Request'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _cameraService.dispose();
     _animationController.dispose();
+    _caretakerRequestService.clearListeners();
     super.dispose();
   }
 
@@ -193,6 +373,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           onNotificationUpdate: _updateNotification,
+          onRequestCaretaker: _requestCaretaker,
         );
       case 1:
         return ProfileContent(
@@ -212,6 +393,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           onNotificationUpdate: _updateNotification,
+          onRequestCaretaker: _requestCaretaker,
         );
     }
   }
