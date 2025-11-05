@@ -6,11 +6,10 @@ export 'database_service.dart';
 
 // Specialized services
 export 'activity_logs_service.dart';
-export 'caretaker_patient_service.dart';
-export 'emergency_contacts_service.dart';
-export 'medical_info_service.dart';
+export 'visually_impaired/caretaker_patient_service.dart';
+export 'visually_impaired/emergency_contacts_service.dart';
+export 'visually_impaired/medical_info_service.dart';
 export 'admin_service.dart';
-export 'user_deletion_service.dart';
 
 /// Usage Example:
 /// 

@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/models/emergency_hotline_model.dart';
-import 'package:seelai_app/firebase/emergency_hotline_service.dart';
+import 'package:seelai_app/firebase/visually_impaired/emergency_hotline_service.dart';
 import 'package:seelai_app/roles/visually_impaired/screens/edit_hotline_screen.dart';
 
 class EmergencyHotlinesScreen extends StatefulWidget {
