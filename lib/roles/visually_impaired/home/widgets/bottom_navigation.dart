@@ -26,30 +26,8 @@ class CustomBottomNavigation extends StatelessWidget {
         margin: EdgeInsets.only(left: 20, right: 20, bottom: 20),
         padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          gradient: isDarkMode
-            ? LinearGradient(
-                colors: [
-                  Color(0xFF1A1F3A).withOpacity(0.95),
-                  Color(0xFF2A2F4A).withOpacity(0.95),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : LinearGradient(
-                colors: [
-                  white.withOpacity(0.95),
-                  white.withOpacity(0.90),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+          color: isDarkMode ? Color(0xFF1A1F3A) : white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDarkMode 
-              ? primary.withOpacity(0.3)
-              : greyLighter.withOpacity(0.5),
-            width: 1.5,
-          ),
           boxShadow: [
             BoxShadow(
               color: isDarkMode 
@@ -66,8 +44,62 @@ class CustomBottomNavigation extends StatelessWidget {
           children: [
             _buildNavItem(0, Icons.home_rounded, 'Home'),
             _buildNavItem(1, Icons.contacts_rounded, 'Contacts'),
-            _buildNavItem(2, Icons.person_rounded, 'Profile'),
+            _buildCenterScannerButton(),
             _buildNavItem(3, Icons.history_rounded, 'Recent'),
+            _buildNavItem(4, Icons.person_rounded, 'Profile'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterScannerButton() {
+    final isSelected = selectedIndex == 2;
+    
+    return Semantics(
+      label: 'Scanner tab',
+      selected: isSelected,
+      button: true,
+      hint: 'Double tap to open object detection scanner',
+      child: GestureDetector(
+        onTap: () => onItemTapped(2),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: primaryGradient,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: primary.withOpacity(isSelected ? 0.6 : 0.5),
+                    blurRadius: isSelected ? 24 : 18,
+                    offset: Offset(0, isSelected ? 6 : 4),
+                    spreadRadius: isSelected ? 3 : 1,
+                  ),
+                ],
+              ),
+              child: Icon(
+                Icons.qr_code_scanner_rounded,
+                size: 30,
+                color: white,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Scan',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected 
+                  ? (isDarkMode ? white : primary)
+                  : (isDarkMode ? subtextColor.withOpacity(0.6) : grey.withOpacity(0.7)),
+                letterSpacing: 0.2,
+              ),
+            ),
           ],
         ),
       ),
@@ -84,50 +116,57 @@ class CustomBottomNavigation extends StatelessWidget {
       hint: 'Double tap to navigate to $label',
       child: GestureDetector(
         onTap: () => onItemTapped(index),
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
+        child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isSelected ? spacingLarge * 1.2 : spacingMedium,
-            vertical: spacingMedium,
+            horizontal: spacingMedium,
+            vertical: spacingSmall,
           ),
-          decoration: BoxDecoration(
-            gradient: isSelected ? primaryGradient : null,
-            color: isSelected ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: primary.withOpacity(0.4),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                    spreadRadius: -2,
-                  ),
-                ]
-              : [],
-          ),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 24,
-                color: isSelected 
-                  ? white 
-                  : isDarkMode ? subtextColor : grey,
-              ),
-              if (isSelected) ...[
-                SizedBox(width: 8),
-                Text(
-                  label,
-                  style: caption.copyWith(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: white,
-                    letterSpacing: 0.3,
-                  ),
+              AnimatedContainer(
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeInOutCubic,
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: isSelected ? primaryGradient : null,
+                  color: isSelected 
+                    ? null 
+                    : (isDarkMode 
+                        ? Colors.white.withOpacity(0.05) 
+                        : Colors.grey.withOpacity(0.1)),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: primary.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                          spreadRadius: -2,
+                        ),
+                      ]
+                    : [],
                 ),
-              ],
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: isSelected 
+                    ? white 
+                    : isDarkMode ? subtextColor : grey,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected 
+                    ? (isDarkMode ? white : primary)
+                    : (isDarkMode ? subtextColor.withOpacity(0.6) : grey.withOpacity(0.7)),
+                  letterSpacing: 0.2,
+                ),
+              ),
             ],
           ),
         ),
