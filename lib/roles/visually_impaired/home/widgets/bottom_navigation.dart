@@ -23,7 +23,6 @@ class CustomBottomNavigation extends StatelessWidget {
     return Semantics(
       label: 'Bottom navigation bar',
       child: Container(
-        margin: EdgeInsets.only(bottom: 20),
         padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: isDarkMode ? Color(0xFF1A1F3A) : white,
