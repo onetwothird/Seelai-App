@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/services/request_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
-import 'package:seelai_app/roles/caretaker/screens/patient_location_screen.dart';
 
 class HomeContent extends StatelessWidget {
   final bool isDarkMode;
@@ -42,21 +41,7 @@ class HomeContent extends StatelessWidget {
           
           SizedBox(height: spacingXLarge),
           
-          // Quick Actions Section
-          Text(
-            'Quick Actions',
-            style: bodyBold.copyWith(
-              fontSize: 18,
-              color: theme.textColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: spacingMedium),
-          
-          _buildQuickActionsGrid(context),
-          
-          SizedBox(height: spacingXLarge),
-          
+
           // Recent Activity
           Text(
             'Recent Activity',
@@ -164,143 +149,7 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActionsGrid(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      mainAxisSpacing: spacingMedium,
-      crossAxisSpacing: spacingMedium,
-      childAspectRatio: 1.3,
-      children: [
-        _buildActionCard(
-          context,
-          icon: Icons.location_on_rounded,
-          label: 'Track Location',
-          color: Colors.green,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PatientLocationScreen(
-                  isDarkMode: isDarkMode,
-                  locationService: locationService,
-                ),
-              ),
-            );
-          },
-        ),
-        _buildActionCard(
-          context,
-          icon: Icons.chat_rounded,
-          label: 'Send Message',
-          color: Colors.blue,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Message feature coming soon')),
-            );
-          },
-        ),
-        _buildActionCard(
-          context,
-          icon: Icons.phone_rounded,
-          label: 'Quick Call',
-          color: Colors.orange,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Call feature coming soon')),
-            );
-          },
-        ),
-        _buildActionCard(
-          context,
-          icon: Icons.emergency_rounded,
-          label: 'Emergency',
-          color: error,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Emergency protocol activated'),
-                backgroundColor: error,
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
 
-  Widget _buildActionCard(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: color.withOpacity(0.2),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : softShadow,
-        borderRadius: BorderRadius.circular(radiusLarge),
-      ),
-      child: Material(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: Container(
-            padding: EdgeInsets.all(spacingLarge),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: isDarkMode
-                  ? Border.all(color: color.withOpacity(0.4), width: 1.5)
-                  : Border.all(color: color.withOpacity(0.3), width: 1.5),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(spacingMedium),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.8)],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.4),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(icon, color: white, size: 28),
-                ),
-                SizedBox(height: spacingMedium),
-                Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: bodyBold.copyWith(
-                    fontSize: 15,
-                    color: theme.textColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildRecentActivity(BuildContext context) {
     final activities = [

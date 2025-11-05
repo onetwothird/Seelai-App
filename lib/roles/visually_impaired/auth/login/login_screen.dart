@@ -3,8 +3,9 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/roles/visually_impaired/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/visually_impaired/home/home_screen.dart';
-import 'package:seelai_app/service/auth_service.dart';
-import 'package:seelai_app/service/database_service.dart';
+import 'package:seelai_app/firebase/auth_service.dart';
+import 'package:seelai_app/firebase/database_service.dart';
+import 'package:seelai_app/firebase/activity_logs_service.dart'; // Added import
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -494,8 +495,8 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
           return;
         }
         
-        // Log login activity
-        await databaseService.logActivity(
+        // Log login activity using ActivityLogsService
+        await activityLogsService.logActivity(
           userId: userCredential.user!.uid,
           action: 'login',
           details: 'User logged in as $userRole',

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/service/auth_service.dart';
-import 'package:seelai_app/service/database_service.dart';
+import 'package:seelai_app/firebase/auth_service.dart';
+import 'package:seelai_app/firebase/database_service.dart';
+import 'package:seelai_app/firebase/activity_logs_service.dart'; // Added import
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -33,7 +34,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  String? _selectedSex; // Changed to nullable
+  String? _selectedSex;
   String _selectedDisabilityType = 'Visual Impairment';
   DateTime? _selectedBirthdate;
 
@@ -770,8 +771,8 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         role: 'visually_impaired',
       );
 
-      // Step 4: Log the signup activity
-      await databaseService.logActivity(
+      // Step 4: Log the signup activity using ActivityLogsService
+      await activityLogsService.logActivity(
         userId: userCredential.user!.uid,
         action: 'account_created',
         details: 'User signed up as visually_impaired',
@@ -786,6 +787,9 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
             duration: Duration(seconds: 2),
           ),
         );
+        
+        // Navigate back to login screen
+        Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'An error occurred';

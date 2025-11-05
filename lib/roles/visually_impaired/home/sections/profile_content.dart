@@ -1,9 +1,7 @@
 // File: lib/roles/visually_impaired/home/sections/profile_content.dart
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/service/auth_service.dart';
-import 'package:seelai_app/service/database_service.dart';
+import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:intl/intl.dart';
 
 class ProfileContent extends StatefulWidget {

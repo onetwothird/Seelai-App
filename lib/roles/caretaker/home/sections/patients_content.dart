@@ -284,12 +284,12 @@ class _PatientsContentState extends State<PatientsContent> {
                     SizedBox(width: spacingSmall),
                     Expanded(
                       child: _buildQuickAction(
-                        icon: Icons.location_on_rounded,
-                        label: 'Location',
+                        icon: Icons.message_rounded,
+                        label: 'Message',
                         color: primary,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Opening location...')),
+                            SnackBar(content: Text('Opening messages with ${patient.name}...')),
                           );
                         },
                       ),
