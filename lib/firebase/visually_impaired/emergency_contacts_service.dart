@@ -1,5 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'database_service.dart';
+import '../database_service.dart';
 
 /// Service for managing emergency contacts
 class EmergencyContactsService {

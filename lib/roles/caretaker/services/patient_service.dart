@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
 import 'package:seelai_app/firebase/database_service.dart';
-import 'package:seelai_app/firebase/caretaker_patient_service.dart';
+import 'package:seelai_app/firebase/visually_impaired/caretaker_patient_service.dart';
 
 class PatientService {
   final DatabaseService _databaseService = databaseService;
