@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
-import 'package:seelai_app/roles/visually_impaired/home/widgets/quick_actions_section.dart';
 import 'package:seelai_app/roles/visually_impaired/screens/emergency_hotlines_screen.dart';
 
 class HomeContent extends StatelessWidget {
@@ -39,16 +38,29 @@ class HomeContent extends StatelessWidget {
         children: [
           SizedBox(height: spacingXLarge),
           
-          QuickActionsSection(
-            isDarkMode: isDarkMode,
-            cardColor: theme.cardColor,
-            textColor: theme.textColor,
-            subtextColor: theme.subtextColor,
-            onAction: onNotificationUpdate,
-            onEmergency: () {
-              // Empty for now - Quick Actions Emergency button
-              onNotificationUpdate('Emergency button pressed');
-            },
+          // Empty center content area
+          Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: spacingXLarge * 3),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.camera_alt_rounded,
+                    size: 80,
+                    color: theme.subtextColor.withOpacity(0.3),
+                  ),
+                  SizedBox(height: spacingLarge),
+                  Text(
+                    'Tap camera button below\nto start scanning',
+                    textAlign: TextAlign.center,
+                    style: body.copyWith(
+                      color: theme.subtextColor,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           
           SizedBox(height: spacingLarge),
