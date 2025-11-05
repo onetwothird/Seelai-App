@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class PatientModel {
   final String id;
   final String name;

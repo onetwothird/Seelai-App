@@ -1,14 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
-import 'package:seelai_app/service/database_service.dart';
+import 'package:seelai_app/firebase/database_service.dart';
+import 'package:seelai_app/firebase/caretaker_patient_service.dart';
 
 class PatientService {
   final DatabaseService _databaseService = databaseService;
+  final CaretakerPatientService _caretakerPatientService = caretakerPatientService;
 
   // Get all assigned patients for a caretaker
   Future<List<PatientModel>> getAssignedPatients(String caretakerId) async {
     try {
-      final patientsData = await _databaseService.getCaretakerPatients(caretakerId);
+      final patientsData = await _caretakerPatientService.getCaretakerPatients(caretakerId);
       
       return patientsData.map((data) {
         return PatientModel.fromJson(data, data['userId'] as String);

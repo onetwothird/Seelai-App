@@ -140,22 +140,6 @@ class PatientDetailsScreen extends StatelessWidget {
             
             SizedBox(height: spacingMedium),
             
-            _buildActionButton(
-              context,
-              icon: Icons.location_on_rounded,
-              label: 'Track Location',
-              color: Colors.orange,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Opening location tracker...')),
-                );
-              },
-              cardColor: cardColor,
-              isWide: true,
-            ),
-            
-            SizedBox(height: spacingXLarge),
-            
             // Contact Information
             _buildInfoSection(
               'Contact Information',
@@ -212,7 +196,6 @@ class PatientDetailsScreen extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
     required Color cardColor,
-    bool isWide = false,
   }) {
     return Container(
       decoration: BoxDecoration(
