@@ -40,6 +40,11 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
+  // Scroll detection for bottom nav
+  final ScrollController _scrollController = ScrollController();
+  bool _isNavVisible = true;
+  double _lastScrollPosition = 0;
+  
   // Notification
   String _notificationMessage = 'Welcome to SeelAI';
 
@@ -48,6 +53,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     super.initState();
     _initializeServices();
     _initializeAnimations();
+    _initializeScrollListener();
     _requestPermissionsAndInitialize();
   }
 
@@ -69,6 +75,37 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
     
     _animationController.forward();
+  }
+
+  void _initializeScrollListener() {
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    final currentScroll = _scrollController.position.pixels;
+    final scrollDelta = currentScroll - _lastScrollPosition;
+    
+    // Threshold to prevent jittery behavior
+    const scrollThreshold = 10.0;
+    
+    if (scrollDelta.abs() > scrollThreshold) {
+      final shouldShow = scrollDelta < 0; // Scrolling up
+      
+      if (shouldShow != _isNavVisible) {
+        setState(() {
+          _isNavVisible = shouldShow;
+        });
+      }
+      
+      _lastScrollPosition = currentScroll;
+    }
+    
+    // Always show nav when at the top
+    if (currentScroll <= 0 && !_isNavVisible) {
+      setState(() {
+        _isNavVisible = true;
+      });
+    }
   }
 
   Future<void> _requestPermissionsAndInitialize() async {
@@ -126,14 +163,37 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   }
 
   void _onNavItemTapped(int index) {
+    // Handle scanner button tap (index 2 - center button)
+    if (index == 2) {
+      _openCameraScanner();
+      return;
+    }
+    
     _animationController.reset();
     setState(() {
       _selectedIndex = index;
     });
     _animationController.forward();
     
-    final labels = ['Home', 'Contacts', 'Profile', 'Recent Activities'];
+    final labels = ['Home', 'Contacts', 'Scanner', 'Recent Activities', 'Profile'];
     _accessibilityService.announce('Navigated to ${labels[index]}');
+  }
+
+  void _openCameraScanner() {
+    _accessibilityService.announce('Opening camera scanner');
+    // TODO: Navigate to camera scanner screen
+    setState(() {
+      _notificationMessage = 'Camera scanner opening...';
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Camera scanner feature coming soon'),
+        backgroundColor: primary,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.only(bottom: 100, left: 20, right: 20),
+      ),
+    );
   }
 
   void _updateNotification(String message) {
@@ -309,6 +369,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   void dispose() {
     _cameraService.dispose();
     _animationController.dispose();
+    _scrollController.dispose();
     _caretakerRequestService.clearListeners();
     super.dispose();
   }
@@ -355,20 +416,31 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           ),
         ),
       ),
-      bottomNavigationBar: CustomBottomNavigation(
-        selectedIndex: _selectedIndex,
-        isDarkMode: _isDarkMode,
-        onItemTapped: _onNavItemTapped,
-        textColor: theme.textColor,
-        subtextColor: theme.subtextColor,
+      bottomNavigationBar: AnimatedSlide(
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+        offset: _isNavVisible ? Offset.zero : Offset(0, 1),
+        child: AnimatedOpacity(
+          duration: Duration(milliseconds: 300),
+          opacity: _isNavVisible ? 1.0 : 0.0,
+          child: CustomBottomNavigation(
+            selectedIndex: _selectedIndex,
+            isDarkMode: _isDarkMode,
+            onItemTapped: _onNavItemTapped,
+            textColor: theme.textColor,
+            subtextColor: theme.subtextColor,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
+    Widget content;
+    
     switch (_selectedIndex) {
       case 0:
-        return HomeContent(
+        content = HomeContent(
           cameraService: _cameraService,
           permissionService: _permissionService,
           isDarkMode: _isDarkMode,
@@ -376,24 +448,28 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           onNotificationUpdate: _updateNotification,
           onRequestCaretaker: _requestCaretaker,
         );
+        break;
       case 1:
-        return ContactsContent(
+        content = ContactsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
         );
-      case 2:
-        return ProfileContent(
+        break;
+      case 3:
+        content = RecentActivitiesContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+        );
+        break;
+      case 4:
+        content = ProfileContent(
           userData: widget.userData,
           isDarkMode: _isDarkMode,
           theme: theme,
         );
-      case 3:
-        return RecentActivitiesContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-        );
+        break;
       default:
-        return HomeContent(
+        content = HomeContent(
           cameraService: _cameraService,
           permissionService: _permissionService,
           isDarkMode: _isDarkMode,
@@ -402,6 +478,13 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           onRequestCaretaker: _requestCaretaker,
         );
     }
+    
+    // Wrap content with ScrollView only if it's scrollable content
+    return SingleChildScrollView(
+      controller: _scrollController,
+      physics: ClampingScrollPhysics(),
+      child: content,
+    );
   }
 
   _AppTheme _getDarkTheme() {
