@@ -26,6 +26,7 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final height = MediaQuery.of(context).size.height;
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
@@ -36,31 +37,31 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: spacingXLarge),
+          SizedBox(height: spacingMedium),
           
-          // Empty center content area
-          Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: spacingXLarge * 3),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.camera_alt_rounded,
-                    size: 80,
-                    color: theme.subtextColor.withOpacity(0.3),
-                  ),
-                  SizedBox(height: spacingLarge),
-                  Text(
-                    'Tap camera button below\nto start scanning',
-                    textAlign: TextAlign.center,
-                    style: body.copyWith(
-                      color: theme.subtextColor,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
+          // Contextual Voice Cards - Compact Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildCompactContextualCard(
+                  context,
+                  icon: Icons.wb_sunny_rounded,
+                  title: 'Good Morning',
+                  subtitle: '2 reminders',
+                  iconColor: Colors.orange,
+                ),
               ),
-            ),
+              SizedBox(width: spacingMedium),
+              Expanded(
+                child: _buildCompactContextualCard(
+                  context,
+                  icon: Icons.lightbulb_outline_rounded,
+                  title: 'Quick Help',
+                  subtitle: 'Tap to assist',
+                  iconColor: accent,
+                ),
+              ),
+            ],
           ),
           
           SizedBox(height: spacingLarge),
@@ -75,6 +76,198 @@ class HomeContent extends StatelessWidget {
           
           SizedBox(height: spacingXLarge),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCompactContextualCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+  }) {
+    return Semantics(
+      label: '$title. $subtitle',
+      readOnly: true,
+      child: Container(
+        padding: EdgeInsets.all(spacingMedium),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          gradient: LinearGradient(
+            colors: [
+              iconColor.withOpacity(isDarkMode ? 0.2 : 0.08),
+              iconColor.withOpacity(isDarkMode ? 0.1 : 0.04),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(radiusMedium),
+          border: Border.all(
+            color: iconColor.withOpacity(isDarkMode ? 0.3 : 0.2),
+            width: 1.2,
+          ),
+          boxShadow: isDarkMode 
+            ? [
+                BoxShadow(
+                  color: iconColor.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: Offset(0, 3),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 6,
+                  offset: Offset(0, 2),
+                ),
+              ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(spacingSmall),
+              decoration: BoxDecoration(
+                color: iconColor.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: iconColor,
+              ),
+            ),
+            SizedBox(height: spacingSmall),
+            Text(
+              title,
+              style: bodyBold.copyWith(
+                fontSize: 14,
+                color: theme.textColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: caption.copyWith(
+                fontSize: 12,
+                color: theme.subtextColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+    required List<Color> gradientColors,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      label: '$title button',
+      button: true,
+      hint: 'Double tap to $description',
+      child: Container(
+        decoration: BoxDecoration(
+          boxShadow: isDarkMode 
+            ? [
+                BoxShadow(
+                  color: gradientColors[0].withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: gradientColors[0].withOpacity(0.25),
+                  blurRadius: 15,
+                  offset: Offset(0, 6),
+                ),
+              ],
+          borderRadius: BorderRadius.circular(radiusXLarge),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(radiusXLarge),
+            splashColor: white.withOpacity(0.2),
+            child: Container(
+              padding: EdgeInsets.all(spacingXLarge),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(radiusXLarge),
+                border: Border.all(
+                  color: white.withOpacity(0.25),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(spacingLarge),
+                    decoration: BoxDecoration(
+                      color: white.withOpacity(0.25),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: white.withOpacity(0.4),
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 42,
+                      color: white,
+                    ),
+                  ),
+                  SizedBox(width: spacingLarge),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: bodyBold.copyWith(
+                            fontSize: 20,
+                            color: white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: spacingXSmall),
+                        Text(
+                          description,
+                          style: caption.copyWith(
+                            fontSize: 14,
+                            color: white.withOpacity(0.9),
+                            fontWeight: FontWeight.w500,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: white,
+                    size: 24,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
