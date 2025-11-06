@@ -72,22 +72,7 @@ class HeaderSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                
-                // Voice Assistant Button
-                Semantics(
-                  label: 'Voice assistant button',
-                  hint: 'Double tap to activate voice commands',
-                  button: true,
-                  child: CustomIconButton(
-                    icon: Icons.mic_rounded,
-                    onPressed: onVoiceAssistant,
-                    size: 28,
-                    isDarkMode: isDarkMode,
-                  ),
-                ),
-                
-                SizedBox(width: spacingSmall),
-                
+                                
                 // Dark Mode Toggle
                 Semantics(
                   label: isDarkMode ? 'Dark mode is on' : 'Light mode is on',
