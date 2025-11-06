@@ -34,14 +34,13 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: spacingLarge),
+          SizedBox(height: spacingMedium),
           
           // Quick Stats Cards
           _buildQuickStats(context),
           
           SizedBox(height: spacingXLarge),
           
-
           // Recent Activity
           Text(
             'Recent Activity',
@@ -93,63 +92,90 @@ class HomeContent extends StatelessWidget {
     required Color color,
   }) {
     return Container(
-      padding: EdgeInsets.all(spacingLarge),
+      padding: EdgeInsets.symmetric(
+        vertical: spacingLarge * 1.2,
+        horizontal: spacingMedium,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            color.withOpacity(isDarkMode ? 0.25 : 0.1),
-            color.withOpacity(isDarkMode ? 0.15 : 0.05),
+            color.withOpacity(isDarkMode ? 0.3 : 0.12),
+            color.withOpacity(isDarkMode ? 0.2 : 0.06),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(radiusLarge),
-        border: isDarkMode
-            ? Border.all(color: color.withOpacity(0.4), width: 1.5)
-            : Border.all(color: color.withOpacity(0.3), width: 1.5),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: color.withOpacity(0.2),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : softShadow,
+        border: Border.all(
+          color: color.withOpacity(isDarkMode ? 0.5 : 0.35),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(isDarkMode ? 0.25 : 0.15),
+            blurRadius: 20,
+            offset: Offset(0, 8),
+            spreadRadius: -2,
+          ),
+        ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: EdgeInsets.all(spacingMedium),
+            padding: EdgeInsets.all(spacingMedium * 1.3),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.2),
+              gradient: LinearGradient(
+                colors: [
+                  color.withOpacity(0.3),
+                  color.withOpacity(0.2),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: color.withOpacity(0.4),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: Icon(
+              icon,
+              color: color,
+              size: 32,
+            ),
           ),
-          SizedBox(height: spacingMedium),
+          SizedBox(height: spacingMedium * 1.3),
           Text(
             value,
             style: h1.copyWith(
-              fontSize: 32,
+              fontSize: 36,
               color: theme.textColor,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.w900,
+              height: 1,
             ),
           ),
-          SizedBox(height: spacingXSmall),
+          SizedBox(height: spacingSmall),
           Text(
             label,
-            style: caption.copyWith(
-              fontSize: 14,
+            style: bodyBold.copyWith(
+              fontSize: 15,
               color: theme.subtextColor,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
             ),
           ),
         ],
       ),
     );
   }
-
-
 
   Widget _buildRecentActivity(BuildContext context) {
     final activities = [
