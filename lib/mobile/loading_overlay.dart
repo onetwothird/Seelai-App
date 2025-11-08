@@ -146,7 +146,7 @@ class _LoadingOverlayState extends State<LoadingOverlay>
                             color: Colors.white,
                           ),
                           child: Icon(
-                            Icons.lock_clock_rounded,
+                            Icons.refresh_rounded,
                             color: primary,
                             size: 32,
                           ),
@@ -187,7 +187,7 @@ class _LoadingOverlayState extends State<LoadingOverlay>
                   
                   const SizedBox(height: 20),
                   
-                  // Message text with gradient
+                  // Message text with gradient                                                 
                   ShaderMask(
                     shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                     child: Text(
