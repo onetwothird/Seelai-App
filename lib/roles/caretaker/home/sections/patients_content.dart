@@ -3,7 +3,12 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/roles/caretaker/screens/patient_details_screen.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
+/// Real-Time Patients Content
+/// Automatically updates when visually impaired users select this caretaker
 class PatientsContent extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
@@ -23,114 +28,321 @@ class PatientsContent extends StatefulWidget {
 }
 
 class _PatientsContentState extends State<PatientsContent> {
+  StreamSubscription? _patientsSubscription;
   List<PatientModel> _patients = [];
   bool _isLoading = true;
+  String? _error;
+  String? _caretakerId;
 
   @override
   void initState() {
     super.initState();
-    _loadPatients();
+    _initializeCaretakerId();
   }
 
-  Future<void> _loadPatients() async {
-    setState(() => _isLoading = true);
+  Future<void> _initializeCaretakerId() async {
+    // Try multiple ways to get the caretaker ID
+    String? caretakerId;
     
+    // Method 1: From userData
+    caretakerId = widget.userData['uid'] as String?;
+    
+    // Method 2: From Firebase Auth
+    if (caretakerId == null || caretakerId.isEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      caretakerId = user?.uid;
+    }
+    
+    if (caretakerId == null || caretakerId.isEmpty) {
+      setState(() {
+        _error = 'Caretaker ID not found. Please log in again.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _caretakerId = caretakerId;
+    });
+
+    _setupPatientsStream();
+  }
+
+  void _setupPatientsStream() {
+    if (_caretakerId == null) {
+      setState(() {
+        _error = 'Caretaker ID not found';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Listen to real-time updates from Firebase
+    _patientsSubscription = caretakerPatientService
+        .streamCaretakerPatients(_caretakerId!)
+        .listen(
+      (patientsData) {
+        if (mounted) {
+          setState(() {
+            _patients = patientsData.map((patientData) {
+              return PatientModel(
+                id: patientData['userId'] ?? '',
+                name: patientData['name'] ?? 'Unknown',
+                age: patientData['age'] ?? 0,
+                disabilityType: patientData['disabilityType'] ?? 'Not specified',
+                contactNumber: patientData['contactNumber'] ?? patientData['phone'] ?? 'N/A',
+                address: patientData['address'] ?? 'No address',
+                isOnline: false, // You can implement online status tracking
+                lastActive: DateTime.now(),
+              );
+            }).toList();
+            _isLoading = false;
+            _error = null;
+          });
+        }
+      },
+      onError: (error) {
+        debugPrint('Error loading patients: $error');
+        if (mounted) {
+          setState(() {
+            _error = 'Failed to load patients: $error';
+            _isLoading = false;
+          });
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _patientsSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshPatients() async {
+    if (_caretakerId == null) {
+      await _initializeCaretakerId();
+      return;
+    }
+    
+    setState(() => _isLoading = true);
     await Future.delayed(Duration(milliseconds: 500));
     
-    // Sample data
-    _patients = [
-      PatientModel(
-        id: 'p1',
-        name: 'Maria Santos',
-        age: 65,
-        disabilityType: 'Visually Impaired',
-        contactNumber: '+63 917 123 4567',
-        address: 'Calamba, Laguna',
-        isOnline: true,
-        lastActive: DateTime.now(),
-      ),
-      PatientModel(
-        id: 'p2',
-        name: 'Juan Dela Cruz',
-        age: 58,
-        disabilityType: 'Visually Impaired',
-        contactNumber: '+63 918 234 5678',
-        address: 'Los Baños, Laguna',
-        isOnline: false,
-        lastActive: DateTime.now().subtract(Duration(hours: 2)),
-      ),
-    ];
-    
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: width * 0.06,
-        right: width * 0.06,
-        bottom: 100,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'My Patients',
-            style: h2.copyWith(
-              fontSize: 26,
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.w700,
+    return RefreshIndicator(
+      onRefresh: _refreshPatients,
+      child: SingleChildScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.only(
+          left: width * 0.06,
+          right: width * 0.06,
+          bottom: 100,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'My Patients',
+                  style: h2.copyWith(
+                    fontSize: 26,
+                    color: widget.theme.textColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                SizedBox(height: spacingSmall),
+                Text(
+                  'Visually impaired individuals who chose you',
+                  style: body.copyWith(
+                    color: widget.theme.subtextColor,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
-          ),
-          SizedBox(height: spacingSmall),
-          Text(
-            'People under your care',
-            style: body.copyWith(
-              color: widget.theme.subtextColor,
-              fontSize: 14,
-            ),
-          ),
-          SizedBox(height: spacingLarge),
-          
-          _isLoading
-              ? Center(child: CircularProgressIndicator())
-              : _patients.isEmpty
-                  ? _buildEmptyState()
-                  : Column(
-                      children: _patients.map((patient) {
-                        return Padding(
-                          padding: EdgeInsets.only(bottom: spacingMedium),
-                          child: _buildPatientCard(patient),
-                        );
-                      }).toList(),
+            SizedBox(height: spacingLarge),
+            
+            _isLoading && _patients.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 60),
+                      child: Column(
+                        children: [
+                          CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(primary),
+                          ),
+                          SizedBox(height: spacingLarge),
+                          Text(
+                            'Loading patients...',
+                            style: body.copyWith(
+                              color: widget.theme.subtextColor,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-        ],
+                  )
+                : _error != null && _patients.isEmpty
+                    ? _buildErrorState()
+                    : _patients.isEmpty
+                        ? _buildEmptyState()
+                        : Column(
+                            children: [
+                              // Patient count badge
+                              Container(
+                                width: double.infinity,
+                                padding: EdgeInsets.all(spacingMedium),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      primary.withOpacity(0.1),
+                                      accent.withOpacity(0.1),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(radiusMedium),
+                                  border: Border.all(
+                                    color: primary.withOpacity(0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.people_rounded,
+                                      color: primary,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: spacingSmall),
+                                    Text(
+                                      '${_patients.length} Patient${_patients.length != 1 ? 's' : ''} Under Your Care',
+                                      style: bodyBold.copyWith(
+                                        color: widget.theme.textColor,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: spacingMedium),
+                              // Patient cards
+                              ..._patients.map((patient) {
+                                return Padding(
+                                  padding: EdgeInsets.only(bottom: spacingMedium),
+                                  child: _buildPatientCard(patient),
+                                );
+                              }).toList(),
+                            ],
+                          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 80,
+              color: error.withOpacity(0.5),
+            ),
+            SizedBox(height: spacingLarge),
+            Text(
+              'Failed to load patients',
+              style: bodyBold.copyWith(
+                color: widget.theme.textColor,
+                fontSize: 18,
+              ),
+            ),
+            SizedBox(height: spacingSmall),
+            Text(
+              _error ?? 'An error occurred',
+              style: body.copyWith(
+                color: widget.theme.subtextColor,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: spacingLarge),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _error = null;
+                });
+                _initializeCaretakerId();
+              },
+              icon: Icon(Icons.refresh_rounded),
+              label: Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: spacingLarge,
+                  vertical: spacingMedium,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        children: [
-          SizedBox(height: 60),
-          Icon(
-            Icons.people_outline_rounded,
-            size: 80,
-            color: widget.theme.subtextColor.withOpacity(0.3),
-          ),
-          SizedBox(height: spacingLarge),
-          Text(
-            'No patients assigned',
-            style: body.copyWith(
-              color: widget.theme.subtextColor,
-              fontSize: 16,
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(spacingXLarge),
+              decoration: BoxDecoration(
+                color: widget.theme.subtextColor.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.people_outline_rounded,
+                size: 80,
+                color: widget.theme.subtextColor.withOpacity(0.3),
+              ),
             ),
-          ),
-        ],
+            SizedBox(height: spacingLarge),
+            Text(
+              'No patients yet',
+              style: bodyBold.copyWith(
+                color: widget.theme.textColor,
+                fontSize: 18,
+              ),
+            ),
+            SizedBox(height: spacingSmall),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 40),
+              child: Text(
+                'When visually impaired users select you as their caretaker, they will appear here automatically',
+                style: body.copyWith(
+                  color: widget.theme.subtextColor,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+          ],
+        ),
       ),
     );
   }
