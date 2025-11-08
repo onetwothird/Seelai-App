@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/roles/visually_impaired/home/home_screen.dart';
-import 'package:seelai_app/firebase/database_service.dart';
-import 'package:seelai_app/firebase/activity_logs_service.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_database/firebase_database.dart';
 
@@ -107,7 +106,6 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         }
       }
     } catch (e) {
-      
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -158,25 +156,23 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
     });
 
     try {
-      final userId = widget.userData['uid'] ?? '';
+      final patientId = widget.userData['uid'] ?? '';
       
-      if (userId.isEmpty) {
-        throw Exception('User ID not found');
+      if (patientId.isEmpty) {
+        throw Exception('Patient ID not found');
       }
 
-      final DatabaseReference db = databaseService.database.ref();
-
-      // Update user's assigned caretakers in visually_impaired node
-      await db.child('user_info/visually_impaired/$userId/assignedCaretakers/$_selectedCaretakerId').set(true);
-
-      // Update caretaker's assigned patients in caretaker node
-      await db.child('user_info/caretaker/$_selectedCaretakerId/assignedPatients/$userId').set(true);
+      // Use the caretakerPatientService to assign the caretaker
+      await caretakerPatientService.assignCaretakerToPatient(
+        caretakerId: _selectedCaretakerId!,
+        patientId: patientId,
+      );
 
       // Log the activity
       await activityLogsService.logActivity(
-        userId: userId,
-        action: 'caretaker_assigned',
-        details: 'Caretaker assigned: $_selectedCaretakerId',
+        userId: patientId,
+        action: 'caretaker_selected',
+        details: 'Selected caretaker: $_selectedCaretakerId',
       );
 
       // Fetch the selected caretaker's name for display
@@ -190,11 +186,11 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
       }
 
       // Fetch updated user data with assigned caretaker
-      Map<String, dynamic>? updatedUserData = await databaseService.getUserData(userId);
+      Map<String, dynamic>? updatedUserData = await databaseService.getUserData(patientId);
 
       if (mounted && updatedUserData != null) {
         // Add uid to updated user data
-        updatedUserData['uid'] = userId;
+        updatedUserData['uid'] = patientId;
         
         // Navigate to home screen with updated data
         Navigator.pushReplacement(
@@ -220,7 +216,6 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         });
       }
     } catch (e) {
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -605,22 +600,22 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         duration: Duration(milliseconds: 300),
         curve: Curves.easeInOutCubic,
         decoration: BoxDecoration(
-        color: white,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(
-          color: isSelected ? primary : greyLighter,
-          width: isSelected ? 2.5 : 1.5,
+          color: white,
+          borderRadius: BorderRadius.circular(radiusLarge),
+          border: Border.all(
+            color: isSelected ? primary : greyLighter,
+            width: isSelected ? 2.5 : 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: primary.withOpacity(0.2),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ]
+              : softShadow,
         ),
-        boxShadow: isSelected
-        ? [
-            BoxShadow(
-              color: primary.withOpacity(0.2),
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ]
-        : softShadow,
-      ),
         padding: EdgeInsets.all(spacingLarge),
         child: Row(
           children: [
