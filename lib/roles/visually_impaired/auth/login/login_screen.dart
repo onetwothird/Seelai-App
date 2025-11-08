@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:seelai_app/roles/visually_impaired/caretaker/caretaker_selection_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/roles/visually_impaired/auth/signup/signup_screen.dart';
@@ -495,35 +496,57 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
           return;
         }
         
-        // Log login activity using ActivityLogsService
+        // Log login activity
         await activityLogsService.logActivity(
           userId: userCredential.user!.uid,
           action: 'login',
           details: 'User logged in as $userRole',
         );
         
+        // Add uid to userData for navigation
+        userData['uid'] = userCredential.user!.uid;
+        
+        // Check if user has assigned caretakers
+        bool hasCaretaker = false;
+        if (userData['assignedCaretakers'] != null) {
+          Map<dynamic, dynamic> assignedCaretakers = userData['assignedCaretakers'] as Map;
+          hasCaretaker = assignedCaretakers.isNotEmpty;
+        }
+        
         if (mounted) {
-          // Navigate to home screen
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => VisuallyImpairedHomeScreen(
-                userData: userData,
-              ),
-            ),
-          );
-          
-          // Show welcome message after navigation
-          Future.delayed(Duration(milliseconds: 500), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Welcome back!'),
-                  backgroundColor: success,
+          if (hasCaretaker) {
+            // User already has a caretaker - go to home screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VisuallyImpairedHomeScreen(
+                  userData: userData,
                 ),
-              );
-            }
-          });
+              ),
+            );
+            
+            // Show welcome message after navigation
+            Future.delayed(Duration(milliseconds: 500), () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Welcome back!'),
+                    backgroundColor: success,
+                  ),
+                );
+              }
+            });
+          } else {
+            // User doesn't have a caretaker - go to caretaker selection
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CaretakerSelectionScreen(
+                  userData: userData,
+                ),
+              ),
+            );
+          }
         }
       }
       
