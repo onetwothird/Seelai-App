@@ -436,57 +436,57 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
-  Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    Widget content;
-    
-    switch (_selectedIndex) {
-      case 0:
-        content = HomeContent(
-          cameraService: _cameraService,
-          permissionService: _permissionService,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          onNotificationUpdate: _updateNotification,
-          onRequestCaretaker: _requestCaretaker,
-        );
-        break;
-      case 1:
-        content = ContactsContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-        );
-        break;
-      case 3:
-        content = RecentActivitiesContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-        );
-        break;
-      case 4:
-        content = ProfileContent(
-          userData: widget.userData,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-        );
-        break;
-      default:
-        content = HomeContent(
-          cameraService: _cameraService,
-          permissionService: _permissionService,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          onNotificationUpdate: _updateNotification,
-          onRequestCaretaker: _requestCaretaker,
-        );
-    }
-    
-    // Wrap content with ScrollView only if it's scrollable content
-    return SingleChildScrollView(
-      controller: _scrollController,
-      physics: ClampingScrollPhysics(),
-      child: content,
-    );
+ Widget _buildMainContent(double width, double height, _AppTheme theme) {
+  Widget content;
+  
+  switch (_selectedIndex) {
+    case 0:
+      content = HomeContent(
+        cameraService: _cameraService,
+        permissionService: _permissionService,
+        isDarkMode: _isDarkMode,
+        theme: theme,
+        onNotificationUpdate: _updateNotification,
+        onRequestCaretaker: _requestCaretaker,
+      );
+      break;
+    case 1:
+      content = ContactsContent(
+        isDarkMode: _isDarkMode,
+        theme: theme,
+        userData: widget.userData,  // ← ADD THIS LINE
+      );
+      break;
+    case 3:
+      content = RecentActivitiesContent(
+        isDarkMode: _isDarkMode,
+        theme: theme,
+      );
+      break;
+    case 4:
+      content = ProfileContent(
+        userData: widget.userData,
+        isDarkMode: _isDarkMode,
+        theme: theme,
+      );
+      break;
+    default:
+      content = HomeContent(
+        cameraService: _cameraService,
+        permissionService: _permissionService,
+        isDarkMode: _isDarkMode,
+        theme: theme,
+        onNotificationUpdate: _updateNotification,
+        onRequestCaretaker: _requestCaretaker,
+      );
   }
+  
+  return SingleChildScrollView(
+    controller: _scrollController,
+    physics: ClampingScrollPhysics(),
+    child: content,
+  );
+}
 
   _AppTheme _getDarkTheme() {
     return _AppTheme(
