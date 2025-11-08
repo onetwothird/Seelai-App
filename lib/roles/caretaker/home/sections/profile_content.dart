@@ -91,7 +91,9 @@ class _ProfileContentState extends State<ProfileContent>
         gradient: widget.isDarkMode
             ? LinearGradient(
                 colors: [
+                  // ignore: deprecated_member_use
                   primary.withOpacity(0.3),
+                  // ignore: deprecated_member_use
                   accent.withOpacity(0.2),
                 ],
                 begin: Alignment.topLeft,
@@ -102,6 +104,7 @@ class _ProfileContentState extends State<ProfileContent>
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
+                  // ignore: deprecated_member_use
                   color: primary.withOpacity(0.3),
                   blurRadius: 20,
                   offset: Offset(0, 6),
@@ -114,8 +117,10 @@ class _ProfileContentState extends State<ProfileContent>
           Container(
             padding: EdgeInsets.all(spacingMedium + 2),
             decoration: BoxDecoration(
+              // ignore: deprecated_member_use
               color: white.withOpacity(0.2),
               shape: BoxShape.circle,
+              // ignore: deprecated_member_use
               border: Border.all(color: white.withOpacity(0.3), width: 2),
             ),
             child: Icon(
@@ -147,6 +152,7 @@ class _ProfileContentState extends State<ProfileContent>
                   caretakerEmail,
                   style: body.copyWith(
                     fontSize: 13,
+                    // ignore: deprecated_member_use
                     color: white.withOpacity(0.9),
                     fontWeight: FontWeight.w500,
                   ),
@@ -162,8 +168,10 @@ class _ProfileContentState extends State<ProfileContent>
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
+                      // ignore: deprecated_member_use
                       color: white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(radiusSmall),
+                      // ignore: deprecated_member_use
                       border: Border.all(color: white.withOpacity(0.3)),
                     ),
                     child: Row(
@@ -200,6 +208,7 @@ class _ProfileContentState extends State<ProfileContent>
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
+                  // ignore: deprecated_member_use
                   color: primary.withOpacity(0.15),
                   blurRadius: 16,
                   offset: Offset(0, 4),
@@ -207,6 +216,7 @@ class _ProfileContentState extends State<ProfileContent>
               ]
             : softShadow,
         border: widget.isDarkMode
+            // ignore: deprecated_member_use
             ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
             : null,
       ),
@@ -238,6 +248,7 @@ class _ProfileContentState extends State<ProfileContent>
             boxShadow: isSelected
                 ? [
                     BoxShadow(
+                      // ignore: deprecated_member_use
                       color: primary.withOpacity(0.3),
                       blurRadius: 8,
                       offset: Offset(0, 2),
@@ -408,6 +419,7 @@ class _ProfileContentState extends State<ProfileContent>
               );
               
               if (confirm == true) {
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Delete account feature coming soon'),
@@ -457,6 +469,7 @@ class _ProfileContentState extends State<ProfileContent>
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
+                  // ignore: deprecated_member_use
                   color: primary.withOpacity(0.15),
                   blurRadius: 16,
                   offset: Offset(0, 6),
@@ -464,7 +477,9 @@ class _ProfileContentState extends State<ProfileContent>
               ]
             : softShadow,
         border: widget.isDarkMode
+            // ignore: deprecated_member_use
             ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
+            // ignore: deprecated_member_use
             : Border.all(color: greyLighter.withOpacity(0.5), width: 1),
       ),
       child: Column(
@@ -493,7 +508,9 @@ class _ProfileContentState extends State<ProfileContent>
           padding: EdgeInsets.all(spacingSmall),
           decoration: BoxDecoration(
             color: widget.isDarkMode
+                // ignore: deprecated_member_use
                 ? primary.withOpacity(0.2)
+                // ignore: deprecated_member_use
                 : primaryLight.withOpacity(0.15),
             borderRadius: BorderRadius.circular(radiusSmall),
           ),
@@ -545,6 +562,7 @@ class _ProfileContentState extends State<ProfileContent>
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
+                  // ignore: deprecated_member_use
                   color: color.withOpacity(0.2),
                   blurRadius: 16,
                   offset: Offset(0, 6),
@@ -559,6 +577,7 @@ class _ProfileContentState extends State<ProfileContent>
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(radiusLarge),
+          // ignore: deprecated_member_use
           splashColor: color.withOpacity(0.2),
           child: Container(
             padding: EdgeInsets.all(spacingLarge),
@@ -566,7 +585,9 @@ class _ProfileContentState extends State<ProfileContent>
               gradient: isDanger
                   ? LinearGradient(
                       colors: [
+                        // ignore: deprecated_member_use
                         color.withOpacity(widget.isDarkMode ? 0.25 : 0.1),
+                        // ignore: deprecated_member_use
                         color.withOpacity(widget.isDarkMode ? 0.15 : 0.05),
                       ],
                       begin: Alignment.topLeft,
@@ -575,7 +596,9 @@ class _ProfileContentState extends State<ProfileContent>
                   : null,
               borderRadius: BorderRadius.circular(radiusLarge),
               border: widget.isDarkMode
+                  // ignore: deprecated_member_use
                   ? Border.all(color: color.withOpacity(0.4), width: 1.5)
+                  // ignore: deprecated_member_use
                   : Border.all(color: color.withOpacity(0.3), width: 1.5),
             ),
             child: Row(
@@ -583,6 +606,7 @@ class _ProfileContentState extends State<ProfileContent>
                 Container(
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
+                    // ignore: deprecated_member_use
                     color: color.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(radiusMedium),
                   ),

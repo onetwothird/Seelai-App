@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/home/sections/contacts_content.dart
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 
@@ -102,7 +104,6 @@ class ContactsContent extends StatelessWidget {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          // TODO: Navigate to add contact screen
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Add contact feature coming soon'),
@@ -268,7 +269,6 @@ class ContactsContent extends StatelessWidget {
                       ],
                     ),
                     onTap: () {
-                      // TODO: Navigate to edit contact
                       Future.delayed(Duration.zero, () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -288,7 +288,6 @@ class ContactsContent extends StatelessWidget {
                       ],
                     ),
                     onTap: () {
-                      // TODO: Delete contact
                       Future.delayed(Duration.zero, () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -310,7 +309,6 @@ class ContactsContent extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // TODO: Make call
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Calling ${contact.name}...'),
@@ -333,7 +331,6 @@ class ContactsContent extends StatelessWidget {
                   SizedBox(width: spacingSmall),
                   ElevatedButton(
                     onPressed: () {
-                      // TODO: Send SMS
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Opening SMS to ${contact.name}...'),

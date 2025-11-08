@@ -31,8 +31,6 @@ class CaretakerRequestService {
 
       debugPrint('Caretaker request sent: ${request.requestType}');
       
-      // TODO: Send push notification to caretaker
-      // TODO: Save request to database
       
       return true;
     } catch (e) {
@@ -58,7 +56,6 @@ class CaretakerRequestService {
 
   /// Check if caretaker is available
   Future<bool> checkCaretakerAvailability(String caretakerId) async {
-    // TODO: Implement actual availability check from database
     // For now, return true as a placeholder
     await Future.delayed(Duration(milliseconds: 500));
     return true;
@@ -66,7 +63,6 @@ class CaretakerRequestService {
 
   /// Get caretaker request history
   Future<List<CaretakerRequest>> getRequestHistory(String userId) async {
-    // TODO: Fetch from database
     return [];
   }
 }

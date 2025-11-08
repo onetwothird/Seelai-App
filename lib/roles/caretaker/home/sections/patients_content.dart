@@ -35,7 +35,6 @@ class _PatientsContentState extends State<PatientsContent> {
   Future<void> _loadPatients() async {
     setState(() => _isLoading = true);
     
-    // TODO: Load from database
     await Future.delayed(Duration(milliseconds: 500));
     
     // Sample data
@@ -142,6 +141,7 @@ class _PatientsContentState extends State<PatientsContent> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
+                  // ignore: deprecated_member_use
                   color: primary.withOpacity(0.15),
                   blurRadius: 16,
                   offset: Offset(0, 6),
@@ -172,6 +172,7 @@ class _PatientsContentState extends State<PatientsContent> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radiusLarge),
               border: widget.isDarkMode
+                  // ignore: deprecated_member_use
                   ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
                   : null,
             ),

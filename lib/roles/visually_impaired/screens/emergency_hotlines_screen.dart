@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/screens/emergency_hotlines_screen.dart
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/models/emergency_hotline_model.dart';

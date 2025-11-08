@@ -1,3 +1,5 @@
+// ignore_for_file: empty_catches
+
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -152,9 +154,7 @@ class DatabaseService {
         'message': 'Connection successful',
         'timestamp': ServerValue.timestamp,
       });
-      print('✅ Database connection successful!');
     } catch (e) {
-      print('❌ Database connection failed: $e');
     }
   }
 

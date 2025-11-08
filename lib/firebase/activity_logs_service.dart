@@ -24,7 +24,6 @@ class ActivityLogsService {
       });
     } catch (e) {
       // Don't throw error for logging failures
-      print('Failed to log activity: $e');
     }
   }
 

@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/services/emergency_service.dart
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/roles/visually_impaired/models/emergency_hotline_model.dart';

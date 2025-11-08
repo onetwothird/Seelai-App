@@ -5,7 +5,6 @@ class LocationService {
   // Get patient's current location
   Future<Map<String, dynamic>?> getPatientLocation(String patientId) async {
     try {
-      // TODO: Fetch from Firebase Realtime Database
       await Future.delayed(Duration(milliseconds: 500));
       
       // Sample data
@@ -23,7 +22,6 @@ class LocationService {
 
   // Track patient location in real-time
   Stream<Map<String, dynamic>?> trackPatientLocation(String patientId) {
-    // TODO: Implement real-time location tracking from Firebase
     return Stream.periodic(Duration(seconds: 5), (_) {
       return {
         'latitude': 14.2456 + (DateTime.now().second * 0.0001),

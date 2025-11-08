@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/home/widgets/header_section.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:seelai_app/themes/constants.dart';
