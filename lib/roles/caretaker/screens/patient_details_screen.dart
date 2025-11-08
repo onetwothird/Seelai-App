@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, duplicate_ignore
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
@@ -55,6 +57,7 @@ class PatientDetailsScreen extends StatelessWidget {
                       Container(
                         padding: EdgeInsets.all(spacingXLarge),
                         decoration: BoxDecoration(
+                          // ignore: deprecated_member_use
                           color: white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),

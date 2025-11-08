@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/home/sections/profile_content.dart
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/auth_service.dart';

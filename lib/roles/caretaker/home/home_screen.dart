@@ -297,6 +297,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       backgroundGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
+        // ignore: deprecated_member_use
         colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
         stops: [0.0, 0.5, 1.0],
       ),

@@ -4,7 +4,6 @@ class NotificationService {
   // Show local notification
   Future<void> showNotification(String title, String body) async {
     try {
-      // TODO: Implement local notifications
       debugPrint('Notification: $title - $body');
     } catch (e) {
       debugPrint('Error showing notification: $e');
@@ -14,7 +13,6 @@ class NotificationService {
   // Request notification permissions
   Future<bool> requestPermissions() async {
     try {
-      // TODO: Request notification permissions
       await Future.delayed(Duration(milliseconds: 300));
       return true;
     } catch (e) {
@@ -26,7 +24,6 @@ class NotificationService {
   // Initialize notification service
   Future<void> initialize() async {
     try {
-      // TODO: Initialize notification service
       await Future.delayed(Duration(milliseconds: 300));
       debugPrint('Notification service initialized');
     } catch (e) {

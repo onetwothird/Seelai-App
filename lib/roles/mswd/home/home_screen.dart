@@ -100,6 +100,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                     borderRadius: BorderRadius.circular(radiusLarge),
                     boxShadow: [
                       BoxShadow(
+                        // ignore: deprecated_member_use
                         color: primary.withOpacity(0.3),
                         blurRadius: 15,
                         offset: Offset(0, 5),

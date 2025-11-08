@@ -45,7 +45,6 @@ class _RequestsContentState extends State<RequestsContent>
     setState(() => _isLoading = true);
     
     try {
-      // TODO: Load from database
       await Future.delayed(Duration(milliseconds: 500));
       
       // Sample data - Creating mock requests
@@ -156,12 +155,16 @@ class _RequestsContentState extends State<RequestsContent>
             padding: EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: widget.isDarkMode 
+                // ignore: deprecated_member_use
                 ? Colors.white.withOpacity(0.05)
+                // ignore: deprecated_member_use
                 : Colors.black.withOpacity(0.04),
               borderRadius: BorderRadius.circular(radiusLarge),
               border: Border.all(
                 color: widget.isDarkMode 
+                  // ignore: deprecated_member_use
                   ? Colors.white.withOpacity(0.08)
+                  // ignore: deprecated_member_use
                   : Colors.black.withOpacity(0.06),
                 width: 1,
               ),
@@ -233,6 +236,7 @@ class _RequestsContentState extends State<RequestsContent>
                 ? LinearGradient(
                     colors: [
                       accentColor,
+                      // ignore: deprecated_member_use
                       accentColor.withOpacity(0.8),
                     ],
                     begin: Alignment.topLeft,
@@ -244,6 +248,7 @@ class _RequestsContentState extends State<RequestsContent>
             boxShadow: isSelected
                 ? [
                     BoxShadow(
+                      // ignore: deprecated_member_use
                       color: accentColor.withOpacity(0.4),
                       blurRadius: 12,
                       offset: Offset(0, 4),
@@ -275,12 +280,16 @@ class _RequestsContentState extends State<RequestsContent>
                       padding: EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: isSelected
+                            // ignore: deprecated_member_use
                             ? white.withOpacity(0.25)
+                            // ignore: deprecated_member_use
                             : accentColor.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(radiusSmall),
                         border: Border.all(
                           color: isSelected
+                              // ignore: deprecated_member_use
                               ? white.withOpacity(0.4)
+                              // ignore: deprecated_member_use
                               : accentColor.withOpacity(0.3),
                           width: 1,
                         ),
@@ -379,6 +388,7 @@ class _RequestsContentState extends State<RequestsContent>
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: priorityColor.withOpacity(widget.isDarkMode ? 0.3 : 0.18),
             blurRadius: 24,
             offset: Offset(0, 10),
@@ -404,13 +414,16 @@ class _RequestsContentState extends State<RequestsContent>
             ).then((_) => _loadRequests());
           },
           borderRadius: BorderRadius.circular(radiusLarge),
+          // ignore: deprecated_member_use
           splashColor: priorityColor.withOpacity(0.1),
           child: Container(
             padding: EdgeInsets.all(spacingLarge),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
+                  // ignore: deprecated_member_use
                   priorityColor.withOpacity(widget.isDarkMode ? 0.15 : 0.06),
+                  // ignore: deprecated_member_use
                   priorityColor.withOpacity(widget.isDarkMode ? 0.08 : 0.03),
                 ],
                 begin: Alignment.topLeft,
@@ -418,6 +431,7 @@ class _RequestsContentState extends State<RequestsContent>
               ),
               borderRadius: BorderRadius.circular(radiusLarge),
               border: Border.all(
+                // ignore: deprecated_member_use
                 color: priorityColor.withOpacity(widget.isDarkMode ? 0.5 : 0.4),
                 width: 2,
               ),
@@ -432,17 +446,21 @@ class _RequestsContentState extends State<RequestsContent>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
+                            // ignore: deprecated_member_use
                             priorityColor.withOpacity(0.3),
+                            // ignore: deprecated_member_use
                             priorityColor.withOpacity(0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(radiusMedium),
                         border: Border.all(
+                          // ignore: deprecated_member_use
                           color: priorityColor.withOpacity(0.4),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
+                            // ignore: deprecated_member_use
                             color: priorityColor.withOpacity(0.3),
                             blurRadius: 8,
                             offset: Offset(0, 3),
@@ -481,12 +499,14 @@ class _RequestsContentState extends State<RequestsContent>
                                   gradient: LinearGradient(
                                     colors: [
                                       priorityColor,
+                                      // ignore: deprecated_member_use
                                       priorityColor.withOpacity(0.8),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(radiusSmall),
                                   boxShadow: [
                                     BoxShadow(
+                                      // ignore: deprecated_member_use
                                       color: priorityColor.withOpacity(0.4),
                                       blurRadius: 6,
                                       offset: Offset(0, 2),
@@ -527,12 +547,16 @@ class _RequestsContentState extends State<RequestsContent>
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
                     color: widget.isDarkMode
+                        // ignore: deprecated_member_use
                         ? Colors.white.withOpacity(0.05)
+                        // ignore: deprecated_member_use
                         : Colors.black.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
                       color: widget.isDarkMode
+                          // ignore: deprecated_member_use
                           ? Colors.white.withOpacity(0.1)
+                          // ignore: deprecated_member_use
                           : Colors.black.withOpacity(0.08),
                       width: 1,
                     ),
@@ -548,9 +572,11 @@ class _RequestsContentState extends State<RequestsContent>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
+                              // ignore: deprecated_member_use
                               color: Colors.blue.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(radiusSmall),
                               border: Border.all(
+                                // ignore: deprecated_member_use
                                 color: Colors.blue.withOpacity(0.3),
                                 width: 1,
                               ),
@@ -633,9 +659,11 @@ class _RequestsContentState extends State<RequestsContent>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
+                          // ignore: deprecated_member_use
                           color: Colors.green.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(radiusSmall),
                           border: Border.all(
+                            // ignore: deprecated_member_use
                             color: Colors.green.withOpacity(0.3),
                             width: 1,
                           ),

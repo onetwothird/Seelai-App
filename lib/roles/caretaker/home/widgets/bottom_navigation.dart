@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, duplicate_ignore
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 
@@ -29,6 +31,7 @@ class CustomBottomNavigation extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isDarkMode
+                // ignore: deprecated_member_use
                 ? primary.withOpacity(0.2)
                 : Colors.black.withOpacity(0.1),
             blurRadius: 24,

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
@@ -105,7 +107,6 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         }
       }
     } catch (e) {
-      print('Error loading caretakers: $e');
       
       if (mounted) {
         setState(() {
@@ -219,7 +220,6 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         });
       }
     } catch (e) {
-      print('Error assigning caretaker: $e');
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

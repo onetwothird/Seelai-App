@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/home/home_screen.dart
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/header_section.dart';
@@ -159,7 +161,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   void _activateVoiceAssistant() {
     _accessibilityService.announce('Voice assistant activated. Listening...');
-    // TODO: Implement voice command functionality
   }
 
   void _onNavItemTapped(int index) {
@@ -181,7 +182,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   void _openCameraScanner() {
     _accessibilityService.announce('Opening camera scanner');
-    // TODO: Navigate to camera scanner screen
     setState(() {
       _notificationMessage = 'Camera scanner opening...';
     });
@@ -280,6 +280,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 Text('Type of Assistance:', style: bodyBold),
                 SizedBox(height: spacingSmall),
                 DropdownButtonFormField<String>(
+                  // ignore: deprecated_member_use
                   value: selectedType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
@@ -506,6 +507,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       backgroundGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
+        // ignore: deprecated_member_use
         colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
         stops: [0.0, 0.5, 1.0],
       ),

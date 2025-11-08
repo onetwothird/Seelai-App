@@ -15,7 +15,6 @@ void main() async {
   } catch (e) {
     // If Firebase is already initialized, catch the error and continue
     if (e.toString().contains('duplicate-app')) {
-      print('Firebase already initialized, skipping...');
     } else {
       // If it's a different error, rethrow it
       rethrow;

@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/models/emergency_hotline_model.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 
 class EmergencyHotline {

@@ -1,5 +1,6 @@
 /// Firebase Services - Centralized export file
 /// This file exports all Firebase database services for easy importing
+library;
 
 // Core database service
 export 'database_service.dart';

@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/home/sections/recent_activities_content.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/models/activity_model.dart';

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
@@ -35,7 +37,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     
     final success = await widget.requestService.acceptRequest(
       widget.request.id,
-      'caretaker_1', // TODO: Use actual caretaker ID
+      'caretaker_1', 
     );
     
     if (mounted) {

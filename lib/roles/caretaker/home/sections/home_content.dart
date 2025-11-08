@@ -99,7 +99,9 @@ class HomeContent extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
+            // ignore: deprecated_member_use
             color.withOpacity(isDarkMode ? 0.3 : 0.12),
+            // ignore: deprecated_member_use
             color.withOpacity(isDarkMode ? 0.2 : 0.06),
           ],
           begin: Alignment.topLeft,
@@ -107,11 +109,13 @@ class HomeContent extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(radiusLarge),
         border: Border.all(
+          // ignore: deprecated_member_use
           color: color.withOpacity(isDarkMode ? 0.5 : 0.35),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: color.withOpacity(isDarkMode ? 0.25 : 0.15),
             blurRadius: 20,
             offset: Offset(0, 8),
@@ -127,7 +131,9 @@ class HomeContent extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
+                  // ignore: deprecated_member_use
                   color.withOpacity(0.3),
+                  // ignore: deprecated_member_use
                   color.withOpacity(0.2),
                 ],
                 begin: Alignment.topLeft,
@@ -135,11 +141,13 @@ class HomeContent extends StatelessWidget {
               ),
               shape: BoxShape.circle,
               border: Border.all(
+                // ignore: deprecated_member_use
                 color: color.withOpacity(0.4),
                 width: 2,
               ),
               boxShadow: [
                 BoxShadow(
+                  // ignore: deprecated_member_use
                   color: color.withOpacity(0.3),
                   blurRadius: 12,
                   offset: Offset(0, 4),
@@ -224,6 +232,7 @@ class HomeContent extends StatelessWidget {
         boxShadow: isDarkMode
             ? [
                 BoxShadow(
+                  // ignore: deprecated_member_use
                   color: (activity['color'] as Color).withOpacity(0.15),
                   blurRadius: 16,
                   offset: Offset(0, 6),
@@ -232,6 +241,7 @@ class HomeContent extends StatelessWidget {
             : softShadow,
         border: isDarkMode
             ? Border.all(
+                // ignore: deprecated_member_use
                 color: (activity['color'] as Color).withOpacity(0.3),
                 width: 1.5,
               )
@@ -242,6 +252,7 @@ class HomeContent extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
+              // ignore: deprecated_member_use
               color: (activity['color'] as Color).withOpacity(0.2),
               borderRadius: BorderRadius.circular(radiusMedium),
             ),

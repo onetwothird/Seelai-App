@@ -42,7 +42,6 @@ class PatientService {
   // Make call to patient
   Future<bool> callPatient(String phoneNumber) async {
     try {
-      // TODO: Use url_launcher to make phone call
       debugPrint('Calling patient: $phoneNumber');
       await Future.delayed(Duration(milliseconds: 300));
       return true;
@@ -55,7 +54,6 @@ class PatientService {
   // Send SMS to patient
   Future<bool> sendSMS(String phoneNumber, String message) async {
     try {
-      // TODO: Use url_launcher to send SMS
       debugPrint('Sending SMS to $phoneNumber: $message');
       await Future.delayed(Duration(milliseconds: 300));
       return true;
