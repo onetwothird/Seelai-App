@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
+import 'package:seelai_app/firebase/assistance_request_service.dart';
 
 class RequestService {
+  final AssistanceRequestService _assistanceRequestService = assistanceRequestService;
   final List<Function(RequestModel)> _listeners = [];
 
   // Add listener for new requests
@@ -16,10 +18,7 @@ class RequestService {
   // Get pending requests for caretaker
   Future<List<RequestModel>> getPendingRequests(String caretakerId) async {
     try {
-      await Future.delayed(Duration(milliseconds: 500));
-      
-      // Sample data
-      return [];
+      return await _assistanceRequestService.getPendingRequests(caretakerId);
     } catch (e) {
       debugPrint('Error getting pending requests: $e');
       return [];
@@ -32,20 +31,25 @@ class RequestService {
     RequestStatus? status,
   }) async {
     try {
-      await Future.delayed(Duration(milliseconds: 500));
-      return [];
+      if (status != null) {
+        return await _assistanceRequestService.getRequestsByStatus(caretakerId, status);
+      }
+      return await _assistanceRequestService.getCaretakerRequests(caretakerId);
     } catch (e) {
       debugPrint('Error getting requests: $e');
       return [];
     }
   }
 
+  // Stream requests (real-time)
+  Stream<List<RequestModel>> streamRequests(String caretakerId) {
+    return _assistanceRequestService.streamCaretakerRequests(caretakerId);
+  }
+
   // Accept a request
   Future<bool> acceptRequest(String requestId, String caretakerId) async {
     try {
-      await Future.delayed(Duration(milliseconds: 500));
-      debugPrint('Request $requestId accepted by $caretakerId');
-      return true;
+      return await _assistanceRequestService.acceptRequest(requestId, caretakerId);
     } catch (e) {
       debugPrint('Error accepting request: $e');
       return false;
@@ -59,9 +63,7 @@ class RequestService {
     String reason,
   ) async {
     try {
-      await Future.delayed(Duration(milliseconds: 500));
-      debugPrint('Request $requestId declined: $reason');
-      return true;
+      return await _assistanceRequestService.declineRequest(requestId, caretakerId, reason);
     } catch (e) {
       debugPrint('Error declining request: $e');
       return false;
@@ -75,16 +77,14 @@ class RequestService {
     String notes,
   ) async {
     try {
-      await Future.delayed(Duration(milliseconds: 500));
-      debugPrint('Request $requestId completed');
-      return true;
+      return await _assistanceRequestService.completeRequest(requestId, caretakerId, notes);
     } catch (e) {
       debugPrint('Error completing request: $e');
       return false;
     }
   }
 
-  // Send message to patient
+  // Send message to patient (placeholder)
   Future<bool> sendMessage(
     String patientId,
     String caretakerId,
