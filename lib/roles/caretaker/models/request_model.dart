@@ -19,6 +19,7 @@ class RequestModel {
   final String id;
   final String patientId;
   final String patientName;
+  final String? caretakerId;
   final String requestType;
   final String message;
   final RequestStatus status;
@@ -33,6 +34,7 @@ class RequestModel {
     required this.id,
     required this.patientId,
     required this.patientName,
+    this.caretakerId,
     required this.requestType,
     required this.message,
     required this.status,
@@ -47,8 +49,9 @@ class RequestModel {
   factory RequestModel.fromJson(Map<String, dynamic> json, String id) {
     return RequestModel(
       id: id,
-      patientId: json['userId'] as String,
-      patientName: json['userName'] as String,
+      patientId: json['patientId'] as String? ?? json['userId'] as String,
+      patientName: json['patientName'] as String? ?? json['userName'] as String,
+      caretakerId: json['caretakerId'] as String?,
       requestType: json['requestType'] as String,
       message: json['message'] as String,
       status: _parseStatus(json['status'] as String?),
@@ -95,8 +98,9 @@ class RequestModel {
 
   Map<String, dynamic> toJson() {
     return {
-      'userId': patientId,
-      'userName': patientName,
+      'patientId': patientId,
+      'patientName': patientName,
+      'caretakerId': caretakerId,
       'requestType': requestType,
       'message': message,
       'status': status.toString().split('.').last,
@@ -113,6 +117,7 @@ class RequestModel {
     String? id,
     String? patientId,
     String? patientName,
+    String? caretakerId,
     String? requestType,
     String? message,
     RequestStatus? status,
@@ -127,6 +132,7 @@ class RequestModel {
       id: id ?? this.id,
       patientId: patientId ?? this.patientId,
       patientName: patientName ?? this.patientName,
+      caretakerId: caretakerId ?? this.caretakerId,
       requestType: requestType ?? this.requestType,
       message: message ?? this.message,
       status: status ?? this.status,
@@ -142,6 +148,7 @@ class RequestModel {
   IconData getIcon() {
     switch (requestType) {
       case 'Emergency':
+      case 'Emergency Help':
         return Icons.emergency_rounded;
       case 'Navigation Help':
         return Icons.directions_rounded;
