@@ -12,6 +12,7 @@ class HeaderSection extends StatelessWidget {
   final String notificationMessage;
   final VoidCallback onVoiceAssistant;
   final VoidCallback onToggleDarkMode;
+  final VoidCallback onNotificationTap; // Added for notification bell
   final Color textColor;
   final Color subtextColor;
 
@@ -22,6 +23,7 @@ class HeaderSection extends StatelessWidget {
     required this.notificationMessage,
     required this.onVoiceAssistant,
     required this.onToggleDarkMode,
+    required this.onNotificationTap, // Added parameter
     required this.textColor,
     required this.subtextColor,
   });
@@ -74,7 +76,7 @@ class HeaderSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                                
+                
                 // Dark Mode Toggle
                 Semantics(
                   label: isDarkMode ? 'Dark mode is on' : 'Light mode is on',
@@ -88,6 +90,22 @@ class HeaderSection extends StatelessWidget {
                     size: 28,
                     isDarkMode: isDarkMode,
                     isSpecial: isDarkMode,
+                  ),
+                ),
+                
+                SizedBox(width: spacingSmall),
+                
+                // Notification Bell
+                Semantics(
+                  label: 'Notifications',
+                  hint: 'Double tap to view notifications',
+                  button: true,
+                  child: CustomIconButton(
+                    icon: Icons.notifications_rounded,
+                    onPressed: onNotificationTap,
+                    size: 28,
+                    isDarkMode: isDarkMode,
+                    isSpecial: false,
                   ),
                 ),
               ],
