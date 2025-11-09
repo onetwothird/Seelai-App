@@ -206,7 +206,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         ),
                         SizedBox(height: spacingXSmall),
                         Text(
-                          DateFormat('MMM dd, yyyy • hh:mm a').format(widget.request.timestamp),
+                          DateFormat('MMM dd, yyyy â€¢ hh:mm a').format(widget.request.timestamp),
                           style: caption.copyWith(
                             fontSize: 13,
                             color: subtextColor,

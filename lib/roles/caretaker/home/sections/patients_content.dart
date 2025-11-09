@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use, duplicate_ignore
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/patient_model.dart';

@@ -1,5 +1,5 @@
 // File: lib/roles/visually_impaired/home/home_screen.dart
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, duplicate_ignore
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -12,7 +12,8 @@ import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activiti
 import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
-import 'package:seelai_app/roles/visually_impaired/services/caretaker_request_service.dart';
+import 'package:seelai_app/firebase/assistance_request_service.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -32,7 +33,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   late final CameraService _cameraService;
   late final PermissionService _permissionService;
   late final AccessibilityService _accessibilityService;
-  late final CaretakerRequestService _caretakerRequestService;
+  late final AssistanceRequestService _assistanceRequestService;
   
   // UI State
   bool _isDarkMode = false;
@@ -63,7 +64,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _cameraService = CameraService();
     _permissionService = PermissionService();
     _accessibilityService = AccessibilityService();
-    _caretakerRequestService = CaretakerRequestService();
+    _assistanceRequestService = assistanceRequestService;
   }
 
   void _initializeAnimations() {
@@ -87,11 +88,10 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     final currentScroll = _scrollController.position.pixels;
     final scrollDelta = currentScroll - _lastScrollPosition;
     
-    // Threshold to prevent jittery behavior
     const scrollThreshold = 10.0;
     
     if (scrollDelta.abs() > scrollThreshold) {
-      final shouldShow = scrollDelta < 0; // Scrolling up
+      final shouldShow = scrollDelta < 0;
       
       if (shouldShow != _isNavVisible) {
         setState(() {
@@ -102,7 +102,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       _lastScrollPosition = currentScroll;
     }
     
-    // Always show nav when at the top
     if (currentScroll <= 0 && !_isNavVisible) {
       setState(() {
         _isNavVisible = true;
@@ -111,7 +110,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   }
 
   Future<void> _requestPermissionsAndInitialize() async {
-    // Request permissions first
     final result = await _permissionService.requestAllPermissions();
     
     if (mounted) {
@@ -119,11 +117,9 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         _notificationMessage = result.message;
       });
 
-      // If permissions granted, automatically initialize camera
       if (result.hasAllPermissions) {
         await _initializeCamera();
       } else {
-        // Show message about camera not being available
         setState(() {
           _notificationMessage = 'Camera access required for full functionality';
         });
@@ -163,8 +159,89 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _accessibilityService.announce('Voice assistant activated. Listening...');
   }
 
+  void _openNotifications() {
+    _accessibilityService.announce('Opening notifications');
+    
+    // Show notifications dialog or navigate to notifications page
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.notifications_rounded, color: primary),
+            SizedBox(width: spacingSmall),
+            Text('Notifications'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildNotificationItem(
+              icon: Icons.info_rounded,
+              title: 'Current Status',
+              message: _notificationMessage,
+              time: 'Now',
+            ),
+            Divider(),
+            _buildNotificationItem(
+              icon: Icons.check_circle_rounded,
+              title: 'System Ready',
+              message: 'All services are running normally',
+              time: '5 min ago',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationItem({
+    required IconData icon,
+    required String title,
+    required String message,
+    required String time,
+  }) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: spacingSmall),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: primary, size: 24),
+          SizedBox(width: spacingSmall),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: bodyBold.copyWith(fontSize: 14),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  message,
+                  style: body.copyWith(fontSize: 13, color: grey),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  time,
+                  style: body.copyWith(fontSize: 11, color: grey.withOpacity(0.7)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onNavItemTapped(int index) {
-    // Handle scanner button tap (index 2 - center button)
     if (index == 2) {
       _openCameraScanner();
       return;
@@ -204,67 +281,46 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   Future<void> _requestCaretaker() async {
     final userName = widget.userData['name'] ?? 'User';
+    final userId = widget.userData['uid'] ?? '';
     
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: EdgeInsets.all(spacingXLarge),
-          margin: EdgeInsets.symmetric(horizontal: spacingXLarge),
-          decoration: BoxDecoration(
-            color: _isDarkMode ? Color(0xFF1A1F3A) : white,
-            borderRadius: BorderRadius.circular(radiusLarge),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: spacingLarge),
-              Text(
-                'Checking caretaker availability...',
-                style: bodyBold.copyWith(
-                  color: _isDarkMode ? white : black,
-                ),
-              ),
-            ],
-          ),
+    // Get assigned caretakers
+    final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
+    
+    if (assignedCaretakers == null || assignedCaretakers.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No caretaker assigned. Please assign a caretaker first.'),
+          backgroundColor: error,
         ),
-      ),
-    );
-
-    // Check availability
-    final isAvailable = await _caretakerRequestService.checkCaretakerAvailability('caretaker_1');
-    
-    // Close loading dialog
-    if (mounted) Navigator.pop(context);
-    
-    if (isAvailable) {
-      // Show request dialog
-      _showCaretakerRequestDialog(userName);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No caretaker is currently available'),
-            backgroundColor: error,
-          ),
-        );
-      }
+      );
+      return;
     }
+    
+    // Get first caretaker ID
+    final caretakerId = assignedCaretakers.keys.first.toString();
+    
+    // Show request dialog
+    _showCaretakerRequestDialog(userName, userId, caretakerId);
   }
 
-  void _showCaretakerRequestDialog(String userName) {
+  void _showCaretakerRequestDialog(String userName, String userId, String caretakerId) {
     final requestTypes = [
       'General Assistance',
       'Navigation Help',
       'Reading Assistance',
-      'Emergency',
+      'Emergency Help',
       'Other',
     ];
     
+    final priorityLevels = [
+      'Low',
+      'Medium',
+      'High',
+      'Emergency',
+    ];
+    
     String selectedType = requestTypes[0];
+    String selectedPriority = 'Medium';
     final messageController = TextEditingController();
     
     showDialog(
@@ -280,7 +336,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 Text('Type of Assistance:', style: bodyBold),
                 SizedBox(height: spacingSmall),
                 DropdownButtonFormField<String>(
-                  // ignore: deprecated_member_use
                   value: selectedType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
@@ -297,6 +352,29 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                   onChanged: (value) {
                     setDialogState(() {
                       selectedType = value!;
+                    });
+                  },
+                ),
+                SizedBox(height: spacingMedium),
+                Text('Priority Level:', style: bodyBold),
+                SizedBox(height: spacingSmall),
+                DropdownButtonFormField<String>(
+                  value: selectedPriority,
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: priorityLevels.map((level) {
+                    return DropdownMenuItem(
+                      value: level,
+                      child: Text(level),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      selectedPriority = value!;
                     });
                   },
                 ),
@@ -326,13 +404,15 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               onPressed: () async {
                 Navigator.pop(context);
                 
-                final success = await _caretakerRequestService.sendCaretakerRequest(
-                  userId: widget.userData['uid'] ?? '',
-                  userName: userName,
+                final success = await _assistanceRequestService.sendAssistanceRequest(
+                  patientId: userId,
+                  patientName: userName,
+                  caretakerId: caretakerId,
                   requestType: selectedType,
                   message: messageController.text.isNotEmpty 
                     ? messageController.text 
                     : 'User needs $selectedType',
+                  priority: selectedPriority.toLowerCase(),
                 );
                 
                 if (mounted) {
@@ -340,7 +420,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                     SnackBar(
                       content: Text(
                         success 
-                          ? 'Request sent to caretaker' 
+                          ? 'Request sent to caretaker successfully' 
                           : 'Failed to send request'
                       ),
                       backgroundColor: success ? Colors.green : error,
@@ -371,7 +451,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _cameraService.dispose();
     _animationController.dispose();
     _scrollController.dispose();
-    _caretakerRequestService.clearListeners();
     super.dispose();
   }
 
@@ -399,6 +478,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 notificationMessage: _notificationMessage,
                 onVoiceAssistant: _activateVoiceAssistant,
                 onToggleDarkMode: _toggleDarkMode,
+                onNotificationTap: _openNotifications,
                 textColor: theme.textColor,
                 subtextColor: theme.subtextColor,
               ),
@@ -454,7 +534,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       content = ContactsContent(
         isDarkMode: _isDarkMode,
         theme: theme,
-        userData: widget.userData,  // ← ADD THIS LINE
+        userData: widget.userData,
       );
       break;
     case 3:

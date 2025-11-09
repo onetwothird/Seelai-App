@@ -3,6 +3,7 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
 import 'package:seelai_app/roles/caretaker/services/request_service.dart';
 import 'package:seelai_app/roles/caretaker/screens/request_details_screen.dart';
+import 'dart:async';
 
 class RequestsContent extends StatefulWidget {
   final bool isDarkMode;
@@ -31,109 +32,68 @@ class _RequestsContentState extends State<RequestsContent>
   List<RequestModel> _activeRequests = [];
   List<RequestModel> _completedRequests = [];
   bool _isLoading = true;
+  StreamSubscription? _requestsSubscription;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadRequests();
+    _setupRealTimeListener();
   }
 
-  Future<void> _loadRequests() async {
-    if (!mounted) return;
+  void _setupRealTimeListener() {
+    final caretakerId = widget.userData['uid'] as String?;
     
-    setState(() => _isLoading = true);
-    
-    try {
-      await Future.delayed(Duration(milliseconds: 500));
-      
-      // Sample data - Creating mock requests
-      final now = DateTime.now();
-      
-      if (!mounted) return;
-      
+    if (caretakerId == null || caretakerId.isEmpty) {
       setState(() {
-        _pendingRequests = [
-          RequestModel(
-            id: '1',
-            patientId: 'p1',
-            patientName: 'Maria Santos',
-            requestType: 'Navigation Help',
-            message: 'Need help getting to the pharmacy',
-            status: RequestStatus.pending,
-            priority: RequestPriority.high,
-            timestamp: now.subtract(Duration(minutes: 5)),
-            location: {'latitude': 14.2456, 'longitude': 121.1234},
-          ),
-          RequestModel(
-            id: '2',
-            patientId: 'p2',
-            patientName: 'Juan Dela Cruz',
-            requestType: 'Reading Assistance',
-            message: 'Need help reading medicine label',
-            status: RequestStatus.pending,
-            priority: RequestPriority.medium,
-            timestamp: now.subtract(Duration(minutes: 15)),
-          ),
-          RequestModel(
-            id: '3',
-            patientId: 'p3',
-            patientName: 'Rosa Garcia',
-            requestType: 'Emergency Help',
-            message: 'I need immediate assistance with my medication',
-            status: RequestStatus.pending,
-            priority: RequestPriority.high,
-            timestamp: now.subtract(Duration(minutes: 2)),
-            location: {'latitude': 14.2500, 'longitude': 121.1300},
-          ),
-        ];
-        
-        _activeRequests = [
-          RequestModel(
-            id: '4',
-            patientId: 'p4',
-            patientName: 'Pedro Martinez',
-            requestType: 'Transportation',
-            message: 'Help needed to get to hospital for checkup',
-            status: RequestStatus.accepted,
-            priority: RequestPriority.medium,
-            timestamp: now.subtract(Duration(hours: 1)),
-            location: {'latitude': 14.2400, 'longitude': 121.1200},
-          ),
-        ];
-        
-        _completedRequests = [
-          RequestModel(
-            id: '5',
-            patientId: 'p5',
-            patientName: 'Ana Cruz',
-            requestType: 'Reading Assistance',
-            message: 'Help reading prescription',
-            status: RequestStatus.completed,
-            priority: RequestPriority.low,
-            timestamp: now.subtract(Duration(hours: 3)),
-          ),
-        ];
-        
         _isLoading = false;
-        widget.onRequestCountChange(_pendingRequests.length);
       });
-    } catch (e) {
-      debugPrint('Error loading requests: $e');
+      return;
+    }
+
+    // Listen to real-time requests
+    _requestsSubscription = widget.requestService
+        .streamRequests(caretakerId)
+        .listen((requests) {
+      if (mounted) {
+        setState(() {
+          // Filter by status
+          _pendingRequests = requests
+              .where((req) => req.status == RequestStatus.pending)
+              .toList();
+          
+          _activeRequests = requests
+              .where((req) => 
+                  req.status == RequestStatus.accepted ||
+                  req.status == RequestStatus.inProgress)
+              .toList();
+          
+          _completedRequests = requests
+              .where((req) => 
+                  req.status == RequestStatus.completed ||
+                  req.status == RequestStatus.declined)
+              .toList();
+          
+          _isLoading = false;
+          
+          // Update pending count
+          widget.onRequestCountChange(_pendingRequests.length);
+        });
+      }
+    }, onError: (error) {
+      debugPrint('Error streaming requests: $error');
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _pendingRequests = [];
-          _activeRequests = [];
-          _completedRequests = [];
         });
       }
-    }
+    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _requestsSubscription?.cancel();
     super.dispose();
   }
 
@@ -355,7 +315,7 @@ class _RequestsContentState extends State<RequestsContent>
             Container(
               padding: EdgeInsets.symmetric(horizontal: spacingLarge),
               child: Text(
-                'When new requests arrive, they will appear here',
+                'When patients send requests, they will appear here',
                 style: body.copyWith(
                   color: widget.theme.subtextColor,
                   fontSize: 14,
@@ -411,7 +371,7 @@ class _RequestsContentState extends State<RequestsContent>
                   requestService: widget.requestService,
                 ),
               ),
-            ).then((_) => _loadRequests());
+            );
           },
           borderRadius: BorderRadius.circular(radiusLarge),
           // ignore: deprecated_member_use
@@ -542,7 +502,6 @@ class _RequestsContentState extends State<RequestsContent>
                 
                 SizedBox(height: spacingMedium),
                 
-                // Request Message with Visual Impaired Badge
                 Container(
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
@@ -619,7 +578,6 @@ class _RequestsContentState extends State<RequestsContent>
                 
                 SizedBox(height: spacingMedium),
                 
-                // Time and Location Info
                 Row(
                   children: [
                     Container(
