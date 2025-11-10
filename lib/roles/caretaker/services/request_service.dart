@@ -70,6 +70,16 @@ class RequestService {
     }
   }
 
+  // Mark request as in progress
+  Future<bool> markInProgress(String requestId) async {
+    try {
+      return await _assistanceRequestService.markRequestInProgress(requestId);
+    } catch (e) {
+      debugPrint('Error marking request in progress: $e');
+      return false;
+    }
+  }
+
   // Complete a request
   Future<bool> completeRequest(
     String requestId,

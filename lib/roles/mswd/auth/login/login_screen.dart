@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
-import 'package:seelai_app/roles/mswd/signup/signup_screen.dart';
+import 'package:seelai_app/roles/mswd/auth/signup/signup_screen.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/firebase/activity_logs_service.dart';
