@@ -111,6 +111,37 @@ class AssistanceRequestService {
     });
   }
   
+  /// Stream requests for a specific patient (real-time) - for visually impaired
+  Stream<List<RequestModel>> streamPatientRequests(String patientId) {
+    return _database
+        .ref('assistance_requests')
+        .orderByChild('patientId')
+        .equalTo(patientId)
+        .onValue
+        .map((event) {
+      if (!event.snapshot.exists) {
+        return <RequestModel>[];
+      }
+      
+      final requestsMap = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final requests = <RequestModel>[];
+      
+      requestsMap.forEach((key, value) {
+        try {
+          final requestData = Map<String, dynamic>.from(value as Map);
+          requests.add(RequestModel.fromJson(requestData, key));
+        } catch (e) {
+          debugPrint('Error parsing request $key: $e');
+        }
+      });
+      
+      // Sort by timestamp (newest first)
+      requests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      
+      return requests;
+    });
+  }
+  
   /// Get pending requests for a caretaker
   Future<List<RequestModel>> getPendingRequests(String caretakerId) async {
     try {
@@ -176,6 +207,20 @@ class AssistanceRequestService {
       return true;
     } catch (e) {
       debugPrint('Error completing request: $e');
+      return false;
+    }
+  }
+  
+  /// Update request status to inProgress
+  Future<bool> markRequestInProgress(String requestId) async {
+    try {
+      await _database.ref('assistance_requests/$requestId').update({
+        'status': 'inProgress',
+      });
+      
+      return true;
+    } catch (e) {
+      debugPrint('Error marking request in progress: $e');
       return false;
     }
   }

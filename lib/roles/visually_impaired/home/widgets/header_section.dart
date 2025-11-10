@@ -12,9 +12,10 @@ class HeaderSection extends StatelessWidget {
   final String notificationMessage;
   final VoidCallback onVoiceAssistant;
   final VoidCallback onToggleDarkMode;
-  final VoidCallback onNotificationTap; // Added for notification bell
+  final VoidCallback onNotificationTap;
   final Color textColor;
   final Color subtextColor;
+  final int unreadNotificationCount;
 
   const HeaderSection({
     super.key,
@@ -23,9 +24,10 @@ class HeaderSection extends StatelessWidget {
     required this.notificationMessage,
     required this.onVoiceAssistant,
     required this.onToggleDarkMode,
-    required this.onNotificationTap, // Added parameter
+    required this.onNotificationTap,
     required this.textColor,
     required this.subtextColor,
+    this.unreadNotificationCount = 0,
   });
 
   @override
@@ -95,17 +97,61 @@ class HeaderSection extends StatelessWidget {
                 
                 SizedBox(width: spacingSmall),
                 
-                // Notification Bell
+                // Notification Bell with Badge
                 Semantics(
-                  label: 'Notifications',
+                  label: unreadNotificationCount > 0 
+                    ? 'Notifications. You have $unreadNotificationCount unread notification${unreadNotificationCount > 1 ? 's' : ''}' 
+                    : 'Notifications',
                   hint: 'Double tap to view notifications',
                   button: true,
-                  child: CustomIconButton(
-                    icon: Icons.notifications_rounded,
-                    onPressed: onNotificationTap,
-                    size: 28,
-                    isDarkMode: isDarkMode,
-                    isSpecial: false,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CustomIconButton(
+                        icon: Icons.notifications_rounded,
+                        onPressed: onNotificationTap,
+                        size: 28,
+                        isDarkMode: isDarkMode,
+                        isSpecial: false,
+                      ),
+                      if (unreadNotificationCount > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            padding: EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: error,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isDarkMode ? Color(0xFF0A0E27) : backgroundPrimary,
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: error.withOpacity(0.5),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            constraints: BoxConstraints(
+                              minWidth: 18,
+                              minHeight: 18,
+                            ),
+                            child: Center(
+                              child: Text(
+                                unreadNotificationCount > 9 ? '9+' : unreadNotificationCount.toString(),
+                                style: TextStyle(
+                                  color: white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],

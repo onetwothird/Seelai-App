@@ -24,11 +24,20 @@ class RequestDetailsScreen extends StatefulWidget {
 
 class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   final TextEditingController _responseController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
   bool _isProcessing = false;
+  late RequestModel _currentRequest;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentRequest = widget.request;
+  }
 
   @override
   void dispose() {
     _responseController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -36,8 +45,70 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     setState(() => _isProcessing = true);
     
     final success = await widget.requestService.acceptRequest(
-      widget.request.id,
-      'caretaker_1', 
+      _currentRequest.id,
+      'caretaker_1', // Replace with actual caretaker ID
+    );
+    
+    if (mounted) {
+      setState(() => _isProcessing = false);
+      
+      if (success) {
+        // Update local state
+        setState(() {
+          _currentRequest = _currentRequest.copyWith(
+            status: RequestStatus.accepted,
+            responseTime: DateTime.now(),
+          );
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Request accepted! You can now mark it in progress or complete it.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _markInProgress() async {
+    setState(() => _isProcessing = true);
+    
+    final success = await widget.requestService.markInProgress(
+      _currentRequest.id,
+    );
+    
+    if (mounted) {
+      setState(() => _isProcessing = false);
+      
+      if (success) {
+        setState(() {
+          _currentRequest = _currentRequest.copyWith(
+            status: RequestStatus.inProgress,
+          );
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Request marked as in progress'),
+            backgroundColor: accent,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _completeRequest() async {
+    final notes = await _showNotesDialog();
+    if (notes == null) return;
+    
+    setState(() => _isProcessing = true);
+    
+    final success = await widget.requestService.completeRequest(
+      _currentRequest.id,
+      'caretaker_1', // Replace with actual caretaker ID
+      notes,
     );
     
     if (mounted) {
@@ -47,7 +118,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Request accepted'),
+            content: Text('Request completed successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -62,8 +133,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     setState(() => _isProcessing = true);
     
     final success = await widget.requestService.declineRequest(
-      widget.request.id,
-      'caretaker_1',
+      _currentRequest.id,
+      'caretaker_1', // Replace with actual caretaker ID
       reason,
     );
     
@@ -88,7 +159,16 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Decline Request'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.cancel_outlined, color: error),
+            SizedBox(width: spacingSmall),
+            Text('Decline Request'),
+          ],
+        ),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
@@ -104,9 +184,68 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             onPressed: () => Navigator.pop(context),
             child: Text('Cancel'),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: Text('Decline', style: TextStyle(color: error)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: error,
+              foregroundColor: white,
+            ),
+            child: Text('Decline'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<String?> _showNotesDialog() {
+    final controller = TextEditingController();
+    
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.green),
+            SizedBox(width: spacingSmall),
+            Text('Complete Request'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Add completion notes (optional)',
+              style: body.copyWith(fontSize: 14),
+            ),
+            SizedBox(height: spacingMedium),
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'What did you do to help?',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
+              ),
+              maxLines: 4,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, controller.text.isEmpty ? 'Completed' : controller.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: white,
+            ),
+            child: Text('Complete'),
           ),
         ],
       ),
@@ -143,10 +282,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: widget.request.getPriorityColor().withOpacity(0.2),
+                color: _currentRequest.getPriorityColor().withOpacity(0.2),
                 borderRadius: BorderRadius.circular(radiusMedium),
                 border: Border.all(
-                  color: widget.request.getPriorityColor(),
+                  color: _currentRequest.getPriorityColor(),
                   width: 1.5,
                 ),
               ),
@@ -155,14 +294,14 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                 children: [
                   Icon(
                     Icons.flag_rounded,
-                    color: widget.request.getPriorityColor(),
+                    color: _currentRequest.getPriorityColor(),
                     size: 20,
                   ),
                   SizedBox(width: 8),
                   Text(
-                    widget.request.priority.toString().split('.').last.toUpperCase(),
+                    _currentRequest.priority.toString().split('.').last.toUpperCase(),
                     style: bodyBold.copyWith(
-                      color: widget.request.getPriorityColor(),
+                      color: _currentRequest.getPriorityColor(),
                       fontSize: 14,
                     ),
                   ),
@@ -198,7 +337,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.request.patientName,
+                          _currentRequest.patientName,
                           style: bodyBold.copyWith(
                             fontSize: 20,
                             color: textColor,
@@ -206,7 +345,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         ),
                         SizedBox(height: spacingXSmall),
                         Text(
-                          DateFormat('MMM dd, yyyy â€¢ hh:mm a').format(widget.request.timestamp),
+                          DateFormat('MMM dd, yyyy • hh:mm a').format(_currentRequest.timestamp),
                           style: caption.copyWith(
                             fontSize: 13,
                             color: subtextColor,
@@ -234,10 +373,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(widget.request.getIcon(), color: primary, size: 24),
+                  Icon(_currentRequest.getIcon(), color: primary, size: 24),
                   SizedBox(width: spacingMedium),
                   Text(
-                    widget.request.requestType,
+                    _currentRequest.requestType,
                     style: body.copyWith(fontSize: 16, color: textColor),
                   ),
                 ],
@@ -258,12 +397,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                 border: Border.all(color: subtextColor.withOpacity(0.3)),
               ),
               child: Text(
-                widget.request.message,
+                _currentRequest.message,
                 style: body.copyWith(fontSize: 15, color: textColor),
               ),
             ),
             
-            if (widget.request.location != null) ...[
+            if (_currentRequest.location != null) ...[
               SizedBox(height: spacingLarge),
               Text('Location', style: bodyBold.copyWith(fontSize: 16, color: textColor)),
               SizedBox(height: spacingSmall),
@@ -289,7 +428,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Lat: ${widget.request.location!['latitude']}, Long: ${widget.request.location!['longitude']}',
+                            'Lat: ${_currentRequest.location!['latitude']}, Long: ${_currentRequest.location!['longitude']}',
                             style: caption.copyWith(fontSize: 13, color: subtextColor),
                           ),
                         ],
@@ -310,87 +449,174 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             
             SizedBox(height: spacingXLarge),
             
-            // Action Buttons
-            if (widget.request.status == RequestStatus.pending) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : _declineRequest,
-                      icon: Icon(Icons.close_rounded),
-                      label: Text('Decline'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: cardColor,
-                        foregroundColor: error,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(radiusMedium),
-                          side: BorderSide(color: error),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: spacingMedium),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _isProcessing ? null : _acceptRequest,
-                      icon: _isProcessing
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: white,
-                              ),
-                            )
-                          : Icon(Icons.check_rounded),
-                      label: Text(_isProcessing ? 'Processing...' : 'Accept'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: white,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(radiusMedium),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(spacingLarge),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(widget.request.status).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(radiusMedium),
-                  border: Border.all(
-                    color: _getStatusColor(widget.request.status),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      _getStatusIcon(widget.request.status),
-                      color: _getStatusColor(widget.request.status),
-                    ),
-                    SizedBox(width: spacingSmall),
-                    Text(
-                      widget.request.status.toString().split('.').last.toUpperCase(),
-                      style: bodyBold.copyWith(
-                        color: _getStatusColor(widget.request.status),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            // Action Buttons based on status
+            _buildActionButtons(cardColor),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildActionButtons(Color cardColor) {
+    // PENDING: Show Accept/Decline buttons
+    if (_currentRequest.status == RequestStatus.pending) {
+      return Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _isProcessing ? null : _declineRequest,
+              icon: Icon(Icons.close_rounded),
+              label: Text('Decline'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: cardColor,
+                foregroundColor: error,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                  side: BorderSide(color: error),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: spacingMedium),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _isProcessing ? null : _acceptRequest,
+              icon: _isProcessing
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: white,
+                      ),
+                    )
+                  : Icon(Icons.check_rounded),
+              label: Text(_isProcessing ? 'Processing...' : 'Accept'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: white,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    
+    // ACCEPTED: Show Mark In Progress and Complete buttons
+    else if (_currentRequest.status == RequestStatus.accepted) {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isProcessing ? null : _markInProgress,
+              icon: Icon(Icons.play_arrow_rounded),
+              label: Text('Mark as In Progress'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accent,
+                foregroundColor: white,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: spacingMedium),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isProcessing ? null : _completeRequest,
+              icon: _isProcessing
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: white,
+                      ),
+                    )
+                  : Icon(Icons.check_circle_rounded),
+              label: Text(_isProcessing ? 'Processing...' : 'Complete Request'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: white,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    
+    // IN PROGRESS: Show Complete button only
+    else if (_currentRequest.status == RequestStatus.inProgress) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _isProcessing ? null : _completeRequest,
+          icon: _isProcessing
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: white,
+                  ),
+                )
+              : Icon(Icons.check_circle_rounded),
+          label: Text(_isProcessing ? 'Processing...' : 'Complete Request'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.green,
+            foregroundColor: white,
+            padding: EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(radiusMedium),
+            ),
+          ),
+        ),
+      );
+    }
+    
+    // COMPLETED or DECLINED: Show status badge
+    else {
+      return Container(
+        width: double.infinity,
+        padding: EdgeInsets.all(spacingLarge),
+        decoration: BoxDecoration(
+          color: _getStatusColor(_currentRequest.status).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(radiusMedium),
+          border: Border.all(
+            color: _getStatusColor(_currentRequest.status),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              _getStatusIcon(_currentRequest.status),
+              color: _getStatusColor(_currentRequest.status),
+            ),
+            SizedBox(width: spacingSmall),
+            Text(
+              _currentRequest.status.toString().split('.').last.toUpperCase(),
+              style: bodyBold.copyWith(
+                color: _getStatusColor(_currentRequest.status),
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   Color _getStatusColor(RequestStatus status) {

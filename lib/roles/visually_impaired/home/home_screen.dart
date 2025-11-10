@@ -2,6 +2,7 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use, duplicate_ignore
 
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/bottom_navigation.dart';
@@ -14,6 +15,7 @@ import 'package:seelai_app/roles/visually_impaired/services/permission_service.d
 import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
 import 'package:seelai_app/firebase/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:seelai_app/roles/caretaker/models/request_model.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -38,6 +40,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   // UI State
   bool _isDarkMode = false;
   int _selectedIndex = 0;
+  int _unreadNotificationCount = 0;
   
   // Animation
   late AnimationController _animationController;
@@ -50,6 +53,9 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   
   // Notification
   String _notificationMessage = 'Welcome to SeelAI';
+  
+  // Stream subscription
+  StreamSubscription? _requestsSubscription;
 
   @override
   void initState() {
@@ -58,6 +64,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _initializeAnimations();
     _initializeScrollListener();
     _requestPermissionsAndInitialize();
+    _setupRequestListener();
   }
 
   void _initializeServices() {
@@ -82,6 +89,41 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   void _initializeScrollListener() {
     _scrollController.addListener(_handleScroll);
+  }
+
+  void _setupRequestListener() {
+    final userId = widget.userData['uid'] as String?;
+    if (userId == null || userId.isEmpty) return;
+
+    // Listen to real-time request updates
+    _requestsSubscription = _assistanceRequestService
+        .streamPatientRequests(userId)
+        .listen((requests) {
+      if (mounted) {
+        // Check for accepted requests
+        final acceptedRequests = requests.where((req) => 
+          req.status == RequestStatus.accepted && 
+          req.responseTime != null &&
+          DateTime.now().difference(req.responseTime!).inMinutes < 5
+        ).toList();
+        
+        setState(() {
+          _unreadNotificationCount = acceptedRequests.length;
+          
+          if (acceptedRequests.isNotEmpty) {
+            _notificationMessage = 'Caretaker accepted your request!';
+            _accessibilityService.announce('Caretaker accepted your assistance request');
+          } else {
+            final pendingRequests = requests.where((req) => req.status == RequestStatus.pending).toList();
+            if (pendingRequests.isNotEmpty) {
+              _notificationMessage = 'Waiting for caretaker response...';
+            } else {
+              _notificationMessage = 'All requests handled';
+            }
+          }
+        });
+      }
+    });
   }
 
   void _handleScroll() {
@@ -159,51 +201,138 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _accessibilityService.announce('Voice assistant activated. Listening...');
   }
 
-  void _openNotifications() {
+  void _openNotifications() async {
     _accessibilityService.announce('Opening notifications');
     
-    // Show notifications dialog or navigate to notifications page
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.notifications_rounded, color: primary),
-            SizedBox(width: spacingSmall),
-            Text('Notifications'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildNotificationItem(
-              icon: Icons.info_rounded,
-              title: 'Current Status',
-              message: _notificationMessage,
-              time: 'Now',
-            ),
-            Divider(),
-            _buildNotificationItem(
-              icon: Icons.check_circle_rounded,
-              title: 'System Ready',
-              message: 'All services are running normally',
-              time: '5 min ago',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
+    final userId = widget.userData['uid'] as String?;
+    if (userId == null) return;
+
+    // Get all requests
+    final requests = await _assistanceRequestService
+        .streamPatientRequests(userId)
+        .first;
+    
+    // Show notifications dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.notifications_rounded, color: primary),
+              SizedBox(width: spacingSmall),
+              Text('Notifications'),
+            ],
           ),
-        ],
-      ),
-    );
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (requests.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: spacingLarge),
+                    child: Center(
+                      child: Text(
+                        'No notifications',
+                        style: body.copyWith(color: grey),
+                      ),
+                    ),
+                  )
+                else
+                  ...requests.take(5).map((request) => Column(
+                    children: [
+                      _buildNotificationItem(
+                        icon: _getRequestIcon(request.status),
+                        iconColor: _getRequestColor(request.status),
+                        title: _getRequestTitle(request.status),
+                        message: request.message,
+                        time: _getTimeAgo(request.responseTime ?? request.timestamp),
+                      ),
+                      if (request != requests.last) Divider(),
+                    ],
+                  )).toList(),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                // Mark as read
+                setState(() {
+                  _unreadNotificationCount = 0;
+                });
+                Navigator.pop(context);
+              },
+              child: Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  IconData _getRequestIcon(RequestStatus status) {
+    switch (status) {
+      case RequestStatus.accepted:
+        return Icons.check_circle_rounded;
+      case RequestStatus.inProgress:
+        return Icons.pending_rounded;
+      case RequestStatus.completed:
+        return Icons.check_circle_outline_rounded;
+      case RequestStatus.declined:
+        return Icons.cancel_rounded;
+      default:
+        return Icons.access_time_rounded;
+    }
+  }
+
+  Color _getRequestColor(RequestStatus status) {
+    switch (status) {
+      case RequestStatus.accepted:
+      case RequestStatus.completed:
+        return Colors.green;
+      case RequestStatus.declined:
+        return error;
+      case RequestStatus.inProgress:
+        return accent;
+      default:
+        return primary;
+    }
+  }
+
+  String _getRequestTitle(RequestStatus status) {
+    switch (status) {
+      case RequestStatus.accepted:
+        return 'Request Accepted';
+      case RequestStatus.inProgress:
+        return 'In Progress';
+      case RequestStatus.completed:
+        return 'Request Completed';
+      case RequestStatus.declined:
+        return 'Request Declined';
+      default:
+        return 'Request Pending';
+    }
+  }
+
+  String _getTimeAgo(DateTime timestamp) {
+    final difference = DateTime.now().difference(timestamp);
+    
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} min ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
   }
 
   Widget _buildNotificationItem({
     required IconData icon,
+    required Color iconColor,
     required String title,
     required String message,
     required String time,
@@ -213,7 +342,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: primary, size: 24),
+          Icon(icon, color: iconColor, size: 24),
           SizedBox(width: spacingSmall),
           Expanded(
             child: Column(
@@ -451,6 +580,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _cameraService.dispose();
     _animationController.dispose();
     _scrollController.dispose();
+    _requestsSubscription?.cancel();
     super.dispose();
   }
 
@@ -481,6 +611,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                 onNotificationTap: _openNotifications,
                 textColor: theme.textColor,
                 subtextColor: theme.subtextColor,
+                unreadNotificationCount: _unreadNotificationCount,
               ),
               
               Expanded(

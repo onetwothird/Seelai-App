@@ -7,8 +7,8 @@ import 'package:seelai_app/roles/visually_impaired/auth/login/login_screen.dart'
 import 'package:seelai_app/roles/visually_impaired/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/caretaker/auth/login/login_screen.dart';
 import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
-import 'package:seelai_app/roles/mswd/login/login_screen.dart';
-import 'package:seelai_app/roles/mswd/signup/signup_screen.dart';
+import 'package:seelai_app/roles/mswd/auth/login/login_screen.dart';
+import 'package:seelai_app/roles/mswd/auth/signup/signup_screen.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});

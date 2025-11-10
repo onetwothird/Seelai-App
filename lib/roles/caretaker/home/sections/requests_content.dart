@@ -3,6 +3,7 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
 import 'package:seelai_app/roles/caretaker/services/request_service.dart';
 import 'package:seelai_app/roles/caretaker/screens/request_details_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
 class RequestsContent extends StatefulWidget {
@@ -32,62 +33,96 @@ class _RequestsContentState extends State<RequestsContent>
   List<RequestModel> _activeRequests = [];
   List<RequestModel> _completedRequests = [];
   bool _isLoading = true;
-  StreamSubscription? _requestsSubscription;
+  String? _error;
+  String? _caretakerId;
+  StreamSubscription<List<RequestModel>>? _requestsSubscription;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _setupRealTimeListener();
+    _initializeCaretakerId();
   }
 
-  void _setupRealTimeListener() {
-    final caretakerId = widget.userData['uid'] as String?;
+  Future<void> _initializeCaretakerId() async {
+    // Try multiple ways to get the caretaker ID
+    String? caretakerId;
+    
+    // Method 1: From userData
+    caretakerId = widget.userData['uid'] as String?;
+    
+    // Method 2: From Firebase Auth
+    if (caretakerId == null || caretakerId.isEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      caretakerId = user?.uid;
+    }
     
     if (caretakerId == null || caretakerId.isEmpty) {
       setState(() {
+        _error = 'Caretaker ID not found. Please log in again.';
         _isLoading = false;
       });
       return;
     }
 
-    // Listen to real-time requests
-    _requestsSubscription = widget.requestService
-        .streamRequests(caretakerId)
-        .listen((requests) {
-      if (mounted) {
-        setState(() {
-          // Filter by status
-          _pendingRequests = requests
-              .where((req) => req.status == RequestStatus.pending)
-              .toList();
-          
-          _activeRequests = requests
-              .where((req) => 
-                  req.status == RequestStatus.accepted ||
-                  req.status == RequestStatus.inProgress)
-              .toList();
-          
-          _completedRequests = requests
-              .where((req) => 
-                  req.status == RequestStatus.completed ||
-                  req.status == RequestStatus.declined)
-              .toList();
-          
-          _isLoading = false;
-          
-          // Update pending count
-          widget.onRequestCountChange(_pendingRequests.length);
-        });
-      }
-    }, onError: (error) {
-      debugPrint('Error streaming requests: $error');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    setState(() {
+      _caretakerId = caretakerId;
     });
+
+    _setupRequestsStream();
+  }
+
+  void _setupRequestsStream() {
+    if (_caretakerId == null) {
+      setState(() {
+        _error = 'Caretaker ID not found';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    // Listen to real-time updates from Firebase
+    _requestsSubscription = widget.requestService
+        .streamRequests(_caretakerId!)
+        .listen(
+      (requests) {
+        if (mounted) {
+          setState(() {
+            // Filter requests by status
+            _pendingRequests = requests
+                .where((req) => req.status == RequestStatus.pending)
+                .toList();
+            
+            _activeRequests = requests
+                .where((req) => 
+                    req.status == RequestStatus.accepted ||
+                    req.status == RequestStatus.inProgress)
+                .toList();
+            
+            _completedRequests = requests
+                .where((req) => 
+                    req.status == RequestStatus.completed ||
+                    req.status == RequestStatus.declined)
+                .toList();
+            
+            _isLoading = false;
+            _error = null;
+            
+            // Update pending request count
+            widget.onRequestCountChange(_pendingRequests.length);
+          });
+        }
+      },
+      onError: (error) {
+        debugPrint('Error loading requests: $error');
+        if (mounted) {
+          setState(() {
+            _error = 'Failed to load requests: $error';
+            _isLoading = false;
+          });
+        }
+      },
+    );
   }
 
   @override
@@ -97,83 +132,162 @@ class _RequestsContentState extends State<RequestsContent>
     super.dispose();
   }
 
+  Future<void> _refreshRequests() async {
+    if (_caretakerId == null) {
+      await _initializeCaretakerId();
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    
+    // The stream will automatically update the data
+    await Future.delayed(Duration(milliseconds: 500));
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
 
-    return Container(
-      height: height - 200,
-      padding: EdgeInsets.symmetric(horizontal: width * 0.06),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(height: spacingSmall),
-          
-          // Modern Segmented Tab Bar
-          Container(
-            padding: EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: widget.isDarkMode 
-                // ignore: deprecated_member_use
-                ? Colors.white.withOpacity(0.05)
-                // ignore: deprecated_member_use
-                : Colors.black.withOpacity(0.04),
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: Border.all(
+    return RefreshIndicator(
+      onRefresh: _refreshRequests,
+      child: Container(
+        height: height - 200,
+        padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(height: spacingSmall),  
+            
+            // Modern Segmented Tab Bar
+            Container(
+              padding: EdgeInsets.all(4),
+              decoration: BoxDecoration(
                 color: widget.isDarkMode 
-                  // ignore: deprecated_member_use
-                  ? Colors.white.withOpacity(0.08)
-                  // ignore: deprecated_member_use
-                  : Colors.black.withOpacity(0.06),
-                width: 1,
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.black.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(radiusLarge),
+                border: Border.all(
+                  color: widget.isDarkMode 
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.black.withOpacity(0.06),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  _buildTabButton(0, 'Pending', _pendingRequests.length, Colors.orange),
+                  SizedBox(width: 4),
+                  _buildTabButton(1, 'Active', _activeRequests.length, Colors.blue),
+                  SizedBox(width: 4),
+                  _buildTabButton(2, 'Completed', _completedRequests.length, Colors.green),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                _buildTabButton(0, 'Pending', _pendingRequests.length, Colors.orange),
-                SizedBox(width: 4),
-                _buildTabButton(1, 'Active', _activeRequests.length, Colors.blue),
-                SizedBox(width: 4),
-                _buildTabButton(2, 'Completed', _completedRequests.length, Colors.green),
-              ],
-            ),
-          ),
-          
-          SizedBox(height: spacingLarge),
-          
-          // Tab Content
-          Flexible(
-            child: _isLoading
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(primary),
-                          strokeWidth: 3,
-                        ),
-                        SizedBox(height: spacingLarge),
-                        Text(
-                          'Loading requests...',
-                          style: body.copyWith(
-                            color: widget.theme.subtextColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : TabBarView(
-                    controller: _tabController,
+            
+            SizedBox(height: spacingLarge),
+            
+            // Error State
+            if (_error != null && !_isLoading)
+              Expanded(
+                child: _buildErrorState(),
+              )
+            // Loading State (only on initial load)
+            else if (_isLoading && _pendingRequests.isEmpty && _activeRequests.isEmpty && _completedRequests.isEmpty)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildRequestsList(_pendingRequests, width),
-                      _buildRequestsList(_activeRequests, width),
-                      _buildRequestsList(_completedRequests, width),
+                      CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(primary),
+                        strokeWidth: 3,
+                      ),
+                      SizedBox(height: spacingLarge),
+                      Text(
+                        'Loading requests...',
+                        style: body.copyWith(
+                          color: widget.theme.subtextColor,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
-          ),
-        ],
+                ),
+              )
+            // Tab Content
+            else
+              Flexible(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildRequestsList(_pendingRequests, width),
+                    _buildRequestsList(_activeRequests, width),
+                    _buildRequestsList(_completedRequests, width),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 80,
+              color: error.withOpacity(0.5),
+            ),
+            SizedBox(height: spacingLarge),
+            Text(
+              'Failed to load requests',
+              style: bodyBold.copyWith(
+                color: widget.theme.textColor,
+                fontSize: 18,
+              ),
+            ),
+            SizedBox(height: spacingSmall),
+            Text(
+              _error ?? 'An error occurred',
+              style: body.copyWith(
+                color: widget.theme.subtextColor,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: spacingLarge),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isLoading = true;
+                  _error = null;
+                });
+                _initializeCaretakerId();
+              },
+              icon: Icon(Icons.refresh_rounded),
+              label: Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: spacingLarge,
+                  vertical: spacingMedium,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -196,7 +310,6 @@ class _RequestsContentState extends State<RequestsContent>
                 ? LinearGradient(
                     colors: [
                       accentColor,
-                      // ignore: deprecated_member_use
                       accentColor.withOpacity(0.8),
                     ],
                     begin: Alignment.topLeft,
@@ -208,7 +321,6 @@ class _RequestsContentState extends State<RequestsContent>
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      // ignore: deprecated_member_use
                       color: accentColor.withOpacity(0.4),
                       blurRadius: 12,
                       offset: Offset(0, 4),
@@ -240,16 +352,12 @@ class _RequestsContentState extends State<RequestsContent>
                       padding: EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
                         color: isSelected
-                            // ignore: deprecated_member_use
                             ? white.withOpacity(0.25)
-                            // ignore: deprecated_member_use
                             : accentColor.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(radiusSmall),
                         border: Border.all(
                           color: isSelected
-                              // ignore: deprecated_member_use
                               ? white.withOpacity(0.4)
-                              // ignore: deprecated_member_use
                               : accentColor.withOpacity(0.3),
                           width: 1,
                         ),
@@ -315,7 +423,7 @@ class _RequestsContentState extends State<RequestsContent>
             Container(
               padding: EdgeInsets.symmetric(horizontal: spacingLarge),
               child: Text(
-                'When patients send requests, they will appear here',
+                'When new requests arrive, they will appear here',
                 style: body.copyWith(
                   color: widget.theme.subtextColor,
                   fontSize: 14,
@@ -348,7 +456,6 @@ class _RequestsContentState extends State<RequestsContent>
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            // ignore: deprecated_member_use
             color: priorityColor.withOpacity(widget.isDarkMode ? 0.3 : 0.18),
             blurRadius: 24,
             offset: Offset(0, 10),
@@ -371,19 +478,18 @@ class _RequestsContentState extends State<RequestsContent>
                   requestService: widget.requestService,
                 ),
               ),
-            );
+            ).then((_) {
+              // No need to manually refresh - stream handles it
+            });
           },
           borderRadius: BorderRadius.circular(radiusLarge),
-          // ignore: deprecated_member_use
           splashColor: priorityColor.withOpacity(0.1),
           child: Container(
             padding: EdgeInsets.all(spacingLarge),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  // ignore: deprecated_member_use
                   priorityColor.withOpacity(widget.isDarkMode ? 0.15 : 0.06),
-                  // ignore: deprecated_member_use
                   priorityColor.withOpacity(widget.isDarkMode ? 0.08 : 0.03),
                 ],
                 begin: Alignment.topLeft,
@@ -391,7 +497,6 @@ class _RequestsContentState extends State<RequestsContent>
               ),
               borderRadius: BorderRadius.circular(radiusLarge),
               border: Border.all(
-                // ignore: deprecated_member_use
                 color: priorityColor.withOpacity(widget.isDarkMode ? 0.5 : 0.4),
                 width: 2,
               ),
@@ -406,21 +511,17 @@ class _RequestsContentState extends State<RequestsContent>
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            // ignore: deprecated_member_use
                             priorityColor.withOpacity(0.3),
-                            // ignore: deprecated_member_use
                             priorityColor.withOpacity(0.2),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(radiusMedium),
                         border: Border.all(
-                          // ignore: deprecated_member_use
                           color: priorityColor.withOpacity(0.4),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            // ignore: deprecated_member_use
                             color: priorityColor.withOpacity(0.3),
                             blurRadius: 8,
                             offset: Offset(0, 3),
@@ -459,14 +560,12 @@ class _RequestsContentState extends State<RequestsContent>
                                   gradient: LinearGradient(
                                     colors: [
                                       priorityColor,
-                                      // ignore: deprecated_member_use
                                       priorityColor.withOpacity(0.8),
                                     ],
                                   ),
                                   borderRadius: BorderRadius.circular(radiusSmall),
                                   boxShadow: [
                                     BoxShadow(
-                                      // ignore: deprecated_member_use
                                       color: priorityColor.withOpacity(0.4),
                                       blurRadius: 6,
                                       offset: Offset(0, 2),
@@ -502,20 +601,17 @@ class _RequestsContentState extends State<RequestsContent>
                 
                 SizedBox(height: spacingMedium),
                 
+                // Request Message with Visual Impaired Badge
                 Container(
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
                     color: widget.isDarkMode
-                        // ignore: deprecated_member_use
                         ? Colors.white.withOpacity(0.05)
-                        // ignore: deprecated_member_use
                         : Colors.black.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
                       color: widget.isDarkMode
-                          // ignore: deprecated_member_use
                           ? Colors.white.withOpacity(0.1)
-                          // ignore: deprecated_member_use
                           : Colors.black.withOpacity(0.08),
                       width: 1,
                     ),
@@ -531,11 +627,9 @@ class _RequestsContentState extends State<RequestsContent>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              // ignore: deprecated_member_use
                               color: Colors.blue.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(radiusSmall),
                               border: Border.all(
-                                // ignore: deprecated_member_use
                                 color: Colors.blue.withOpacity(0.3),
                                 width: 1,
                               ),
@@ -578,6 +672,7 @@ class _RequestsContentState extends State<RequestsContent>
                 
                 SizedBox(height: spacingMedium),
                 
+                // Time and Location Info
                 Row(
                   children: [
                     Container(
@@ -617,11 +712,9 @@ class _RequestsContentState extends State<RequestsContent>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          // ignore: deprecated_member_use
                           color: Colors.green.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(radiusSmall),
                           border: Border.all(
-                            // ignore: deprecated_member_use
                             color: Colors.green.withOpacity(0.3),
                             width: 1,
                           ),
