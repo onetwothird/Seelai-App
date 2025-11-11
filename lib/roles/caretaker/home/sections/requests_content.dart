@@ -73,8 +73,8 @@ class _RequestsContentState extends State<RequestsContent>
 
     _setupRequestsStream();
   }
-
-  void _setupRequestsStream() {
+ 
+ void _setupRequestsStream() {
     if (_caretakerId == null) {
       setState(() {
         _error = 'Caretaker ID not found';
@@ -83,14 +83,12 @@ class _RequestsContentState extends State<RequestsContent>
       return;
     }
 
-    // Listen to real-time updates from Firebase
     _requestsSubscription = widget.requestService
         .streamRequests(_caretakerId!)
         .listen(
       (requests) {
         if (mounted) {
           setState(() {
-            // Filter requests by status
             _pendingRequests = requests
                 .where((req) => req.status == RequestStatus.pending)
                 .toList();
@@ -110,7 +108,7 @@ class _RequestsContentState extends State<RequestsContent>
             _isLoading = false;
             _error = null;
             
-            // Update pending request count
+            // Update pending request count - THIS IS KEY
             widget.onRequestCountChange(_pendingRequests.length);
           });
         }
@@ -155,87 +153,150 @@ class _RequestsContentState extends State<RequestsContent>
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
 
-    return RefreshIndicator(
-      onRefresh: _refreshRequests,
-      child: Container(
+    // Error State
+    if (_error != null && !_isLoading) {
+      return Container(
         height: height - 200,
         padding: EdgeInsets.symmetric(horizontal: width * 0.05),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(height: spacingSmall),  
-            
-            // Modern Segmented Tab Bar
-            Container(
-              padding: EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: widget.isDarkMode 
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(radiusLarge),
-                border: Border.all(
-                  color: widget.isDarkMode 
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.black.withOpacity(0.06),
-                  width: 1,
+        child: _buildErrorState(),
+      );
+    }
+
+    // Loading State (only on initial load)
+    if (_isLoading && _pendingRequests.isEmpty && _activeRequests.isEmpty && _completedRequests.isEmpty) {
+      return Container(
+        height: height - 200,
+        padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(primary),
+                strokeWidth: 3,
+              ),
+              SizedBox(height: spacingLarge),
+              Text(
+                'Loading requests...',
+                style: body.copyWith(
+                  color: widget.theme.subtextColor,
+                  fontSize: 14,
                 ),
               ),
-              child: Row(
-                children: [
-                  _buildTabButton(0, 'Pending', _pendingRequests.length, Colors.orange),
-                  SizedBox(width: 4),
-                  _buildTabButton(1, 'Active', _activeRequests.length, Colors.blue),
-                  SizedBox(width: 4),
-                  _buildTabButton(2, 'Completed', _completedRequests.length, Colors.green),
-                ],
-              ),
-            ),
-            
-            SizedBox(height: spacingLarge),
-            
-            // Error State
-            if (_error != null && !_isLoading)
-              Expanded(
-                child: _buildErrorState(),
-              )
-            // Loading State (only on initial load)
-            else if (_isLoading && _pendingRequests.isEmpty && _activeRequests.isEmpty && _completedRequests.isEmpty)
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(primary),
-                        strokeWidth: 3,
-                      ),
-                      SizedBox(height: spacingLarge),
-                      Text(
-                        'Loading requests...',
-                        style: body.copyWith(
-                          color: widget.theme.subtextColor,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Main Content - Everything scrolls together
+    return RefreshIndicator(
+      onRefresh: _refreshRequests,
+      child: SingleChildScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+          child: Column(
+            children: [
+              SizedBox(height: spacingSmall),
+              
+              // Modern Segmented Tab Bar - SCROLLS WITH CONTENT
+              Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: widget.isDarkMode 
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(radiusLarge),
+                  border: Border.all(
+                    color: widget.isDarkMode 
+                      ? Colors.white.withOpacity(0.08)
+                      : Colors.black.withOpacity(0.06),
+                    width: 1,
                   ),
                 ),
-              )
-            // Tab Content
-            else
-              Flexible(
-                child: TabBarView(
-                  controller: _tabController,
+                child: Row(
                   children: [
-                    _buildRequestsList(_pendingRequests, width),
-                    _buildRequestsList(_activeRequests, width),
-                    _buildRequestsList(_completedRequests, width),
+                    _buildTabButton(0, 'Pending', _pendingRequests.length, Colors.orange),
+                    SizedBox(width: 4),
+                    _buildTabButton(1, 'Active', _activeRequests.length, Colors.blue),
+                    SizedBox(width: 4),
+                    _buildTabButton(2, 'Completed', _completedRequests.length, Colors.green),
                   ],
                 ),
               ),
-          ],
+              
+              SizedBox(height: spacingLarge),
+              
+              // Request Lists - Based on selected tab
+              _buildCurrentTabContent(),
+              
+              SizedBox(height: 100), // Bottom padding
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCurrentTabContent() {
+    List<RequestModel> currentRequests;
+    
+    switch (_tabController.index) {
+      case 0:
+        currentRequests = _pendingRequests;
+        break;
+      case 1:
+        currentRequests = _activeRequests;
+        break;
+      case 2:
+        currentRequests = _completedRequests;
+        break;
+      default:
+        currentRequests = _pendingRequests;
+    }
+
+    if (currentRequests.isEmpty) {
+      return Container(
+        height: 300,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'No requests yet',
+                style: h2.copyWith(
+                  color: widget.theme.textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SizedBox(height: spacingSmall),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: spacingLarge),
+                child: Text(
+                  'When new requests arrive, they will appear here',
+                  style: body.copyWith(
+                    color: widget.theme.subtextColor,
+                    fontSize: 14,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: currentRequests.map((request) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: spacingLarge),
+          child: _buildRequestCard(request),
+        );
+      }).toList(),
     );
   }
 
@@ -306,7 +367,7 @@ class _RequestsContentState extends State<RequestsContent>
         child: AnimatedContainer(
           duration: Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,
-          padding: EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+          padding: EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
@@ -336,16 +397,20 @@ class _RequestsContentState extends State<RequestsContent>
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                      color: isSelected
-                          ? white
-                          : widget.theme.subtextColor,
-                      letterSpacing: 0.3,
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected
+                            ? white
+                            : widget.theme.subtextColor,
+                        letterSpacing: 0.3,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   if (count > 0) ...[
@@ -380,50 +445,6 @@ class _RequestsContentState extends State<RequestsContent>
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildRequestsList(List<RequestModel> requests, double width) {
-    if (requests.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'No requests yet',
-              style: h2.copyWith(
-                color: widget.theme.textColor,
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: spacingSmall),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: spacingLarge),
-              child: Text(
-                'When new requests arrive, they will appear here',
-                style: body.copyWith(
-                  color: widget.theme.subtextColor,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.only(bottom: 100, top: spacingSmall),
-      itemCount: requests.length,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: spacingLarge),
-          child: _buildRequestCard(requests[index]),
-        );
-      },
     );
   }
 
