@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
@@ -157,7 +159,7 @@ class _RequestsContentState extends State<RequestsContent>
       onRefresh: _refreshRequests,
       child: Container(
         height: height - 200,
-        padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+        padding: EdgeInsets.symmetric(horizontal: width * 0.05),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -387,30 +389,6 @@ class _RequestsContentState extends State<RequestsContent>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: EdgeInsets.all(spacingXLarge * 1.5),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    widget.theme.subtextColor.withOpacity(0.08),
-                    widget.theme.subtextColor.withOpacity(0.04),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: widget.theme.subtextColor.withOpacity(0.15),
-                  width: 2,
-                ),
-              ),
-              child: Icon(
-                Icons.inbox_rounded,
-                size: 72,
-                color: widget.theme.subtextColor.withOpacity(0.4),
-              ),
-            ),
-            SizedBox(height: spacingXLarge),
             Text(
               'No requests yet',
               style: h2.copyWith(

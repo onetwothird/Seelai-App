@@ -219,64 +219,70 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    Widget content;
-    
-    switch (_selectedIndex) {
-      case 0:
-        content = HomeContent(
+  switch (_selectedIndex) {
+    case 0:
+      return SingleChildScrollView(
+        controller: _scrollController,
+        physics: ClampingScrollPhysics(),
+        child: HomeContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           onNotificationUpdate: _updateNotification,
           requestService: _requestService,
           locationService: _locationService,
-        );
-        break;
-      case 1:
-        content = PatientsContent(
+        ),
+      );
+    
+    case 1:
+      // PatientsContent has its own RefreshIndicator and scrolling
+      return PatientsContent(
+        isDarkMode: _isDarkMode,
+        theme: theme,
+        userData: widget.userData,
+        locationService: _locationService,
+      );
+    
+    case 2:
+      // RequestsContent has its own RefreshIndicator and scrolling
+      return RequestsContent(
+        isDarkMode: _isDarkMode,
+        theme: theme,
+        userData: widget.userData,
+        requestService: _requestService,
+        onRequestCountChange: (count) {
+          setState(() {
+            _pendingRequestsCount = count;
+          });
+        },
+      );
+    
+    case 3:
+      return SingleChildScrollView(
+        controller: _scrollController,
+        physics: ClampingScrollPhysics(),
+        child: ProfileContent(
+          userData: widget.userData,
           isDarkMode: _isDarkMode,
           theme: theme,
-          userData: widget.userData,
-          locationService: _locationService,
-        );
-        break;
-      case 2:
-        content = RequestsContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          userData: widget.userData,
-          requestService: _requestService,
-          onRequestCountChange: (count) {
-            setState(() {
-              _pendingRequestsCount = count;
-            });
-          },
-        );
-        break;
-      case 3:
-        content = ProfileContent(
-          userData: widget.userData,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-        );
-        break;
-      default:
-        content = HomeContent(
+        ),
+      );
+    
+    default:
+      return SingleChildScrollView(
+        controller: _scrollController,
+        physics: ClampingScrollPhysics(),
+        child: HomeContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           onNotificationUpdate: _updateNotification,
           requestService: _requestService,
           locationService: _locationService,
-        );
-    }
-    
-    return SingleChildScrollView(
-      controller: _scrollController,
-      physics: ClampingScrollPhysics(),
-      child: content,
-    );
+        ),
+      );
   }
+}
 
   _AppTheme _getDarkTheme() {
     return _AppTheme(

@@ -22,10 +22,17 @@ class CustomBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    final isMediumScreen = screenWidth < 400;
+    
     return Semantics(
       label: 'Bottom navigation bar',
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: EdgeInsets.symmetric(
+          vertical: isSmallScreen ? 8 : 12, 
+          horizontal: isSmallScreen ? 4 : 8,
+        ),
         decoration: BoxDecoration(
           color: isDarkMode ? Color(0xFF1A1F3A) : white,
           borderRadius: BorderRadius.circular(24),
@@ -43,18 +50,18 @@ class CustomBottomNavigation extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildNavItem(0, Icons.home_rounded, 'Home'),
-            _buildNavItem(1, Icons.contacts_rounded, 'Contacts'),
-            _buildCenterScannerButton(),
-            _buildNavItem(3, Icons.history_rounded, 'Recent'),
-            _buildNavItem(4, Icons.person_rounded, 'Profile'),
+            _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen, isMediumScreen),
+            _buildNavItem(1, Icons.contacts_rounded, 'Contacts', isSmallScreen, isMediumScreen),
+            _buildCenterScannerButton(isSmallScreen, isMediumScreen),
+            _buildNavItem(3, Icons.history_rounded, 'Recent', isSmallScreen, isMediumScreen),
+            _buildNavItem(4, Icons.person_rounded, 'Profile', isSmallScreen, isMediumScreen),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCenterScannerButton() {
+  Widget _buildCenterScannerButton(bool isSmallScreen, bool isMediumScreen) {
     final isSelected = selectedIndex == 2;
     
     return Semantics(
@@ -70,30 +77,26 @@ class CustomBottomNavigation extends StatelessWidget {
             AnimatedContainer(
               duration: Duration(milliseconds: 300),
               curve: Curves.easeInOutCubic,
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.all(isSmallScreen ? 12 : (isMediumScreen ? 14 : 16)),
               decoration: BoxDecoration(
-                gradient: primaryGradient,
+                color: isDarkMode ? Color(0xFF1A1F3A) : white,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: primary.withOpacity(isSelected ? 0.6 : 0.5),
-                    blurRadius: isSelected ? 24 : 18,
-                    offset: Offset(0, isSelected ? 6 : 4),
-                    spreadRadius: isSelected ? 3 : 1,
-                  ),
-                ],
+                border: Border.all(
+                  width: isSmallScreen ? 2.5 : 3,
+                  color: primary,
+                ),
               ),
               child: Icon(
                 Icons.qr_code_scanner_rounded,
-                size: 30,
-                color: white,
+                size: isSmallScreen ? 24 : (isMediumScreen ? 27 : 30),
+                color: primary,
               ),
             ),
-            SizedBox(height: 6),
+            SizedBox(height: isSmallScreen ? 4 : 6),
             Text(
               'Scan',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: isSmallScreen ? 10 : 11,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected 
                   ? (isDarkMode ? white : primary)
@@ -107,7 +110,7 @@ class CustomBottomNavigation extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label, bool isSmallScreen, bool isMediumScreen) {
     final isSelected = selectedIndex == index;
     
     return Semantics(
@@ -119,8 +122,8 @@ class CustomBottomNavigation extends StatelessWidget {
         onTap: () => onItemTapped(index),
         child: Container(
           padding: EdgeInsets.symmetric(
-            horizontal: spacingMedium,
-            vertical: spacingSmall,
+            horizontal: isSmallScreen ? 8 : (isMediumScreen ? 10 : spacingMedium),
+            vertical: isSmallScreen ? 4 : spacingSmall,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -128,7 +131,7 @@ class CustomBottomNavigation extends StatelessWidget {
               AnimatedContainer(
                 duration: Duration(milliseconds: 300),
                 curve: Curves.easeInOutCubic,
-                padding: EdgeInsets.all(10),
+                padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
                 decoration: BoxDecoration(
                   gradient: isSelected ? primaryGradient : null,
                   color: isSelected 
@@ -150,17 +153,17 @@ class CustomBottomNavigation extends StatelessWidget {
                 ),
                 child: Icon(
                   icon,
-                  size: 24,
+                  size: isSmallScreen ? 20 : (isMediumScreen ? 22 : 24),
                   color: isSelected 
                     ? white 
                     : isDarkMode ? subtextColor : grey,
                 ),
               ),
-              SizedBox(height: 6),
+              SizedBox(height: isSmallScreen ? 4 : 6),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: isSmallScreen ? 9 : (isMediumScreen ? 10 : 11),
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected 
                     ? (isDarkMode ? white : primary)

@@ -66,18 +66,13 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           
           SizedBox(height: spacingLarge),
           
-          // Tab Content
-          SizedBox(
-            height: 600, // Adjust height as needed
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildMyProfileTab(width),
-                _buildMedicalInfoTab(width),
-                _buildSettingsTab(width),
-              ],
-            ),
-          ),
+          // Tab Content - Removed fixed height and TabBarView
+          if (_selectedTab == 0)
+            _buildMyProfileTab(width)
+          else if (_selectedTab == 1)
+            _buildMedicalInfoTab(width)
+          else
+            _buildSettingsTab(width),
         ],
       ),
     );
@@ -307,37 +302,34 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
       }
     }
     
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Personal Information', Icons.info_outline_rounded),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildInfoCard([
-            _InfoItem(icon: Icons.person_outline, label: 'Full Name', value: name),
-            _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
-            _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: '$age years old'),
-            _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
-          ]),
-          
-          SizedBox(height: spacingXLarge),
-          
-          _buildSectionHeader('Contact Information', Icons.contact_phone_rounded),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildInfoCard([
-            _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: contactNumber),
-            _InfoItem(icon: Icons.email_outlined, label: 'Email', value: email),
-            _InfoItem(icon: Icons.home_outlined, label: 'Address', value: address),
-          ]),
-          
-          SizedBox(height: spacingLarge),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Personal Information', Icons.info_outline_rounded),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildInfoCard([
+          _InfoItem(icon: Icons.person_outline, label: 'Full Name', value: name),
+          _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
+          _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: '$age years old'),
+          _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
+        ]),
+        
+        SizedBox(height: spacingXLarge),
+        
+        _buildSectionHeader('Contact Information', Icons.contact_phone_rounded),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildInfoCard([
+          _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: contactNumber),
+          _InfoItem(icon: Icons.email_outlined, label: 'Email', value: email),
+          _InfoItem(icon: Icons.home_outlined, label: 'Address', value: address),
+        ]),
+        
+        SizedBox(height: spacingLarge),
+      ],
     );
   }
 
@@ -345,184 +337,178 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     final disabilityType = widget.userData['disabilityType'] ?? '';
     final diagnosis = widget.userData['diagnosis'] ?? '';
     
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Disability Information', Icons.accessible_outlined),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildInfoCard([
-            _InfoItem(
-              icon: Icons.medical_information_outlined,
-              label: 'Type of Disability',
-              value: disabilityType,
-            ),
-            _InfoItem(
-              icon: Icons.assignment_outlined,
-              label: 'Diagnosis',
-              value: diagnosis,
-            ),
-          ]),
-          
-          SizedBox(height: spacingXLarge),
-          
-          // Emergency Notice
-          Container(
-            padding: EdgeInsets.all(spacingLarge),
-            decoration: BoxDecoration(
-              color: widget.isDarkMode 
-                ? error.withOpacity(0.15)
-                : error.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: Border.all(
-                color: error.withOpacity(0.3),
-                width: 1.5,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(spacingMedium),
-                  decoration: BoxDecoration(
-                    color: error.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(radiusMedium),
-                  ),
-                  child: Icon(Icons.warning_amber_rounded, color: error, size: 24),
-                ),
-                SizedBox(width: spacingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Important',
-                        style: bodyBold.copyWith(
-                          fontSize: 16,
-                          color: widget.theme.textColor,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Keep your medical information updated for emergency situations.',
-                        style: caption.copyWith(
-                          fontSize: 13,
-                          color: widget.theme.subtextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Disability Information', Icons.accessible_outlined),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildInfoCard([
+          _InfoItem(
+            icon: Icons.medical_information_outlined,
+            label: 'Type of Disability',
+            value: disabilityType,
+          ),
+          _InfoItem(
+            icon: Icons.assignment_outlined,
+            label: 'Diagnosis',
+            value: diagnosis,
+          ),
+        ]),
+        
+        SizedBox(height: spacingXLarge),
+        
+        // Emergency Notice
+        Container(
+          padding: EdgeInsets.all(spacingLarge),
+          decoration: BoxDecoration(
+            color: widget.isDarkMode 
+              ? error.withOpacity(0.15)
+              : error.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(radiusLarge),
+            border: Border.all(
+              color: error.withOpacity(0.3),
+              width: 1.5,
             ),
           ),
-          
-          SizedBox(height: spacingLarge),
-        ],
-      ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(spacingMedium),
+                decoration: BoxDecoration(
+                  color: error.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
+                child: Icon(Icons.warning_amber_rounded, color: error, size: 24),
+              ),
+              SizedBox(width: spacingMedium),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Important',
+                      style: bodyBold.copyWith(
+                        fontSize: 16,
+                        color: widget.theme.textColor,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Keep your medical information updated for emergency situations.',
+                      style: caption.copyWith(
+                        fontSize: 13,
+                        color: widget.theme.subtextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        SizedBox(height: spacingLarge),
+      ],
     );
   }
 
   Widget _buildSettingsTab(double width) {
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Account Actions', Icons.admin_panel_settings_outlined),
-          
-          SizedBox(height: spacingMedium),
-          
-          // Update Profile Button
-          _buildActionButton(
-            icon: Icons.edit_outlined,
-            label: 'Update Profile',
-            subtitle: 'Edit your personal information',
-            color: primary,
-            onTap: () {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Account Actions', Icons.admin_panel_settings_outlined),
+        
+        SizedBox(height: spacingMedium),
+        
+        // Update Profile Button
+        _buildActionButton(
+          icon: Icons.edit_outlined,
+          label: 'Update Profile',
+          subtitle: 'Edit your personal information',
+          color: primary,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Update profile feature coming soon'),
+                backgroundColor: primary,
+              ),
+            );
+          },
+        ),
+        
+        SizedBox(height: spacingMedium),
+        
+        // Change Password Button
+        _buildActionButton(
+          icon: Icons.lock_reset_outlined,
+          label: 'Change Password',
+          subtitle: 'Update your account password',
+          color: accent,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Change password feature coming soon'),
+                backgroundColor: accent,
+              ),
+            );
+          },
+        ),
+        
+        SizedBox(height: spacingXLarge),
+        
+        _buildSectionHeader('Danger Zone', Icons.warning_amber_rounded),
+        
+        SizedBox(height: spacingMedium),
+        
+        // Sign Out Button
+        _buildActionButton(
+          icon: Icons.logout_rounded,
+          label: 'Sign Out',
+          subtitle: 'Log out of your account',
+          color: error,
+          onTap: () async {
+            final confirm = await _showConfirmDialog(
+              'Sign Out',
+              'Are you sure you want to sign out?',
+            );
+            
+            if (confirm == true) {
+              await authService.value.signOut();
+            }
+          },
+        ),
+        
+        SizedBox(height: spacingMedium),
+        
+        // Delete Account Button
+        _buildActionButton(
+          icon: Icons.delete_forever_outlined,
+          label: 'Delete Account',
+          subtitle: 'Permanently delete your account',
+          color: error,
+          isDanger: true,
+          onTap: () async {
+            final confirm = await _showConfirmDialog(
+              'Delete Account',
+              'This action cannot be undone. Are you sure you want to delete your account?',
+              isDanger: true,
+            );
+            
+            if (confirm == true) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Update profile feature coming soon'),
-                  backgroundColor: primary,
+                  content: Text('Delete account feature coming soon'),
+                  backgroundColor: error,
                 ),
               );
-            },
-          ),
-          
-          SizedBox(height: spacingMedium),
-          
-          // Change Password Button
-          _buildActionButton(
-            icon: Icons.lock_reset_outlined,
-            label: 'Change Password',
-            subtitle: 'Update your account password',
-            color: accent,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Change password feature coming soon'),
-                  backgroundColor: accent,
-                ),
-              );
-            },
-          ),
-          
-          SizedBox(height: spacingXLarge),
-          
-          _buildSectionHeader('Danger Zone', Icons.warning_amber_rounded),
-          
-          SizedBox(height: spacingMedium),
-          
-          // Sign Out Button
-          _buildActionButton(
-            icon: Icons.logout_rounded,
-            label: 'Sign Out',
-            subtitle: 'Log out of your account',
-            color: error,
-            onTap: () async {
-              final confirm = await _showConfirmDialog(
-                'Sign Out',
-                'Are you sure you want to sign out?',
-              );
-              
-              if (confirm == true) {
-                await authService.value.signOut();
-              }
-            },
-          ),
-          
-          SizedBox(height: spacingMedium),
-          
-          // Delete Account Button
-          _buildActionButton(
-            icon: Icons.delete_forever_outlined,
-            label: 'Delete Account',
-            subtitle: 'Permanently delete your account',
-            color: error,
-            isDanger: true,
-            onTap: () async {
-              final confirm = await _showConfirmDialog(
-                'Delete Account',
-                'This action cannot be undone. Are you sure you want to delete your account?',
-                isDanger: true,
-              );
-              
-              if (confirm == true) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Delete account feature coming soon'),
-                    backgroundColor: error,
-                  ),
-                );
-              }
-            },
-          ),
-          
-          SizedBox(height: spacingLarge),
-        ],
-      ),
+            }
+          },
+        ),
+        
+        SizedBox(height: spacingLarge),
+      ],
     );
   }
 
