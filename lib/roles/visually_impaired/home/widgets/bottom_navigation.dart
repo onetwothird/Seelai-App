@@ -48,13 +48,23 @@ class CustomBottomNavigation extends StatelessWidget {
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen, isMediumScreen),
-            _buildNavItem(1, Icons.contacts_rounded, 'Contacts', isSmallScreen, isMediumScreen),
-            _buildCenterScannerButton(isSmallScreen, isMediumScreen),
-            _buildNavItem(3, Icons.history_rounded, 'Recent', isSmallScreen, isMediumScreen),
-            _buildNavItem(4, Icons.person_rounded, 'Profile', isSmallScreen, isMediumScreen),
+            Expanded(
+              child: _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen, isMediumScreen),
+            ),
+            Expanded(
+              child: _buildNavItem(1, Icons.contacts_rounded, 'Contacts', isSmallScreen, isMediumScreen),
+            ),
+            Expanded(
+              child: _buildCenterScannerButton(isSmallScreen, isMediumScreen),
+            ),
+            Expanded(
+              child: _buildNavItem(3, Icons.history_rounded, 'Recent', isSmallScreen, isMediumScreen),
+            ),
+            Expanded(
+              child: _buildNavItem(4, Icons.person_rounded, 'Profile', isSmallScreen, isMediumScreen),
+            ),
           ],
         ),
       ),
