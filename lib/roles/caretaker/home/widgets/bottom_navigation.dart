@@ -23,15 +23,21 @@ class CustomBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+    final isMediumScreen = screenWidth < 400;
+    
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: EdgeInsets.symmetric(
+        vertical: isSmallScreen ? 8 : 12, 
+        horizontal: isSmallScreen ? 4 : 8,
+      ),
       decoration: BoxDecoration(
         color: isDarkMode ? Color(0xFF1A1F3A) : white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
             color: isDarkMode
-                // ignore: deprecated_member_use
                 ? primary.withOpacity(0.2)
                 : Colors.black.withOpacity(0.1),
             blurRadius: 24,
@@ -43,51 +49,47 @@ class CustomBottomNavigation extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(0, Icons.home_rounded, 'Home'),
-          _buildNavItem(1, Icons.people_rounded, 'Patients'),
-          _buildCenterTrackButton(),
-          _buildNavItemWithBadge(2, Icons.inbox_rounded, 'Requests', pendingRequestsCount),
-          _buildNavItem(3, Icons.person_rounded, 'Profile'),
+          _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen, isMediumScreen),
+          _buildNavItem(1, Icons.people_rounded, 'Patients', isSmallScreen, isMediumScreen),
+          _buildCenterTrackButton(isSmallScreen, isMediumScreen),
+          _buildNavItemWithBadge(2, Icons.inbox_rounded, 'Requests', pendingRequestsCount, isSmallScreen, isMediumScreen),
+          _buildNavItem(3, Icons.person_rounded, 'Profile', isSmallScreen, isMediumScreen),
         ],
       ),
     );
   }
 
-  Widget _buildCenterTrackButton() {
-    final isSelected = selectedIndex == 4; // Empty index for now
+  Widget _buildCenterTrackButton(bool isSmallScreen, bool isMediumScreen) {
+    final isSelected = selectedIndex == 4;
     
     return GestureDetector(
-      onTap: () => onItemTapped(4), // Will do nothing for now
+      onTap: () => onItemTapped(4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedContainer(
             duration: Duration(milliseconds: 300),
             curve: Curves.easeInOutCubic,
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(isSmallScreen ? 12 : (isMediumScreen ? 14 : 16)),
             decoration: BoxDecoration(
-              gradient: primaryGradient,
+              color: isDarkMode ? Color(0xFF1A1F3A) : white,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: primary.withOpacity(isSelected ? 0.6 : 0.5),
-                  blurRadius: isSelected ? 24 : 18,
-                  offset: Offset(0, isSelected ? 6 : 4),
-                  spreadRadius: isSelected ? 3 : 1,
-                ),
-              ],
+              border: Border.all(
+                width: isSmallScreen ? 2.5 : 3,
+                color: primary,
+              ),
             ),
             child: Icon(
               Icons.accessibility_new_rounded,
-              size: 30,
-              color: white,
+              size: isSmallScreen ? 24 : (isMediumScreen ? 27 : 30),
+              color: primary,
             ),
           ),
-          SizedBox(height: 6),
+          SizedBox(height: isSmallScreen ? 4 : 6),
           Text(
             'Track',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: isSmallScreen ? 10 : 11,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               color: isSelected
                   ? (isDarkMode ? white : primary)
@@ -102,15 +104,15 @@ class CustomBottomNavigation extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label, bool isSmallScreen, bool isMediumScreen) {
     final isSelected = selectedIndex == index;
     
     return GestureDetector(
       onTap: () => onItemTapped(index),
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: spacingMedium,
-          vertical: spacingSmall,
+          horizontal: isSmallScreen ? 8 : (isMediumScreen ? 10 : spacingMedium),
+          vertical: isSmallScreen ? 4 : spacingSmall,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -118,7 +120,7 @@ class CustomBottomNavigation extends StatelessWidget {
             AnimatedContainer(
               duration: Duration(milliseconds: 300),
               curve: Curves.easeInOutCubic,
-              padding: EdgeInsets.all(10),
+              padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
               decoration: BoxDecoration(
                 gradient: isSelected ? primaryGradient : null,
                 color: isSelected
@@ -140,7 +142,7 @@ class CustomBottomNavigation extends StatelessWidget {
               ),
               child: Icon(
                 icon,
-                size: 24,
+                size: isSmallScreen ? 20 : (isMediumScreen ? 22 : 24),
                 color: isSelected
                     ? white
                     : isDarkMode
@@ -148,11 +150,11 @@ class CustomBottomNavigation extends StatelessWidget {
                         : grey,
               ),
             ),
-            SizedBox(height: 6),
+            SizedBox(height: isSmallScreen ? 4 : 6),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: isSmallScreen ? 9 : (isMediumScreen ? 10 : 11),
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
                     ? (isDarkMode ? white : primary)
@@ -173,6 +175,8 @@ class CustomBottomNavigation extends StatelessWidget {
     IconData icon,
     String label,
     int badgeCount,
+    bool isSmallScreen,
+    bool isMediumScreen,
   ) {
     final isSelected = selectedIndex == index;
     
@@ -180,8 +184,8 @@ class CustomBottomNavigation extends StatelessWidget {
       onTap: () => onItemTapped(index),
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: spacingMedium,
-          vertical: spacingSmall,
+          horizontal: isSmallScreen ? 8 : (isMediumScreen ? 10 : spacingMedium),
+          vertical: isSmallScreen ? 4 : spacingSmall,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -192,7 +196,7 @@ class CustomBottomNavigation extends StatelessWidget {
                 AnimatedContainer(
                   duration: Duration(milliseconds: 300),
                   curve: Curves.easeInOutCubic,
-                  padding: EdgeInsets.all(10),
+                  padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
                   decoration: BoxDecoration(
                     gradient: isSelected ? primaryGradient : null,
                     color: isSelected
@@ -214,7 +218,7 @@ class CustomBottomNavigation extends StatelessWidget {
                   ),
                   child: Icon(
                     icon,
-                    size: 24,
+                    size: isSmallScreen ? 20 : (isMediumScreen ? 22 : 24),
                     color: isSelected
                         ? white
                         : isDarkMode
@@ -227,7 +231,7 @@ class CustomBottomNavigation extends StatelessWidget {
                     right: -4,
                     top: -4,
                     child: Container(
-                      padding: EdgeInsets.all(4),
+                      padding: EdgeInsets.all(isSmallScreen ? 3 : 4),
                       decoration: BoxDecoration(
                         color: error,
                         shape: BoxShape.circle,
@@ -237,15 +241,15 @@ class CustomBottomNavigation extends StatelessWidget {
                         ),
                       ),
                       constraints: BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
+                        minWidth: isSmallScreen ? 18 : 20,
+                        minHeight: isSmallScreen ? 18 : 20,
                       ),
                       child: Center(
                         child: Text(
                           badgeCount > 9 ? '9+' : badgeCount.toString(),
                           style: TextStyle(
                             color: white,
-                            fontSize: 10,
+                            fontSize: isSmallScreen ? 9 : 10,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -254,11 +258,11 @@ class CustomBottomNavigation extends StatelessWidget {
                   ),
               ],
             ),
-            SizedBox(height: 6),
+            SizedBox(height: isSmallScreen ? 4 : 6),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: isSmallScreen ? 9 : (isMediumScreen ? 10 : 11),
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected
                     ? (isDarkMode ? white : primary)

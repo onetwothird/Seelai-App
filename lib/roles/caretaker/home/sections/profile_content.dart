@@ -64,17 +64,11 @@ class _ProfileContentState extends State<ProfileContent>
           
           SizedBox(height: spacingLarge),
           
-          // Tab Content
-          SizedBox(
-            height: 600,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildMyProfileTab(width),
-                _buildSettingsTab(width),
-              ],
-            ),
-          ),
+          // Tab Content (no fixed height, no nested scroll)
+          if (_selectedTab == 0)
+            _buildMyProfileTab(width)
+          else
+            _buildSettingsTab(width),
         ],
       ),
     );
@@ -303,136 +297,130 @@ class _ProfileContentState extends State<ProfileContent>
       }
     }
     
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Personal Information', Icons.info_outline_rounded),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildInfoCard([
-            _InfoItem(icon: Icons.person_outline, label: 'Full Name', value: name),
-            _InfoItem(icon: Icons.medical_services_outlined, label: 'Role/Relationship', value: relationship),
-            _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
-            _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: age > 0 ? '$age years old' : 'Not specified'),
-            if (formattedBirthdate.isNotEmpty)
-              _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
-          ]),
-          
-          SizedBox(height: spacingXLarge),
-          
-          _buildSectionHeader('Contact Information', Icons.contact_phone_rounded),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildInfoCard([
-            _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: phone),
-            _InfoItem(icon: Icons.email_outlined, label: 'Email', value: email),
-          ]),
-          
-          SizedBox(height: spacingLarge),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Personal Information', Icons.info_outline_rounded),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildInfoCard([
+          _InfoItem(icon: Icons.person_outline, label: 'Full Name', value: name),
+          _InfoItem(icon: Icons.medical_services_outlined, label: 'Role/Relationship', value: relationship),
+          _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
+          _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: age > 0 ? '$age years old' : 'Not specified'),
+          if (formattedBirthdate.isNotEmpty)
+            _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
+        ]),
+        
+        SizedBox(height: spacingXLarge),
+        
+        _buildSectionHeader('Contact Information', Icons.contact_phone_rounded),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildInfoCard([
+          _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: phone),
+          _InfoItem(icon: Icons.email_outlined, label: 'Email', value: email),
+        ]),
+        
+        SizedBox(height: spacingLarge),
+      ],
     );
   }
 
   Widget _buildSettingsTab(double width) {
-    return SingleChildScrollView(
-      physics: BouncingScrollPhysics(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader('Account Actions', Icons.admin_panel_settings_outlined),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildActionButton(
-            icon: Icons.edit_outlined,
-            label: 'Update Profile',
-            subtitle: 'Edit your personal information',
-            color: primary,
-            onTap: () {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Account Actions', Icons.admin_panel_settings_outlined),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildActionButton(
+          icon: Icons.edit_outlined,
+          label: 'Update Profile',
+          subtitle: 'Edit your personal information',
+          color: primary,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Update profile feature coming soon'),
+                backgroundColor: primary,
+              ),
+            );
+          },
+        ),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildActionButton(
+          icon: Icons.lock_reset_outlined,
+          label: 'Change Password',
+          subtitle: 'Update your account password',
+          color: accent,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Change password feature coming soon'),
+                backgroundColor: accent,
+              ),
+            );
+          },
+        ),
+        
+        SizedBox(height: spacingXLarge),
+        
+        _buildSectionHeader('Danger Zone', Icons.warning_amber_rounded),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildActionButton(
+          icon: Icons.logout_rounded,
+          label: 'Sign Out',
+          subtitle: 'Log out of your account',
+          color: error,
+          onTap: () async {
+            final confirm = await _showConfirmDialog(
+              'Sign Out',
+              'Are you sure you want to sign out?',
+            );
+            
+            if (confirm == true) {
+              await authService.value.signOut();
+            }
+          },
+        ),
+        
+        SizedBox(height: spacingMedium),
+        
+        _buildActionButton(
+          icon: Icons.delete_forever_outlined,
+          label: 'Delete Account',
+          subtitle: 'Permanently delete your account',
+          color: error,
+          isDanger: true,
+          onTap: () async {
+            final confirm = await _showConfirmDialog(
+              'Delete Account',
+              'This action cannot be undone. Are you sure you want to delete your account?',
+              isDanger: true,
+            );
+            
+            if (confirm == true) {
+              // ignore: use_build_context_synchronously
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Update profile feature coming soon'),
-                  backgroundColor: primary,
+                  content: Text('Delete account feature coming soon'),
+                  backgroundColor: error,
                 ),
               );
-            },
-          ),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildActionButton(
-            icon: Icons.lock_reset_outlined,
-            label: 'Change Password',
-            subtitle: 'Update your account password',
-            color: accent,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Change password feature coming soon'),
-                  backgroundColor: accent,
-                ),
-              );
-            },
-          ),
-          
-          SizedBox(height: spacingXLarge),
-          
-          _buildSectionHeader('Danger Zone', Icons.warning_amber_rounded),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildActionButton(
-            icon: Icons.logout_rounded,
-            label: 'Sign Out',
-            subtitle: 'Log out of your account',
-            color: error,
-            onTap: () async {
-              final confirm = await _showConfirmDialog(
-                'Sign Out',
-                'Are you sure you want to sign out?',
-              );
-              
-              if (confirm == true) {
-                await authService.value.signOut();
-              }
-            },
-          ),
-          
-          SizedBox(height: spacingMedium),
-          
-          _buildActionButton(
-            icon: Icons.delete_forever_outlined,
-            label: 'Delete Account',
-            subtitle: 'Permanently delete your account',
-            color: error,
-            isDanger: true,
-            onTap: () async {
-              final confirm = await _showConfirmDialog(
-                'Delete Account',
-                'This action cannot be undone. Are you sure you want to delete your account?',
-                isDanger: true,
-              );
-              
-              if (confirm == true) {
-                // ignore: use_build_context_synchronously
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Delete account feature coming soon'),
-                    backgroundColor: error,
-                  ),
-                );
-              }
-            },
-          ),
-          
-          SizedBox(height: spacingLarge),
-        ],
-      ),
+            }
+          },
+        ),
+        
+        SizedBox(height: spacingLarge),
+      ],
     );
   }
 

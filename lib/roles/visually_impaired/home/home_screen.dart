@@ -1,5 +1,5 @@
 // File: lib/roles/visually_impaired/home/home_screen.dart
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use, duplicate_ignore
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, duplicate_ignore, unnecessary_import
 
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -36,6 +36,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   late final PermissionService _permissionService;
   late final AccessibilityService _accessibilityService;
   late final AssistanceRequestService _assistanceRequestService;
+  late final UserActivityService _userActivityService;
   
   // UI State
   bool _isDarkMode = false;
@@ -72,6 +73,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _permissionService = PermissionService();
     _accessibilityService = AccessibilityService();
     _assistanceRequestService = assistanceRequestService;
+    _userActivityService = userActivityService;
   }
 
   void _initializeAnimations() {
@@ -199,6 +201,17 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   void _activateVoiceAssistant() {
     _accessibilityService.announce('Voice assistant activated. Listening...');
+    
+    // Log voice assistant usage
+    final userId = widget.userData['uid'] as String?;
+    if (userId != null) {
+      _userActivityService.logActivity(
+        userId: userId,
+        activityType: UserActivityService.activityVoiceAssistant,
+        title: 'Voice Assistant',
+        description: 'Voice assistant activated - Just now',
+      );
+    }
   }
 
   void _openNotifications() async {
@@ -251,6 +264,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                       ),
                       if (request != requests.last) Divider(),
                     ],
+                  // ignore: unnecessary_to_list_in_spreads
                   )).toList(),
               ],
             ),
@@ -544,6 +558,15 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                   priority: selectedPriority.toLowerCase(),
                 );
                 
+                // Log the caretaker request activity
+                if (success) {
+                  await _userActivityService.logCaretakerRequest(
+                    userId: userId,
+                    requestType: selectedType,
+                    priority: selectedPriority,
+                  );
+                }
+                
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -649,6 +672,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
  Widget _buildMainContent(double width, double height, _AppTheme theme) {
   Widget content;
+  final userId = widget.userData['uid'] as String? ?? '';
   
   switch (_selectedIndex) {
     case 0:
@@ -662,16 +686,17 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       );
       break;
     case 1:
-      content = ContactsContent(
+      // ContactsContent has its own scrolling - don't wrap it
+      return ContactsContent(
         isDarkMode: _isDarkMode,
         theme: theme,
         userData: widget.userData,
       );
-      break;
     case 3:
       content = RecentActivitiesContent(
         isDarkMode: _isDarkMode,
         theme: theme,
+        userId: userId,
       );
       break;
     case 4:
