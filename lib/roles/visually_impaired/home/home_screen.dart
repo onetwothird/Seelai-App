@@ -16,6 +16,7 @@ import 'package:seelai_app/roles/visually_impaired/services/accessibility_servic
 import 'package:seelai_app/firebase/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
+import 'package:seelai_app/roles/visually_impaired/screens/camera_scanner_screen.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -400,20 +401,55 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _accessibilityService.announce('Navigated to ${labels[index]}');
   }
 
-  void _openCameraScanner() {
+  void _openCameraScanner() async {
     _accessibilityService.announce('Opening camera scanner');
-    setState(() {
-      _notificationMessage = 'Camera scanner opening...';
-    });
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Camera scanner feature coming soon'),
-        backgroundColor: primary,
-        behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.only(bottom: 100, left: 20, right: 20),
-      ),
-    );
+    // Check if camera is initialized
+    if (!_cameraService.isInitialized) {
+      setState(() {
+        _notificationMessage = 'Initializing camera...';
+      });
+      
+      final success = await _cameraService.initialize();
+      
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Unable to initialize camera. Please check permissions.'),
+              backgroundColor: error,
+              behavior: SnackBarBehavior.floating,
+              margin: EdgeInsets.only(bottom: 100, left: 20, right: 20),
+            ),
+          );
+        }
+        return;
+      }
+    }
+    
+    // Log camera scanner usage
+    final userId = widget.userData['uid'] as String?;
+    if (userId != null) {
+      _userActivityService.logActivity(
+        userId: userId,
+        activityType: 'camera_scanner',
+        title: 'Camera Scanner',
+        description: 'Camera scanner opened - Just now',
+      );
+    }
+    
+    // Navigate to camera scanner screen
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CameraScannerScreen(
+            cameraService: _cameraService,
+            isDarkMode: _isDarkMode,
+          ),
+        ),
+      );
+    }
   }
 
   void _updateNotification(String message) {
