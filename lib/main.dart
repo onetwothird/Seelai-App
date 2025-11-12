@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:seelai_app/core/firebase_options.dart';
+import 'package:seelai_app/screens/splash_screen.dart';
 
 void main() async {
 
@@ -31,7 +31,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: OnboardingScreen(),
+      home: const AnimatedSplashScreenWidget(),
     );
   }
 }

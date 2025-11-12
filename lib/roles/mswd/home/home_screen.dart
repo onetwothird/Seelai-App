@@ -1,7 +1,15 @@
-// File: lib/roles/mswd/home/home_screen.dart
+// File: lib/roles/mswd/home/mswd_home_screen.dart
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/auth_service.dart';
+import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
+import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/patients_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/reports_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/profile_content.dart';
 
 class MSWDHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -15,237 +23,365 @@ class MSWDHomeScreen extends StatefulWidget {
   State<MSWDHomeScreen> createState() => _MSWDHomeScreenState();
 }
 
-class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
+class _MSWDHomeScreenState extends State<MSWDHomeScreen> 
+    with SingleTickerProviderStateMixin {
+  
+  // UI State
+  bool _isDarkMode = false;
+  int _selectedIndex = 0;
+  int _unreadNotificationCount = 0;
+  
+  // Animation
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  
+  // Scroll detection for bottom nav
+  final ScrollController _scrollController = ScrollController();
+  bool _isNavVisible = true;
+  double _lastScrollPosition = 0;
+  
+  // Notification
+  String _notificationMessage = 'Welcome back, MSWD Staff';
+
   @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final userName = widget.userData['name'] ?? 'Staff';
-    final userEmail = widget.userData['email'] ?? '';
-    final userAge = widget.userData['age'] ?? 0;
-    final employeeId = widget.userData['employeeId'] ?? 'Not assigned';
-    final department = widget.userData['department'] ?? 'Not specified';
+  void initState() {
+    super.initState();
+    _initializeAnimations();
+    _initializeScrollListener();
+    _loadNotifications();
+  }
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFFAF5FF),
-              Color(0xFFFFF1F2),
-              Color(0xFFF0FDFA),
+  void _initializeAnimations() {
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 400),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOutCubic),
+    );
+    
+    _animationController.forward();
+  }
+
+  void _initializeScrollListener() {
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    final currentScroll = _scrollController.position.pixels;
+    final scrollDelta = currentScroll - _lastScrollPosition;
+    
+    const scrollThreshold = 10.0;
+    
+    if (scrollDelta.abs() > scrollThreshold) {
+      final shouldShow = scrollDelta < 0;
+      
+      if (shouldShow != _isNavVisible) {
+        setState(() {
+          _isNavVisible = shouldShow;
+        });
+      }
+      
+      _lastScrollPosition = currentScroll;
+    }
+    
+    if (currentScroll <= 0 && !_isNavVisible) {
+      setState(() {
+        _isNavVisible = true;
+      });
+    }
+  }
+
+  Future<void> _loadNotifications() async {
+    setState(() {
+      _unreadNotificationCount = 3;
+      _notificationMessage = 'You have 3 new patient registrations';
+    });
+  }
+
+  void _toggleDarkMode() {
+    setState(() {
+      _isDarkMode = !_isDarkMode;
+    });
+  }
+
+  void _openNotifications() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.notifications_rounded, color: primary),
+            SizedBox(width: spacingSmall),
+            Text('Notifications'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildNotificationItem(
+                icon: Icons.person_add_rounded,
+                iconColor: primary,
+                title: 'New Patient Registration',
+                message: 'Juan Dela Cruz registered as a patient',
+                time: '5 min ago',
+              ),
+              Divider(),
+              _buildNotificationItem(
+                icon: Icons.assignment_rounded,
+                iconColor: accent,
+                title: 'Report Submitted',
+                message: 'Monthly report has been generated',
+                time: '1 hour ago',
+              ),
+              Divider(),
+              _buildNotificationItem(
+                icon: Icons.update_rounded,
+                iconColor: Colors.green,
+                title: 'Profile Updated',
+                message: 'Maria Santos updated her profile',
+                time: '2 hours ago',
+              ),
             ],
-            stops: [0.0, 0.5, 1.0],
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: screenHeight * 0.04),
-
-                // Header with logout button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome Back! 👋',
-                            style: body.copyWith(
-                              fontSize: screenWidth * 0.04,
-                              color: grey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          ShaderMask(
-                            shaderCallback: (bounds) => primaryGradient.createShader(bounds),
-                            child: Text(
-                              userName,
-                              style: h1.copyWith(
-                                fontSize: screenWidth * 0.08,
-                                color: white,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () async {
-                        await authService.value.signOut();
-                      },
-                      icon: Icon(Icons.logout_rounded),
-                      color: primary,
-                      iconSize: 28,
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: screenHeight * 0.04),
-
-                // Role Badge
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: primaryGradient,
-                    borderRadius: BorderRadius.circular(radiusLarge),
-                    boxShadow: [
-                      BoxShadow(
-                        // ignore: deprecated_member_use
-                        color: primary.withOpacity(0.3),
-                        blurRadius: 15,
-                        offset: Offset(0, 5),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.admin_panel_settings_rounded, color: white, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'MSWD Staff Account',
-                        style: bodyBold.copyWith(
-                          color: white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                SizedBox(height: screenHeight * 0.04),
-
-                // Info Cards
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        // Profile Info Card
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: white,
-                            borderRadius: BorderRadius.circular(radiusLarge),
-                            boxShadow: softShadow,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      gradient: primaryGradient,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(Icons.person_rounded, color: white, size: 24),
-                                  ),
-                                  SizedBox(width: 16),
-                                  Text(
-                                    'Profile Information',
-                                    style: bodyBold.copyWith(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(height: 20),
-                              _buildInfoRow('Name', userName),
-                              _buildInfoRow('Email', userEmail),
-                              _buildInfoRow('Age', '$userAge years old'),
-                              _buildInfoRow('Employee ID', employeeId),
-                              _buildInfoRow('Department', department),
-                              _buildInfoRow('Role', 'MSWD Staff'),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: 20),
-
-                        // Quick Actions
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: white,
-                            borderRadius: BorderRadius.circular(radiusLarge),
-                            boxShadow: softShadow,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Quick Actions',
-                                style: bodyBold.copyWith(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Your MSWD staff dashboard is being prepared. More features coming soon!',
-                                style: body.copyWith(
-                                  color: grey,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _unreadNotificationCount = 0;
+              });
+              Navigator.pop(context);
+            },
+            child: Text('Mark all as read'),
           ),
-        ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildNotificationItem({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String message,
+    required String time,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.symmetric(vertical: spacingSmall),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: body.copyWith(
-                color: grey,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
+          Icon(icon, color: iconColor, size: 24),
+          SizedBox(width: spacingSmall),
           Expanded(
-            child: Text(
-              value,
-              style: body.copyWith(
-                color: black,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: bodyBold.copyWith(fontSize: 14),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  message,
+                  style: body.copyWith(fontSize: 13, color: grey),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  time,
+                  style: body.copyWith(fontSize: 11, color: grey.withOpacity(0.7)),
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  void _onNavItemTapped(int index) {
+    _animationController.reset();
+    setState(() {
+      _selectedIndex = index;
+    });
+    _animationController.forward();
+  }
+
+  void _updateNotification(String message) {
+    setState(() {
+      _notificationMessage = message;
+    });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final userName = widget.userData['name'] ?? 'Staff';
+
+    final theme = _isDarkMode 
+      ? _getDarkTheme() 
+      : _getLightTheme();
+
+    return Scaffold(
+      extendBody: true,
+      body: Container(
+        decoration: BoxDecoration(gradient: theme.backgroundGradient),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              MSWDHeaderSection(
+                userName: userName,
+                isDarkMode: _isDarkMode,
+                notificationMessage: _notificationMessage,
+                onToggleDarkMode: _toggleDarkMode,
+                onNotificationTap: _openNotifications,
+                textColor: theme.textColor,
+                subtextColor: theme.subtextColor,
+                unreadNotificationCount: _unreadNotificationCount,
+              ),
+              
+              Expanded(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: _buildMainContent(
+                    screenWidth,
+                    screenHeight,
+                    theme,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: AnimatedSlide(
+        duration: Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+        offset: _isNavVisible ? Offset.zero : Offset(0, 1),
+        child: AnimatedOpacity(
+          duration: Duration(milliseconds: 300),
+          opacity: _isNavVisible ? 1.0 : 0.0,
+          child: MSWDBottomNavigation(
+            selectedIndex: _selectedIndex,
+            isDarkMode: _isDarkMode,
+            onItemTapped: _onNavItemTapped,
+            textColor: theme.textColor,
+            subtextColor: theme.subtextColor,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMainContent(double width, double height, _AppTheme theme) {
+    Widget content;
+    
+    switch (_selectedIndex) {
+      case 0:
+        content = MSWDDashboardContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+          onNotificationUpdate: _updateNotification,
+        );
+        break;
+      case 1:
+        content = MSWDPatientsContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+        );
+        break;
+      case 2:
+        content = MSWDReportsContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+        );
+        break;
+      case 3:
+        content = MSWDProfileContent(
+          userData: widget.userData,
+          isDarkMode: _isDarkMode,
+          theme: theme,
+        );
+        break;
+      default:
+        content = MSWDDashboardContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+          onNotificationUpdate: _updateNotification,
+        );
+    }
+    
+    return SingleChildScrollView(
+      controller: _scrollController,
+      physics: ClampingScrollPhysics(),
+      child: content,
+    );
+  }
+
+  _AppTheme _getDarkTheme() {
+    return _AppTheme(
+      backgroundGradient: LinearGradient(
+        colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A), Color(0xFF2A2F4A)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        stops: [0.0, 0.5, 1.0],
+      ),
+      textColor: white,
+      subtextColor: Color(0xFFB0B8D4),
+      cardColor: Color(0xFF1A1F3A),
+    );
+  }
+
+  _AppTheme _getLightTheme() {
+    return _AppTheme(
+      backgroundGradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFFAF5FF),
+          Color(0xFFFFF1F2),
+          Color(0xFFF0FDFA),
+        ],
+        stops: [0.0, 0.5, 1.0],
+      ),
+      textColor: black,
+      subtextColor: grey,
+      cardColor: white,
+    );
+  }
+}
+
+class _AppTheme {
+  final LinearGradient backgroundGradient;
+  final Color textColor;
+  final Color subtextColor;
+  final Color cardColor;
+
+  _AppTheme({
+    required this.backgroundGradient,
+    required this.textColor,
+    required this.subtextColor,
+    required this.cardColor,
+  });
 }
