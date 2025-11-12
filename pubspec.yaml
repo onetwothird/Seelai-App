@@ -24,6 +24,7 @@ dependencies:
   geolocator: ^14.0.2
   animated_splash_screen: ^1.3.0
   lottie: ^3.3.2
+  flutter_native_splash: ^2.4.7
   
 dev_dependencies:
   flutter_test:
@@ -42,3 +43,8 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/profile/seelai.png"
+
+flutter_native_splash:
+  color: "#FAF5FF"
+  android: true
+  ios: true
