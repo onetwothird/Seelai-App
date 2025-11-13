@@ -6,6 +6,7 @@ import 'package:seelai_app/roles/caretaker/models/request_model.dart';
 import 'package:seelai_app/roles/caretaker/services/request_service.dart';
 import 'package:seelai_app/roles/caretaker/screens/request_details_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';
 
 class RequestsContent extends StatefulWidget {
@@ -38,6 +39,9 @@ class _RequestsContentState extends State<RequestsContent>
   String? _error;
   String? _caretakerId;
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
+  
+  // Cache for profile images
+  final Map<String, String?> _profileImageCache = {};
 
   @override
   void initState() {
@@ -74,7 +78,7 @@ class _RequestsContentState extends State<RequestsContent>
     _setupRequestsStream();
   }
  
- void _setupRequestsStream() {
+  void _setupRequestsStream() {
     if (_caretakerId == null) {
       setState(() {
         _error = 'Caretaker ID not found';
@@ -108,9 +112,12 @@ class _RequestsContentState extends State<RequestsContent>
             _isLoading = false;
             _error = null;
             
-            // Update pending request count - THIS IS KEY
+            // Update pending request count
             widget.onRequestCountChange(_pendingRequests.length);
           });
+          
+          // Preload profile images for visible requests
+          _preloadProfileImages(requests);
         }
       },
       onError: (error) {
@@ -123,6 +130,38 @@ class _RequestsContentState extends State<RequestsContent>
         }
       },
     );
+  }
+
+  Future<void> _preloadProfileImages(List<RequestModel> requests) async {
+    for (var request in requests) {
+      if (!_profileImageCache.containsKey(request.patientId)) {
+        _getProfileImage(request.patientId);
+      }
+    }
+  }
+
+  Future<String?> _getProfileImage(String patientId) async {
+    // Check cache first
+    if (_profileImageCache.containsKey(patientId)) {
+      return _profileImageCache[patientId];
+    }
+
+    try {
+      final userData = await databaseService.getUserData(patientId);
+      final profileImageUrl = userData?['profileImageUrl'] as String?;
+      
+      setState(() {
+        _profileImageCache[patientId] = profileImageUrl;
+      });
+      
+      return profileImageUrl;
+    } catch (e) {
+      debugPrint('Error fetching profile image: $e');
+      setState(() {
+        _profileImageCache[patientId] = null;
+      });
+      return null;
+    }
   }
 
   @override
@@ -450,6 +489,7 @@ class _RequestsContentState extends State<RequestsContent>
 
   Widget _buildRequestCard(RequestModel request) {
     final priorityColor = request.getPriorityColor();
+    final cachedImage = _profileImageCache[request.patientId];
     
     return Container(
       decoration: BoxDecoration(
@@ -477,9 +517,7 @@ class _RequestsContentState extends State<RequestsContent>
                   requestService: widget.requestService,
                 ),
               ),
-            ).then((_) {
-              // No need to manually refresh - stream handles it
-            });
+            );
           },
           borderRadius: BorderRadius.circular(radiusLarge),
           splashColor: priorityColor.withOpacity(0.1),
@@ -505,32 +543,65 @@ class _RequestsContentState extends State<RequestsContent>
               children: [
                 Row(
                   children: [
+                    // Profile Image - Updated shadow to match container color
                     Container(
-                      padding: EdgeInsets.all(spacingMedium * 1.2),
+                      width: 64,
+                      height: 64,
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            priorityColor.withOpacity(0.3),
-                            priorityColor.withOpacity(0.2),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(radiusMedium),
+                        shape: BoxShape.circle,
                         border: Border.all(
-                          color: priorityColor.withOpacity(0.4),
-                          width: 1.5,
+                          color: widget.isDarkMode ? primary.withOpacity(0.3) : Colors.white,
+                          width: 2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: priorityColor.withOpacity(0.3),
+                            color: priorityColor.withOpacity(widget.isDarkMode ? 0.3 : 0.18),
                             blurRadius: 8,
-                            offset: Offset(0, 3),
+                            offset: Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: Icon(
-                        request.getIcon(),
-                        color: priorityColor,
-                        size: 28,
+                      child: ClipOval(
+                        child: cachedImage != null && cachedImage.isNotEmpty
+                            ? Image.network(
+                                cachedImage,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return _buildDefaultAvatar(primary);
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(primary),
+                                    ),
+                                  );
+                                },
+                              )
+                            : FutureBuilder<String?>(
+                                future: _getProfileImage(request.patientId),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(primary),
+                                      ),
+                                    );
+                                  }
+                                  if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
+                                    return Image.network(
+                                      snapshot.data!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return _buildDefaultAvatar(primary);
+                                      },
+                                    );
+                                  }
+                                  return _buildDefaultAvatar(primary);
+                                },
+                              ),
                       ),
                     ),
                     SizedBox(width: spacingMedium),
@@ -750,6 +821,21 @@ class _RequestsContentState extends State<RequestsContent>
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultAvatar(Color priorityColor) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: primaryGradient,
+      ),
+      child: Center(
+        child: Icon(
+          Icons.person_rounded,
+          color: white,
+          size: 32,
         ),
       ),
     );
