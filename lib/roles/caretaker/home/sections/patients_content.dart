@@ -94,8 +94,9 @@ class _PatientsContentState extends State<PatientsContent> {
                 disabilityType: patientData['disabilityType'] ?? 'Not specified',
                 contactNumber: patientData['contactNumber'] ?? patientData['phone'] ?? 'N/A',
                 address: patientData['address'] ?? 'No address',
-                isOnline: false, // You can implement online status tracking
+                isOnline: false,
                 lastActive: DateTime.now(),
+                profileImageUrl: patientData['profileImageUrl'] as String?,
               );
             }).toList();
             _isLoading = false;
@@ -342,7 +343,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 textAlign: TextAlign.center,
               ),
             ),
-
           ],
         ),
       ),
@@ -355,7 +355,6 @@ class _PatientsContentState extends State<PatientsContent> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  // ignore: deprecated_member_use
                   color: primary.withOpacity(0.15),
                   blurRadius: 16,
                   offset: Offset(0, 6),
@@ -386,7 +385,6 @@ class _PatientsContentState extends State<PatientsContent> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(radiusLarge),
               border: widget.isDarkMode
-                  // ignore: deprecated_member_use
                   ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
                   : null,
             ),
@@ -394,24 +392,14 @@ class _PatientsContentState extends State<PatientsContent> {
               children: [
                 Row(
                   children: [
+                    // Profile Picture with online status
                     Stack(
                       children: [
-                        Container(
-                          padding: EdgeInsets.all(spacingLarge),
-                          decoration: BoxDecoration(
-                            gradient: primaryGradient,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.person_rounded,
-                            color: white,
-                            size: 32,
-                          ),
-                        ),
+                        _buildProfileAvatar(patient),
                         if (patient.isOnline)
                           Positioned(
-                            right: 0,
-                            bottom: 0,
+                            right: 2,
+                            bottom: 2,
                             child: Container(
                               width: 16,
                               height: 16,
@@ -420,7 +408,7 @@ class _PatientsContentState extends State<PatientsContent> {
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: widget.theme.cardColor,
-                                  width: 2,
+                                  width: 2.5,
                                 ),
                               ),
                             ),
@@ -515,6 +503,73 @@ class _PatientsContentState extends State<PatientsContent> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Build profile avatar - shows profile picture or fallback icon
+  Widget _buildProfileAvatar(PatientModel patient) {
+    final hasProfileImage = patient.profileImageUrl != null && 
+                            patient.profileImageUrl!.isNotEmpty;
+
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: hasProfileImage ? null : primaryGradient,
+        border: Border.all(
+          color: widget.isDarkMode 
+              ? primary.withOpacity(0.3) 
+              : Colors.white,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withOpacity(0.2),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: hasProfileImage
+            ? Image.network(
+                patient.profileImageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to icon if image fails to load
+                  return Container(
+                    decoration: BoxDecoration(gradient: primaryGradient),
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: white,
+                      size: 32,
+                    ),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    decoration: BoxDecoration(gradient: primaryGradient),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(white),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Icon(
+                Icons.person_rounded,
+                color: white,
+                size: 32,
+              ),
       ),
     );
   }
