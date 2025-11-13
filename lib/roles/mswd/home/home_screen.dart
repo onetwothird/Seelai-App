@@ -41,7 +41,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   double _lastScrollPosition = 0;
   
   // Notification
-  String _notificationMessage = 'Welcome back, MSWD Staff';
 
   @override
   void initState() {
@@ -96,7 +95,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   Future<void> _loadNotifications() async {
     setState(() {
       _unreadNotificationCount = 3;
-      _notificationMessage = 'You have 3 new patient registrations';
     });
   }
 
@@ -217,7 +215,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
 
   void _updateNotification(String message) {
     setState(() {
-      _notificationMessage = message;
     });
   }
 
