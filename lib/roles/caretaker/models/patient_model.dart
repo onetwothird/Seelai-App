@@ -8,6 +8,8 @@ class PatientModel {
   final Map<String, dynamic>? lastLocation;
   final DateTime? lastActive;
   final bool isOnline;
+  final String? profileImageUrl;
+  final String? patientProfileImageUrl; // Add this line
 
   PatientModel({
     required this.id,
@@ -19,6 +21,9 @@ class PatientModel {
     this.lastLocation,
     this.lastActive,
     this.isOnline = false,
+    this.profileImageUrl, 
+    this.patientProfileImageUrl, // Add this line
+
   });
 
   factory PatientModel.fromJson(Map<String, dynamic> json, String id) {
