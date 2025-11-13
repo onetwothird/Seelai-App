@@ -365,196 +365,187 @@ class _ContactsContentState extends State<ContactsContent> {
     final isLoading = _isLoadingCaretakers || _isLoadingEmergency;
     final allContacts = [..._caretakerContacts, ..._emergencyContacts, ..._otherContacts];
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        setState(() {
-          _isLoadingCaretakers = true;
-          _isLoadingEmergency = true;
-        });
-        _setupCaretakersStream();
-        _setupEmergencyContactsStream();
-      },
-      child: SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.only(
-          left: width * 0.06,
-          right: width * 0.06,
-          bottom: 100,
-        ),
-        child: Semantics(
-          label: 'Contacts section',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'My Contacts',
-                          style: h2.copyWith(
-                            fontSize: 26,
-                            color: widget.theme.textColor,
-                            fontWeight: FontWeight.w700,
-                          ),
+    // Removed SingleChildScrollView and RefreshIndicator
+    // The parent will handle scrolling
+    return Padding(
+      padding: EdgeInsets.only(
+        left: width * 0.06,
+        right: width * 0.06,
+        bottom: 100,
+      ),
+      child: Semantics(
+        label: 'Contacts section',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'My Contacts',
+                        style: h2.copyWith(
+                          fontSize: 26,
+                          color: widget.theme.textColor,
+                          fontWeight: FontWeight.w700,
                         ),
-                        SizedBox(height: spacingSmall),
-                        Text(
-                          'People you can reach out to',
+                      ),
+                      SizedBox(height: spacingSmall),
+                      Text(
+                        'People you can reach out to',
+                        style: body.copyWith(
+                          color: widget.theme.subtextColor,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Semantics(
+                  label: 'Add new contact button',
+                  button: true,
+                  hint: 'Double tap to add a new contact',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: primaryGradient,
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                      boxShadow: glowShadow,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _showAddContactDialog,
+                        borderRadius: BorderRadius.circular(radiusMedium),
+                        child: Padding(
+                          padding: EdgeInsets.all(spacingMedium),
+                          child: Icon(Icons.add_rounded, color: white, size: 28),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: spacingLarge),
+            
+            if (isLoading && allContacts.isEmpty)
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(primary),
+                      ),
+                      SizedBox(height: spacingLarge),
+                      Text(
+                        'Loading contacts...',
+                        style: body.copyWith(
+                          color: widget.theme.subtextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (allContacts.isEmpty)
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 60),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(spacingXLarge),
+                        decoration: BoxDecoration(
+                          color: widget.theme.subtextColor.withOpacity(0.05),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.contacts_rounded,
+                          size: 80,
+                          color: widget.theme.subtextColor.withOpacity(0.3),
+                        ),
+                      ),
+                      SizedBox(height: spacingLarge),
+                      Text(
+                        'No contacts yet',
+                        style: bodyBold.copyWith(
+                          color: widget.theme.textColor,
+                          fontSize: 18,
+                        ),
+                      ),
+                      SizedBox(height: spacingSmall),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 40),
+                        child: Text(
+                          'Add your caretakers and emergency contacts',
                           style: body.copyWith(
                             color: widget.theme.subtextColor,
                             fontSize: 14,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Semantics(
-                    label: 'Add new contact button',
-                    button: true,
-                    hint: 'Double tap to add a new contact',
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: primaryGradient,
-                        borderRadius: BorderRadius.circular(radiusMedium),
-                        boxShadow: glowShadow,
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _showAddContactDialog,
-                          borderRadius: BorderRadius.circular(radiusMedium),
-                          child: Padding(
-                            padding: EdgeInsets.all(spacingMedium),
-                            child: Icon(Icons.add_rounded, color: white, size: 28),
-                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              )
+            else ...[
+              // Caretakers Section
+              if (_caretakerContacts.isNotEmpty) ...[
+                Text(
+                  'My Caretakers',
+                  style: bodyBold.copyWith(
+                    fontSize: 16,
+                    color: widget.theme.textColor,
+                  ),
+                ),
+                SizedBox(height: spacingMedium),
+                ..._caretakerContacts.map((contact) => Padding(
+                      padding: EdgeInsets.only(bottom: spacingMedium),
+                      child: _buildContactCard(context, contact),
+                    )),
+                SizedBox(height: spacingLarge),
+              ],
               
-              SizedBox(height: spacingLarge),
+              // Emergency Contacts Section
+              if (_emergencyContacts.isNotEmpty) ...[
+                Text(
+                  'Emergency Contacts',
+                  style: bodyBold.copyWith(
+                    fontSize: 16,
+                    color: widget.theme.textColor,
+                  ),
+                ),
+                SizedBox(height: spacingMedium),
+                ..._emergencyContacts.map((contact) => Padding(
+                      padding: EdgeInsets.only(bottom: spacingMedium),
+                      child: _buildContactCard(context, contact),
+                    )),
+                SizedBox(height: spacingLarge),
+              ],
               
-              if (isLoading && allContacts.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 60),
-                    child: Column(
-                      children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(primary),
-                        ),
-                        SizedBox(height: spacingLarge),
-                        Text(
-                          'Loading contacts...',
-                          style: body.copyWith(
-                            color: widget.theme.subtextColor,
-                          ),
-                        ),
-                      ],
-                    ),
+              // Other Contacts Section
+              if (_otherContacts.isNotEmpty) ...[
+                Text(
+                  'Other Contacts',
+                  style: bodyBold.copyWith(
+                    fontSize: 16,
+                    color: widget.theme.textColor,
                   ),
-                )
-              else if (allContacts.isEmpty)
-                Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 60),
-                    child: Column(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(spacingXLarge),
-                          decoration: BoxDecoration(
-                            color: widget.theme.subtextColor.withOpacity(0.05),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.contacts_rounded,
-                            size: 80,
-                            color: widget.theme.subtextColor.withOpacity(0.3),
-                          ),
-                        ),
-                        SizedBox(height: spacingLarge),
-                        Text(
-                          'No contacts yet',
-                          style: bodyBold.copyWith(
-                            color: widget.theme.textColor,
-                            fontSize: 18,
-                          ),
-                        ),
-                        SizedBox(height: spacingSmall),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 40),
-                          child: Text(
-                            'Add your caretakers and emergency contacts',
-                            style: body.copyWith(
-                              color: widget.theme.subtextColor,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-              else ...[
-                // Caretakers Section
-                if (_caretakerContacts.isNotEmpty) ...[
-                  Text(
-                    'My Caretakers',
-                    style: bodyBold.copyWith(
-                      fontSize: 16,
-                      color: widget.theme.textColor,
-                    ),
-                  ),
-                  SizedBox(height: spacingMedium),
-                  ..._caretakerContacts.map((contact) => Padding(
-                        padding: EdgeInsets.only(bottom: spacingMedium),
-                        child: _buildContactCard(context, contact),
-                      )),
-                  SizedBox(height: spacingLarge),
-                ],
-                
-                // Emergency Contacts Section
-                if (_emergencyContacts.isNotEmpty) ...[
-                  Text(
-                    'Emergency Contacts',
-                    style: bodyBold.copyWith(
-                      fontSize: 16,
-                      color: widget.theme.textColor,
-                    ),
-                  ),
-                  SizedBox(height: spacingMedium),
-                  ..._emergencyContacts.map((contact) => Padding(
-                        padding: EdgeInsets.only(bottom: spacingMedium),
-                        child: _buildContactCard(context, contact),
-                      )),
-                  SizedBox(height: spacingLarge),
-                ],
-                
-                // Other Contacts Section
-                if (_otherContacts.isNotEmpty) ...[
-                  Text(
-                    'Other Contacts',
-                    style: bodyBold.copyWith(
-                      fontSize: 16,
-                      color: widget.theme.textColor,
-                    ),
-                  ),
-                  SizedBox(height: spacingMedium),
-                  ..._otherContacts.map((contact) => Padding(
-                        padding: EdgeInsets.only(bottom: spacingMedium),
-                        child: _buildContactCard(context, contact),
-                      )),
-                ],
+                ),
+                SizedBox(height: spacingMedium),
+                ..._otherContacts.map((contact) => Padding(
+                      padding: EdgeInsets.only(bottom: spacingMedium),
+                      child: _buildContactCard(context, contact),
+                    )),
               ],
             ],
-          ),
+          ],
         ),
       ),
     );
