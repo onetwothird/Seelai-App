@@ -53,8 +53,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   bool _isNavVisible = true;
   double _lastScrollPosition = 0;
   
-  // Notification
-  String _notificationMessage = 'Welcome to SeelAI';
   
   // Stream subscription
   StreamSubscription? _requestsSubscription;
@@ -114,14 +112,11 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           _unreadNotificationCount = acceptedRequests.length;
           
           if (acceptedRequests.isNotEmpty) {
-            _notificationMessage = 'Caretaker accepted your request!';
             _accessibilityService.announce('Caretaker accepted your assistance request');
           } else {
             final pendingRequests = requests.where((req) => req.status == RequestStatus.pending).toList();
             if (pendingRequests.isNotEmpty) {
-              _notificationMessage = 'Waiting for caretaker response...';
             } else {
-              _notificationMessage = 'All requests handled';
             }
           }
         });
@@ -159,14 +154,12 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     
     if (mounted) {
       setState(() {
-        _notificationMessage = result.message;
       });
 
       if (result.hasAllPermissions) {
         await _initializeCamera();
       } else {
         setState(() {
-          _notificationMessage = 'Camera access required for full functionality';
         });
       }
     }
@@ -174,7 +167,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   Future<void> _initializeCamera() async {
     setState(() {
-      _notificationMessage = 'Initializing camera...';
     });
 
     final success = await _cameraService.initialize();
@@ -182,9 +174,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     if (mounted) {
       setState(() {
         if (success) {
-          _notificationMessage = 'Camera ready';
         } else {
-          _notificationMessage = 'Unable to initialize camera';
         }
       });
     }
@@ -407,7 +397,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     // Check if camera is initialized
     if (!_cameraService.isInitialized) {
       setState(() {
-        _notificationMessage = 'Initializing camera...';
       });
       
       final success = await _cameraService.initialize();
@@ -454,7 +443,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   void _updateNotification(String message) {
     setState(() {
-      _notificationMessage = message;
     });
   }
 
@@ -617,7 +605,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
                   
                   if (success) {
                     setState(() {
-                      _notificationMessage = 'Waiting for caretaker response...';
                     });
                   }
                 }
@@ -705,7 +692,9 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
- Widget _buildMainContent(double width, double height, _AppTheme theme) {
+ // Replace the _buildMainContent method in home_screen.dart with this:
+
+Widget _buildMainContent(double width, double height, _AppTheme theme) {
   Widget content;
   final userId = widget.userData['uid'] as String? ?? '';
   
@@ -721,12 +710,13 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       );
       break;
     case 1:
-      // ContactsContent has its own scrolling - don't wrap it
-      return ContactsContent(
+      // Now ContactsContent is treated like other sections
+      content = ContactsContent(
         isDarkMode: _isDarkMode,
         theme: theme,
         userData: widget.userData,
       );
+      break;
     case 3:
       content = RecentActivitiesContent(
         isDarkMode: _isDarkMode,
@@ -752,6 +742,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       );
   }
   
+  // All sections now use the same scroll controller
   return SingleChildScrollView(
     controller: _scrollController,
     physics: ClampingScrollPhysics(),
