@@ -45,7 +45,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   double _lastScrollPosition = 0;
   
   // Notification
-  String _notificationMessage = 'Welcome to Caretaker Dashboard';
 
   @override
   void initState() {
@@ -112,7 +111,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     setState(() {
       _pendingRequestsCount = requests.length;
       if (_pendingRequestsCount > 0) {
-        _notificationMessage = 'You have $_pendingRequestsCount pending request${_pendingRequestsCount > 1 ? 's' : ''}';
       }
     });
   }
@@ -120,7 +118,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   void _onNewRequest(dynamic request) {
     setState(() {
       _pendingRequestsCount++;
-      _notificationMessage = 'New assistance request received!';
     });
     
     _notificationService.showNotification(
@@ -145,7 +142,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
   void _updateNotification(String message) {
     setState(() {
-      _notificationMessage = message;
     });
   }
 
