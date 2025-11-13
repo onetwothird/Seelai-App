@@ -7,7 +7,6 @@ import 'package:seelai_app/themes/constants.dart';
 class HeaderSection extends StatelessWidget {
   final String caretakerName;
   final bool isDarkMode;
-  final String notificationMessage;
   final int pendingRequestsCount;
   final VoidCallback onToggleDarkMode;
   final Color textColor;
@@ -17,7 +16,6 @@ class HeaderSection extends StatelessWidget {
     super.key,
     required this.caretakerName,
     required this.isDarkMode,
-    required this.notificationMessage,
     required this.pendingRequestsCount,
     required this.onToggleDarkMode,
     required this.textColor,
@@ -103,72 +101,6 @@ class HeaderSection extends StatelessWidget {
           
           SizedBox(height: spacingMedium),
           
-          // Notification Area
-          AnimatedContainer(
-            duration: Duration(milliseconds: 300),
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: BoxDecoration(
-              gradient: isDarkMode
-                  ? LinearGradient(
-                      colors: [
-                        (pendingRequestsCount > 0 ? error : primary).withOpacity(0.25),
-                        (pendingRequestsCount > 0 ? error : accent).withOpacity(0.2)
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    )
-                  : LinearGradient(
-                      colors: [
-                        (pendingRequestsCount > 0 ? error : primaryLight).withOpacity(0.15),
-                        (pendingRequestsCount > 0 ? error : accent).withOpacity(0.1)
-                      ],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: Border.all(
-                color: isDarkMode
-                    ? (pendingRequestsCount > 0 ? error : primary).withOpacity(0.4)
-                    : (pendingRequestsCount > 0 ? error : primary).withOpacity(0.25),
-                width: 1.5,
-              ),
-              boxShadow: isDarkMode
-                  ? [
-                      BoxShadow(
-                        color: (pendingRequestsCount > 0 ? error : primary).withOpacity(0.2),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ]
-                  : softShadow,
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  pendingRequestsCount > 0
-                      ? Icons.notifications_active_rounded
-                      : Icons.notifications_rounded,
-                  color: isDarkMode
-                      ? (pendingRequestsCount > 0 ? error : primaryLight)
-                      : (pendingRequestsCount > 0 ? error : primary),
-                  size: 22,
-                ),
-                SizedBox(width: spacingMedium),
-                Expanded(
-                  child: Text(
-                    notificationMessage,
-                    style: bodyBold.copyWith(
-                      fontSize: 15,
-                      color: isDarkMode
-                          ? white
-                          : (pendingRequestsCount > 0 ? error : primary),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

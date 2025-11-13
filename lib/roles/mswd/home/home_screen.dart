@@ -249,7 +249,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
               MSWDHeaderSection(
                 userName: userName,
                 isDarkMode: _isDarkMode,
-                notificationMessage: _notificationMessage,
                 onToggleDarkMode: _toggleDarkMode,
                 onNotificationTap: _openNotifications,
                 textColor: theme.textColor,

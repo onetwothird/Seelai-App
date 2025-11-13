@@ -580,7 +580,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
     );
   }
 
-  Widget _buildCaretakerCard({
+ Widget _buildCaretakerCard({
     required Map<String, dynamic> caretaker,
     required bool isSelected,
     required double screenWidth,
@@ -589,8 +589,10 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
     final relationship = caretaker['relationship'] ?? 'Caretaker';
     final age = caretaker['age']?.toString() ?? 'N/A';
     final phone = caretaker['phone'] ?? caretaker['contactNumber'] ?? 'No phone';
+    final profileImageUrl = caretaker['profileImageUrl'] as String?;
+    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
 
-    return GestureDetector(
+ return GestureDetector(
       onTap: () {
         setState(() {
           _selectedCaretakerId = isSelected ? null : caretaker['uid'];
@@ -624,24 +626,32 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
               width: 70,
               height: 70,
               decoration: BoxDecoration(
-                gradient: isSelected ? primaryGradient : null,
-                color: isSelected ? null : primary.withOpacity(0.1),
+                gradient: !hasProfileImage && isSelected ? primaryGradient : null,
+                color: !hasProfileImage && !isSelected ? primary.withOpacity(0.1) : null,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? white : primary.withOpacity(0.3),
-                  width: 2,
+                  color: isSelected ? primary : primary.withOpacity(0.3),
+                  width: isSelected ? 3 : 2,
                 ),
+                image: hasProfileImage
+                    ? DecorationImage(
+                        image: NetworkImage(profileImageUrl),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
               ),
-              child: Center(
-                child: Text(
-                  name.isNotEmpty ? name[0].toUpperCase() : '?',
-                  style: h1.copyWith(
-                    fontSize: 32,
-                    color: isSelected ? white : primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              child: !hasProfileImage
+                  ? Center(
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : '?',
+                        style: h1.copyWith(
+                          fontSize: 32,
+                          color: isSelected ? white : primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : null,
             ),
 
             SizedBox(width: spacingMedium),

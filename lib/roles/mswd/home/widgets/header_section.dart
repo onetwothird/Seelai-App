@@ -8,7 +8,6 @@ import 'package:seelai_app/themes/constants.dart';
 class MSWDHeaderSection extends StatelessWidget {
   final String userName;
   final bool isDarkMode;
-  final String notificationMessage;
   final VoidCallback onToggleDarkMode;
   final VoidCallback onNotificationTap;
   final Color textColor;
@@ -19,7 +18,6 @@ class MSWDHeaderSection extends StatelessWidget {
     super.key,
     required this.userName,
     required this.isDarkMode,
-    required this.notificationMessage,
     required this.onToggleDarkMode,
     required this.onNotificationTap,
     required this.textColor,
@@ -131,8 +129,6 @@ class MSWDHeaderSection extends StatelessWidget {
           
           SizedBox(height: spacingMedium),
           
-          // Notification Area
-          _buildNotificationArea(),
         ],
       ),
     );
@@ -180,68 +176,6 @@ class MSWDHeaderSection extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildNotificationArea() {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        gradient: isDarkMode 
-          ? LinearGradient(
-              colors: [
-                primary.withOpacity(0.25), 
-                accent.withOpacity(0.2)
-              ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            )
-          : LinearGradient(
-              colors: [
-                primaryLight.withOpacity(0.15), 
-                accent.withOpacity(0.1)
-              ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(
-          color: isDarkMode 
-            ? primary.withOpacity(0.4) 
-            : primary.withOpacity(0.25),
-          width: 1.5,
-        ),
-        boxShadow: isDarkMode 
-          ? [
-              BoxShadow(
-                color: primary.withOpacity(0.2),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ]
-          : softShadow,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline_rounded,
-            color: isDarkMode ? primaryLight : primary,
-            size: 22,
-          ),
-          SizedBox(width: spacingMedium),
-          Expanded(
-            child: Text(
-              notificationMessage,
-              style: bodyBold.copyWith(
-                fontSize: 15,
-                color: isDarkMode ? white : primary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

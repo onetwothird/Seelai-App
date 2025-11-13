@@ -1,11 +1,14 @@
 // ignore_for_file: deprecated_member_use
 
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:seelai_app/services/cloudinary_service.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
-import 'package:seelai_app/firebase/activity_logs_service.dart'; // Added import
+import 'package:seelai_app/firebase/activity_logs_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -25,6 +28,8 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  File? _profileImage;
+  final ImagePicker _picker = ImagePicker();
 
   final TextEditingController _idNumberController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
@@ -88,6 +93,94 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _profileImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: ${e.toString()}'),
+            backgroundColor: error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Choose Profile Picture',
+              style: h2.copyWith(fontSize: 20),
+            ),
+            SizedBox(height: 20),
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: primary),
+              title: Text('Take Photo', style: body),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library, color: primary),
+              title: Text('Choose from Gallery', style: body),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            if (_profileImage != null)
+              ListTile(
+                leading: Icon(Icons.delete, color: error),
+                title: Text('Remove Photo', style: body),
+                onTap: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _profileImage = null;
+                  });
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _uploadProfileImage(String userId) async {
+    if (_profileImage == null) return null;
+    try {
+      return await cloudinaryService.uploadProfileImage(
+        _profileImage!,
+        userId,
+        'visually_impaired',
+      );
+    } catch (e) {
+      throw Exception('Failed to upload profile image: $e');
+    }
   }
 
   Future<void> _selectBirthdate() async {
@@ -223,7 +316,70 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                           textAlign: TextAlign.center,
                         ),
 
-                        SizedBox(height: screenHeight * 0.04),
+                        SizedBox(height: screenHeight * 0.03),
+
+                        // Profile Picture Section
+                        GestureDetector(
+                          onTap: _isLoading ? null : _showImageSourceDialog,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: primary.withOpacity(0.2),
+                                  blurRadius: 15,
+                                  offset: Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: lightBlue,
+                                  backgroundImage: _profileImage != null
+                                      ? FileImage(_profileImage!)
+                                      : null,
+                                  child: _profileImage == null
+                                      ? Icon(
+                                          Icons.person,
+                                          size: 60,
+                                          color: primary,
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      gradient: primaryGradient,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: white, width: 3),
+                                    ),
+                                    child: Icon(
+                                      Icons.camera_alt,
+                                      size: 20,
+                                      color: white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: screenHeight * 0.01),
+                        Text(
+                          'Tap to add profile picture',
+                          style: body.copyWith(
+                            fontSize: screenWidth * 0.035,
+                            color: grey,
+                          ),
+                        ),
+
+                        SizedBox(height: screenHeight * 0.03),
 
                         _buildTextField(
                           controller: _idNumberController,
@@ -757,7 +913,13 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         userName: _nameController.text.trim(),
       );
 
-      // Step 3: Create user document in Realtime Database
+      // Step 3: Upload profile image if selected
+      String? profileImageUrl;
+      if (_profileImage != null) {
+        profileImageUrl = await _uploadProfileImage(userCredential.user!.uid);
+      }
+
+      // Step 4: Create user document in Realtime Database
       await databaseService.createUserDocument(
         userId: userCredential.user!.uid,
         idNumber: _idNumberController.text.trim(),
@@ -773,7 +935,16 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         role: 'visually_impaired',
       );
 
-      // Step 4: Log the signup activity using ActivityLogsService
+      // Step 5: Update profile image URL if uploaded
+      if (profileImageUrl != null) {
+        await databaseService.updateUserProfile(
+          userId: userCredential.user!.uid,
+          role: 'visually_impaired',
+          profileImageUrl: profileImageUrl,
+        );
+      }
+
+      // Step 6: Log the signup activity using ActivityLogsService
       await activityLogsService.logActivity(
         userId: userCredential.user!.uid,
         action: 'account_created',
