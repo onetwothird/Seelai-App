@@ -6,6 +6,7 @@ import 'package:seelai_app/roles/caretaker/home/sections/home_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/profile_content.dart';
+import 'package:seelai_app/roles/caretaker/screens/realtime_tracking_screen.dart';
 import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/roles/caretaker/services/request_service.dart';
@@ -177,7 +178,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
               HeaderSection(
                 caretakerName: caretakerName,
                 isDarkMode: _isDarkMode,
-                notificationMessage: _notificationMessage,
                 pendingRequestsCount: _pendingRequestsCount,
                 onToggleDarkMode: _toggleDarkMode,
                 textColor: theme.textColor,
@@ -219,70 +219,79 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
-  switch (_selectedIndex) {
-    case 0:
-      return SingleChildScrollView(
-        controller: _scrollController,
-        physics: ClampingScrollPhysics(),
-        child: HomeContent(
+    switch (_selectedIndex) {
+      case 0:
+        return SingleChildScrollView(
+          controller: _scrollController,
+          physics: ClampingScrollPhysics(),
+          child: HomeContent(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+            userData: widget.userData,
+            onNotificationUpdate: _updateNotification,
+            requestService: _requestService,
+            locationService: _locationService,
+          ),
+        );
+      
+      case 1:
+        // PatientsContent has its own RefreshIndicator and scrolling
+        return PatientsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-          onNotificationUpdate: _updateNotification,
-          requestService: _requestService,
           locationService: _locationService,
-        ),
-      );
-    
-    case 1:
-      // PatientsContent has its own RefreshIndicator and scrolling
-      return PatientsContent(
-        isDarkMode: _isDarkMode,
-        theme: theme,
-        userData: widget.userData,
-        locationService: _locationService,
-      );
-    
-    case 2:
-      // RequestsContent has its own RefreshIndicator and scrolling
-      return RequestsContent(
-        isDarkMode: _isDarkMode,
-        theme: theme,
-        userData: widget.userData,
-        requestService: _requestService,
-        onRequestCountChange: (count) {
-          setState(() {
-            _pendingRequestsCount = count;
-          });
-        },
-      );
-    
-    case 3:
-      return SingleChildScrollView(
-        controller: _scrollController,
-        physics: ClampingScrollPhysics(),
-        child: ProfileContent(
-          userData: widget.userData,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-        ),
-      );
-    
-    default:
-      return SingleChildScrollView(
-        controller: _scrollController,
-        physics: ClampingScrollPhysics(),
-        child: HomeContent(
+        );
+      
+      case 2:
+        // RequestsContent has its own RefreshIndicator and scrolling
+        return RequestsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-          onNotificationUpdate: _updateNotification,
           requestService: _requestService,
+          onRequestCountChange: (count) {
+            setState(() {
+              _pendingRequestsCount = count;
+            });
+          },
+        );
+      
+      case 3:
+        return SingleChildScrollView(
+          controller: _scrollController,
+          physics: ClampingScrollPhysics(),
+          child: ProfileContent(
+            userData: widget.userData,
+            isDarkMode: _isDarkMode,
+            theme: theme,
+          ),
+        );
+      
+      case 4:
+        // Real-time Tracking Screen
+        return RealtimeTrackingScreen(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
           locationService: _locationService,
-        ),
-      );
+        );
+      
+      default:
+        return SingleChildScrollView(
+          controller: _scrollController,
+          physics: ClampingScrollPhysics(),
+          child: HomeContent(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+            userData: widget.userData,
+            onNotificationUpdate: _updateNotification,
+            requestService: _requestService,
+            locationService: _locationService,
+          ),
+        );
+    }
   }
-}
 
   _AppTheme _getDarkTheme() {
     return _AppTheme(

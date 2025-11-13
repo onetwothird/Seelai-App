@@ -20,10 +20,8 @@ class LoadingOverlay extends StatefulWidget {
 class _LoadingOverlayState extends State<LoadingOverlay>
     with TickerProviderStateMixin {
   late AnimationController _scaleController;
-  late AnimationController _rotateController;
   late AnimationController _fadeController;
   late Animation<double> _scaleAnimation;
-  late Animation<double> _rotateAnimation;
   late Animation<double> _fadeAnimation;
 
   @override
@@ -35,11 +33,6 @@ class _LoadingOverlayState extends State<LoadingOverlay>
       vsync: this,
     )..repeat(reverse: true);
 
-    _rotateController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    )..repeat();
-
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -47,10 +40,6 @@ class _LoadingOverlayState extends State<LoadingOverlay>
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
-    );
-
-    _rotateAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _rotateController, curve: Curves.linear),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -75,7 +64,6 @@ class _LoadingOverlayState extends State<LoadingOverlay>
   @override
   void dispose() {
     _scaleController.dispose();
-    _rotateController.dispose();
     _fadeController.dispose();
     super.dispose();
   }
@@ -122,45 +110,9 @@ class _LoadingOverlayState extends State<LoadingOverlay>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Animated rotating gradient circle
-                  RotationTransition(
-                    turns: _rotateAnimation,
-                    child: Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: primaryGradient,
-                        boxShadow: [
-                          BoxShadow(
-                            color: primary.withOpacity(0.5),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                          ),
-                          child: Icon(
-                            Icons.refresh_rounded,
-                            color: primary,
-                            size: 32,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  
                   // Animated dots progress indicator
                   SizedBox(
-                    height: 8,
+                    height: 40,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(3, (index) {
@@ -173,8 +125,8 @@ class _LoadingOverlayState extends State<LoadingOverlay>
                             
                             return Container(
                               margin: const EdgeInsets.symmetric(horizontal: 4),
-                              width: 8,
-                              height: 8,
+                              width: 12,
+                              height: 12,
                               transform: Matrix4.identity()..scale(scale),
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,

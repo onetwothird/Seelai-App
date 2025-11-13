@@ -80,7 +80,7 @@ class CustomBottomNavigation extends StatelessWidget {
               ),
             ),
             child: Icon(
-              Icons.accessibility_new_rounded,
+              Icons.location_pin,
               size: isSmallScreen ? 24 : (isMediumScreen ? 27 : 30),
               color: primary,
             ),

@@ -664,7 +664,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               HeaderSection(
                 userName: userName,
                 isDarkMode: _isDarkMode,
-                notificationMessage: _notificationMessage,
                 onVoiceAssistant: _activateVoiceAssistant,
                 onToggleDarkMode: _toggleDarkMode,
                 onNotificationTap: _openNotifications,

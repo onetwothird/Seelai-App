@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/screens/role_selection_screen.dart';
@@ -145,8 +146,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                 ),
-                                child: Image.asset(
-                                  'assets/icons/eye_scanner.png',
+                                child: Lottie.asset(
+                                  'assets/icons/eye.json',
                                   fit: BoxFit.contain,
                                 ),
                               ),
