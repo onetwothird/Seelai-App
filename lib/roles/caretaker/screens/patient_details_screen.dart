@@ -54,19 +54,7 @@ class PatientDetailsScreen extends StatelessWidget {
                 children: [
                   Stack(
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(spacingXLarge),
-                        decoration: BoxDecoration(
-                          // ignore: deprecated_member_use
-                          color: white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.person_rounded,
-                          size: 60,
-                          color: white,
-                        ),
-                      ),
+                      _buildProfileAvatar(),
                       if (patient.isOnline)
                         Positioned(
                           right: 0,
@@ -188,6 +176,83 @@ class PatientDetailsScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Build profile avatar - shows profile picture or fallback icon
+  Widget _buildProfileAvatar() {
+    final hasProfileImage = patient.profileImageUrl != null && 
+                            patient.profileImageUrl!.isNotEmpty;
+
+    return Container(
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: hasProfileImage ? null : null,
+        border: Border.all(
+          color: white.withOpacity(0.3),
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: white.withOpacity(0.2),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: hasProfileImage
+            ? Image.network(
+                patient.profileImageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to icon if image fails to load
+                  return Container(
+                    padding: EdgeInsets.all(spacingXLarge),
+                    decoration: BoxDecoration(
+                      color: white.withOpacity(0.2),
+                    ),
+                    child: Icon(
+                      Icons.person_rounded,
+                      size: 60,
+                      color: white,
+                    ),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    padding: EdgeInsets.all(spacingXLarge),
+                    decoration: BoxDecoration(
+                      color: white.withOpacity(0.2),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        strokeWidth: 3,
+                        valueColor: AlwaysStoppedAnimation<Color>(white),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Container(
+                padding: EdgeInsets.all(spacingXLarge),
+                decoration: BoxDecoration(
+                  color: white.withOpacity(0.2),
+                ),
+                child: Icon(
+                  Icons.person_rounded,
+                  size: 60,
+                  color: white,
+                ),
+              ),
       ),
     );
   }

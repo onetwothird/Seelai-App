@@ -9,8 +9,7 @@ import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
-/// Real-Time Patients Content
-/// Automatically updates when visually impaired users select this caretaker
+/// Real-Time Patients Content - Redesigned
 class PatientsContent extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
@@ -35,6 +34,8 @@ class _PatientsContentState extends State<PatientsContent> {
   bool _isLoading = true;
   String? _error;
   String? _caretakerId;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -43,13 +44,8 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   Future<void> _initializeCaretakerId() async {
-    // Try multiple ways to get the caretaker ID
-    String? caretakerId;
+    String? caretakerId = widget.userData['uid'] as String?;
     
-    // Method 1: From userData
-    caretakerId = widget.userData['uid'] as String?;
-    
-    // Method 2: From Firebase Auth
     if (caretakerId == null || caretakerId.isEmpty) {
       final user = FirebaseAuth.instance.currentUser;
       caretakerId = user?.uid;
@@ -63,10 +59,7 @@ class _PatientsContentState extends State<PatientsContent> {
       return;
     }
 
-    setState(() {
-      _caretakerId = caretakerId;
-    });
-
+    setState(() => _caretakerId = caretakerId);
     _setupPatientsStream();
   }
 
@@ -79,7 +72,6 @@ class _PatientsContentState extends State<PatientsContent> {
       return;
     }
 
-    // Listen to real-time updates from Firebase
     _patientsSubscription = caretakerPatientService
         .streamCaretakerPatients(_caretakerId!)
         .listen(
@@ -119,6 +111,7 @@ class _PatientsContentState extends State<PatientsContent> {
   @override
   void dispose() {
     _patientsSubscription?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -136,6 +129,15 @@ class _PatientsContentState extends State<PatientsContent> {
     }
   }
 
+  List<PatientModel> get _filteredPatients {
+    if (_searchQuery.isEmpty) return _patients;
+    
+    return _patients.where((patient) {
+      return patient.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+             patient.disabilityType.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -145,14 +147,51 @@ class _PatientsContentState extends State<PatientsContent> {
       child: SingleChildScrollView(
         physics: AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(
-          left: width * 0.06,
-          right: width * 0.06,
+          left: width * 0.05,
+          right: width * 0.05,
+          top: spacingMedium,
           bottom: 100,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
+            // Header Section
+            _buildHeader(),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Search Bar (only show if there are patients)
+            if (_patients.isNotEmpty) ...[
+              _buildSearchBar(),
+              SizedBox(height: spacingLarge),
+            ],
+            
+            // Content
+            _isLoading && _patients.isEmpty
+                ? _buildLoadingState()
+                : _error != null && _patients.isEmpty
+                    ? _buildErrorState()
+                    : _patients.isEmpty
+                        ? _buildEmptyState()
+                        : _buildPatientsList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+  final onlineCount = _patients.where((p) => p.isOnline).length;
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          // 🔥 REMOVED THE ICON CONTAINER
+
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -163,9 +202,12 @@ class _PatientsContentState extends State<PatientsContent> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                SizedBox(height: spacingSmall),
+                SizedBox(height: 4),
                 Text(
-                  'Visually impaired individuals who chose you',
+                  _patients.isEmpty 
+                    ? 'No patients yet'
+                    : '${_patients.length} patient${_patients.length != 1 ? 's' : ''}'
+                      '${onlineCount > 0 ? ' • $onlineCount online' : ''}',
                   style: body.copyWith(
                     color: widget.theme.subtextColor,
                     fontSize: 14,
@@ -173,78 +215,81 @@ class _PatientsContentState extends State<PatientsContent> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusLarge),
+        border: Border.all(
+          color: widget.isDarkMode 
+            ? Colors.white.withOpacity(0.1)
+            : Colors.black.withOpacity(0.06),
+        ),
+        boxShadow: widget.isDarkMode
+          ? []
+          : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: body.copyWith(color: widget.theme.textColor),
+        onChanged: (value) => setState(() => _searchQuery = value),
+        decoration: InputDecoration(
+          hintText: 'Search patients...',
+          hintStyle: body.copyWith(color: widget.theme.subtextColor),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: widget.theme.subtextColor,
+            size: 22,
+          ),
+          suffixIcon: _searchQuery.isNotEmpty
+            ? IconButton(
+                icon: Icon(Icons.clear_rounded, color: widget.theme.subtextColor),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() => _searchQuery = '');
+                },
+              )
+            : null,
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: spacingMedium,
+            vertical: spacingMedium,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 80),
+        child: Column(
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(primary),
+              strokeWidth: 3,
+            ),
             SizedBox(height: spacingLarge),
-            
-            _isLoading && _patients.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 60),
-                      child: Column(
-                        children: [
-                          CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(primary),
-                          ),
-                          SizedBox(height: spacingLarge),
-                          Text(
-                            'Loading patients...',
-                            style: body.copyWith(
-                              color: widget.theme.subtextColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : _error != null && _patients.isEmpty
-                    ? _buildErrorState()
-                    : _patients.isEmpty
-                        ? _buildEmptyState()
-                        : Column(
-                            children: [
-                              // Patient count badge
-                              Container(
-                                width: double.infinity,
-                                padding: EdgeInsets.all(spacingMedium),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      primary.withOpacity(0.1),
-                                      accent.withOpacity(0.1),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(radiusMedium),
-                                  border: Border.all(
-                                    color: primary.withOpacity(0.2),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.people_rounded,
-                                      color: primary,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: spacingSmall),
-                                    Text(
-                                      '${_patients.length} Patient${_patients.length != 1 ? 's' : ''} Under Your Care',
-                                      style: bodyBold.copyWith(
-                                        color: widget.theme.textColor,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(height: spacingMedium),
-                              // Patient cards
-                              ..._patients.map((patient) {
-                                return Padding(
-                                  padding: EdgeInsets.only(bottom: spacingMedium),
-                                  child: _buildPatientCard(patient),
-                                );
-                              }).toList(),
-                            ],
-                          ),
+            Text(
+              'Loading patients...',
+              style: body.copyWith(
+                color: widget.theme.subtextColor,
+              ),
+            ),
           ],
         ),
       ),
@@ -257,10 +302,17 @@ class _PatientsContentState extends State<PatientsContent> {
         padding: EdgeInsets.symmetric(vertical: 60, horizontal: 20),
         child: Column(
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 80,
-              color: error.withOpacity(0.5),
+            Container(
+              padding: EdgeInsets.all(spacingXLarge),
+              decoration: BoxDecoration(
+                color: error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: error.withOpacity(0.5),
+              ),
             ),
             SizedBox(height: spacingLarge),
             Text(
@@ -294,8 +346,11 @@ class _PatientsContentState extends State<PatientsContent> {
                 backgroundColor: primary,
                 foregroundColor: white,
                 padding: EdgeInsets.symmetric(
-                  horizontal: spacingLarge,
+                  horizontal: spacingXLarge,
                   vertical: spacingMedium,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
                 ),
               ),
             ),
@@ -306,66 +361,137 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 60),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(spacingXLarge),
-              decoration: BoxDecoration(
-                color: widget.theme.subtextColor.withOpacity(0.05),
-                shape: BoxShape.circle,
+    return Container(
+      padding: EdgeInsets.all(spacingXLarge * 1.5),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusXLarge),
+        border: Border.all(
+          color: widget.isDarkMode 
+            ? primary.withOpacity(0.2)
+            : Colors.black.withOpacity(0.06),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(spacingXLarge),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  primary.withOpacity(0.2),
+                  primary.withOpacity(0.1),
+                ],
               ),
-              child: Icon(
-                Icons.people_outline_rounded,
-                size: 80,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.people_outline_rounded,
+              size: 64,
+              color: primary.withOpacity(0.5),
+            ),
+          ),
+          SizedBox(height: spacingLarge),
+          Text(
+            'No patients yet',
+            style: bodyBold.copyWith(
+              color: widget.theme.textColor,
+              fontSize: 18,
+            ),
+          ),
+          SizedBox(height: spacingSmall),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'When visually impaired users select you as their caretaker, they will appear here automatically',
+              style: body.copyWith(
+                color: widget.theme.subtextColor,
+                fontSize: 14,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatientsList() {
+    final filteredPatients = _filteredPatients;
+    
+    if (filteredPatients.isEmpty && _searchQuery.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 60),
+          child: Column(
+            children: [
+              Icon(
+                Icons.search_off_rounded,
+                size: 64,
                 color: widget.theme.subtextColor.withOpacity(0.3),
               ),
-            ),
-            SizedBox(height: spacingLarge),
-            Text(
-              'No patients yet',
-              style: bodyBold.copyWith(
-                color: widget.theme.textColor,
-                fontSize: 18,
+              SizedBox(height: spacingLarge),
+              Text(
+                'No patients found',
+                style: bodyBold.copyWith(
+                  color: widget.theme.textColor,
+                  fontSize: 16,
+                ),
               ),
-            ),
-            SizedBox(height: spacingSmall),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'When visually impaired users select you as their caretaker, they will appear here automatically',
+              SizedBox(height: spacingSmall),
+              Text(
+                'Try a different search term',
                 style: body.copyWith(
                   color: widget.theme.subtextColor,
                   fontSize: 14,
                 ),
-                textAlign: TextAlign.center,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+      );
+    }
+    
+    return Column(
+      children: filteredPatients.map((patient) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: spacingMedium),
+          child: _buildPatientCard(patient),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildPatientCard(PatientModel patient) {
     return Container(
       decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusXLarge),
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: primary.withOpacity(0.15),
+                  color: primary.withOpacity(0.1),
                   blurRadius: 16,
                   offset: Offset(0, 6),
                 ),
               ]
-            : softShadow,
-        borderRadius: BorderRadius.circular(radiusLarge),
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
+        border: Border.all(
+          color: widget.isDarkMode
+              ? primary.withOpacity(0.2)
+              : Colors.black.withOpacity(0.06),
+          width: 1,
+        ),
       ),
       child: Material(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
+        color: Colors.transparent,
         child: InkWell(
           onTap: () {
             Navigator.push(
@@ -379,36 +505,30 @@ class _PatientsContentState extends State<PatientsContent> {
               ),
             );
           },
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: Container(
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          child: Padding(
             padding: EdgeInsets.all(spacingLarge),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: widget.isDarkMode
-                  ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
-                  : null,
-            ),
             child: Column(
               children: [
                 Row(
                   children: [
-                    // Profile Picture with online status
+                    // Profile Avatar
                     Stack(
                       children: [
                         _buildProfileAvatar(patient),
                         if (patient.isOnline)
                           Positioned(
-                            right: 2,
-                            bottom: 2,
+                            right: 0,
+                            bottom: 0,
                             child: Container(
-                              width: 16,
-                              height: 16,
+                              width: 18,
+                              height: 18,
                               decoration: BoxDecoration(
                                 color: Colors.green,
                                 shape: BoxShape.circle,
                                 border: Border.all(
                                   color: widget.theme.cardColor,
-                                  width: 2.5,
+                                  width: 3,
                                 ),
                               ),
                             ),
@@ -425,74 +545,146 @@ class _PatientsContentState extends State<PatientsContent> {
                             style: bodyBold.copyWith(
                               fontSize: 18,
                               color: widget.theme.textColor,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          SizedBox(height: spacingXSmall),
-                          Text(
-                            '${patient.age} years • ${patient.disabilityType}',
-                            style: caption.copyWith(
-                              fontSize: 14,
-                              color: widget.theme.subtextColor,
-                            ),
-                          ),
-                          SizedBox(height: spacingXSmall),
+                          SizedBox(height: 6),
                           Row(
                             children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                size: 14,
-                                color: widget.theme.subtextColor,
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: spacingSmall,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: primary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(radiusSmall),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.cake_rounded,
+                                      size: 12,
+                                      color: primary,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      '${patient.age} yrs',
+                                      style: caption.copyWith(
+                                        fontSize: 12,
+                                        color: primary,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  patient.address ?? 'No address',
-                                  style: caption.copyWith(
-                                    fontSize: 13,
-                                    color: widget.theme.subtextColor,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              SizedBox(width: spacingSmall),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: spacingSmall,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: accent.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(radiusSmall),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.visibility_off_rounded,
+                                      size: 12,
+                                      color: accent,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        patient.disabilityType,
+                                        style: caption.copyWith(
+                                          fontSize: 12,
+                                          color: accent,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
+                          if (patient.address != null && patient.address != 'No address') ...[
+                            SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on_rounded,
+                                  size: 14,
+                                  color: widget.theme.subtextColor,
+                                ),
+                                SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    patient.address!,
+                                    style: caption.copyWith(
+                                      fontSize: 13,
+                                      color: widget.theme.subtextColor,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
                     Icon(
-                      Icons.chevron_right_rounded,
-                      color: widget.theme.subtextColor,
-                      size: 24,
+                      Icons.arrow_forward_ios_rounded,
+                      color: widget.theme.subtextColor.withOpacity(0.5),
+                      size: 18,
                     ),
                   ],
                 ),
+                
                 SizedBox(height: spacingMedium),
-                Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.2)),
+                Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
                 SizedBox(height: spacingMedium),
+                
+                // Quick Actions
                 Row(
                   children: [
                     Expanded(
-                      child: _buildQuickAction(
+                      child: _buildActionButton(
                         icon: Icons.phone_rounded,
                         label: 'Call',
                         color: Colors.green,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Calling ${patient.name}...')),
+                            SnackBar(
+                              content: Text('Calling ${patient.name}...'),
+                              backgroundColor: Colors.green,
+                            ),
                           );
                         },
                       ),
                     ),
                     SizedBox(width: spacingSmall),
                     Expanded(
-                      child: _buildQuickAction(
+                      child: _buildActionButton(
                         icon: Icons.message_rounded,
                         label: 'Message',
                         color: primary,
+                        isOutlined: true,
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Opening messages with ${patient.name}...')),
+                            SnackBar(
+                              content: Text('Opening messages with ${patient.name}...'),
+                              backgroundColor: primary,
+                            ),
                           );
                         },
                       ),
@@ -507,7 +699,48 @@ class _PatientsContentState extends State<PatientsContent> {
     );
   }
 
-  /// Build profile avatar - shows profile picture or fallback icon
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    bool isOutlined = false,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isOutlined ? Colors.transparent : color,
+      borderRadius: BorderRadius.circular(radiusMedium),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radiusMedium),
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: isOutlined ? Border.all(color: color, width: 1.5) : null,
+            borderRadius: BorderRadius.circular(radiusMedium),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: isOutlined ? color : white,
+              ),
+              SizedBox(width: 8),
+              Text(
+                label,
+                style: bodyBold.copyWith(
+                  fontSize: 14,
+                  color: isOutlined ? color : white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileAvatar(PatientModel patient) {
     final hasProfileImage = patient.profileImageUrl != null && 
                             patient.profileImageUrl!.isNotEmpty;
@@ -538,7 +771,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 patient.profileImageUrl!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  // Fallback to icon if image fails to load
                   return Container(
                     decoration: BoxDecoration(gradient: primaryGradient),
                     child: Icon(
@@ -570,27 +802,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 color: white,
                 size: 32,
               ),
-      ),
-    );
-  }
-
-  Widget _buildQuickAction({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: white,
-        padding: EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusMedium),
-        ),
       ),
     );
   }

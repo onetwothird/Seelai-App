@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
 import 'package:seelai_app/roles/caretaker/services/request_service.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:intl/intl.dart';
 
 class RequestDetailsScreen extends StatefulWidget {
@@ -27,11 +28,33 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   final TextEditingController _notesController = TextEditingController();
   bool _isProcessing = false;
   late RequestModel _currentRequest;
+  String? _profileImageUrl;
+  bool _isLoadingImage = true;
 
   @override
   void initState() {
     super.initState();
     _currentRequest = widget.request;
+    _loadProfileImage();
+  }
+
+  Future<void> _loadProfileImage() async {
+    try {
+      final userData = await databaseService.getUserData(_currentRequest.patientId);
+      if (mounted) {
+        setState(() {
+          _profileImageUrl = userData?['profileImageUrl'] as String?;
+          _isLoadingImage = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading profile image: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingImage = false;
+        });
+      }
+    }
   }
 
   @override
@@ -311,7 +334,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             
             SizedBox(height: spacingLarge),
             
-            // Patient Info Card
+            // Patient Info Card with Profile Image - Updated to match patients_content style
             Container(
               padding: EdgeInsets.all(spacingLarge),
               decoration: BoxDecoration(
@@ -323,13 +346,42 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               ),
               child: Row(
                 children: [
+                  // Profile Image - Updated to match patients_content style
                   Container(
-                    padding: EdgeInsets.all(spacingLarge),
+                    width: 64,
+                    height: 64,
                     decoration: BoxDecoration(
-                      gradient: primaryGradient,
                       shape: BoxShape.circle,
+                      border: Border.all(
+                        color: widget.isDarkMode ? primary.withOpacity(0.3) : Colors.white,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primary.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: Icon(Icons.person_rounded, color: white, size: 32),
+                    child: ClipOval(
+                      child: _isLoadingImage
+                          ? Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(primary),
+                              ),
+                            )
+                          : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                              ? Image.network(
+                                  _profileImageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildDefaultAvatar();
+                                  },
+                                )
+                              : _buildDefaultAvatar(),
+                    ),
                   ),
                   SizedBox(width: spacingMedium),
                   Expanded(
@@ -452,6 +504,21 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             // Action Buttons based on status
             _buildActionButtons(cardColor),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultAvatar() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: primaryGradient,
+      ),
+      child: Center(
+        child: Icon(
+          Icons.person_rounded,
+          color: white,
+          size: 36,
         ),
       ),
     );

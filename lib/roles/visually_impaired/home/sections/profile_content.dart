@@ -47,10 +47,10 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     
-    return SingleChildScrollView(
+    return Padding(
       padding: EdgeInsets.only(
-        left: width * 0.06,
-        right: width * 0.06,
+        left: width * 0.05,
+        right: width * 0.05,
         top: spacingMedium,
         bottom: 100,
       ),
@@ -66,7 +66,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           
           SizedBox(height: spacingLarge),
           
-          // Tab Content - Removed fixed height and TabBarView
+          // Tab Content
           if (_selectedTab == 0)
             _buildMyProfileTab(width)
           else if (_selectedTab == 1)
@@ -82,113 +82,139 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     final userName = widget.userData['name'] ?? 'User';
     final userEmail = widget.userData['email'] ?? '';
     final idNumber = widget.userData['idNumber'] ?? '';
+    final profileImageUrl = widget.userData['profileImageUrl'] as String?;
+    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
     
     return Semantics(
       label: 'Profile header for $userName',
       child: Container(
-        padding: EdgeInsets.all(spacingLarge),
+        padding: EdgeInsets.all(spacingLarge * 1.2),
         decoration: BoxDecoration(
           gradient: widget.isDarkMode 
             ? LinearGradient(
                 colors: [
-                  primary.withOpacity(0.3),
-                  accent.withOpacity(0.2),
+                  primary.withOpacity(0.25),
+                  accent.withOpacity(0.15),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )
             : primaryGradient,
-          borderRadius: BorderRadius.circular(radiusLarge),
+          borderRadius: BorderRadius.circular(radiusXLarge),
           boxShadow: widget.isDarkMode 
             ? [
                 BoxShadow(
-                  color: primary.withOpacity(0.3),
+                  color: primary.withOpacity(0.2),
                   blurRadius: 20,
-                  offset: Offset(0, 6),
+                  offset: Offset(0, 8),
                 ),
               ]
-            : glowShadow,
+            : [
+                BoxShadow(
+                  color: primary.withOpacity(0.3),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ],
         ),
-        child: Row(
+        child: Column(
           children: [
             // Avatar
             Container(
-              padding: EdgeInsets.all(spacingMedium + 2),
+              width: 80,
+              height: 80,
               decoration: BoxDecoration(
-                color: white.withOpacity(0.2),
                 shape: BoxShape.circle,
-                border: Border.all(color: white.withOpacity(0.3), width: 2),
+                gradient: hasProfileImage ? null : LinearGradient(
+                  colors: [white.withOpacity(0.3), white.withOpacity(0.1)],
+                ),
+                border: Border.all(color: white.withOpacity(0.4), width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Icon(
-                Icons.person_rounded,
-                size: 36,
-                color: white,
+              child: ClipOval(
+                child: hasProfileImage
+                    ? Image.network(
+                        profileImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildDefaultAvatar(80);
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(white),
+                            ),
+                          );
+                        },
+                      )
+                    : _buildDefaultAvatar(80),
               ),
             ),
             
-            SizedBox(width: spacingMedium),
+            SizedBox(height: spacingMedium),
             
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name
-                  Text(
-                    userName,
-                    style: h2.copyWith(
-                      fontSize: 20,
-                      color: white,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  
-                  SizedBox(height: 4),
-                  
-                  // Email
-                  Text(
-                    userEmail,
-                    style: body.copyWith(
-                      fontSize: 13,
-                      color: white.withOpacity(0.9),
-                      fontWeight: FontWeight.w500,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  
-                  if (idNumber.isNotEmpty) ...[
-                    SizedBox(height: spacingSmall),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: spacingSmall,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(radiusSmall),
-                        border: Border.all(color: white.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.badge_outlined, color: white, size: 12),
-                          SizedBox(width: 4),
-                          Text(
-                            'ID: $idNumber',
-                            style: caption.copyWith(
-                              color: white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
+            // Name
+            Text(
+              userName,
+              style: h2.copyWith(
+                fontSize: 22,
+                color: white,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            
+            SizedBox(height: 6),
+            
+            // Email
+            Text(
+              userEmail,
+              style: body.copyWith(
+                fontSize: 13,
+                color: white.withOpacity(0.9),
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            
+            if (idNumber.isNotEmpty) ...[
+              SizedBox(height: spacingMedium),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: spacingMedium,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                  border: Border.all(color: white.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.badge_outlined, color: white, size: 14),
+                    SizedBox(width: 6),
+                    Text(
+                      'ID: $idNumber',
+                      style: caption.copyWith(
+                        color: white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
                       ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -197,26 +223,32 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
 
   Widget _buildTabBar(double width) {
     return Container(
-      padding: EdgeInsets.all(6),
+      padding: EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode 
           ? [
               BoxShadow(
-                color: primary.withOpacity(0.15),
+                color: primary.withOpacity(0.1),
                 blurRadius: 16,
                 offset: Offset(0, 4),
               ),
             ]
-          : softShadow,
+          : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: Offset(0, 3),
+              ),
+            ],
         border: widget.isDarkMode 
-          ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
-          : null,
+          ? Border.all(color: primary.withOpacity(0.2), width: 1)
+          : Border.all(color: Colors.black.withOpacity(0.06), width: 1),
       ),
       child: Row(
         children: [
-          _buildTab(0, Icons.person_outline_rounded, 'My Profile'),
+          _buildTab(0, Icons.person_outline_rounded, 'Profile'),
           _buildTab(1, Icons.medical_information_outlined, 'Medical'),
           _buildTab(2, Icons.settings_outlined, 'Settings'),
         ],
@@ -247,7 +279,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
               boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: primary.withOpacity(0.3),
+                      color: primary.withOpacity(0.25),
                       blurRadius: 8,
                       offset: Offset(0, 2),
                     ),
@@ -259,10 +291,10 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
               children: [
                 Icon(
                   icon,
-                  size: 22,
+                  size: 20,
                   color: isSelected 
                     ? white 
-                    : (widget.isDarkMode ? widget.theme.subtextColor : grey),
+                    : widget.theme.subtextColor,
                 ),
                 SizedBox(height: 4),
                 Text(
@@ -272,7 +304,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected 
                       ? white 
-                      : (widget.isDarkMode ? widget.theme.subtextColor : grey),
+                      : widget.theme.subtextColor,
                   ),
                 ),
               ],
@@ -305,7 +337,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Personal Information', Icons.info_outline_rounded),
+        _buildSectionLabel('Personal Information', Icons.person_rounded),
         
         SizedBox(height: spacingMedium),
         
@@ -316,9 +348,9 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
         ]),
         
-        SizedBox(height: spacingXLarge),
+        SizedBox(height: spacingLarge),
         
-        _buildSectionHeader('Contact Information', Icons.contact_phone_rounded),
+        _buildSectionLabel('Contact Information', Icons.contact_phone_rounded),
         
         SizedBox(height: spacingMedium),
         
@@ -340,7 +372,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Disability Information', Icons.accessible_outlined),
+        _buildSectionLabel('Disability Information', Icons.accessible_outlined),
         
         SizedBox(height: spacingMedium),
         
@@ -357,30 +389,31 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           ),
         ]),
         
-        SizedBox(height: spacingXLarge),
+        SizedBox(height: spacingLarge),
         
-        // Emergency Notice
+        // Important Notice
         Container(
           padding: EdgeInsets.all(spacingLarge),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
-              ? error.withOpacity(0.15)
-              : error.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(radiusLarge),
+              ? error.withOpacity(0.12)
+              : error.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(radiusXLarge),
             border: Border.all(
-              color: error.withOpacity(0.3),
-              width: 1.5,
+              color: error.withOpacity(0.25),
+              width: 1,
             ),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: EdgeInsets.all(spacingMedium),
+                padding: EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: error.withOpacity(0.2),
+                  color: error.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
-                child: Icon(Icons.warning_amber_rounded, color: error, size: 24),
+                child: Icon(Icons.info_outline_rounded, color: error, size: 20),
               ),
               SizedBox(width: spacingMedium),
               Expanded(
@@ -390,7 +423,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                     Text(
                       'Important',
                       style: bodyBold.copyWith(
-                        fontSize: 16,
+                        fontSize: 15,
                         color: widget.theme.textColor,
                       ),
                     ),
@@ -418,7 +451,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Account Actions', Icons.admin_panel_settings_outlined),
+        _buildSectionLabel('Account Actions', Icons.tune_rounded),
         
         SizedBox(height: spacingMedium),
         
@@ -438,7 +471,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           },
         ),
         
-        SizedBox(height: spacingMedium),
+        SizedBox(height: spacingSmall),
         
         // Change Password Button
         _buildActionButton(
@@ -456,9 +489,9 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           },
         ),
         
-        SizedBox(height: spacingXLarge),
+        SizedBox(height: spacingLarge),
         
-        _buildSectionHeader('Danger Zone', Icons.warning_amber_rounded),
+        _buildSectionLabel('Danger Zone', Icons.warning_amber_rounded),
         
         SizedBox(height: spacingMedium),
         
@@ -480,7 +513,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           },
         ),
         
-        SizedBox(height: spacingMedium),
+        SizedBox(height: spacingSmall),
         
         // Delete Account Button
         _buildActionButton(
@@ -512,24 +545,24 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+  Widget _buildSectionLabel(String title, IconData icon) {
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(spacingSmall),
+          padding: EdgeInsets.all(6),
           decoration: BoxDecoration(
-            gradient: primaryGradient,
+            color: primary.withOpacity(0.15),
             borderRadius: BorderRadius.circular(radiusSmall),
           ),
-          child: Icon(icon, color: white, size: 18),
+          child: Icon(icon, color: primary, size: 16),
         ),
         SizedBox(width: spacingSmall),
         Text(
           title,
           style: bodyBold.copyWith(
-            fontSize: 18,
+            fontSize: 14,
             color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ],
@@ -541,19 +574,28 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
       padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
+        borderRadius: BorderRadius.circular(radiusXLarge),
         boxShadow: widget.isDarkMode 
           ? [
               BoxShadow(
-                color: primary.withOpacity(0.15),
+                color: primary.withOpacity(0.1),
                 blurRadius: 16,
                 offset: Offset(0, 6),
               ),
             ]
-          : softShadow,
-        border: widget.isDarkMode 
-          ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
-          : Border.all(color: greyLighter.withOpacity(0.5), width: 1),
+          : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: Offset(0, 3),
+              ),
+            ],
+        border: Border.all(
+          color: widget.isDarkMode
+              ? primary.withOpacity(0.2)
+              : Colors.black.withOpacity(0.06),
+          width: 1,
+        ),
       ),
       child: Column(
         children: [
@@ -563,7 +605,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
               SizedBox(height: spacingMedium),
               Divider(
                 height: 1,
-                color: widget.theme.subtextColor.withOpacity(0.2),
+                color: widget.theme.subtextColor.withOpacity(0.15),
               ),
               SizedBox(height: spacingMedium),
             ],
@@ -580,17 +622,17 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.all(spacingSmall),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: widget.isDarkMode 
-                ? primary.withOpacity(0.2)
-                : primaryLight.withOpacity(0.15),
+                ? primary.withOpacity(0.15)
+                : primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(radiusSmall),
             ),
             child: Icon(
               item.icon,
-              size: 20,
-              color: widget.isDarkMode ? primaryLight : primary,
+              size: 18,
+              color: primary,
             ),
           ),
           SizedBox(width: spacingMedium),
@@ -609,8 +651,8 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                 SizedBox(height: 4),
                 Text(
                   item.value.isNotEmpty ? item.value : 'Not provided',
-                  style: bodyBold.copyWith(
-                    fontSize: 15,
+                  style: body.copyWith(
+                    fontSize: 14,
                     color: widget.theme.textColor,
                     fontWeight: FontWeight.w600,
                   ),
@@ -640,20 +682,26 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
           boxShadow: widget.isDarkMode 
             ? [
                 BoxShadow(
-                  color: color.withOpacity(0.2),
+                  color: color.withOpacity(0.1),
                   blurRadius: 16,
                   offset: Offset(0, 6),
                 ),
               ]
-            : softShadow,
-          borderRadius: BorderRadius.circular(radiusLarge),
+            : [
+                BoxShadow(
+                  color: color.withOpacity(0.15),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
+          borderRadius: BorderRadius.circular(radiusXLarge),
         ),
         child: Material(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(radiusLarge),
+          borderRadius: BorderRadius.circular(radiusXLarge),
           child: InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(radiusLarge),
+            borderRadius: BorderRadius.circular(radiusXLarge),
             splashColor: color.withOpacity(0.2),
             child: Container(
               padding: EdgeInsets.all(spacingLarge),
@@ -661,27 +709,28 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                 gradient: isDanger 
                   ? LinearGradient(
                       colors: [
-                        color.withOpacity(widget.isDarkMode ? 0.25 : 0.1),
-                        color.withOpacity(widget.isDarkMode ? 0.15 : 0.05),
+                        color.withOpacity(widget.isDarkMode ? 0.2 : 0.1),
+                        color.withOpacity(widget.isDarkMode ? 0.1 : 0.05),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     )
                   : null,
-                borderRadius: BorderRadius.circular(radiusLarge),
-                border: widget.isDarkMode 
-                  ? Border.all(color: color.withOpacity(0.4), width: 1.5)
-                  : Border.all(color: color.withOpacity(0.3), width: 1.5),
+                borderRadius: BorderRadius.circular(radiusXLarge),
+                border: Border.all(
+                  color: color.withOpacity(widget.isDarkMode ? 0.3 : 0.25),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(spacingMedium),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
+                      color: color.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(radiusMedium),
                     ),
-                    child: Icon(icon, color: color, size: 24),
+                    child: Icon(icon, color: color, size: 20),
                   ),
                   SizedBox(width: spacingMedium),
                   Expanded(
@@ -691,16 +740,16 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                         Text(
                           label,
                           style: bodyBold.copyWith(
-                            fontSize: 16,
+                            fontSize: 15,
                             color: widget.theme.textColor,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        SizedBox(height: 2),
                         Text(
                           subtitle,
                           style: caption.copyWith(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: widget.theme.subtextColor,
                           ),
                         ),
@@ -710,7 +759,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                   Icon(
                     Icons.arrow_forward_ios_rounded,
                     color: color,
-                    size: 18,
+                    size: 16,
                   ),
                 ],
               ),
@@ -729,34 +778,99 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: widget.theme.cardColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusLarge),
+          borderRadius: BorderRadius.circular(radiusXLarge),
         ),
         title: Row(
           children: [
             Icon(
               isDanger ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
               color: isDanger ? error : primary,
+              size: 24,
             ),
             SizedBox(width: spacingSmall),
-            Text(title),
+            Expanded(
+              child: Text(
+                title,
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  color: widget.theme.textColor,
+                ),
+              ),
+            ),
           ],
         ),
-        content: Text(message),
+        content: Text(
+          message,
+          style: body.copyWith(
+            fontSize: 14,
+            color: widget.theme.subtextColor,
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: body.copyWith(color: widget.theme.subtextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: isDanger ? error : primary,
               foregroundColor: white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(radiusMedium),
+              ),
             ),
             child: Text(isDanger ? 'Delete' : 'Confirm'),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDefaultAvatar(double size) {
+    String initials = '';
+    final userName = widget.userData['name'] ?? '';
+    if (userName.isNotEmpty) {
+      List<String> nameParts = userName.trim().split(' ');
+      if (nameParts.length >= 2) {
+        initials = nameParts[0][0].toUpperCase() + nameParts[1][0].toUpperCase();
+      } else {
+        initials = nameParts[0].substring(0, nameParts[0].length >= 2 ? 2 : 1).toUpperCase();
+      }
+    }
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            white.withOpacity(0.3),
+            white.withOpacity(0.1),
+          ],
+        ),
+      ),
+      child: Center(
+        child: initials.isNotEmpty
+            ? Text(
+                initials,
+                style: TextStyle(
+                  color: white,
+                  fontSize: size * 0.35,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              )
+            : Icon(
+                Icons.person,
+                size: size * 0.5,
+                color: white,
+              ),
       ),
     );
   }

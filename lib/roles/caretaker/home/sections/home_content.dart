@@ -27,29 +27,55 @@ class HomeContent extends StatelessWidget {
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
-        left: width * 0.06,
-        right: width * 0.06,
+        left: width * 0.05,
+        right: width * 0.05,
+        top: spacingMedium,
         bottom: 100,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: spacingMedium),
+          // Welcome Header
+          
+          SizedBox(height: spacingXLarge),
           
           // Quick Stats Cards
           _buildQuickStats(context),
           
           SizedBox(height: spacingXLarge),
           
-          // Recent Activity
-          Text(
-            'Recent Activity',
-            style: bodyBold.copyWith(
-              fontSize: 18,
-              color: theme.textColor,
-              fontWeight: FontWeight.w700,
-            ),
+          // Quick Actions Section
+          _buildQuickActionsSection(context),
+          
+          SizedBox(height: spacingXLarge),
+          
+          // Recent Activity Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Activity',
+                style: h3.copyWith(
+                  fontSize: 20,
+                  color: theme.textColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  // View all activity
+                },
+                child: Text(
+                  'View All',
+                  style: bodyBold.copyWith(
+                    fontSize: 14,
+                    color: primary,
+                  ),
+                ),
+              ),
+            ],
           ),
+          
           SizedBox(height: spacingMedium),
           
           _buildRecentActivity(context),
@@ -57,6 +83,8 @@ class HomeContent extends StatelessWidget {
       ),
     );
   }
+
+  
 
   Widget _buildQuickStats(BuildContext context) {
     return Row(
@@ -68,6 +96,7 @@ class HomeContent extends StatelessWidget {
             label: 'Patients',
             value: '5',
             color: primary,
+            subtitle: 'Active patients',
           ),
         ),
         SizedBox(width: spacingMedium),
@@ -78,6 +107,7 @@ class HomeContent extends StatelessWidget {
             label: 'Requests',
             value: '3',
             color: accent,
+            subtitle: 'Pending',
           ),
         ),
       ],
@@ -90,97 +120,315 @@ class HomeContent extends StatelessWidget {
     required String label,
     required String value,
     required Color color,
+    required String subtitle,
   }) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        vertical: spacingLarge * 1.2,
-        horizontal: spacingMedium,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            // ignore: deprecated_member_use
-            color.withOpacity(isDarkMode ? 0.3 : 0.12),
-            // ignore: deprecated_member_use
-            color.withOpacity(isDarkMode ? 0.2 : 0.06),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(
-          // ignore: deprecated_member_use
-          color: color.withOpacity(isDarkMode ? 0.5 : 0.35),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            // ignore: deprecated_member_use
-            color: color.withOpacity(isDarkMode ? 0.25 : 0.15),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-            spreadRadius: -2,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: EdgeInsets.all(spacingMedium * 1.3),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  // ignore: deprecated_member_use
-                  color.withOpacity(0.3),
-                  // ignore: deprecated_member_use
-                  color.withOpacity(0.2),
+    return Semantics(
+      label: '$label: $value $subtitle',
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          boxShadow: isDarkMode
+              ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: color.withOpacity(0.2),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shape: BoxShape.circle,
-              border: Border.all(
-                // ignore: deprecated_member_use
-                color: color.withOpacity(0.4),
-                width: 2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  // ignore: deprecated_member_use
-                  color: color.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
+        ),
+        child: Material(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          child: InkWell(
+            onTap: () {
+              // Navigate to respective section
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('View all $label'),
+                  backgroundColor: color,
                 ),
-              ],
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 32,
+              );
+            },
+            borderRadius: BorderRadius.circular(radiusXLarge),
+            child: Container(
+              padding: EdgeInsets.all(spacingLarge * 1.2),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    color.withOpacity(isDarkMode ? 0.2 : 0.12),
+                    color.withOpacity(isDarkMode ? 0.1 : 0.06),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(radiusXLarge),
+                border: Border.all(
+                  color: color.withOpacity(isDarkMode ? 0.3 : 0.25),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          color.withOpacity(0.3),
+                          color.withOpacity(0.2),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(radiusLarge),
+                      border: Border.all(
+                        color: color.withOpacity(0.4),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: color.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      icon,
+                      color: color,
+                      size: 32,
+                    ),
+                  ),
+                  SizedBox(height: spacingLarge),
+                  Text(
+                    value,
+                    style: h1.copyWith(
+                      fontSize: 40,
+                      color: theme.textColor,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
+                  SizedBox(height: spacingXSmall),
+                  Text(
+                    label,
+                    style: bodyBold.copyWith(
+                      fontSize: 16,
+                      color: theme.textColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: caption.copyWith(
+                      fontSize: 12,
+                      color: theme.subtextColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          SizedBox(height: spacingMedium * 1.3),
-          Text(
-            value,
-            style: h1.copyWith(
-              fontSize: 36,
-              color: theme.textColor,
-              fontWeight: FontWeight.w900,
-              height: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Quick Actions',
+          style: h3.copyWith(
+            fontSize: 20,
+            color: theme.textColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        SizedBox(height: spacingMedium),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                icon: Icons.location_on_rounded,
+                title: 'Track Patients',
+                subtitle: 'View locations',
+                iconColor: Colors.blue,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Track Patients coming soon'),
+                      backgroundColor: Colors.blue,
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(width: spacingMedium),
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                icon: Icons.notifications_active_rounded,
+                title: 'Alerts',
+                subtitle: '2 new alerts',
+                iconColor: Colors.orange,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('View Alerts coming soon'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: spacingMedium),
+        Row(
+          children: [
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                icon: Icons.schedule_rounded,
+                title: 'Schedule',
+                subtitle: 'Today\'s tasks',
+                iconColor: Colors.purple,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Schedule coming soon'),
+                      backgroundColor: Colors.purple,
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(width: spacingMedium),
+            Expanded(
+              child: _buildQuickActionCard(
+                context,
+                icon: Icons.analytics_rounded,
+                title: 'Reports',
+                subtitle: 'View insights',
+                iconColor: Colors.green,
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Reports coming soon'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickActionCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Semantics(
+      label: '$title. $subtitle',
+      button: true,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radiusLarge),
+          boxShadow: isDarkMode
+              ? [
+                  BoxShadow(
+                    color: iconColor.withOpacity(0.1),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusLarge),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(radiusLarge),
+            child: Container(
+              padding: EdgeInsets.all(spacingLarge),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    iconColor.withOpacity(isDarkMode ? 0.15 : 0.1),
+                    iconColor.withOpacity(isDarkMode ? 0.08 : 0.05),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(radiusLarge),
+                border: Border.all(
+                  color: iconColor.withOpacity(isDarkMode ? 0.2 : 0.15),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: iconColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 28,
+                      color: iconColor,
+                    ),
+                  ),
+                  SizedBox(height: spacingMedium),
+                  Text(
+                    title,
+                    style: bodyBold.copyWith(
+                      fontSize: 15,
+                      color: theme.textColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: caption.copyWith(
+                      fontSize: 12,
+                      color: theme.subtextColor,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          SizedBox(height: spacingSmall),
-          Text(
-            label,
-            style: bodyBold.copyWith(
-              fontSize: 15,
-              color: theme.subtextColor,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -224,76 +472,126 @@ class HomeContent extends StatelessWidget {
     BuildContext context,
     Map<String, dynamic> activity,
   ) {
-    return Container(
-      padding: EdgeInsets.all(spacingLarge),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  // ignore: deprecated_member_use
-                  color: (activity['color'] as Color).withOpacity(0.15),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
+    return Semantics(
+      label: '${activity['title']}: ${activity['description']}, ${activity['time']}',
+      button: true,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          boxShadow: isDarkMode
+              ? [
+                  BoxShadow(
+                    color: (activity['color'] as Color).withOpacity(0.1),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 12,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          child: InkWell(
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('View activity details'),
+                  backgroundColor: activity['color'] as Color,
                 ),
-              ]
-            : softShadow,
-        border: isDarkMode
-            ? Border.all(
-                // ignore: deprecated_member_use
-                color: (activity['color'] as Color).withOpacity(0.3),
-                width: 1.5,
-              )
-            : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(spacingMedium),
-            decoration: BoxDecoration(
-              // ignore: deprecated_member_use
-              color: (activity['color'] as Color).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(radiusMedium),
-            ),
-            child: Icon(
-              activity['icon'] as IconData,
-              color: activity['color'] as Color,
-              size: 24,
+              );
+            },
+            borderRadius: BorderRadius.circular(radiusXLarge),
+            child: Container(
+              padding: EdgeInsets.all(spacingLarge),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(radiusXLarge),
+                border: isDarkMode
+                    ? Border.all(
+                        color: (activity['color'] as Color).withOpacity(0.2),
+                        width: 1,
+                      )
+                    : Border.all(
+                        color: Colors.black.withOpacity(0.06),
+                        width: 1,
+                      ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(spacingMedium),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          (activity['color'] as Color).withOpacity(0.2),
+                          (activity['color'] as Color).withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    child: Icon(
+                      activity['icon'] as IconData,
+                      color: activity['color'] as Color,
+                      size: 24,
+                    ),
+                  ),
+                  SizedBox(width: spacingLarge),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          activity['title'] as String,
+                          style: bodyBold.copyWith(
+                            fontSize: 16,
+                            color: theme.textColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        SizedBox(height: spacingXSmall),
+                        Text(
+                          activity['description'] as String,
+                          style: body.copyWith(
+                            fontSize: 14,
+                            color: theme.subtextColor,
+                          ),
+                        ),
+                        SizedBox(height: spacingXSmall),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 12,
+                              color: theme.subtextColor.withOpacity(0.7),
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              activity['time'] as String,
+                              style: caption.copyWith(
+                                fontSize: 12,
+                                color: theme.subtextColor.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: theme.subtextColor.withOpacity(0.5),
+                    size: 16,
+                  ),
+                ],
+              ),
             ),
           ),
-          SizedBox(width: spacingLarge),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity['title'] as String,
-                  style: bodyBold.copyWith(
-                    fontSize: 16,
-                    color: theme.textColor,
-                  ),
-                ),
-                SizedBox(height: spacingXSmall),
-                Text(
-                  activity['description'] as String,
-                  style: caption.copyWith(
-                    fontSize: 14,
-                    color: theme.subtextColor,
-                  ),
-                ),
-                SizedBox(height: spacingXSmall),
-                Text(
-                  activity['time'] as String,
-                  style: caption.copyWith(
-                    fontSize: 12,
-                    color: theme.subtextColor.withOpacity(0.7),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

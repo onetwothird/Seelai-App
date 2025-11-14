@@ -12,7 +12,7 @@ class EmergencyContactsService {
     required String userId,
     required String contactName,
     required String contactPhone,
-    required String relationship,
+    required String relationship, String? profileImageUrl,
   }) async {
     try {
       Map<String, dynamic> contact = {
