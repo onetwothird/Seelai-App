@@ -456,6 +456,7 @@ class HomeContent extends StatelessWidget {
                           style: caption.copyWith(
                             fontSize: 13,
                             color: theme.subtextColor,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
@@ -574,6 +575,7 @@ class HomeContent extends StatelessWidget {
                           style: caption.copyWith(
                             fontSize: 13,
                             color: theme.subtextColor,
+                            fontWeight: FontWeight.w400,
                           ),
                         ),
                       ],
