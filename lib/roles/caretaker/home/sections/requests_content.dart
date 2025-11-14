@@ -613,312 +613,336 @@ class _RequestsContentState extends State<RequestsContent>
     );
   }
 
-  Widget _buildRequestCard(RequestModel request) {
-    final priorityColor = request.getPriorityColor();
-    final cachedImage = _profileImageCache[request.patientId];
-    
-    return Semantics(
-      label: 'Request from ${request.patientName}',
-      button: true,
-      child: Container(
-        decoration: BoxDecoration(
-          boxShadow: widget.isDarkMode
-              ? [
-                  BoxShadow(
-                    color: priorityColor.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 16,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-          borderRadius: BorderRadius.circular(radiusXLarge),
-        ),
-        child: Material(
-          color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(radiusXLarge),
-          child: InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => RequestDetailsScreen(
-                    request: request,
-                    isDarkMode: widget.isDarkMode,
-                    requestService: widget.requestService,
-                  ),
+Widget _buildRequestCard(RequestModel request) {
+  final priorityColor = request.getPriorityColor();
+  final cachedImage = _profileImageCache[request.patientId];
+
+  // Get screen width for responsive sizing
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+
+  // Scaling factors
+  double responsiveWidth(double value) => value * (screenWidth / 375);
+  double responsiveHeight(double value) => value * (screenHeight / 812);
+  double responsiveFont(double value) => value * (screenWidth / 375);
+
+  return Semantics(
+    label: 'Request from ${request.patientName}',
+    button: true,
+    child: Container(
+      decoration: BoxDecoration(
+        boxShadow: widget.isDarkMode
+            ? [
+                BoxShadow(
+                  color: priorityColor.withOpacity(0.15),
+                  blurRadius: responsiveWidth(20),
+                  offset: Offset(0, responsiveHeight(8)),
                 ),
-              );
-            },
-            borderRadius: BorderRadius.circular(radiusXLarge),
-            splashColor: priorityColor.withOpacity(0.1),
-            child: Container(
-              padding: EdgeInsets.all(spacingLarge * 1.2),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(radiusXLarge),
-                border: Border.all(
-                  color: widget.isDarkMode
-                      ? primary.withOpacity(0.2)
-                      : Colors.black.withOpacity(0.06),
-                  width: 1,
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: responsiveWidth(16),
+                  offset: Offset(0, responsiveHeight(4)),
+                ),
+              ],
+        borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+      ),
+      child: Material(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RequestDetailsScreen(
+                  request: request,
+                  isDarkMode: widget.isDarkMode,
+                  requestService: widget.requestService,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      // Profile Image
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: widget.isDarkMode
-                                ? primary.withOpacity(0.3)
-                                : Colors.white,
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primary.withOpacity(0.15),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
+            );
+          },
+          borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+          splashColor: priorityColor.withOpacity(0.1),
+          child: Container(
+            padding: EdgeInsets.all(responsiveWidth(spacingLarge * 1.2)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+              border: Border.all(
+                color: widget.isDarkMode
+                    ? primary.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.06),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // Profile Image
+                    Container(
+                      width: responsiveWidth(56),
+                      height: responsiveWidth(56),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.isDarkMode
+                              ? primary.withOpacity(0.3)
+                              : Colors.white,
+                          width: 2,
                         ),
-                        child: ClipOval(
-                          child: cachedImage != null && cachedImage.isNotEmpty
-                              ? Image.network(
-                                  cachedImage,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return _buildDefaultAvatar();
-                                  },
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
+                        boxShadow: [
+                          BoxShadow(
+                            color: primary.withOpacity(0.15),
+                            blurRadius: responsiveWidth(8),
+                            offset: Offset(0, responsiveHeight(2)),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: cachedImage != null && cachedImage.isNotEmpty
+                            ? Image.network(
+                                cachedImage,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildDefaultAvatar(),
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: SizedBox(
+                                      width: responsiveWidth(20),
+                                      height: responsiveWidth(20),
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(
-                                            primary),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                primary),
                                       ),
-                                    );
-                                  },
-                                )
-                              : FutureBuilder<String?>(
-                                  future: _getProfileImage(request.patientId),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                        ConnectionState.waiting) {
-                                      return Center(
+                                    ),
+                                  );
+                                },
+                              )
+                            : FutureBuilder<String?>(
+                                future: _getProfileImage(request.patientId),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return Center(
+                                      child: SizedBox(
+                                        width: responsiveWidth(20),
+                                        height: responsiveWidth(20),
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           valueColor:
                                               AlwaysStoppedAnimation<Color>(
                                                   primary),
                                         ),
-                                      );
-                                    }
-                                    if (snapshot.hasData &&
-                                        snapshot.data != null &&
-                                        snapshot.data!.isNotEmpty) {
-                                      return Image.network(
-                                        snapshot.data!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return _buildDefaultAvatar();
-                                        },
-                                      );
-                                    }
-                                    return _buildDefaultAvatar();
-                                  },
-                                ),
-                        ),
-                      ),
-                      SizedBox(width: spacingMedium),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              request.patientName,
-                              style: bodyBold.copyWith(
-                                fontSize: 17,
-                                color: widget.theme.textColor,
-                                fontWeight: FontWeight.w700,
+                                      ),
+                                    );
+                                  }
+                                  if (snapshot.hasData &&
+                                      snapshot.data != null &&
+                                      snapshot.data!.isNotEmpty) {
+                                    return Image.network(
+                                      snapshot.data!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return _buildDefaultAvatar();
+                                      },
+                                    );
+                                  }
+                                  return _buildDefaultAvatar();
+                                },
                               ),
+                      ),
+                    ),
+                    SizedBox(width: responsiveWidth(spacingMedium)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            request.patientName,
+                            style: bodyBold.copyWith(
+                              fontSize: responsiveFont(17),
+                              color: widget.theme.textColor,
+                              fontWeight: FontWeight.w700,
                             ),
-                            SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(
-                                  request.getIcon(),
-                                  size: 14,
-                                  color: widget.theme.subtextColor,
-                                ),
-                                SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    request.requestType,
-                                    style: caption.copyWith(
-                                      fontSize: 13,
-                                      color: widget.theme.subtextColor,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                          ),
+                          SizedBox(height: responsiveHeight(4)),
+                          Row(
+                            children: [
+                              Icon(
+                                request.getIcon(),
+                                size: responsiveWidth(14),
+                                color: widget.theme.subtextColor,
+                              ),
+                              SizedBox(width: responsiveWidth(4)),
+                              Expanded(
+                                child: Text(
+                                  request.requestType,
+                                  style: caption.copyWith(
+                                    fontSize: responsiveFont(13),
+                                    color: widget.theme.subtextColor,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: responsiveWidth(spacingSmall),
+                        vertical: responsiveHeight(6),
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            priorityColor,
+                            priorityColor.withOpacity(0.8)
                           ],
                         ),
-                      ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: spacingSmall,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [priorityColor, priorityColor.withOpacity(0.8)],
+                        borderRadius:
+                            BorderRadius.circular(responsiveWidth(radiusSmall)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: priorityColor.withOpacity(0.3),
+                            blurRadius: responsiveWidth(6),
+                            offset: Offset(0, responsiveHeight(2)),
                           ),
-                          borderRadius: BorderRadius.circular(radiusSmall),
-                          boxShadow: [
-                            BoxShadow(
-                              color: priorityColor.withOpacity(0.3),
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
+                        ],
+                      ),
+                      child: Text(
+                        request.priority
+                            .toString()
+                            .split('.')
+                            .last
+                            .toUpperCase(),
+                        style: caption.copyWith(
+                          color: white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: responsiveFont(10),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: responsiveHeight(spacingMedium)),
+                Container(
+                  padding: EdgeInsets.all(responsiveWidth(spacingMedium)),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.03),
+                    borderRadius:
+                        BorderRadius.circular(responsiveWidth(radiusMedium)),
+                  ),
+                  child: Text(
+                    request.message,
+                    style: body.copyWith(
+                      fontSize: responsiveFont(14),
+                      color: widget.theme.textColor,
+                      height: 1.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(height: responsiveHeight(spacingMedium)),
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: responsiveWidth(spacingSmall),
+                        vertical: responsiveHeight(5),
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.theme.subtextColor.withOpacity(0.1),
+                        borderRadius:
+                            BorderRadius.circular(responsiveWidth(radiusSmall)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: responsiveWidth(14),
+                            color: widget.theme.subtextColor,
+                          ),
+                          SizedBox(width: responsiveWidth(4)),
+                          Text(
+                            _getTimeAgo(request.timestamp),
+                            style: caption.copyWith(
+                              fontSize: responsiveFont(12),
+                              color: widget.theme.subtextColor,
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        ),
-                        child: Text(
-                          request.priority
-                              .toString()
-                              .split('.')
-                              .last
-                              .toUpperCase(),
-                          style: caption.copyWith(
-                            color: white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 10,
-                            letterSpacing: 0.5,
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                  SizedBox(height: spacingMedium),
-                  Container(
-                    padding: EdgeInsets.all(spacingMedium),
-                    decoration: BoxDecoration(
-                      color: widget.isDarkMode
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.black.withOpacity(0.03),
-                      borderRadius: BorderRadius.circular(radiusMedium),
                     ),
-                    child: Text(
-                      request.message,
-                      style: body.copyWith(
-                        fontSize: 14,
-                        color: widget.theme.textColor,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  SizedBox(height: spacingMedium),
-                  Row(
-                    children: [
+                    if (request.location != null) ...[
+                      SizedBox(width: responsiveWidth(spacingSmall)),
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: spacingSmall,
-                          vertical: 5,
+                          horizontal: responsiveWidth(spacingSmall),
+                          vertical: responsiveHeight(5),
                         ),
                         decoration: BoxDecoration(
-                          color: widget.theme.subtextColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(radiusSmall),
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius:
+                              BorderRadius.circular(responsiveWidth(radiusSmall)),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.3),
+                            width: 1,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.access_time_rounded,
-                              size: 14,
-                              color: widget.theme.subtextColor,
+                              Icons.location_on_rounded,
+                              size: responsiveWidth(14),
+                              color: Colors.green,
                             ),
-                            SizedBox(width: 4),
+                            SizedBox(width: responsiveWidth(4)),
                             Text(
-                              _getTimeAgo(request.timestamp),
+                              'Location',
                               style: caption.copyWith(
-                                fontSize: 12,
-                                color: widget.theme.subtextColor,
-                                fontWeight: FontWeight.w600,
+                                fontSize: responsiveFont(12),
+                                color: Colors.green,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      if (request.location != null) ...[
-                        SizedBox(width: spacingSmall),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: spacingSmall,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(radiusSmall),
-                            border: Border.all(
-                              color: Colors.green.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.location_on_rounded,
-                                size: 14,
-                                color: Colors.green,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                'Location',
-                                style: caption.copyWith(
-                                  fontSize: 12,
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      Spacer(),
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 16,
-                        color: primary,
-                      ),
                     ],
-                  ),
-                ],
-              ),
+                    Spacer(),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: responsiveWidth(16),
+                      color: primary,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildDefaultAvatar() {
     return Container(

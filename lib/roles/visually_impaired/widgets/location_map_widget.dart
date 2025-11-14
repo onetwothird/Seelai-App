@@ -1,13 +1,15 @@
 // File: lib/roles/visually_impaired/widgets/location_map_widget.dart
 // ignore_for_file: prefer_final_fields, deprecated_member_use
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/services/location_tracking_service.dart';
 import 'dart:async';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 
 class LocationMapWidget extends StatefulWidget {
   final bool isDarkMode;
@@ -32,16 +34,23 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   bool _isMapReady = false;
   bool _isLocationEnabled = false;
   bool _isLoading = true;
+  bool _isTrackingActive = false;
   StreamSubscription<Position>? _positionStreamSubscription;
+  StreamSubscription? _caretakerLocationStream;
   Position? _currentPosition;
+  Map<String, dynamic>? _caretakerLocation;
   double _currentZoom = 15.0;
   Timer? _updateTimer;
+  Timer? _heartbeatTimer;
+  Timer? _caretakerCheckTimer;
+  bool _showNavigationRoute = false;
 
   @override
   void initState() {
     super.initState();
     _initializeMap();
-    _requestLocationPermission();
+    _requestLocationPermissionAndStartTracking();
+    _startCaretakerLocationListener();
   }
 
   void _initializeMap() {
@@ -54,103 +63,593 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
     );
   }
 
-  Future<void> _requestLocationPermission() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
+  void _startCaretakerLocationListener() {
+    // Get assigned caretakers
+    final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
+    
+    if (assignedCaretakers == null || assignedCaretakers.isEmpty) {
+      debugPrint('No assigned caretakers');
+      return;
+    }
+
+    // Get first caretaker ID
+    final caretakerId = assignedCaretakers.keys.first.toString();
+    debugPrint('🔍 Listening to caretaker location: $caretakerId');
+
+    // Listen to caretaker location updates
+    _caretakerLocationStream = locationTrackingService
+        .trackCaretakerLocation(caretakerId)
+        .listen((location) async {
+      if (location != null && mounted) {
+        debugPrint('📍 Caretaker location received: ${location['latitude']}, ${location['longitude']}');
         setState(() {
-          _isLoading = false;
-          _isLocationEnabled = false;
+          _caretakerLocation = location;
         });
-        return;
+
+        if (_isMapReady && _currentPosition != null) {
+          await _updateMapWithBothLocations();
+        }
+      }
+    });
+
+    // Periodic check for caretaker location
+    _caretakerCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
+      if (mounted) {
+        final location = await locationTrackingService.getCaretakerLocation(caretakerId);
+        if (location != null) {
+          debugPrint('🔄 Periodic caretaker location check: ${location['latitude']}, ${location['longitude']}');
+          setState(() {
+            _caretakerLocation = location;
+          });
+          if (_isMapReady && _currentPosition != null) {
+            await _updateMapWithBothLocations();
+          }
+        }
+      }
+    });
+  }
+
+  Future<Uint8List?> _getProfileImageMarker(String? imageUrl, String name) async {
+    try {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      final size = 120.0;
+
+      // Draw shadow
+      final shadowPaint = Paint()
+        ..color = Colors.black.withOpacity(0.3)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
+
+      // Draw white border
+      final borderPaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 5, borderPaint);
+
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        // Try to load network image
+        try {
+          final response = await http.get(Uri.parse(imageUrl));
+          if (response.statusCode == 200) {
+            final codec = await ui.instantiateImageCodec(
+              response.bodyBytes,
+              targetWidth: size.toInt() - 20,
+              targetHeight: size.toInt() - 20,
+            );
+            final frame = await codec.getNextFrame();
+            
+            // Clip to circle
+            final path = Path()
+              ..addOval(Rect.fromCircle(
+                center: Offset(size / 2, size / 2),
+                radius: size / 2 - 10,
+              ));
+            canvas.clipPath(path);
+            
+            // Draw image
+            canvas.drawImageRect(
+              frame.image,
+              Rect.fromLTWH(0, 0, frame.image.width.toDouble(), frame.image.height.toDouble()),
+              Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10),
+              Paint(),
+            );
+          } else {
+            _drawDefaultAvatar(canvas, size, name);
+          }
+        } catch (e) {
+          debugPrint('Error loading profile image: $e');
+          _drawDefaultAvatar(canvas, size, name);
+        }
+      } else {
+        _drawDefaultAvatar(canvas, size, name);
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+      // Draw colored border (primary color)
+      final coloredBorderPaint = Paint()
+        ..color = primary
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4;
+      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 7, coloredBorderPaint);
+
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(size.toInt(), size.toInt());
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Error creating marker: $e');
+      return null;
+    }
+  }
+
+  void _drawDefaultAvatar(Canvas canvas, double size, String name) {
+    // Draw gradient background
+    final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10);
+    final gradient = ui.Gradient.linear(
+      Offset(rect.left, rect.top),
+      Offset(rect.right, rect.bottom),
+      [primary, primary.withOpacity(0.7)],
+    );
+    final paint = Paint()..shader = gradient;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
+
+    // Draw initial
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: size * 0.4,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        size / 2 - textPainter.width / 2,
+        size / 2 - textPainter.height / 2,
+      ),
+    );
+  }
+
+  Future<Uint8List?> _getCaretakerMarker(String? imageUrl) async {
+    try {
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+      final size = 120.0;
+
+      // Draw shadow
+      final shadowPaint = Paint()
+        ..color = Colors.black.withOpacity(0.3)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
+      canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
+
+      // Draw white border
+      final borderPaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 5, borderPaint);
+
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        try {
+          final response = await http.get(Uri.parse(imageUrl));
+          if (response.statusCode == 200) {
+            final codec = await ui.instantiateImageCodec(
+              response.bodyBytes,
+              targetWidth: size.toInt() - 20,
+              targetHeight: size.toInt() - 20,
+            );
+            final frame = await codec.getNextFrame();
+            
+            // Clip to circle
+            final path = Path()
+              ..addOval(Rect.fromCircle(
+                center: Offset(size / 2, size / 2),
+                radius: size / 2 - 10,
+              ));
+            canvas.clipPath(path);
+            
+            // Draw image
+            canvas.drawImageRect(
+              frame.image,
+              Rect.fromLTWH(0, 0, frame.image.width.toDouble(), frame.image.height.toDouble()),
+              Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10),
+              Paint(),
+            );
+          } else {
+            _drawCaretakerDefaultAvatar(canvas, size);
+          }
+        } catch (e) {
+          debugPrint('Error loading caretaker image: $e');
+          _drawCaretakerDefaultAvatar(canvas, size);
+        }
+      } else {
+        _drawCaretakerDefaultAvatar(canvas, size);
+      }
+
+      // Draw blue border for caretaker
+      final coloredBorderPaint = Paint()
+        ..color = Colors.blue
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 4;
+      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 7, coloredBorderPaint);
+
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(size.toInt(), size.toInt());
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+      
+      return byteData?.buffer.asUint8List();
+    } catch (e) {
+      debugPrint('Error creating caretaker marker: $e');
+      return null;
+    }
+  }
+
+  void _drawCaretakerDefaultAvatar(Canvas canvas, double size) {
+    // Draw blue gradient background
+    final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10);
+    final gradient = ui.Gradient.linear(
+      Offset(rect.left, rect.top),
+      Offset(rect.right, rect.bottom),
+      [Colors.blue, Colors.blue.shade700],
+    );
+    final paint = Paint()..shader = gradient;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
+
+    // Draw caretaker icon
+    final iconPainter = TextPainter(
+      text: TextSpan(
+        text: '👤',
+        style: TextStyle(fontSize: size * 0.4),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    iconPainter.layout();
+    iconPainter.paint(
+      canvas,
+      Offset(
+        size / 2 - iconPainter.width / 2,
+        size / 2 - iconPainter.height / 2,
+      ),
+    );
+  }
+
+  Future<void> _updateMapWithBothLocations() async {
+    if (!_isMapReady || _currentPosition == null) return;
+
+    try {
+      // Clear existing markers and roads
+      await _mapController.clearAllRoads();
+
+      final userGeoPoint = GeoPoint(
+        latitude: _currentPosition!.latitude,
+        longitude: _currentPosition!.longitude,
+      );
+
+      // Add user marker with profile picture
+      final userImageUrl = widget.userData['profileImageUrl'] as String?;
+      final userName = widget.userData['name'] ?? 'You';
+      final userMarkerBytes = await _getProfileImageMarker(userImageUrl, userName);
+      
+      if (userMarkerBytes != null) {
+        await _mapController.addMarker(
+          userGeoPoint,
+          markerIcon: MarkerIcon(
+            iconWidget: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: MemoryImage(userMarkerBytes),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Add accuracy circle for user
+      await _mapController.drawCircle(
+        CircleOSM(
+          key: 'user_location',
+          centerPoint: userGeoPoint,
+          radius: _currentPosition!.accuracy,
+          color: primary.withOpacity(0.2),
+          strokeWidth: 2,
+        ),
+      );
+
+      // Add caretaker marker if available
+      if (_caretakerLocation != null) {
+        final caretakerGeoPoint = GeoPoint(
+          latitude: _caretakerLocation!['latitude'] as double,
+          longitude: _caretakerLocation!['longitude'] as double,
+        );
+
+        // Get caretaker profile image from assigned caretakers
+        String? caretakerImageUrl;
+        final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
+        if (assignedCaretakers != null && assignedCaretakers.isNotEmpty) {
+          final firstCaretaker = assignedCaretakers.values.first as Map<dynamic, dynamic>?;
+          caretakerImageUrl = firstCaretaker?['profileImageUrl'] as String?;
+        }
+
+        final caretakerMarkerBytes = await _getCaretakerMarker(caretakerImageUrl);
+        
+        if (caretakerMarkerBytes != null) {
+          await _mapController.addMarker(
+            caretakerGeoPoint,
+            markerIcon: MarkerIcon(
+              iconWidget: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    image: MemoryImage(caretakerMarkerBytes),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Draw navigation route if enabled
+        if (_showNavigationRoute) {
+          await _drawNavigationRoute(userGeoPoint, caretakerGeoPoint);
+        }
+
+        // Calculate and display distance
+        final distance = locationTrackingService.calculateDistance(
+          lat1: _currentPosition!.latitude,
+          lon1: _currentPosition!.longitude,
+          lat2: _caretakerLocation!['latitude'] as double,
+          lon2: _caretakerLocation!['longitude'] as double,
+        );
+        
+        debugPrint('📏 Distance to caretaker: ${locationTrackingService.formatDistance(distance)}');
+      }
+    } catch (e) {
+      debugPrint('❌ Error updating map with both locations: $e');
+    }
+  }
+
+  Future<void> _drawNavigationRoute(GeoPoint start, GeoPoint end) async {
+    try {
+      debugPrint('🗺️ Drawing navigation route...');
+      
+      final route = await _mapController.drawRoad(
+        start,
+        end,
+        roadType: RoadType.car,
+        roadOption: RoadOption(
+          roadWidth: 6.0,
+          roadColor: accent,
+          roadBorderWidth: 2.0,
+          roadBorderColor: Colors.white,
+        ),
+      );
+
+      setState(() {
+      });
+
+      debugPrint('✅ Navigation route drawn successfully');
+      debugPrint('📍 Distance: ${route.distance ?? 0}km');
+      debugPrint('⏱️ Duration: ${route.duration ?? 0}min');
+    } catch (e) {
+      debugPrint('❌ Error drawing navigation route: $e');
+    }
+  }
+
+  void _toggleNavigationRoute() async {
+    setState(() {
+      _showNavigationRoute = !_showNavigationRoute;
+    });
+
+    if (_showNavigationRoute && _caretakerLocation != null && _currentPosition != null) {
+      await _updateMapWithBothLocations();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.directions, color: white, size: 20),
+                SizedBox(width: spacingSmall),
+                Text('Navigation route shown'),
+              ],
+            ),
+            backgroundColor: accent,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(bottom: 80, left: 20, right: 20),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      await _mapController.clearAllRoads();
+      await _updateMapWithBothLocations();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.close, color: white, size: 20),
+                SizedBox(width: spacingSmall),
+                Text('Navigation route hidden'),
+              ],
+            ),
+            backgroundColor: grey,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(bottom: 80, left: 20, right: 20),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _requestLocationPermissionAndStartTracking() async {
+    try {
+      debugPrint('📍 Checking location services...');
+      
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        debugPrint('❌ Location services are disabled');
+        if (mounted) {
           setState(() {
             _isLoading = false;
             _isLocationEnabled = false;
           });
+        }
+        _showLocationServicesDialog();
+        return;
+      }
+
+      debugPrint('✅ Location services enabled, checking permissions...');
+      
+      LocationPermission permission = await Geolocator.checkPermission();
+      debugPrint('📋 Current permission: $permission');
+      
+      if (permission == LocationPermission.denied) {
+        debugPrint('⚠️ Permission denied, requesting...');
+        permission = await Geolocator.requestPermission();
+        debugPrint('📋 Permission after request: $permission');
+        
+        if (permission == LocationPermission.denied) {
+          debugPrint('❌ Permission denied by user');
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _isLocationEnabled = false;
+            });
+          }
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
+        debugPrint('❌ Permission permanently denied');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isLocationEnabled = false;
+          });
+        }
+        _showOpenSettingsDialog();
+        return;
+      }
+
+      debugPrint('✅ Location permission granted! Starting tracking...');
+      
+      await _startAutomaticLocationTracking();
+    } catch (e) {
+      debugPrint('❌ Error in permission flow: $e');
+      if (mounted) {
         setState(() {
           _isLoading = false;
           _isLocationEnabled = false;
         });
-        return;
       }
-
-      // Permission granted, start tracking
-      await _startLocationTracking();
-    } catch (e) {
-      debugPrint('Error requesting location permission: $e');
-      setState(() {
-        _isLoading = false;
-        _isLocationEnabled = false;
-      });
     }
   }
 
-  Future<void> _startLocationTracking() async {
+  Future<void> _startAutomaticLocationTracking() async {
     try {
-      // Get initial position
+      debugPrint('🚀 Starting automatic location tracking for user: ${widget.userId}');
+
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
+
+      debugPrint('✅ Initial position obtained: ${position.latitude}, ${position.longitude}');
 
       if (mounted) {
         setState(() {
           _currentPosition = position;
           _isLocationEnabled = true;
+          _isTrackingActive = true;
           _isLoading = false;
         });
 
-        // Update map to current position
         if (_isMapReady) {
-          await _updateMapPosition(position);
+          await _updateMapWithBothLocations();
         }
 
-        // Update Firebase with current location
         await _updateFirebaseLocation(position);
       }
 
-      // Start listening to position updates
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 10, // Update every 10 meters
+          distanceFilter: 10,
+          timeLimit: Duration(seconds: 30),
         ),
-      ).listen((Position position) async {
-        if (mounted) {
-          setState(() {
-            _currentPosition = position;
-          });
+      ).listen(
+        (Position position) async {
+          if (mounted) {
+            setState(() {
+              _currentPosition = position;
+            });
 
-          if (_isMapReady) {
-            await _updateMapPosition(position);
+            if (_isMapReady) {
+              await _updateMapWithBothLocations();
+            }
+
+            await _updateFirebaseLocation(position);
           }
+        },
+      );
 
-          // Update Firebase
-          await _updateFirebaseLocation(position);
-        }
-      });
-
-      // Also update Firebase every 30 seconds even if position hasn't changed
       _updateTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
-        if (_currentPosition != null) {
+        if (_currentPosition != null && _isTrackingActive && mounted) {
           await _updateFirebaseLocation(_currentPosition!);
         }
       });
+
+      _heartbeatTimer = Timer.periodic(Duration(minutes: 1), (timer) async {
+        if (_isTrackingActive && mounted) {
+          debugPrint('💚 Heartbeat - Location tracking still active');
+          
+          if (_currentPosition != null) {
+            await _updateFirebaseLocation(_currentPosition!);
+          }
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: spacingSmall),
+                Expanded(
+                  child: Text('Location tracking active - Caretaker can see your location'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            margin: EdgeInsets.only(bottom: 80, left: 20, right: 20),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     } catch (e) {
-      debugPrint('Error starting location tracking: $e');
+      debugPrint('❌ Error starting automatic tracking: $e');
       if (mounted) {
         setState(() {
           _isLocationEnabled = false;
+          _isTrackingActive = false;
           _isLoading = false;
         });
       }
@@ -159,7 +658,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
 
   Future<void> _updateFirebaseLocation(Position position) async {
     try {
-      await locationTrackingService.updatePatientLocation(
+      final success = await locationTrackingService.updatePatientLocation(
         patientId: widget.userId,
         latitude: position.latitude,
         longitude: position.longitude,
@@ -168,53 +667,98 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         speed: position.speed,
         heading: position.heading,
       );
-      debugPrint('✅ Location updated in Firebase for user: ${widget.userId}');
+
+      if (success) {
+        debugPrint('✅ Firebase location update SUCCESS');
+      } else {
+        debugPrint('❌ Firebase location update FAILED');
+      }
     } catch (e) {
-      debugPrint('❌ Error updating location in Firebase: $e');
+      debugPrint('❌ Exception updating Firebase location: $e');
     }
   }
 
-  Future<void> _updateMapPosition(Position position) async {
-    try {
-      final geoPoint = GeoPoint(
-        latitude: position.latitude,
-        longitude: position.longitude,
-      );
-
-      // Update map camera
-      await _mapController.moveTo(geoPoint, animate: true);
-
-      // Add/update marker
-      await _mapController.changeLocationMarker(
-        oldLocation:  geoPoint,
-        newLocation: geoPoint,
-        markerIcon: MarkerIcon(
-          icon: Icon(
-            Icons.location_on,
-            color: primary,
-            size: 48,
+  void _showLocationServicesDialog() {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.location_off, color: error),
+            SizedBox(width: spacingSmall),
+            Text('Location Services Disabled'),
+          ],
+        ),
+        content: Text(
+          'Please enable location services in your device settings to share your location with your caretaker.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
           ),
-        ),
-      );
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Geolocator.openLocationSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: white,
+            ),
+            child: Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
+  }
 
-      // Add circle around user
-      await _mapController.drawCircle(
-        CircleOSM(
-          key: 'user_location',
-          centerPoint: geoPoint,
-          radius: position.accuracy,
-          color: primary.withOpacity(0.2),
-          strokeWidth: 2,
+  void _showOpenSettingsDialog() {
+    if (!mounted) return;
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: error),
+            SizedBox(width: spacingSmall),
+            Text('Permission Required'),
+          ],
         ),
-      );
-    } catch (e) {
-      debugPrint('Error updating map position: $e');
-    }
+        content: Text(
+          'Location permission is permanently denied. Please enable it in app settings to share your location.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Geolocator.openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+              foregroundColor: white,
+            ),
+            child: Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _centerOnMyLocation() async {
     if (_currentPosition != null && _isMapReady) {
-      await _updateMapPosition(_currentPosition!);
+      final geoPoint = GeoPoint(
+        latitude: _currentPosition!.latitude,
+        longitude: _currentPosition!.longitude,
+      );
+      await _mapController.moveTo(geoPoint, animate: true);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -236,23 +780,35 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
     }
   }
 
-  Future<void> _shareLocationWithCaretaker() async {
+  Future<void> _forceLocationUpdate() async {
     if (_currentPosition == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Location not available'),
-            backgroundColor: error,
+            content: Text('Getting current location...'),
+            backgroundColor: accent,
             behavior: SnackBarBehavior.floating,
             margin: EdgeInsets.only(bottom: 80, left: 20, right: 20),
+            duration: Duration(seconds: 1),
           ),
         );
       }
-      return;
+      
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+        setState(() {
+          _currentPosition = position;
+        });
+        await _updateFirebaseLocation(position);
+      } catch (e) {
+        debugPrint('Error getting current location: $e');
+        return;
+      }
+    } else {
+      await _updateFirebaseLocation(_currentPosition!);
     }
-
-    // Force update Firebase
-    await _updateFirebaseLocation(_currentPosition!);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -261,7 +817,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
             children: [
               Icon(Icons.check_circle, color: white, size: 20),
               SizedBox(width: spacingSmall),
-              Text('Location shared with caretaker'),
+              Text('Location updated and shared'),
             ],
           ),
           backgroundColor: Colors.green,
@@ -273,12 +829,16 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
     }
   }
 
-
   @override
   void dispose() {
+    debugPrint('🛑 Disposing location tracking resources...');
     _positionStreamSubscription?.cancel();
+    _caretakerLocationStream?.cancel();
     _updateTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    _caretakerCheckTimer?.cancel();
     _mapController.dispose();
+    debugPrint('✅ Location tracking stopped and resources disposed');
     super.dispose();
   }
 
@@ -315,11 +875,9 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
               else
                 _buildMapView(),
 
-              // Location info overlay
-              if (_isLocationEnabled && _currentPosition != null)
-                _buildLocationInfoOverlay(),
+              if (_isTrackingActive && _currentPosition != null)
+                _buildTrackingStatusOverlay(),
 
-              // Control buttons
               if (_isLocationEnabled)
                 _buildControlButtons(),
             ],
@@ -345,6 +903,13 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
               style: body.copyWith(
                 color: widget.theme.textColor,
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: spacingSmall),
+            Text(
+              'This may take a few moments',
+              style: caption.copyWith(
+                color: widget.theme.subtextColor,
               ),
             ),
           ],
@@ -378,7 +943,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
               ),
               SizedBox(height: spacingSmall),
               Text(
-                'Please enable location services in your device settings',
+                'Enable location to share with your caretaker',
                 style: body.copyWith(
                   fontSize: 13,
                   color: widget.theme.subtextColor,
@@ -387,9 +952,9 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
               ),
               SizedBox(height: spacingLarge),
               ElevatedButton.icon(
-                onPressed: _requestLocationPermission,
+                onPressed: _requestLocationPermissionAndStartTracking,
                 icon: Icon(Icons.refresh, size: 18),
-                label: Text('Retry'),
+                label: Text('Try Again'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primary,
                   foregroundColor: white,
@@ -429,17 +994,18 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         showDefaultInfoWindow: false,
       ),
       onMapIsReady: (isReady) {
+        debugPrint('🗺️ Map ready status: $isReady');
         setState(() {
           _isMapReady = isReady;
         });
         if (isReady && _currentPosition != null) {
-          _updateMapPosition(_currentPosition!);
+          _updateMapWithBothLocations();
         }
       },
     );
   }
 
-  Widget _buildLocationInfoOverlay() {
+  Widget _buildTrackingStatusOverlay() {
     return Positioned(
       top: spacingMedium,
       left: spacingMedium,
@@ -468,35 +1034,27 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         ),
         child: Row(
           children: [
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green, Colors.green.shade700],
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.location_on,
-                color: white,
-                size: 20,
-              ),
-            ),
             SizedBox(width: spacingSmall),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Location Tracking Active',
-                    style: bodyBold.copyWith(
-                      fontSize: 13,
-                      color: widget.theme.textColor,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'Location Tracking',
+                        style: bodyBold.copyWith(
+                          fontSize: 13,
+                          color: widget.theme.textColor,
+                        ),
+                      ),
+                    ],
                   ),
                   Text(
-                    'Your caretaker can see your location',
+                    _caretakerLocation != null 
+                        ? 'Caretaker location visible'
+                        : 'Waiting for caretaker location...',
                     style: caption.copyWith(
                       fontSize: 11,
                       color: widget.theme.subtextColor,
@@ -505,17 +1063,10 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
                 ],
               ),
             ),
-            Container(
-              padding: EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 16,
-              ),
+            Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 20,
             ),
           ],
         ),
@@ -535,11 +1086,19 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
             tooltip: 'Center on my location',
           ),
           SizedBox(height: spacingSmall),
+          if (_caretakerLocation != null)
+            _buildControlButton(
+              icon: _showNavigationRoute ? Icons.close : Icons.directions,
+              onTap: _toggleNavigationRoute,
+              tooltip: _showNavigationRoute ? 'Hide route' : 'Show route to caretaker',
+              color: _showNavigationRoute ? error : accent,
+            ),
+          SizedBox(height: spacingSmall),
           _buildControlButton(
-            icon: Icons.share_location,
-            onTap: _shareLocationWithCaretaker,
-            tooltip: 'Share location with caretaker',
-            color: accent,
+            icon: Icons.refresh,
+            onTap: _forceLocationUpdate,
+            tooltip: 'Update location now',
+            color: Colors.green,
           ),
         ],
       ),

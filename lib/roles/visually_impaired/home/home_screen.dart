@@ -699,7 +699,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
- Widget _buildMainContent(double width, double height, _AppTheme theme) {
+Widget _buildMainContent(double width, double height, _AppTheme theme) {
   Widget content;
   final userId = widget.userData['uid'] as String? ?? '';
   
@@ -716,11 +716,15 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       );
       break;
     case 1:
-      // Don't wrap ContactsContent - it has its own scroll
-      return ContactsContent(
-        isDarkMode: _isDarkMode,
-        theme: theme,
-        userData: widget.userData,
+      // Wrap ContactsContent with SingleChildScrollView to enable scroll detection
+      return SingleChildScrollView(
+        controller: _scrollController,
+        physics: ClampingScrollPhysics(),
+        child: ContactsContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+        ),
       );
     case 3:
       content = RecentActivitiesContent(
@@ -748,7 +752,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       );
   }
   
-  // Only wrap non-Contacts sections in SingleChildScrollView
+  // Wrap other sections in SingleChildScrollView
   return SingleChildScrollView(
     controller: _scrollController,
     physics: ClampingScrollPhysics(),
