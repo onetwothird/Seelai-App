@@ -15,7 +15,6 @@ export 'admin_service.dart';
 export 'assistance_request_service.dart';
 export 'auth_service.dart';
 export 'visually_impaired/user_activity_service.dart'; // ADD THIS
-
 /// Usage Example:
 /// 
 /// Instead of importing individual files:
