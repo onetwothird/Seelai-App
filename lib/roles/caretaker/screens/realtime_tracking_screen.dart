@@ -10,6 +10,7 @@ import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RealtimeTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -20,7 +21,8 @@ class RealtimeTrackingScreen extends StatefulWidget {
     super.key,
     required this.isDarkMode,
     required this.theme,
-    required this.userData, required LocationService locationService,
+    required this.userData, 
+    required LocationService locationService,
   });
 
   @override
@@ -30,6 +32,7 @@ class RealtimeTrackingScreen extends StatefulWidget {
 class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   List<PatientModel> _patients = [];
   PatientModel? _selectedPatient;
+  Map<String, dynamic>? _selectedPatientFullData;
   bool _isLoading = true;
   bool _isTracking = false;
   bool _isFullscreen = false;
@@ -50,6 +53,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   Timer? _pulseTimer;
   bool _isPulseExpanded = false;
   String? _distanceToPatient;
+  String? _estimatedTime;
   
   // Road/Route
   RoadInfo? _currentRoute;
@@ -66,7 +70,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   void _initializeMapController() {
     _mapController = MapController(
       initPosition: GeoPoint(
-        latitude: 14.2456, // Default: Manila area
+        latitude: 14.2456,
         longitude: 121.1234,
       ),
       areaLimit: BoundingBox.world(),
@@ -106,7 +110,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       return;
     }
 
-    // Start tracking caretaker's location
     _startCaretakerLocationTracking();
   }
 
@@ -116,7 +119,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     _caretakerLocationStream = Geolocator.getPositionStream(
       locationSettings: LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // Update every 10 meters
+        distanceFilter: 10,
       ),
     ).listen((Position position) {
       setState(() {
@@ -127,7 +130,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         };
       });
 
-      // Update caretaker location in Firebase
       locationTrackingService.updateCaretakerLocation(
         caretakerId: _caretakerId!,
         latitude: position.latitude,
@@ -135,12 +137,10 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         accuracy: position.accuracy,
       );
 
-      // Update distance if patient is selected
       if (_currentPatientLocation != null) {
         _updateDistance();
       }
 
-      // Update map markers
       if (_isMapReady && _isTracking) {
         _updateMapMarkers();
       }
@@ -217,16 +217,21 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       _currentRoute = null;
     });
     
-    // Stop previous tracking if any
     _locationTrackingStream?.cancel();
     _pulseTimer?.cancel();
     
-    // Clear existing markers and roads
     if (_isMapReady) {
       await _mapController.clearAllRoads();
     }
+
+    // Load full patient data including profile image
+    final patientData = await databaseService.getUserDataByRole(patient.id, 'visually_impaired');
+    if (patientData != null && mounted) {
+      setState(() {
+        _selectedPatientFullData = patientData;
+      });
+    }
     
-    // Load patient location
     final location = await locationTrackingService.getPatientLocation(patient.id);
     if (location != null && mounted) {
       setState(() {
@@ -254,12 +259,8 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     final geoPoint = GeoPoint(latitude: lat, longitude: lng);
     
     try {
-      // Update markers
       await _updateMapMarkers();
-      
-      // Animate camera to patient position
       await _mapController.moveTo(geoPoint, animate: true);
-      
     } catch (e) {
       debugPrint('Error updating map location: $e');
     }
@@ -269,10 +270,8 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     if (!_isMapReady) return;
 
     try {
-      // Clear existing markers
       await _mapController.clearAllRoads();
 
-      // Add patient marker
       if (_currentPatientLocation != null) {
         final patientGeo = GeoPoint(
           latitude: _currentPatientLocation!['latitude'] as double,
@@ -290,7 +289,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
           ),
         );
 
-        // Add tracking circle if tracking is active
         if (_isTracking) {
           await _mapController.drawCircle(
             CircleOSM(
@@ -304,7 +302,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         }
       }
 
-      // Add caretaker marker
       if (_currentCaretakerLocation != null) {
         final caretakerGeo = GeoPoint(
           latitude: _currentCaretakerLocation!['latitude'] as double,
@@ -321,12 +318,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
             ),
           ),
         );
-      }
-
-      // Draw route if both locations are available and route exists
-      if (_currentRoute != null && _isTracking) {
-        // The route is already drawn by drawRoad method
-        // We just need to ensure the markers are on top
       }
 
     } catch (e) {
@@ -346,8 +337,14 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       lon2: _currentPatientLocation!['longitude'] as double,
     );
 
+    // Estimate time (assuming average walking speed of 5 km/h)
+    final timeInMinutes = (distance / 1000) / 5 * 60;
+
     setState(() {
       _distanceToPatient = locationTrackingService.formatDistance(distance);
+      _estimatedTime = timeInMinutes < 1 
+          ? 'Less than 1 min'
+          : '${timeInMinutes.round()} min';
     });
   }
 
@@ -371,10 +368,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     });
     
     if (_isTracking) {
-      // Start real-time tracking
       _startPulseAnimation();
-      
-      // Draw route
       await _drawRoute();
       
       _locationTrackingStream = locationTrackingService
@@ -387,23 +381,10 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
           _updateDistance();
           await _updateMapMarkers();
           
-          // Redraw route periodically
           if (_currentRoute == null || 
               DateTime.now().difference(DateTime.parse(location['timestamp'])).inMinutes > 2) {
             await _drawRoute();
           }
-        }
-      }, onError: (error) {
-        debugPrint('Location tracking error: $error');
-        if (mounted) {
-          _showSnackBar(
-            'Failed to track location',
-            Icons.error_outline,
-            error,
-          );
-          setState(() {
-            _isTracking = false;
-          });
         }
       });
       
@@ -413,11 +394,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         Colors.green,
       );
     } else {
-      // Stop tracking
       _locationTrackingStream?.cancel();
       _pulseTimer?.cancel();
       
-      // Clear route
       if (_isMapReady) {
         await _mapController.clearAllRoads();
         await _updateMapMarkers();
@@ -513,6 +492,33 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     }
   }
 
+  Future<void> _openGoogleMapsNavigation() async {
+    if (_currentPatientLocation == null) {
+      _showSnackBar(
+        'Patient location not available',
+        Icons.error_outline,
+        error,
+      );
+      return;
+    }
+
+    final lat = _currentPatientLocation!['latitude'];
+    final lng = _currentPatientLocation!['longitude'];
+    
+    // Google Maps URL for navigation
+    final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
+    
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      _showSnackBar(
+        'Could not open navigation',
+        Icons.error_outline,
+        error,
+      );
+    }
+  }
+
   Future<void> _zoomIn() async {
     if (!_isMapReady) return;
     if (_currentZoom < 19) {
@@ -539,17 +545,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     });
   }
 
-  void _openNavigation() {
-    if (_currentPatientLocation != null) {
-      // In real app: launch('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
-      _showSnackBar(
-        'Opening navigation to ${_selectedPatient?.name}...',
-        Icons.directions_rounded,
-        primary,
-      );
-    }
-  }
-
   void _showSnackBar(String message, IconData icon, Color backgroundColor) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -572,6 +567,45 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         ),
         duration: Duration(seconds: 2),
       ),
+    );
+  }
+
+  Widget _buildProfileAvatar(String? imageUrl, String name, {double size = 40}) {
+    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
+    
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: !hasImage ? primaryGradient : null,
+        border: Border.all(color: white, width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+        image: hasImage
+            ? DecorationImage(
+                image: NetworkImage(imageUrl),
+                fit: BoxFit.cover,
+              )
+            : null,
+      ),
+      child: !hasImage
+          ? Center(
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: TextStyle(
+                  color: white,
+                  fontSize: size * 0.4,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            )
+          : null,
     );
   }
 
@@ -640,7 +674,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Real-time Tracking',
+                'Location Tracking',
                 style: h2.copyWith(
                   fontSize: 24,
                   color: widget.theme.textColor,
@@ -717,14 +751,12 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
             setState(() {
               _isMapReady = isReady;
             });
-            debugPrint('Map is ready: $isReady');
             if (isReady && _currentPatientLocation != null) {
               _updateMapMarkers();
             }
           },
         ),
         
-        // Loading route indicator
         if (_isLoadingRoute)
           Positioned(
             top: fullscreen ? 80 : spacingMedium,
@@ -771,20 +803,14 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
             ),
           ),
         
-        // Patient info overlay
         if (_selectedPatient != null && !fullscreen)
           _buildPatientInfoOverlay(),
         
-        // Map controls
         if (_selectedPatient != null)
-          fullscreen
-              ? Container()
-              : _buildMapControls(),
+          fullscreen ? Container() : _buildMapControls(),
         
-        // Zoom controls
         _buildZoomControls(fullscreen),
         
-        // No patient selected
         if (_selectedPatient == null && !fullscreen)
           _buildNoPatientMessage(),
       ],
@@ -792,6 +818,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   }
 
   Widget _buildPatientInfoOverlay() {
+    final patientImageUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
+    final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
+
     return Positioned(
       top: spacingMedium,
       left: spacingMedium,
@@ -818,74 +847,80 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
             width: 1.5,
           ),
         ),
-        child: Row(
+        child: Column(
           children: [
-            Container(
-              padding: EdgeInsets.all(spacingSmall),
-              decoration: BoxDecoration(
-                gradient: primaryGradient,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.person_rounded,
-                color: white,
-                size: 20,
-              ),
-            ),
-            SizedBox(width: spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _selectedPatient!.name,
-                    style: bodyBold.copyWith(
-                      fontSize: 14,
-                      color: widget.theme.textColor,
-                    ),
-                  ),
-                  Row(
+            Row(
+              children: [
+                _buildProfileAvatar(
+                  patientImageUrl,
+                  _selectedPatient!.name,
+                  size: 45,
+                ),
+                SizedBox(width: spacingSmall),
+                Icon(Icons.arrow_forward, color: widget.theme.subtextColor, size: 20),
+                SizedBox(width: spacingSmall),
+                _buildProfileAvatar(
+                  caretakerImageUrl,
+                  widget.userData['name'] ?? 'You',
+                  size: 45,
+                ),
+                SizedBox(width: spacingMedium),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tracking ${_isTracking ? "Active" : "Paused"}',
-                        style: caption.copyWith(
-                          fontSize: 12,
-                          color: _isTracking ? Colors.green : widget.theme.subtextColor,
-                          fontWeight: _isTracking ? FontWeight.w600 : FontWeight.normal,
+                        _selectedPatient!.name,
+                        style: bodyBold.copyWith(
+                          fontSize: 14,
+                          color: widget.theme.textColor,
                         ),
                       ),
-                      if (_distanceToPatient != null) ...[
-                        Text(' • ', style: caption.copyWith(color: widget.theme.subtextColor)),
-                        Icon(Icons.navigation, size: 12, color: primary),
-                        SizedBox(width: 2),
-                        Text(
-                          _distanceToPatient!,
-                          style: caption.copyWith(
-                            fontSize: 12,
-                            color: primary,
-                            fontWeight: FontWeight.w700,
+                      Row(
+                        children: [
+                          Text(
+                            'Tracking ${_isTracking ? "Active" : "Paused"}',
+                            style: caption.copyWith(
+                              fontSize: 12,
+                              color: _isTracking ? Colors.green : widget.theme.subtextColor,
+                              fontWeight: _isTracking ? FontWeight.w600 : FontWeight.normal,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: _isTracking
-                    ? Colors.green.withOpacity(0.2)
-                    : widget.theme.subtextColor.withOpacity(0.1),
-                shape: BoxShape.circle,
+            if (_distanceToPatient != null && _estimatedTime != null) ...[
+              SizedBox(height: spacingSmall),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: spacingSmall,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(radiusSmall),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.navigation, size: 14, color: primary),
+                    SizedBox(width: 4),
+                    Text(
+                      '$_distanceToPatient • $_estimatedTime',
+                      style: caption.copyWith(
+                        fontSize: 12,
+                        color: primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Icon(
-                _isTracking ? Icons.gps_fixed_rounded : Icons.gps_not_fixed_rounded,
-                color: _isTracking ? Colors.green : widget.theme.subtextColor,
-                size: 16,
-              ),
-            ),
+            ],
           ],
         ),
       ),
@@ -913,7 +948,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
               icon: Icons.directions_rounded,
               label: 'Navigate',
               color: primary,
-              onTap: _openNavigation,
+              onTap: _openGoogleMapsNavigation,
             ),
           ),
           SizedBox(width: spacingSmall),
@@ -1005,7 +1040,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
               icon: Icons.directions_rounded,
               label: 'Navigate',
               color: primary,
-              onTap: _openNavigation,
+              onTap: _openGoogleMapsNavigation,
             ),
           ],
         ],
