@@ -11,7 +11,13 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+        <!-- Location permissions -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     
+    <!-- Internet permission for map tiles -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Camera Feature -->
     <uses-feature android:name="android.camera.any" android:required="false" />
     <uses-feature android:name="android.camera" android:required="false" />

@@ -47,17 +47,17 @@ class _RequestsContentState extends State<RequestsContent>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
     _initializeCaretakerId();
   }
 
   Future<void> _initializeCaretakerId() async {
-    // Try multiple ways to get the caretaker ID
     String? caretakerId;
     
-    // Method 1: From userData
     caretakerId = widget.userData['uid'] as String?;
     
-    // Method 2: From Firebase Auth
     if (caretakerId == null || caretakerId.isEmpty) {
       final user = FirebaseAuth.instance.currentUser;
       caretakerId = user?.uid;
@@ -112,11 +112,9 @@ class _RequestsContentState extends State<RequestsContent>
             _isLoading = false;
             _error = null;
             
-            // Update pending request count
             widget.onRequestCountChange(_pendingRequests.length);
           });
           
-          // Preload profile images for visible requests
           _preloadProfileImages(requests);
         }
       },
@@ -141,7 +139,6 @@ class _RequestsContentState extends State<RequestsContent>
   }
 
   Future<String?> _getProfileImage(String patientId) async {
-    // Check cache first
     if (_profileImageCache.containsKey(patientId)) {
       return _profileImageCache[patientId];
     }
@@ -179,7 +176,6 @@ class _RequestsContentState extends State<RequestsContent>
     
     setState(() => _isLoading = true);
     
-    // The stream will automatically update the data
     await Future.delayed(Duration(milliseconds: 500));
     
     if (mounted) {
@@ -192,7 +188,6 @@ class _RequestsContentState extends State<RequestsContent>
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
 
-    // Error State
     if (_error != null && !_isLoading) {
       return Container(
         height: height - 200,
@@ -201,7 +196,6 @@ class _RequestsContentState extends State<RequestsContent>
       );
     }
 
-    // Loading State (only on initial load)
     if (_isLoading && _pendingRequests.isEmpty && _activeRequests.isEmpty && _completedRequests.isEmpty) {
       return Container(
         height: height - 200,
@@ -228,50 +222,239 @@ class _RequestsContentState extends State<RequestsContent>
       );
     }
 
-    // Main Content - Everything scrolls together
     return RefreshIndicator(
       onRefresh: _refreshRequests,
+      color: primary,
       child: SingleChildScrollView(
         physics: AlwaysScrollableScrollPhysics(),
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+          padding: EdgeInsets.only(
+            left: width * 0.05,
+            right: width * 0.05,
+            top: spacingMedium,
+            bottom: 100,
+          ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: spacingSmall),
+              // Stats Overview Cards
+              _buildStatsOverview(),
               
-              // Modern Segmented Tab Bar - SCROLLS WITH CONTENT
-              Container(
-                padding: EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: widget.isDarkMode 
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.black.withOpacity(0.04),
-                  borderRadius: BorderRadius.circular(radiusLarge),
-                  border: Border.all(
-                    color: widget.isDarkMode 
-                      ? Colors.white.withOpacity(0.08)
-                      : Colors.black.withOpacity(0.06),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    _buildTabButton(0, 'Pending', _pendingRequests.length, Colors.orange),
-                    SizedBox(width: 4),
-                    _buildTabButton(1, 'Active', _activeRequests.length, Colors.blue),
-                    SizedBox(width: 4),
-                    _buildTabButton(2, 'Completed', _completedRequests.length, Colors.green),
-                  ],
-                ),
-              ),
+              SizedBox(height: spacingXLarge),
+              
+              // Tab Bar
+              _buildTabBar(),
               
               SizedBox(height: spacingLarge),
               
-              // Request Lists - Based on selected tab
+              // Request Lists
               _buildCurrentTabContent(),
-              
-              SizedBox(height: 100), // Bottom padding
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsOverview() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.pending_actions_rounded,
+            label: 'Pending',
+            count: _pendingRequests.length,
+            color: Colors.orange,
+            gradientColors: [
+              Colors.orange.withOpacity(0.15),
+              Colors.orange.withOpacity(0.05),
+            ],
+          ),
+        ),
+        SizedBox(width: spacingMedium),
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.access_time_rounded,
+            label: 'Active',
+            count: _activeRequests.length,
+            color: Colors.blue,
+            gradientColors: [
+              Colors.blue.withOpacity(0.15),
+              Colors.blue.withOpacity(0.05),
+            ],
+          ),
+        ),
+        SizedBox(width: spacingMedium),
+        Expanded(
+          child: _buildStatCard(
+            icon: Icons.check_circle_rounded,
+            label: 'Done',
+            count: _completedRequests.length,
+            color: Colors.green,
+            gradientColors: [
+              Colors.green.withOpacity(0.15),
+              Colors.green.withOpacity(0.05),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required String label,
+    required int count,
+    required Color color,
+    required List<Color> gradientColors,
+  }) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        vertical: spacingLarge,
+        horizontal: spacingSmall,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(radiusLarge),
+        border: Border.all(
+          color: color.withOpacity(widget.isDarkMode ? 0.3 : 0.25),
+          width: 1,
+        ),
+        boxShadow: widget.isDarkMode
+            ? [
+                BoxShadow(
+                  color: color.withOpacity(0.1),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 28),
+          SizedBox(height: spacingSmall),
+          Text(
+            count.toString(),
+            style: h2.copyWith(
+              fontSize: 24,
+              color: widget.theme.textColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            label,
+            style: caption.copyWith(
+              fontSize: 12,
+              color: widget.theme.subtextColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      padding: EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusLarge),
+        boxShadow: widget.isDarkMode
+            ? [
+                BoxShadow(
+                  color: primary.withOpacity(0.1),
+                  blurRadius: 16,
+                  offset: Offset(0, 4),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
+        border: widget.isDarkMode
+            ? Border.all(color: primary.withOpacity(0.2), width: 1)
+            : Border.all(color: Colors.black.withOpacity(0.06), width: 1),
+      ),
+      child: Row(
+        children: [
+          _buildTab(0, Icons.pending_actions_rounded, 'Pending', Colors.orange),
+          _buildTab(1, Icons.trending_up_rounded, 'Active', Colors.blue),
+          _buildTab(2, Icons.history_rounded, 'History', Colors.green),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(int index, IconData icon, String label, Color accentColor) {
+    final isSelected = _tabController.index == index;
+    
+    return Expanded(
+      child: Semantics(
+        label: '$label tab',
+        selected: isSelected,
+        button: true,
+        child: GestureDetector(
+          onTap: () {
+            _tabController.animateTo(index);
+          },
+          child: AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.symmetric(vertical: spacingMedium),
+            decoration: BoxDecoration(
+              gradient: isSelected
+                  ? LinearGradient(
+                      colors: [accentColor, accentColor.withOpacity(0.8)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : null,
+              color: isSelected ? null : Colors.transparent,
+              borderRadius: BorderRadius.circular(radiusMedium),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: accentColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ]
+                  : [],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: isSelected ? white : widget.theme.subtextColor,
+                ),
+                SizedBox(height: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? white : widget.theme.subtextColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -296,37 +479,7 @@ class _RequestsContentState extends State<RequestsContent>
     }
 
     if (currentRequests.isEmpty) {
-      return Container(
-        height: 300,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'No requests yet',
-                style: h2.copyWith(
-                  color: widget.theme.textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: spacingSmall),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: spacingLarge),
-                child: Text(
-                  'When new requests arrive, they will appear here',
-                  style: body.copyWith(
-                    color: widget.theme.subtextColor,
-                    fontSize: 14,
-                    height: 1.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
+      return _buildEmptyState();
     }
 
     return Column(
@@ -339,6 +492,62 @@ class _RequestsContentState extends State<RequestsContent>
     );
   }
 
+ Widget _buildEmptyState() {
+  String message;
+  IconData icon;
+
+  switch (_tabController.index) {
+    case 0:
+      message = 'No pending requests\nYou\'re all caught up!';
+      icon = Icons.inbox_rounded;
+      break;
+    case 1:
+      message = 'No active requests\nStart accepting requests to see them here';
+      icon = Icons.task_alt_rounded;
+      break;
+    case 2:
+      message = 'No completed requests yet\nYour history will appear here';
+      icon = Icons.history_rounded;
+      break;
+    default:
+      message = 'No requests yet';
+      icon = Icons.inbox_rounded;
+  }
+
+  return Center(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: EdgeInsets.all(spacingXLarge),
+          decoration: BoxDecoration(
+            color: widget.isDarkMode
+                ? primary.withOpacity(0.1)
+                : primary.withOpacity(0.08),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 64,
+            color: primary.withOpacity(0.5),
+          ),
+        ),
+        SizedBox(height: spacingLarge),
+        Text(
+          message,
+          style: body.copyWith(
+            color: widget.theme.subtextColor,
+            fontSize: 15,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    ),
+  );
+}
+
   Widget _buildErrorState() {
     return Center(
       child: Padding(
@@ -346,10 +555,17 @@ class _RequestsContentState extends State<RequestsContent>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 80,
-              color: error.withOpacity(0.5),
+            Container(
+              padding: EdgeInsets.all(spacingXLarge),
+              decoration: BoxDecoration(
+                color: error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: error,
+              ),
             ),
             SizedBox(height: spacingLarge),
             Text(
@@ -383,8 +599,11 @@ class _RequestsContentState extends State<RequestsContent>
                 backgroundColor: primary,
                 foregroundColor: white,
                 padding: EdgeInsets.symmetric(
-                  horizontal: spacingLarge,
+                  horizontal: spacingXLarge,
                   vertical: spacingMedium,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
                 ),
               ),
             ),
@@ -394,431 +613,306 @@ class _RequestsContentState extends State<RequestsContent>
     );
   }
 
-  Widget _buildTabButton(int index, String label, int count, Color accentColor) {
-    final isSelected = _tabController.index == index;
-    
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          _tabController.animateTo(index);
-          setState(() {});
-        },
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          padding: EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-          decoration: BoxDecoration(
-            gradient: isSelected
-                ? LinearGradient(
-                    colors: [
-                      accentColor,
-                      accentColor.withOpacity(0.8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: isSelected ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(radiusMedium),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: accentColor.withOpacity(0.4),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                      spreadRadius: -2,
-                    ),
-                  ]
-                : [],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                        color: isSelected
-                            ? white
-                            : widget.theme.subtextColor,
-                        letterSpacing: 0.3,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (count > 0) ...[
-                    SizedBox(width: 6),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? white.withOpacity(0.25)
-                            : accentColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(radiusSmall),
-                        border: Border.all(
-                          color: isSelected
-                              ? white.withOpacity(0.4)
-                              : accentColor.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        count.toString(),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          color: isSelected ? white : accentColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildRequestCard(RequestModel request) {
     final priorityColor = request.getPriorityColor();
     final cachedImage = _profileImageCache[request.patientId];
     
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: priorityColor.withOpacity(widget.isDarkMode ? 0.3 : 0.18),
-            blurRadius: 24,
-            offset: Offset(0, 10),
-            spreadRadius: -4,
-          ),
-        ],
-        borderRadius: BorderRadius.circular(radiusLarge),
-      ),
-      child: Material(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => RequestDetailsScreen(
-                  request: request,
-                  isDarkMode: widget.isDarkMode,
-                  requestService: widget.requestService,
+    return Semantics(
+      label: 'Request from ${request.patientName}',
+      button: true,
+      child: Container(
+        decoration: BoxDecoration(
+          boxShadow: widget.isDarkMode
+              ? [
+                  BoxShadow(
+                    color: priorityColor.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 16,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+          borderRadius: BorderRadius.circular(radiusXLarge),
+        ),
+        child: Material(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => RequestDetailsScreen(
+                    request: request,
+                    isDarkMode: widget.isDarkMode,
+                    requestService: widget.requestService,
+                  ),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(radiusXLarge),
+            splashColor: priorityColor.withOpacity(0.1),
+            child: Container(
+              padding: EdgeInsets.all(spacingLarge * 1.2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(radiusXLarge),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? primary.withOpacity(0.2)
+                      : Colors.black.withOpacity(0.06),
+                  width: 1,
                 ),
               ),
-            );
-          },
-          borderRadius: BorderRadius.circular(radiusLarge),
-          splashColor: priorityColor.withOpacity(0.1),
-          child: Container(
-            padding: EdgeInsets.all(spacingLarge),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  priorityColor.withOpacity(widget.isDarkMode ? 0.15 : 0.06),
-                  priorityColor.withOpacity(widget.isDarkMode ? 0.08 : 0.03),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: Border.all(
-                color: priorityColor.withOpacity(widget.isDarkMode ? 0.5 : 0.4),
-                width: 2,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Profile Image - Updated shadow to match container color
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: widget.isDarkMode ? primary.withOpacity(0.3) : Colors.white,
-                          width: 2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: priorityColor.withOpacity(widget.isDarkMode ? 0.3 : 0.18),
-                            blurRadius: 8,
-                            offset: Offset(0, 2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      // Profile Image
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: widget.isDarkMode
+                                ? primary.withOpacity(0.3)
+                                : Colors.white,
+                            width: 2,
                           ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: cachedImage != null && cachedImage.isNotEmpty
-                            ? Image.network(
-                                cachedImage,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return _buildDefaultAvatar(primary);
-                                },
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(primary),
-                                    ),
-                                  );
-                                },
-                              )
-                            : FutureBuilder<String?>(
-                                future: _getProfileImage(request.patientId),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                          boxShadow: [
+                            BoxShadow(
+                              color: primary.withOpacity(0.15),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: cachedImage != null && cachedImage.isNotEmpty
+                              ? Image.network(
+                                  cachedImage,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildDefaultAvatar();
+                                  },
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
                                     return Center(
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(primary),
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                            primary),
                                       ),
                                     );
-                                  }
-                                  if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
-                                    return Image.network(
-                                      snapshot.data!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return _buildDefaultAvatar(primary);
-                                      },
-                                    );
-                                  }
-                                  return _buildDefaultAvatar(primary);
-                                },
-                              ),
+                                  },
+                                )
+                              : FutureBuilder<String?>(
+                                  future: _getProfileImage(request.patientId),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  primary),
+                                        ),
+                                      );
+                                    }
+                                    if (snapshot.hasData &&
+                                        snapshot.data != null &&
+                                        snapshot.data!.isNotEmpty) {
+                                      return Image.network(
+                                        snapshot.data!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return _buildDefaultAvatar();
+                                        },
+                                      );
+                                    }
+                                    return _buildDefaultAvatar();
+                                  },
+                                ),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: spacingMedium),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  request.patientName,
-                                  style: bodyBold.copyWith(
-                                    fontSize: 18,
-                                    color: widget.theme.textColor,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: spacingSmall * 1.2,
-                                  vertical: 5,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      priorityColor,
-                                      priorityColor.withOpacity(0.8),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(radiusSmall),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: priorityColor.withOpacity(0.4),
-                                      blurRadius: 6,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  request.priority.toString().split('.').last.toUpperCase(),
-                                  style: caption.copyWith(
-                                    color: white,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 11,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: spacingXSmall),
-                          Text(
-                            request.requestType,
-                            style: body.copyWith(
-                              fontSize: 14,
-                              color: widget.theme.subtextColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                
-                SizedBox(height: spacingMedium),
-                
-                // Request Message with Visual Impaired Badge
-                Container(
-                  padding: EdgeInsets.all(spacingMedium),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(radiusMedium),
-                    border: Border.all(
-                      color: widget.isDarkMode
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.black.withOpacity(0.08),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: spacingSmall,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(radiusSmall),
-                              border: Border.all(
-                                color: Colors.blue.withOpacity(0.3),
-                                width: 1,
+                      SizedBox(width: spacingMedium),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              request.patientName,
+                              style: bodyBold.copyWith(
+                                fontSize: 17,
+                                color: widget.theme.textColor,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                            SizedBox(height: 4),
+                            Row(
                               children: [
                                 Icon(
-                                  Icons.accessibility_new_rounded,
+                                  request.getIcon(),
                                   size: 14,
-                                  color: Colors.blue,
+                                  color: widget.theme.subtextColor,
                                 ),
                                 SizedBox(width: 4),
-                                Text(
-                                  'VISUALLY IMPAIRED',
-                                  style: caption.copyWith(
-                                    color: Colors.blue,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 10,
-                                    letterSpacing: 0.5,
+                                Expanded(
+                                  child: Text(
+                                    request.requestType,
+                                    style: caption.copyWith(
+                                      fontSize: 13,
+                                      color: widget.theme.subtextColor,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: spacingSmall),
-                      Text(
-                        request.message,
-                        style: body.copyWith(
-                          fontSize: 15,
-                          color: widget.theme.textColor,
-                          height: 1.4,
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                
-                SizedBox(height: spacingMedium),
-                
-                // Time and Location Info
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: spacingSmall,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.theme.subtextColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(radiusSmall),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.access_time_rounded,
-                            size: 16,
-                            color: widget.theme.subtextColor,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            _getTimeAgo(request.timestamp),
-                            style: caption.copyWith(
-                              fontSize: 13,
-                              color: widget.theme.subtextColor,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (request.location != null) ...[
-                      SizedBox(width: spacingSmall),
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: spacingSmall,
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(radiusSmall),
-                          border: Border.all(
-                            color: Colors.green.withOpacity(0.3),
-                            width: 1,
+                          gradient: LinearGradient(
+                            colors: [priorityColor, priorityColor.withOpacity(0.8)],
                           ),
+                          borderRadius: BorderRadius.circular(radiusSmall),
+                          boxShadow: [
+                            BoxShadow(
+                              color: priorityColor.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          request.priority
+                              .toString()
+                              .split('.')
+                              .last
+                              .toUpperCase(),
+                          style: caption.copyWith(
+                            color: white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: spacingMedium),
+                  Container(
+                    padding: EdgeInsets.all(spacingMedium),
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    child: Text(
+                      request.message,
+                      style: body.copyWith(
+                        fontSize: 14,
+                        color: widget.theme.textColor,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  SizedBox(height: spacingMedium),
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: spacingSmall,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: widget.theme.subtextColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(radiusSmall),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              Icons.location_on_rounded,
-                              size: 16,
-                              color: Colors.green,
+                              Icons.access_time_rounded,
+                              size: 14,
+                              color: widget.theme.subtextColor,
                             ),
-                            SizedBox(width: 6),
+                            SizedBox(width: 4),
                             Text(
-                              'Location',
+                              _getTimeAgo(request.timestamp),
                               style: caption.copyWith(
-                                fontSize: 13,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
                       ),
+                      if (request.location != null) ...[
+                        SizedBox(width: spacingSmall),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: spacingSmall,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(radiusSmall),
+                            border: Border.all(
+                              color: Colors.green.withOpacity(0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.location_on_rounded,
+                                size: 14,
+                                color: Colors.green,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Location',
+                                style: caption.copyWith(
+                                  fontSize: 12,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      Spacer(),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: primary,
+                      ),
                     ],
-                    Spacer(),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 18,
-                      color: priorityColor,
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -826,7 +920,7 @@ class _RequestsContentState extends State<RequestsContent>
     );
   }
 
-  Widget _buildDefaultAvatar(Color priorityColor) {
+  Widget _buildDefaultAvatar() {
     return Container(
       decoration: BoxDecoration(
         gradient: primaryGradient,
@@ -835,7 +929,7 @@ class _RequestsContentState extends State<RequestsContent>
         child: Icon(
           Icons.person_rounded,
           color: white,
-          size: 32,
+          size: 28,
         ),
       ),
     );
@@ -847,7 +941,7 @@ class _RequestsContentState extends State<RequestsContent>
     if (difference.inMinutes < 1) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} min ago';
+      return '${difference.inMinutes}m ago';
     } else if (difference.inHours < 24) {
       return '${difference.inHours}h ago';
     } else {

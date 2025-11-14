@@ -16,7 +16,7 @@ import 'package:seelai_app/roles/visually_impaired/services/accessibility_servic
 import 'package:seelai_app/firebase/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
-import 'package:seelai_app/roles/visually_impaired/screens/camera_scanner_screen.dart';
+import 'package:seelai_app/roles/visually_impaired/camera_scanner/camera_scanner_screen.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -649,15 +649,22 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           child: Column(
             children: [
               HeaderSection(
-                userName: userName,
-                isDarkMode: _isDarkMode,
-                onVoiceAssistant: _activateVoiceAssistant,
-                onToggleDarkMode: _toggleDarkMode,
-                onNotificationTap: _openNotifications,
-                textColor: theme.textColor,
-                subtextColor: theme.subtextColor,
-                unreadNotificationCount: _unreadNotificationCount,
-              ),
+              userName: userName,
+              profileImageUrl: widget.userData['profileImageUrl'] as String?, // ← ADD THIS LINE
+              isDarkMode: _isDarkMode,
+              onVoiceAssistant: _activateVoiceAssistant,
+              onToggleDarkMode: _toggleDarkMode,
+              onNotificationTap: _openNotifications,
+              onProfileTap: () {
+                // Navigate to profile tab when tapped
+                setState(() {
+                  _selectedIndex = 4; // Profile is at index 4
+                });
+              },
+              textColor: theme.textColor,
+              subtextColor: theme.subtextColor,
+              unreadNotificationCount: _unreadNotificationCount,
+            ),
               
               Expanded(
                 child: FadeTransition(
@@ -692,9 +699,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
- // Replace the _buildMainContent method in home_screen.dart with this:
-
-Widget _buildMainContent(double width, double height, _AppTheme theme) {
+ Widget _buildMainContent(double width, double height, _AppTheme theme) {
   Widget content;
   final userId = widget.userData['uid'] as String? ?? '';
   
@@ -707,16 +712,16 @@ Widget _buildMainContent(double width, double height, _AppTheme theme) {
         theme: theme,
         onNotificationUpdate: _updateNotification,
         onRequestCaretaker: _requestCaretaker,
+        userData: widget.userData,
       );
       break;
     case 1:
-      // Now ContactsContent is treated like other sections
-      content = ContactsContent(
+      // Don't wrap ContactsContent - it has its own scroll
+      return ContactsContent(
         isDarkMode: _isDarkMode,
         theme: theme,
         userData: widget.userData,
       );
-      break;
     case 3:
       content = RecentActivitiesContent(
         isDarkMode: _isDarkMode,
@@ -739,16 +744,18 @@ Widget _buildMainContent(double width, double height, _AppTheme theme) {
         theme: theme,
         onNotificationUpdate: _updateNotification,
         onRequestCaretaker: _requestCaretaker,
+        userData: widget.userData,
       );
   }
   
-  // All sections now use the same scroll controller
+  // Only wrap non-Contacts sections in SingleChildScrollView
   return SingleChildScrollView(
     controller: _scrollController,
     physics: ClampingScrollPhysics(),
     child: content,
   );
 }
+
 
   _AppTheme _getDarkTheme() {
     return _AppTheme(

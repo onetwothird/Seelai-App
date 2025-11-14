@@ -1,7 +1,6 @@
 // File: lib/roles/visually_impaired/services/emergency_service.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:seelai_app/roles/visually_impaired/models/emergency_hotline_model.dart';
 
 class EmergencyService {
   // Make emergency call
@@ -68,36 +67,5 @@ class EmergencyService {
     }
   }
 
-  // Get sample/default emergency hotlines
-  List<EmergencyHotline> getDefaultHotlines() {
-    return [
-      EmergencyHotline(
-        id: 'hotline_1',
-        departmentName: 'Police Station',
-        phoneNumber: '911',
-        address: 'Local Police Headquarters',
-        description: 'Emergency police assistance',
-        icon: Icons.local_police_rounded,
-        color: Colors.blue,
-      ),
-      EmergencyHotline(
-        id: 'hotline_2',
-        departmentName: 'Fire Station',
-        phoneNumber: '911',
-        address: 'Local Fire Department',
-        description: 'Fire and rescue services',
-        icon: Icons.local_fire_department_rounded,
-        color: Colors.red,
-      ),
-      EmergencyHotline(
-        id: 'hotline_3',
-        departmentName: 'Hospital/Ambulance',
-        phoneNumber: '911',
-        address: 'Emergency Medical Services',
-        description: 'Medical emergency services',
-        icon: Icons.local_hospital_rounded,
-        color: Colors.green,
-      ),
-    ];
-  }
+  
 }

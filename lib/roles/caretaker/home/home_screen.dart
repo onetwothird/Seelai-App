@@ -1,3 +1,4 @@
+// File: lib/roles/caretaker/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/header_section.dart';
@@ -43,8 +44,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   final ScrollController _scrollController = ScrollController();
   bool _isNavVisible = true;
   double _lastScrollPosition = 0;
-  
-  // Notification
 
   @override
   void initState() {
@@ -173,9 +172,22 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             children: [
               HeaderSection(
                 caretakerName: caretakerName,
+                profileImageUrl: widget.userData['profileImageUrl'] as String?, // ← FETCH PROFILE PICTURE
                 isDarkMode: _isDarkMode,
                 pendingRequestsCount: _pendingRequestsCount,
                 onToggleDarkMode: _toggleDarkMode,
+                onProfileTap: () {
+                  // Navigate to profile tab when tapped
+                  setState(() {
+                    _selectedIndex = 3; // Profile is at index 3
+                  });
+                },
+                onNotificationTap: () {
+                  // Navigate to requests tab when tapped
+                  setState(() {
+                    _selectedIndex = 2; // Requests is at index 2
+                  });
+                },
                 textColor: theme.textColor,
                 subtextColor: theme.subtextColor,
               ),

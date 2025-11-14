@@ -78,6 +78,8 @@ class _ProfileContentState extends State<ProfileContent>
     final caretakerName = widget.userData['name'] ?? 'Caretaker';
     final caretakerEmail = widget.userData['email'] ?? '';
     final relationship = widget.userData['relationship'] ?? '';
+    final profileImageUrl = widget.userData['profileImageUrl'] as String?;
+    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
     
     return Container(
       padding: EdgeInsets.all(spacingLarge),
@@ -108,21 +110,8 @@ class _ProfileContentState extends State<ProfileContent>
       ),
       child: Row(
         children: [
-          Container(
-            padding: EdgeInsets.all(spacingMedium + 2),
-            decoration: BoxDecoration(
-              // ignore: deprecated_member_use
-              color: white.withOpacity(0.2),
-              shape: BoxShape.circle,
-              // ignore: deprecated_member_use
-              border: Border.all(color: white.withOpacity(0.3), width: 2),
-            ),
-            child: Icon(
-              Icons.person_rounded,
-              size: 36,
-              color: white,
-            ),
-          ),
+          // Profile Picture
+          _buildProfileAvatar(hasProfileImage, profileImageUrl),
           
           SizedBox(width: spacingMedium),
           
@@ -189,6 +178,82 @@ class _ProfileContentState extends State<ProfileContent>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Build profile avatar - shows profile picture or fallback icon
+  Widget _buildProfileAvatar(bool hasProfileImage, String? profileImageUrl) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: hasProfileImage ? null : null,
+        border: Border.all(
+          // ignore: deprecated_member_use
+          color: white.withOpacity(0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            // ignore: deprecated_member_use
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: hasProfileImage
+            ? Image.network(
+                profileImageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback to icon if image fails to load
+                  return Container(
+                    decoration: BoxDecoration(
+                      // ignore: deprecated_member_use
+                      color: white.withOpacity(0.2),
+                    ),
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: white,
+                      size: 32,
+                    ),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    decoration: BoxDecoration(
+                      // ignore: deprecated_member_use
+                      color: white.withOpacity(0.2),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(white),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  // ignore: deprecated_member_use
+                  color: white.withOpacity(0.2),
+                ),
+                child: Icon(
+                  Icons.person_rounded,
+                  color: white,
+                  size: 32,
+                ),
+              ),
       ),
     );
   }
