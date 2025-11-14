@@ -56,8 +56,6 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
       ),
       child: Column(
         children: [
-          // Profile Header Card
-          _buildProfileHeader(width),
           
           SizedBox(height: spacingLarge),
           
@@ -78,148 +76,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     );
   }
 
-  Widget _buildProfileHeader(double width) {
-    final userName = widget.userData['name'] ?? 'User';
-    final userEmail = widget.userData['email'] ?? '';
-    final idNumber = widget.userData['idNumber'] ?? '';
-    final profileImageUrl = widget.userData['profileImageUrl'] as String?;
-    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
-    
-    return Semantics(
-      label: 'Profile header for $userName',
-      child: Container(
-        padding: EdgeInsets.all(spacingLarge * 1.2),
-        decoration: BoxDecoration(
-          gradient: widget.isDarkMode 
-            ? LinearGradient(
-                colors: [
-                  primary.withOpacity(0.25),
-                  accent.withOpacity(0.15),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : primaryGradient,
-          borderRadius: BorderRadius.circular(radiusXLarge),
-          boxShadow: widget.isDarkMode 
-            ? [
-                BoxShadow(
-                  color: primary.withOpacity(0.2),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: primary.withOpacity(0.3),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ],
-        ),
-        child: Column(
-          children: [
-            // Avatar
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: hasProfileImage ? null : LinearGradient(
-                  colors: [white.withOpacity(0.3), white.withOpacity(0.1)],
-                ),
-                border: Border.all(color: white.withOpacity(0.4), width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: hasProfileImage
-                    ? Image.network(
-                        profileImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildDefaultAvatar(80);
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(white),
-                            ),
-                          );
-                        },
-                      )
-                    : _buildDefaultAvatar(80),
-              ),
-            ),
-            
-            SizedBox(height: spacingMedium),
-            
-            // Name
-            Text(
-              userName,
-              style: h2.copyWith(
-                fontSize: 22,
-                color: white,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            SizedBox(height: 6),
-            
-            // Email
-            Text(
-              userEmail,
-              style: body.copyWith(
-                fontSize: 13,
-                color: white.withOpacity(0.9),
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            if (idNumber.isNotEmpty) ...[
-              SizedBox(height: spacingMedium),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: spacingMedium,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(radiusMedium),
-                  border: Border.all(color: white.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.badge_outlined, color: white, size: 14),
-                    SizedBox(width: 6),
-                    Text(
-                      'ID: $idNumber',
-                      style: caption.copyWith(
-                        color: white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  
 
   Widget _buildTabBar(double width) {
     return Container(
@@ -317,12 +174,13 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
 
   Widget _buildMyProfileTab(double width) {
     final name = widget.userData['name'] ?? '';
+    final email = widget.userData['email'] ?? '';
+    final idNumber = widget.userData['idNumber'] ?? '';
     final sex = widget.userData['sex'] ?? '';
     final age = widget.userData['age'] ?? 0;
     final birthdateStr = widget.userData['birthdate'] ?? '';
     final address = widget.userData['address'] ?? '';
     final contactNumber = widget.userData['contactNumber'] ?? '';
-    final email = widget.userData['email'] ?? '';
     
     String formattedBirthdate = '';
     if (birthdateStr.isNotEmpty) {
@@ -343,20 +201,13 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
         
         _buildInfoCard([
           _InfoItem(icon: Icons.person_outline, label: 'Full Name', value: name),
-          _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
-          _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: '$age years old'),
-          _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
-        ]),
-        
-        SizedBox(height: spacingLarge),
-        
-        _buildSectionLabel('Contact Information', Icons.contact_phone_rounded),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildInfoCard([
-          _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: contactNumber),
           _InfoItem(icon: Icons.email_outlined, label: 'Email', value: email),
+          if (idNumber.isNotEmpty)
+            _InfoItem(icon: Icons.badge_outlined, label: 'ID Number', value: idNumber),
+          _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
+          _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: age > 0 ? '$age years old' : 'Not specified'),
+          _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
+          _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: contactNumber),
           _InfoItem(icon: Icons.home_outlined, label: 'Address', value: address),
         ]),
         
@@ -828,49 +679,6 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
             child: Text(isDanger ? 'Delete' : 'Confirm'),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildDefaultAvatar(double size) {
-    String initials = '';
-    final userName = widget.userData['name'] ?? '';
-    if (userName.isNotEmpty) {
-      List<String> nameParts = userName.trim().split(' ');
-      if (nameParts.length >= 2) {
-        initials = nameParts[0][0].toUpperCase() + nameParts[1][0].toUpperCase();
-      } else {
-        initials = nameParts[0].substring(0, nameParts[0].length >= 2 ? 2 : 1).toUpperCase();
-      }
-    }
-    
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            white.withOpacity(0.3),
-            white.withOpacity(0.1),
-          ],
-        ),
-      ),
-      child: Center(
-        child: initials.isNotEmpty
-            ? Text(
-                initials,
-                style: TextStyle(
-                  color: white,
-                  fontSize: size * 0.35,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              )
-            : Icon(
-                Icons.person,
-                size: size * 0.5,
-                color: white,
-              ),
       ),
     );
   }

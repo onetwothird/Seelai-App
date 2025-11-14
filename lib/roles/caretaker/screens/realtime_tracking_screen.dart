@@ -11,6 +11,10 @@ import 'dart:async';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
+
 
 class RealtimeTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -76,7 +80,116 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       areaLimit: BoundingBox.world(),
     );
   }
+Future<Uint8List?> _createProfileMarker({
+  required String? imageUrl,
+  required String name,
+  required Color borderColor,
+  double size = 120.0,
+}) async {
+  try {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
 
+    // Draw shadow
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.3)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
+
+    // Draw white border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 5, borderPaint);
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      // Try to load network image
+      try {
+        final response = await http.get(Uri.parse(imageUrl));
+        if (response.statusCode == 200) {
+          final codec = await ui.instantiateImageCodec(
+            response.bodyBytes,
+            targetWidth: size.toInt() - 20,
+            targetHeight: size.toInt() - 20,
+          );
+          final frame = await codec.getNextFrame();
+          
+          // Clip to circle
+          final path = Path()
+            ..addOval(Rect.fromCircle(
+              center: Offset(size / 2, size / 2),
+              radius: size / 2 - 10,
+            ));
+          canvas.clipPath(path);
+          
+          // Draw image
+          canvas.drawImageRect(
+            frame.image,
+            Rect.fromLTWH(0, 0, frame.image.width.toDouble(), frame.image.height.toDouble()),
+            Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10),
+            Paint(),
+          );
+        } else {
+          _drawDefaultMarkerAvatar(canvas, size, name, borderColor);
+        }
+      } catch (e) {
+        debugPrint('Error loading profile image: $e');
+        _drawDefaultMarkerAvatar(canvas, size, name, borderColor);
+      }
+    } else {
+      _drawDefaultMarkerAvatar(canvas, size, name, borderColor);
+    }
+
+    // Draw colored border
+    final coloredBorderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 7, coloredBorderPaint);
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size.toInt(), size.toInt());
+    final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+    
+    return byteData?.buffer.asUint8List();
+  } catch (e) {
+    debugPrint('Error creating marker: $e');
+    return null;
+  }
+}
+
+void _drawDefaultMarkerAvatar(Canvas canvas, double size, String name, Color color) {
+  // Draw gradient background
+  final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10);
+  final gradient = ui.Gradient.linear(
+    Offset(rect.left, rect.top),
+    Offset(rect.right, rect.bottom),
+    [color, color.withOpacity(0.7)],
+  );
+  final paint = Paint()..shader = gradient;
+  canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
+
+  // Draw initial
+  final textPainter = TextPainter(
+    text: TextSpan(
+      text: name.isNotEmpty ? name[0].toUpperCase() : '?',
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: size * 0.4,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+  textPainter.layout();
+  textPainter.paint(
+    canvas,
+    Offset(
+      size / 2 - textPainter.width / 2,
+      size / 2 - textPainter.height / 2,
+    ),
+  );
+}
   Future<void> _requestLocationPermission() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -267,17 +380,45 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   }
 
   Future<void> _updateMapMarkers() async {
-    if (!_isMapReady) return;
+  if (!_isMapReady) return;
 
-    try {
-      await _mapController.clearAllRoads();
+  try {
+    await _mapController.clearAllRoads();
 
-      if (_currentPatientLocation != null) {
-        final patientGeo = GeoPoint(
-          latitude: _currentPatientLocation!['latitude'] as double,
-          longitude: _currentPatientLocation!['longitude'] as double,
+    // Add patient marker with profile picture
+    if (_currentPatientLocation != null && _selectedPatient != null) {
+      final patientGeo = GeoPoint(
+        latitude: _currentPatientLocation!['latitude'] as double,
+        longitude: _currentPatientLocation!['longitude'] as double,
+      );
+
+      // Get patient profile image
+      final patientImageUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
+      final patientMarkerBytes = await _createProfileMarker(
+        imageUrl: patientImageUrl,
+        name: _selectedPatient!.name,
+        borderColor: primary,
+      );
+
+      if (patientMarkerBytes != null) {
+        await _mapController.addMarker(
+          patientGeo,
+          markerIcon: MarkerIcon(
+            iconWidget: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: MemoryImage(patientMarkerBytes),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
         );
-
+      } else {
+        // Fallback to icon marker
         await _mapController.addMarker(
           patientGeo,
           markerIcon: MarkerIcon(
@@ -288,26 +429,56 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
             ),
           ),
         );
-
-        if (_isTracking) {
-          await _mapController.drawCircle(
-            CircleOSM(
-              key: 'patient_circle',
-              centerPoint: patientGeo,
-              radius: _isPulseExpanded ? 80.0 : 40.0,
-              color: primary.withOpacity(0.2),
-              strokeWidth: 2,
-            ),
-          );
-        }
       }
 
-      if (_currentCaretakerLocation != null) {
-        final caretakerGeo = GeoPoint(
-          latitude: _currentCaretakerLocation!['latitude'] as double,
-          longitude: _currentCaretakerLocation!['longitude'] as double,
+      if (_isTracking) {
+        await _mapController.drawCircle(
+          CircleOSM(
+            key: 'patient_circle',
+            centerPoint: patientGeo,
+            radius: _isPulseExpanded ? 80.0 : 40.0,
+            color: primary.withOpacity(0.2),
+            strokeWidth: 2,
+          ),
         );
+      }
+    }
 
+    // Add caretaker marker with profile picture
+    if (_currentCaretakerLocation != null) {
+      final caretakerGeo = GeoPoint(
+        latitude: _currentCaretakerLocation!['latitude'] as double,
+        longitude: _currentCaretakerLocation!['longitude'] as double,
+      );
+
+      // Get caretaker profile image
+      final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
+      final caretakerName = widget.userData['name'] ?? 'You';
+      final caretakerMarkerBytes = await _createProfileMarker(
+        imageUrl: caretakerImageUrl,
+        name: caretakerName,
+        borderColor: Colors.blue,
+      );
+
+      if (caretakerMarkerBytes != null) {
+        await _mapController.addMarker(
+          caretakerGeo,
+          markerIcon: MarkerIcon(
+            iconWidget: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: MemoryImage(caretakerMarkerBytes),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+        );
+      } else {
+        // Fallback to icon marker
         await _mapController.addMarker(
           caretakerGeo,
           markerIcon: MarkerIcon(
@@ -319,11 +490,12 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
           ),
         );
       }
-
-    } catch (e) {
-      debugPrint('Error updating markers: $e');
     }
+
+  } catch (e) {
+    debugPrint('Error updating markers: $e');
   }
+}
 
   void _updateDistance() {
     if (_currentPatientLocation == null || _currentCaretakerLocation == null) {

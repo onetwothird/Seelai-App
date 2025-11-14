@@ -405,47 +405,40 @@ class _ContactsContentState extends State<ContactsContent> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final isLoading = (_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty;
+Widget build(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+  final isLoading = (_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty;
 
-    return RefreshIndicator(
-      onRefresh: _refreshContacts,
-      child: SingleChildScrollView(
-        physics: AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.only(
-          left: width * 0.05,
-          right: width * 0.05,
-          top: spacingMedium,
-          bottom: 100,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Section
-            _buildHeader(),
-            
-            SizedBox(height: spacingLarge),
-            
-            // Search Bar (only show if there are contacts)
-            if (_allContacts.isNotEmpty) ...[
-              _buildSearchBar(),
-              SizedBox(height: spacingLarge),
-            ],
-            
-            // Content
-            isLoading
-                ? _buildLoadingState()
-                : _error != null && _allContacts.isEmpty
-                    ? _buildErrorState()
-                    : _allContacts.isEmpty
-                        ? _buildEmptyState()
-                        : _buildContactsList(),
-          ],
-        ),
+  return RefreshIndicator(
+    onRefresh: _refreshContacts,
+    child: Padding(  // ✅ Changed from SingleChildScrollView to just Padding
+      padding: EdgeInsets.only(
+        left: width * 0.05,
+        right: width * 0.05,
+        top: spacingMedium,
+        bottom: 100,
       ),
-    );
-  }
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(),
+          SizedBox(height: spacingLarge),
+          if (_allContacts.isNotEmpty) ...[
+            _buildSearchBar(),
+            SizedBox(height: spacingLarge),
+          ],
+          isLoading
+              ? _buildLoadingState()
+              : _error != null && _allContacts.isEmpty
+                  ? _buildErrorState()
+                  : _allContacts.isEmpty
+                      ? _buildEmptyState()
+                      : _buildContactsList(),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildHeader() {
     final caretakerCount = _caretakerContacts.length;
