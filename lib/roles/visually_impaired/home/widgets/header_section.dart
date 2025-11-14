@@ -153,7 +153,7 @@ class HeaderSection extends StatelessWidget {
                           TextSpan(
                             text: 'Hello there, ',
                             style: body.copyWith(
-                              fontSize: 14,
+                              fontSize: 18,
                               color: subtextColor,
                               fontWeight: FontWeight.w400,
                               height: 1.3,
