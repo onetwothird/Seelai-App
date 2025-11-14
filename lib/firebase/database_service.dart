@@ -69,16 +69,12 @@ class DatabaseService {
         userData['sex'] = sex ?? 'Not Specified';
         userData['birthdate'] = birthdate?.toIso8601String() ?? 
             DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
-        userData['disabilityType'] = disabilityType ?? 'N/A';
-        userData['diagnosis'] = diagnosis ?? 'N/A';
         userData['address'] = address ?? '';
       } else if (role == 'admin') {
         userData['department'] = department ?? '';
         userData['sex'] = sex ?? 'Not Specified';
         userData['birthdate'] = birthdate?.toIso8601String() ?? 
             DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
-        userData['disabilityType'] = disabilityType ?? 'N/A';
-        userData['diagnosis'] = diagnosis ?? 'N/A';
         userData['address'] = address ?? '';
         userData['contactNumber'] = contactNumber ?? '';
       } else if (role == 'visually_impaired') {
@@ -90,8 +86,6 @@ class DatabaseService {
         userData['idNumber'] = idNumber;
         userData['sex'] = sex;
         userData['birthdate'] = birthdate.toIso8601String();
-        userData['disabilityType'] = disabilityType;
-        userData['diagnosis'] = diagnosis;
         userData['address'] = address;
         userData['contactNumber'] = contactNumber;
         userData['assignedCaretakers'] = {};
