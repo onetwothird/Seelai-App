@@ -408,6 +408,8 @@ class _PatientsContentState extends State<PatientsContent> {
                 color: widget.theme.subtextColor,
                 fontSize: 14,
                 height: 1.5,
+                fontWeight: FontWeight.w400,
+
               ),
               textAlign: TextAlign.center,
             ),
@@ -570,11 +572,11 @@ class _PatientsContentState extends State<PatientsContent> {
                                     ),
                                     SizedBox(width: 4),
                                     Text(
-                                      '${patient.age} yrs',
+                                      '${patient.age} y/o',
                                       style: caption.copyWith(
                                         fontSize: 12,
                                         color: primary,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
@@ -605,7 +607,7 @@ class _PatientsContentState extends State<PatientsContent> {
                                         style: caption.copyWith(
                                           fontSize: 12,
                                           color: accent,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -623,6 +625,8 @@ class _PatientsContentState extends State<PatientsContent> {
                                   Icons.location_on_rounded,
                                   size: 14,
                                   color: widget.theme.subtextColor,
+                                  fontWeight: FontWeight.w400,
+
                                 ),
                                 SizedBox(width: 4),
                                 Expanded(
@@ -631,6 +635,8 @@ class _PatientsContentState extends State<PatientsContent> {
                                     style: caption.copyWith(
                                       fontSize: 13,
                                       color: widget.theme.subtextColor,
+                                      fontWeight: FontWeight.w400,
+
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
