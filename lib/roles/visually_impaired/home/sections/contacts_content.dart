@@ -753,240 +753,236 @@ class _ContactsContentState extends State<ContactsContent> {
       );
     }
 
-    // Separate caretakers and emergency contacts
-    final caretakers = filteredContacts.where((c) => c.isCaretaker).toList();
-    final emergencyContacts = filteredContacts.where((c) => c.isEmergencyContact).toList();
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Caretakers Section
-        if (caretakers.isNotEmpty) ...[
-          _buildSectionLabel('My Caretakers', Icons.favorite_rounded, primary),
-          SizedBox(height: spacingMedium),
-          ...caretakers.map((contact) => Padding(
-            padding: EdgeInsets.only(bottom: spacingMedium),
-            child: _buildContactCard(contact),
-          )),
-          if (emergencyContacts.isNotEmpty)
-            SizedBox(height: spacingLarge),
-        ],
-        
-        // Emergency Contacts Section
-        if (emergencyContacts.isNotEmpty) ...[
-          _buildSectionLabel('Emergency Contacts', Icons.medical_services_rounded, error),
-          SizedBox(height: spacingMedium),
-          ...emergencyContacts.map((contact) => Padding(
-            padding: EdgeInsets.only(bottom: spacingMedium),
-            child: _buildContactCard(contact),
-          )),
-        ],
-      ],
-    );
-  }
+  // Separate caretakers and emergency contacts
+final caretakers = filteredContacts.where((c) => c.isCaretaker).toList();
+final emergencyContacts = filteredContacts.where((c) => c.isEmergencyContact).toList();
 
-  Widget _buildSectionLabel(String title, IconData icon, Color color) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(radiusSmall),
-          ),
-          child: Icon(icon, color: color, size: 16),
-        ),
-        SizedBox(width: spacingSmall),
-        Text(
-          title,
-          style: bodyBold.copyWith(
-            fontSize: 14,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
-    );
-  }
+return Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    // Caretakers Section
+    if (caretakers.isNotEmpty) ...[
+      _buildSectionLabel('My Caretakers', primary),
+      SizedBox(height: spacingMedium),
+      ...caretakers.map((contact) => Padding(
+        padding: EdgeInsets.only(bottom: spacingMedium),
+        child: _buildContactCard(contact),
+      )),
+      if (emergencyContacts.isNotEmpty)
+        SizedBox(height: spacingLarge),
+    ],
 
-  Widget _buildContactCard(ContactModel contact) {
-    return Container(
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: contact.color.withOpacity(0.1),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
-                  blurRadius: 12,
-                  offset: Offset(0, 3),
-                ),
-              ],
-        border: Border.all(
-          color: widget.isDarkMode
-              ? contact.color.withOpacity(0.2)
-              : Colors.black.withOpacity(0.06),
-          width: 1,
-        ),
+    // Emergency Contacts Section
+    if (emergencyContacts.isNotEmpty) ...[
+      _buildSectionLabel('Emergency Contacts', error),
+      SizedBox(height: spacingMedium),
+      ...emergencyContacts.map((contact) => Padding(
+        padding: EdgeInsets.only(bottom: spacingMedium),
+        child: _buildContactCard(contact),
+      )),
+    ],
+  ],
+);
+}
+
+
+/// SECTION LABEL WITHOUT ICON
+Widget _buildSectionLabel(String title, Color color) {
+  return Text(
+    title,
+    style: bodyBold.copyWith(
+      fontSize: 14,
+      color: widget.theme.textColor,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+}
+
+
+/// CONTACT CARD (unchanged except for indentation)
+Widget _buildContactCard(ContactModel contact) {
+  return Container(
+    decoration: BoxDecoration(
+      color: widget.theme.cardColor,
+      borderRadius: BorderRadius.circular(radiusXLarge),
+      boxShadow: widget.isDarkMode
+          ? [
+              BoxShadow(
+                color: contact.color.withOpacity(0.1),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ]
+          : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: Offset(0, 3),
+              ),
+            ],
+      border: Border.all(
+        color: widget.isDarkMode
+            ? contact.color.withOpacity(0.2)
+            : Colors.black.withOpacity(0.06),
+        width: 1,
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showContactOptions(contact),
-          borderRadius: BorderRadius.circular(radiusXLarge),
-          child: Padding(
-            padding: EdgeInsets.all(spacingLarge),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    // Profile Avatar
-                    _buildProfileAvatar(contact),
-                    SizedBox(width: spacingMedium),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  contact.name,
-                                  style: bodyBold.copyWith(
-                                    fontSize: 18,
-                                    color: widget.theme.textColor,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+    ),
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showContactOptions(contact),
+        borderRadius: BorderRadius.circular(radiusXLarge),
+        child: Padding(
+          padding: EdgeInsets.all(spacingLarge),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  // Profile Avatar
+                  _buildProfileAvatar(contact),
+                  SizedBox(width: spacingMedium),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                contact.name,
+                                style: bodyBold.copyWith(
+                                  fontSize: 18,
+                                  color: widget.theme.textColor,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              // Badge
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: spacingSmall,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: contact.color.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(radiusSmall),
-                                ),
-                                child: Text(
-                                  contact.isCaretaker ? 'CARETAKER' : 'SOS',
-                                  style: caption.copyWith(
-                                    fontSize: 10,
-                                    color: contact.color,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.5,
-                                  ),
+                            ),
+
+                            // Role Badge
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: spacingSmall,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: contact.color.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(radiusSmall),
+                              ),
+                              child: Text(
+                                contact.isCaretaker ? 'CARETAKER' : 'SOS',
+                                style: caption.copyWith(
+                                  fontSize: 10,
+                                  color: contact.color,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                            ],
-                          ),
-                          SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.badge_rounded,
-                                size: 14,
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 6),
+
+                        /// Relationship
+                        Row(
+                          children: [
+                            Icon(Icons.badge_rounded,
+                                size: 14, color: widget.theme.subtextColor),
+                            SizedBox(width: 4),
+                            Text(
+                              contact.relationship,
+                              style: caption.copyWith(
+                                fontSize: 13,
                                 color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.w400,
                               ),
-                              SizedBox(width: 4),
-                              Text(
-                                contact.relationship,
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 4),
+
+                        /// Phone
+                        Row(
+                          children: [
+                            Icon(Icons.phone_rounded,
+                                size: 14, color: widget.theme.subtextColor),
+                            SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                contact.phoneNumber,
                                 style: caption.copyWith(
                                   fontSize: 13,
                                   color: widget.theme.subtextColor,
+                                  fontWeight: FontWeight.w400,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
-                          SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.phone_rounded,
-                                size: 14,
-                                color: widget.theme.subtextColor,
-                              ),
-                              SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  contact.phoneNumber,
-                                  style: caption.copyWith(
-                                    fontSize: 13,
-                                    color: widget.theme.subtextColor,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      color: widget.theme.subtextColor.withOpacity(0.5),
-                      size: 18,
-                    ),
-                  ],
-                ),
-                
-                SizedBox(height: spacingMedium),
-                Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
-                SizedBox(height: spacingMedium),
-                
-                // Quick Actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: Icons.phone_rounded,
-                        label: 'Call',
-                        color: Colors.green,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Calling ${contact.name}...'),
-                              backgroundColor: Colors.green,
                             ),
-                          );
-                        },
-                      ),
+                          ],
+                        ),
+                      ],
                     ),
-                    SizedBox(width: spacingSmall),
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: Icons.message_rounded,
-                        label: 'Message',
-                        color: contact.color,
-                        isOutlined: true,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Opening messages with ${contact.name}...'),
-                              backgroundColor: contact.color,
-                            ),
-                          );
-                        },
-                      ),
+                  ),
+
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: widget.theme.subtextColor.withOpacity(0.5),
+                    size: 18,
+                  ),
+                ],
+              ),
+
+              SizedBox(height: spacingMedium),
+              Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
+              SizedBox(height: spacingMedium),
+
+              // Quick Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.phone_rounded,
+                      label: 'Call',
+                      color: Colors.green,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Calling ${contact.name}...'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  SizedBox(width: spacingSmall),
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.message_rounded,
+                      label: 'Message',
+                      color: contact.color,
+                      isOutlined: true,
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Opening messages with ${contact.name}...'),
+                            backgroundColor: contact.color,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildActionButton({
     required IconData icon,
