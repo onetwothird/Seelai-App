@@ -29,6 +29,8 @@ dependencies:
   http: ^1.6.0
   crypto: ^3.0.7
   geolocator: ^14.0.1
+  google_mlkit_text_recognition: ^0.15.0
+  flutter_tts: ^4.2.3
 
   
 dev_dependencies:
