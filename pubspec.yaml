@@ -24,13 +24,16 @@ dependencies:
   lottie: ^3.3.2
   flutter_native_splash: ^2.4.7
   flutter_osm_plugin: ^1.4.2
-  image_picker: ^1.2.1
   firebase_storage: ^13.0.4
   http: ^1.6.0
   crypto: ^3.0.7
   geolocator: ^14.0.1
   google_mlkit_text_recognition: ^0.15.0
   flutter_tts: ^4.2.3
+  tflite_flutter: ^0.12.1
+  image_picker: ^1.2.1
+  image: ^4.5.4
+  connectivity_plus: ^7.0.0
 
   
 dev_dependencies:
@@ -45,7 +48,7 @@ flutter:
     - assets/
     - assets/icons/
     - assets/images/
-
+    - assets/object_model/
 flutter_launcher_icons:
   android: true
   ios: true
