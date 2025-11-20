@@ -35,6 +35,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   bool _isLocationEnabled = false;
   bool _isLoading = true;
   bool _isTrackingActive = false;
+  bool _isInitializing = false;
   StreamSubscription<Position>? _positionStreamSubscription;
   StreamSubscription? _caretakerLocationStream;
   Position? _currentPosition;
@@ -49,8 +50,12 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   void initState() {
     super.initState();
     _initializeMap();
-    _requestLocationPermissionAndStartTracking();
-    _startCaretakerLocationListener();
+    // Delay the permission request to avoid overwhelming the system
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (mounted) {
+        _requestLocationPermissionAndStartTracking();
+      }
+    });
   }
 
   void _initializeMap() {
@@ -74,7 +79,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
 
     // Get first caretaker ID
     final caretakerId = assignedCaretakers.keys.first.toString();
-    debugPrint('🔍 Listening to caretaker location: $caretakerId');
+    debugPrint('👂 Listening to caretaker location: $caretakerId');
 
     // Listen to caretaker location updates
     _caretakerLocationStream = locationTrackingService
@@ -130,7 +135,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       if (imageUrl != null && imageUrl.isNotEmpty) {
         // Try to load network image
         try {
-          final response = await http.get(Uri.parse(imageUrl));
+          final response = await http.get(Uri.parse(imageUrl)).timeout(Duration(seconds: 5));
           if (response.statusCode == 200) {
             final codec = await ui.instantiateImageCodec(
               response.bodyBytes,
@@ -236,7 +241,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
         try {
-          final response = await http.get(Uri.parse(imageUrl));
+          final response = await http.get(Uri.parse(imageUrl)).timeout(Duration(seconds: 5));
           if (response.statusCode == 200) {
             final codec = await ui.instantiateImageCodec(
               response.bodyBytes,
@@ -335,18 +340,18 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       final userName = widget.userData['name'] ?? 'You';
       final userMarkerBytes = await _getProfileImageMarker(userImageUrl, userName);
       
-      if (userMarkerBytes != null) {
+      if (userMarkerBytes != null && mounted) {
         await _mapController.addMarker(
-          userGeoPoint,
-          markerIcon: MarkerIcon(
-            iconWidget: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                image: DecorationImage(
-                  image: MemoryImage(userMarkerBytes),
-                  fit: BoxFit.cover,
+        userGeoPoint,
+        markerIcon: MarkerIcon(
+          iconWidget: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              image: DecorationImage(
+                image: MemoryImage(userMarkerBytes),
+                fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -355,18 +360,20 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       }
 
       // Add accuracy circle for user
-      await _mapController.drawCircle(
-        CircleOSM(
-          key: 'user_location',
-          centerPoint: userGeoPoint,
-          radius: _currentPosition!.accuracy,
-          color: primary.withOpacity(0.2),
-          strokeWidth: 2,
-        ),
-      );
+      if (mounted) {
+        await _mapController.drawCircle(
+          CircleOSM(
+            key: 'user_location',
+            centerPoint: userGeoPoint,
+            radius: _currentPosition!.accuracy,
+            color: primary.withOpacity(0.2),
+            strokeWidth: 2,
+          ),
+        );
+      }
 
       // Add caretaker marker if available
-      if (_caretakerLocation != null) {
+      if (_caretakerLocation != null && mounted) {
         final caretakerGeoPoint = GeoPoint(
           latitude: _caretakerLocation!['latitude'] as double,
           longitude: _caretakerLocation!['longitude'] as double,
@@ -382,7 +389,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
 
         final caretakerMarkerBytes = await _getCaretakerMarker(caretakerImageUrl);
         
-        if (caretakerMarkerBytes != null) {
+        if (caretakerMarkerBytes != null && mounted) {
           await _mapController.addMarker(
             caretakerGeoPoint,
             markerIcon: MarkerIcon(
@@ -402,7 +409,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         }
 
         // Draw navigation route if enabled
-        if (_showNavigationRoute) {
+        if (_showNavigationRoute && mounted) {
           await _drawNavigationRoute(userGeoPoint, caretakerGeoPoint);
         }
 
@@ -437,11 +444,12 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         ),
       );
 
-      setState(() {
-      });
+      if (mounted) {
+        setState(() {});
+      }
 
       debugPrint('✅ Navigation route drawn successfully');
-      debugPrint('📍 Distance: ${route.distance ?? 0}km');
+      debugPrint('📏 Distance: ${route.distance ?? 0}km');
       debugPrint('⏱️ Duration: ${route.duration ?? 0}min');
     } catch (e) {
       debugPrint('❌ Error drawing navigation route: $e');
@@ -498,7 +506,13 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   }
 
   Future<void> _requestLocationPermissionAndStartTracking() async {
+    if (_isInitializing) {
+      debugPrint('⚠️ Already initializing location, skipping...');
+      return;
+    }
+
     try {
+      _isInitializing = true;
       debugPrint('📍 Checking location services...');
       
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -508,6 +522,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
           setState(() {
             _isLoading = false;
             _isLocationEnabled = false;
+            _isInitializing = false;
           });
         }
         _showLocationServicesDialog();
@@ -517,12 +532,12 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       debugPrint('✅ Location services enabled, checking permissions...');
       
       LocationPermission permission = await Geolocator.checkPermission();
-      debugPrint('📋 Current permission: $permission');
+      debugPrint('🔍 Current permission: $permission');
       
       if (permission == LocationPermission.denied) {
         debugPrint('⚠️ Permission denied, requesting...');
         permission = await Geolocator.requestPermission();
-        debugPrint('📋 Permission after request: $permission');
+        debugPrint('🔍 Permission after request: $permission');
         
         if (permission == LocationPermission.denied) {
           debugPrint('❌ Permission denied by user');
@@ -530,6 +545,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
             setState(() {
               _isLoading = false;
               _isLocationEnabled = false;
+              _isInitializing = false;
             });
           }
           return;
@@ -542,6 +558,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
           setState(() {
             _isLoading = false;
             _isLocationEnabled = false;
+            _isInitializing = false;
           });
         }
         _showOpenSettingsDialog();
@@ -550,15 +567,23 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
 
       debugPrint('✅ Location permission granted! Starting tracking...');
       
-      await _startAutomaticLocationTracking();
+      // Add delay before starting tracking to prevent overwhelming the system
+      await Future.delayed(Duration(milliseconds: 500));
+      
+      if (mounted) {
+        await _startAutomaticLocationTracking();
+      }
     } catch (e) {
       debugPrint('❌ Error in permission flow: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
           _isLocationEnabled = false;
+          _isInitializing = false;
         });
       }
+    } finally {
+      _isInitializing = false;
     }
   }
 
@@ -566,8 +591,14 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
     try {
       debugPrint('🚀 Starting automatic location tracking for user: ${widget.userId}');
 
+      // Get initial position with timeout
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+      ).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Location request timed out');
+        },
       );
 
       debugPrint('✅ Initial position obtained: ${position.latitude}, ${position.longitude}');
@@ -580,13 +611,19 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
           _isLoading = false;
         });
 
+        // Wait for map to be ready before updating
         if (_isMapReady) {
           await _updateMapWithBothLocations();
         }
 
+        // Update Firebase location
         await _updateFirebaseLocation(position);
+        
+        // Start caretaker location listener after successful location tracking
+        _startCaretakerLocationListener();
       }
 
+      // Start position stream
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: LocationSettings(
           accuracy: LocationAccuracy.high,
@@ -607,14 +644,19 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
             await _updateFirebaseLocation(position);
           }
         },
+        onError: (error) {
+          debugPrint('❌ Position stream error: $error');
+        },
       );
 
+      // Periodic update timer
       _updateTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
         if (_currentPosition != null && _isTrackingActive && mounted) {
           await _updateFirebaseLocation(_currentPosition!);
         }
       });
 
+      // Heartbeat timer
       _heartbeatTimer = Timer.periodic(Duration(minutes: 1), (timer) async {
         if (_isTrackingActive && mounted) {
           debugPrint('💚 Heartbeat - Location tracking still active');
@@ -688,7 +730,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
           children: [
             Icon(Icons.location_off, color: error),
             SizedBox(width: spacingSmall),
-            Text('Location Services Disabled'),
+            Text('Location Disabled'),
           ],
         ),
         content: Text(
@@ -797,10 +839,13 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       try {
         Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high,
-        );
-        setState(() {
-          _currentPosition = position;
-        });
+        ).timeout(Duration(seconds: 10));
+        
+        if (mounted) {
+          setState(() {
+            _currentPosition = position;
+          });
+        }
         await _updateFirebaseLocation(position);
       } catch (e) {
         debugPrint('Error getting current location: $e');
@@ -934,7 +979,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
               ),
               SizedBox(height: spacingMedium),
               Text(
-                'Location Services Disabled',
+                'Location Disabled',
                 style: bodyBold.copyWith(
                   fontSize: 16,
                   color: widget.theme.textColor,
@@ -979,8 +1024,8 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       controller: _mapController,
       osmOption: OSMOption(
         userTrackingOption: UserTrackingOption(
-          enableTracking: true,
-          unFollowUser: false,
+          enableTracking: false,
+          unFollowUser: true,
         ),
         zoomOption: ZoomOption(
           initZoom: _currentZoom,
@@ -993,13 +1038,19 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         showZoomController: false,
         showDefaultInfoWindow: false,
       ),
-      onMapIsReady: (isReady) {
+      onMapIsReady: (isReady) async {
         debugPrint('🗺️ Map ready status: $isReady');
-        setState(() {
-          _isMapReady = isReady;
-        });
-        if (isReady && _currentPosition != null) {
-          _updateMapWithBothLocations();
+        if (mounted) {
+          setState(() {
+            _isMapReady = isReady;
+          });
+          if (isReady && _currentPosition != null) {
+            // Add small delay before updating map to prevent overwhelming
+            await Future.delayed(Duration(milliseconds: 300));
+            if (mounted) {
+              await _updateMapWithBothLocations();
+            }
+          }
         }
       },
     );

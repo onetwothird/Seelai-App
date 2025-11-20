@@ -28,8 +28,9 @@ class UserActivityService {
     Map<String, dynamic>? metadata,
   }) async {
     try {
+      // Updated path: recent_activities is now at root level
       final activityRef = _database
-          .ref('user_info/visually_impaired/$userId/recentActivities')
+          .ref('recent_activities/$userId')
           .push();
       
       final activityData = {
@@ -65,8 +66,9 @@ class UserActivityService {
     int limit = 20,
   }) async {
     try {
+      // Updated path: recent_activities/$userId
       final snapshot = await _database
-          .ref('user_info/visually_impaired/$userId/recentActivities')
+          .ref('recent_activities/$userId')
           .orderByChild('timestamp')
           .limitToLast(limit)
           .once();
@@ -109,8 +111,9 @@ class UserActivityService {
     String userId, {
     int limit = 20,
   }) {
+    // Updated path: recent_activities/$userId
     return _database
-        .ref('user_info/visually_impaired/$userId/recentActivities')
+        .ref('recent_activities/$userId')
         .orderByChild('timestamp')
         .limitToLast(limit)
         .onValue
@@ -154,8 +157,9 @@ class UserActivityService {
         final toDelete = activities.skip(50).toList();
         
         for (final activity in toDelete) {
+          // Updated path: recent_activities/$userId/$activityId
           await _database
-              .ref('user_info/visually_impaired/$userId/recentActivities/${activity['activityId']}')
+              .ref('recent_activities/$userId/${activity['activityId']}')
               .remove();
         }
         
@@ -169,8 +173,9 @@ class UserActivityService {
   /// Delete a specific activity
   Future<bool> deleteActivity(String userId, String activityId) async {
     try {
+      // Updated path: recent_activities/$userId/$activityId
       await _database
-          .ref('user_info/visually_impaired/$userId/recentActivities/$activityId')
+          .ref('recent_activities/$userId/$activityId')
           .remove();
       
       debugPrint('✅ Activity deleted: $activityId');
@@ -184,8 +189,9 @@ class UserActivityService {
   /// Clear all activities for a user
   Future<bool> clearAllActivities(String userId) async {
     try {
+      // Updated path: recent_activities/$userId
       await _database
-          .ref('user_info/visually_impaired/$userId/recentActivities')
+          .ref('recent_activities/$userId')
           .remove();
       
       debugPrint('✅ All activities cleared for user: $userId');

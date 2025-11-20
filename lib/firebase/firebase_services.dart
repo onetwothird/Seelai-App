@@ -14,7 +14,9 @@ export 'visually_impaired/medical_info_service.dart';
 export 'admin_service.dart';
 export 'assistance_request_service.dart';
 export 'auth_service.dart';
-export 'visually_impaired/user_activity_service.dart'; // ADD THIS
+export 'visually_impaired/user_activity_service.dart'; 
+export 'visually_impaired/text_scan_service.dart'; 
+
 /// Usage Example:
 /// 
 /// Instead of importing individual files:

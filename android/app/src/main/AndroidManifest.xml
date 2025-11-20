@@ -24,7 +24,8 @@
     <uses-feature android:name="android.camera.autofocus" android:required="false" />
 
     <uses-permission android:name="android.permission.CALL_PHONE"/>
-
+    <uses-permission android:name="android.permission.FLASHLIGHT"/>
+    <uses-feature android:name="android.hardware.camera.flash" android:required="false"/>
     <application
         android:label="My Seelai"
         android:name="${applicationName}"

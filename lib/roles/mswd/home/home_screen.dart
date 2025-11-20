@@ -1,14 +1,12 @@
-// File: lib/roles/mswd/home/mswd_home_screen.dart
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
-
+// File: lib/roles/mswd/home/home_screen.dart
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/patients_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/reports_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/users_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/tracking_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/analytics_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/profile_content.dart';
 
 class MSWDHomeScreen extends StatefulWidget {
@@ -29,7 +27,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   // UI State
   bool _isDarkMode = false;
   int _selectedIndex = 0;
-  int _unreadNotificationCount = 0;
   
   // Animation
   late AnimationController _animationController;
@@ -39,15 +36,12 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   final ScrollController _scrollController = ScrollController();
   bool _isNavVisible = true;
   double _lastScrollPosition = 0;
-  
-  // Notification
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
     _initializeScrollListener();
-    _loadNotifications();
   }
 
   void _initializeAnimations() {
@@ -92,117 +86,10 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
     }
   }
 
-  Future<void> _loadNotifications() async {
-    setState(() {
-      _unreadNotificationCount = 3;
-    });
-  }
-
   void _toggleDarkMode() {
     setState(() {
       _isDarkMode = !_isDarkMode;
     });
-  }
-
-  void _openNotifications() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.notifications_rounded, color: primary),
-            SizedBox(width: spacingSmall),
-            Text('Notifications'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildNotificationItem(
-                icon: Icons.person_add_rounded,
-                iconColor: primary,
-                title: 'New Patient Registration',
-                message: 'Juan Dela Cruz registered as a patient',
-                time: '5 min ago',
-              ),
-              Divider(),
-              _buildNotificationItem(
-                icon: Icons.assignment_rounded,
-                iconColor: accent,
-                title: 'Report Submitted',
-                message: 'Monthly report has been generated',
-                time: '1 hour ago',
-              ),
-              Divider(),
-              _buildNotificationItem(
-                icon: Icons.update_rounded,
-                iconColor: Colors.green,
-                title: 'Profile Updated',
-                message: 'Maria Santos updated her profile',
-                time: '2 hours ago',
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _unreadNotificationCount = 0;
-              });
-              Navigator.pop(context);
-            },
-            child: Text('Mark all as read'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotificationItem({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String message,
-    required String time,
-  }) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: spacingSmall),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: iconColor, size: 24),
-          SizedBox(width: spacingSmall),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: bodyBold.copyWith(fontSize: 14),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  message,
-                  style: body.copyWith(fontSize: 13, color: grey),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  time,
-                  style: body.copyWith(fontSize: 11, color: grey.withOpacity(0.7)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _onNavItemTapped(int index) {
@@ -211,11 +98,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       _selectedIndex = index;
     });
     _animationController.forward();
-  }
-
-  void _updateNotification(String message) {
-    setState(() {
-    });
   }
 
   @override
@@ -229,7 +111,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final userName = widget.userData['name'] ?? 'Staff';
+    final adminName = widget.userData['name'] ?? 'Admin';
 
     final theme = _isDarkMode 
       ? _getDarkTheme() 
@@ -243,14 +125,18 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           bottom: false,
           child: Column(
             children: [
-              MSWDHeaderSection(
-                userName: userName,
+              HeaderSection(
+                adminName: adminName,
+                profileImageUrl: widget.userData['profileImageUrl'] as String?,
                 isDarkMode: _isDarkMode,
                 onToggleDarkMode: _toggleDarkMode,
-                onNotificationTap: _openNotifications,
+                onProfileTap: () {
+                  setState(() {
+                    _selectedIndex = 4; // Profile is at index 4
+                  });
+                },
                 textColor: theme.textColor,
                 subtextColor: theme.subtextColor,
-                unreadNotificationCount: _unreadNotificationCount,
               ),
               
               Expanded(
@@ -287,52 +173,51 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    Widget content;
-    
     switch (_selectedIndex) {
       case 0:
-        content = MSWDDashboardContent(
+        return DashboardContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-          onNotificationUpdate: _updateNotification,
+          scrollController: _scrollController,
         );
-        break;
+      
       case 1:
-        content = MSWDPatientsContent(
+        return UsersContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
         );
-        break;
+      
       case 2:
-        content = MSWDReportsContent(
+        return TrackingContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
         );
-        break;
+      
       case 3:
-        content = MSWDProfileContent(
+        return AnalyticsContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+        );
+      
+      case 4:
+        return ProfileContent(
           userData: widget.userData,
           isDarkMode: _isDarkMode,
           theme: theme,
         );
-        break;
+      
       default:
-        content = MSWDDashboardContent(
+        return DashboardContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-          onNotificationUpdate: _updateNotification,
+          scrollController: _scrollController,
         );
     }
-    
-    return SingleChildScrollView(
-      controller: _scrollController,
-      physics: ClampingScrollPhysics(),
-      child: content,
-    );
   }
 
   _AppTheme _getDarkTheme() {
@@ -354,11 +239,8 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       backgroundGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color(0xFFFAF5FF),
-          Color(0xFFFFF1F2),
-          Color(0xFFF0FDFA),
-        ],
+        // ignore: deprecated_member_use
+        colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
         stops: [0.0, 0.5, 1.0],
       ),
       textColor: black,

@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
+import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
+import 'package:seelai_app/firebase/firebase_services.dart'; 
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -286,6 +287,37 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     );
   }
 
+  /// Save scanned text to Firebase
+  Future<void> _saveScannedTextToFirebase(String text, int blockCount) async {
+    try {
+      final userId = authService.value.currentUser?.uid;
+      if (userId == null) {
+        print('⚠️ No user logged in, cannot save to Firebase');
+        return;
+      }
+
+      final success = await textScanService.saveScannedText(
+        userId: userId,
+        scannedText: text,
+        textBlockCount: blockCount,
+        sourceType: 'document',
+        metadata: {
+          'flashUsed': _isFlashOn,
+          'lowLight': _isLowLight,
+          'deviceInfo': 'mobile_camera',
+        },
+      );
+
+      if (success) {
+        print('✅ Scanned text saved to Firebase successfully');
+      } else {
+        print('⚠️ Failed to save scanned text to Firebase');
+      }
+    } catch (e) {
+      print('❌ Error saving to Firebase: $e');
+    }
+  }
+
   Future<void> _detectAndReadText() async {
     if (_isProcessing || widget.cameraService.controller == null) return;
     
@@ -322,6 +354,9 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             _lastReadText = extractedText;
             _hasReadText = true;
             _readingCompleted = false;
+            
+            // Save to Firebase before speaking
+            await _saveScannedTextToFirebase(extractedText, recognizedText.blocks.length);
             
             await _flutterTts.speak(extractedText);
             
@@ -839,7 +874,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     );
   }
 
-  Widget _buildControls(double screenWidth, double screenHeight) {
+Widget _buildControls(double screenWidth, double screenHeight) {
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
@@ -876,7 +911,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                       SizedBox(width: spacingSmall),
                       Expanded(
                         child: Text(
-                          'Text Auto-Read',
+                          'Text Auto-Read & Saved',
                           style: bodyBold.copyWith(
                             color: white,
                             fontSize: screenWidth * 0.035,
