@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
+import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
 import 'package:seelai_app/roles/visually_impaired/screens/emergency_hotlines_screen.dart';
 import 'package:seelai_app/roles/visually_impaired/widgets/location_map_widget.dart';
@@ -70,92 +70,74 @@ class HomeContent extends StatelessWidget {
   }
 
   Widget _buildLocationSection(String userId) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: primary.withOpacity(0.1),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
+  return Container(
+    decoration: BoxDecoration(
+      color: theme.cardColor,
+      borderRadius: BorderRadius.circular(radiusXLarge),
+      boxShadow: isDarkMode
+          ? [
+              BoxShadow(
+                color: primary.withOpacity(0.1),
+                blurRadius: 20,
+                offset: Offset(0, 8),
+              ),
+            ]
+          : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 16,
+                offset: Offset(0, 4),
+              ),
+            ],
+      border: isDarkMode
+          ? Border.all(color: primary.withOpacity(0.2), width: 1)
+          : null,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.all(spacingLarge),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Your Location',
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  color: theme.textColor,
+                  fontWeight: FontWeight.w700,
                 ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 16,
-                  offset: Offset(0, 4),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Share with Caretaker',
+                style: caption.copyWith(
+                  fontSize: 12,
+                  color: theme.subtextColor,
                 ),
-              ],
-        border: isDarkMode
-            ? Border.all(color: primary.withOpacity(0.2), width: 1)
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.all(spacingLarge),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primary, primary.withOpacity(0.8)],
-                    ),
-                    borderRadius: BorderRadius.circular(radiusMedium),
-                  ),
-                  child: Icon(
-                    Icons.location_on_rounded,
-                    color: white,
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: spacingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your Location',
-                        style: bodyBold.copyWith(
-                          fontSize: 16,
-                          color: theme.textColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        'Share with caretaker',
-                        style: caption.copyWith(
-                          fontSize: 12,
-                          color: theme.subtextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          ClipRRect(
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(radiusXLarge),
-              bottomRight: Radius.circular(radiusXLarge),
-            ),
-            child: LocationMapWidget(
-              isDarkMode: isDarkMode,
-              theme: theme,
-              userId: userId,
-              userData: userData,
-            ),
+        ),
+
+        ClipRRect(
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(radiusXLarge),
+            bottomRight: Radius.circular(radiusXLarge),
           ),
-        ],
-      ),
-    );
-  }
+          child: LocationMapWidget(
+            isDarkMode: isDarkMode,
+            theme: theme,
+            userId: userId,
+            userData: userData,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildLocationUnavailable() {
     return Container(

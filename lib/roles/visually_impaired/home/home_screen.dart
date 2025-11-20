@@ -10,13 +10,13 @@ import 'package:seelai_app/roles/visually_impaired/home/sections/home_content.da
 import 'package:seelai_app/roles/visually_impaired/home/sections/contacts_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/profile_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activities_content.dart';
-import 'package:seelai_app/roles/visually_impaired/services/camera_service.dart';
+import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
 import 'package:seelai_app/firebase/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
-import 'package:seelai_app/roles/visually_impaired/camera_scanner/camera_scanner_screen.dart';
+import 'package:seelai_app/roles/visually_impaired/screens/scanner/mode_selection_screen.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -427,12 +427,12 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       );
     }
     
-    // Navigate to camera scanner screen
+    // Navigate to mode selection screen
     if (mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CameraScannerScreen(
+          builder: (context) => ModeSelectionScreen(
             cameraService: _cameraService,
             isDarkMode: _isDarkMode,
           ),
@@ -649,22 +649,22 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           child: Column(
             children: [
               HeaderSection(
-              userName: userName,
-              profileImageUrl: widget.userData['profileImageUrl'] as String?, // ← ADD THIS LINE
-              isDarkMode: _isDarkMode,
-              onVoiceAssistant: _activateVoiceAssistant,
-              onToggleDarkMode: _toggleDarkMode,
-              onNotificationTap: _openNotifications,
-              onProfileTap: () {
-                // Navigate to profile tab when tapped
-                setState(() {
-                  _selectedIndex = 4; // Profile is at index 4
-                });
-              },
-              textColor: theme.textColor,
-              subtextColor: theme.subtextColor,
-              unreadNotificationCount: _unreadNotificationCount,
-            ),
+                userName: userName,
+                profileImageUrl: widget.userData['profileImageUrl'] as String?,
+                isDarkMode: _isDarkMode,
+                onVoiceAssistant: _activateVoiceAssistant,
+                onToggleDarkMode: _toggleDarkMode,
+                onNotificationTap: _openNotifications,
+                onProfileTap: () {
+                  // Navigate to profile tab when tapped
+                  setState(() {
+                    _selectedIndex = 4; // Profile is at index 4
+                  });
+                },
+                textColor: theme.textColor,
+                subtextColor: theme.subtextColor,
+                unreadNotificationCount: _unreadNotificationCount,
+              ),
               
               Expanded(
                 child: FadeTransition(
@@ -699,67 +699,66 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
-Widget _buildMainContent(double width, double height, _AppTheme theme) {
-  Widget content;
-  final userId = widget.userData['uid'] as String? ?? '';
-  
-  switch (_selectedIndex) {
-    case 0:
-      content = HomeContent(
-        cameraService: _cameraService,
-        permissionService: _permissionService,
-        isDarkMode: _isDarkMode,
-        theme: theme,
-        onNotificationUpdate: _updateNotification,
-        onRequestCaretaker: _requestCaretaker,
-        userData: widget.userData,
-      );
-      break;
-    case 1:
-      // Wrap ContactsContent with SingleChildScrollView to enable scroll detection
-      return SingleChildScrollView(
-        controller: _scrollController,
-        physics: ClampingScrollPhysics(),
-        child: ContactsContent(
+  Widget _buildMainContent(double width, double height, _AppTheme theme) {
+    Widget content;
+    final userId = widget.userData['uid'] as String? ?? '';
+    
+    switch (_selectedIndex) {
+      case 0:
+        content = HomeContent(
+          cameraService: _cameraService,
+          permissionService: _permissionService,
           isDarkMode: _isDarkMode,
           theme: theme,
+          onNotificationUpdate: _updateNotification,
+          onRequestCaretaker: _requestCaretaker,
           userData: widget.userData,
-        ),
-      );
-    case 3:
-      content = RecentActivitiesContent(
-        isDarkMode: _isDarkMode,
-        theme: theme,
-        userId: userId,
-      );
-      break;
-    case 4:
-      content = ProfileContent(
-        userData: widget.userData,
-        isDarkMode: _isDarkMode,
-        theme: theme,
-      );
-      break;
-    default:
-      content = HomeContent(
-        cameraService: _cameraService,
-        permissionService: _permissionService,
-        isDarkMode: _isDarkMode,
-        theme: theme,
-        onNotificationUpdate: _updateNotification,
-        onRequestCaretaker: _requestCaretaker,
-        userData: widget.userData,
-      );
+        );
+        break;
+      case 1:
+        // Wrap ContactsContent with SingleChildScrollView to enable scroll detection
+        return SingleChildScrollView(
+          controller: _scrollController,
+          physics: ClampingScrollPhysics(),
+          child: ContactsContent(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+            userData: widget.userData,
+          ),
+        );
+      case 3:
+        content = RecentActivitiesContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userId: userId,
+        );
+        break;
+      case 4:
+        content = ProfileContent(
+          userData: widget.userData,
+          isDarkMode: _isDarkMode,
+          theme: theme,
+        );
+        break;
+      default:
+        content = HomeContent(
+          cameraService: _cameraService,
+          permissionService: _permissionService,
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          onNotificationUpdate: _updateNotification,
+          onRequestCaretaker: _requestCaretaker,
+          userData: widget.userData,
+        );
+    }
+    
+    // Wrap other sections in SingleChildScrollView
+    return SingleChildScrollView(
+      controller: _scrollController,
+      physics: ClampingScrollPhysics(),
+      child: content,
+    );
   }
-  
-  // Wrap other sections in SingleChildScrollView
-  return SingleChildScrollView(
-    controller: _scrollController,
-    physics: ClampingScrollPhysics(),
-    child: content,
-  );
-}
-
 
   _AppTheme _getDarkTheme() {
     return _AppTheme(

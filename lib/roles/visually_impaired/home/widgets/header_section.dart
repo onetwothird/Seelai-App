@@ -84,7 +84,7 @@ class HeaderSection extends StatelessWidget {
                   child: Container(
                     width: profileSize,
                     height: profileSize,
-                    decoration: BoxDecoration(
+                      decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -94,17 +94,8 @@ class HeaderSection extends StatelessWidget {
                           primary.withOpacity(0.7),
                         ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primary.withOpacity(0.25),
-                          blurRadius: 8,
-                          offset: Offset(0, 3),
-                        ),
-                      ],
                       border: Border.all(
-                        color: isDarkMode 
-                            ? Colors.white.withOpacity(0.15)
-                            : Colors.white.withOpacity(0.8),
+                        color: const Color.fromARGB(255, 255, 255, 255),
                         width: 2.5,
                       ),
                     ),

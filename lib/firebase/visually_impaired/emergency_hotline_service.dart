@@ -1,4 +1,4 @@
-// File: lib/firebase/emergency_hotline_service.dart
+// File: lib/firebase/visually_impaired/emergency_hotline_service.dart
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +11,9 @@ class EmergencyHotlineService {
 
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // UPDATED: New path structure - features/emergency_hotlines/{userId}
+  // UPDATED: New path structure - emergencyHotlines/{userId}
   String _getHotlinesPath(String userId) {
-    return 'features/emergency_hotlines/$userId';
+    return 'emergency_hotlines/$userId';
   }
 
   // ==================== CRUD OPERATIONS ====================
@@ -58,7 +58,7 @@ class EmergencyHotlineService {
       }
 
       final path = _getHotlinesPath(currentUserId!);
-      debugPrint('📍 Fetching hotlines from: $path');
+      debugPrint('🔍 Fetching hotlines from: $path');
       
       final event = await _database.ref(path).once();
 
@@ -105,7 +105,7 @@ class EmergencyHotlineService {
       // Update with new timestamp
       final updatedHotline = hotline.copyWith(updatedAt: DateTime.now());
       
-      debugPrint('📍 Updating hotline at: $path/${hotline.id}');
+      debugPrint('🔄 Updating hotline at: $path/${hotline.id}');
       
       await _database.ref('$path/${hotline.id}').update(updatedHotline.toJson());
       
@@ -142,7 +142,7 @@ class EmergencyHotlineService {
         hotlineName = data['departmentName'] ?? 'Unknown';
       }
       
-      debugPrint('📍 Deleting hotline at: $path/$hotlineId');
+      debugPrint('🗑️ Deleting hotline at: $path/$hotlineId');
       
       await _database.ref('$path/$hotlineId').remove();
       
@@ -169,7 +169,7 @@ class EmergencyHotlineService {
     }
 
     final path = _getHotlinesPath(currentUserId!);
-    debugPrint('📍 Starting stream for: $path');
+    debugPrint('🔄 Starting stream for: $path');
     
     return _database.ref(path).onValue.map((event) {
       if (!event.snapshot.exists) {
@@ -319,7 +319,7 @@ class EmergencyHotlineService {
       }
       
       final path = _getHotlinesPath(currentUserId!);
-      debugPrint('📍 Testing connection to: $path');
+      debugPrint('🔍 Testing connection to: $path');
       
       await _database.ref(path).once();
       debugPrint('✅ Connection test successful');
