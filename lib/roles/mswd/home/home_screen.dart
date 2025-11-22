@@ -27,7 +27,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   // UI State
   bool _isDarkMode = false;
   int _selectedIndex = 0;
-  int _pendingAlertsCount = 0; // Badge count
+  int _pendingAlertsCount = 0;
   
   // Animation
   late AnimationController _animationController;
@@ -139,7 +139,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
                 onToggleDarkMode: _toggleDarkMode,
                 onProfileTap: () {
                   setState(() {
-                    _selectedIndex = 4; // More section
+                    _selectedIndex = 4;
                   });
                 },
                 textColor: theme.textColor,
@@ -181,53 +181,64 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
+    Widget content;
+    
     switch (_selectedIndex) {
-      case 0: // Home/Dashboard
-        return DashboardContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          userData: widget.userData,
-          scrollController: _scrollController,
-        );
-      
-      case 1: // Users
-        return UsersContent(
+      case 0:
+        content = DashboardContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
         );
+        break;
       
-      case 2: // Requests
-        return RequestsContent(
+      case 1:
+        content = UsersContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
         );
+        break;
       
-      case 3: // Alerts
-        return AlertsContent(
+      case 2:
+        content = RequestsContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+        );
+        break;
+      
+      case 3:
+        content = AlertsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           onAlertsCountChanged: _updateAlertsCount,
         );
+        break;
       
-      case 4: // More
-        return MoreContent(
+      case 4:
+        content = MoreContent(
           userData: widget.userData,
           isDarkMode: _isDarkMode,
           theme: theme,
           onToggleDarkMode: _toggleDarkMode,
         );
+        break;
       
       default:
-        return DashboardContent(
+        content = DashboardContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-          scrollController: _scrollController,
         );
     }
+    
+    return SingleChildScrollView(
+      controller: _scrollController,
+      physics: ClampingScrollPhysics(),
+      child: content,
+    );
   }
 
   _AppTheme _getDarkTheme() {
@@ -249,7 +260,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       backgroundGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        // ignore: deprecated_member_use
         colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
         stops: [0.0, 0.5, 1.0],
       ),
