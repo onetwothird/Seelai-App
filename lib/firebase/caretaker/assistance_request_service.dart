@@ -45,6 +45,38 @@ class AssistanceRequestService {
     }
   }
   
+  /// Get a single request by ID
+  Future<RequestModel?> getRequestById(String requestId) async {
+    try {
+      final event = await _database
+          .ref('assistance_requests/$requestId')
+          .once();
+      
+      if (event.snapshot.exists) {
+        final requestData = Map<String, dynamic>.from(event.snapshot.value as Map);
+        return RequestModel.fromJson(requestData, requestId);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error getting request by ID: $e');
+      return null;
+    }
+  }
+  
+  /// Stream a single request for real-time updates
+  Stream<RequestModel?> streamRequestById(String requestId) {
+    return _database
+        .ref('assistance_requests/$requestId')
+        .onValue
+        .map((event) {
+      if (event.snapshot.exists) {
+        final requestData = Map<String, dynamic>.from(event.snapshot.value as Map);
+        return RequestModel.fromJson(requestData, requestId);
+      }
+      return null;
+    });
+  }
+  
   /// Get all requests for a specific caretaker
   Future<List<RequestModel>> getCaretakerRequests(String caretakerId) async {
     try {

@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
-import 'package:seelai_app/firebase/assistance_request_service.dart';
+import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';
+import 'package:seelai_app/firebase/caretaker/request_transaction_service.dart';
 
 class RequestService {
   final AssistanceRequestService _assistanceRequestService = assistanceRequestService;
+  final RequestTransactionService _transactionService = requestTransactionService;
   final List<Function(RequestModel)> _listeners = [];
 
   // Add listener for new requests
@@ -49,7 +51,21 @@ class RequestService {
   // Accept a request
   Future<bool> acceptRequest(String requestId, String caretakerId) async {
     try {
-      return await _assistanceRequestService.acceptRequest(requestId, caretakerId);
+      bool success = await _assistanceRequestService.acceptRequest(requestId, caretakerId);
+      
+      if (success) {
+        // Get request details for transaction logging
+        final request = await _assistanceRequestService.getRequestById(requestId);
+        if (request != null) {
+          await _transactionService.logRequestAccepted(
+            requestId,
+            request.patientId,
+            caretakerId,
+          );
+        }
+      }
+      
+      return success;
     } catch (e) {
       debugPrint('Error accepting request: $e');
       return false;
@@ -63,7 +79,21 @@ class RequestService {
     String reason,
   ) async {
     try {
-      return await _assistanceRequestService.declineRequest(requestId, caretakerId, reason);
+      bool success = await _assistanceRequestService.declineRequest(requestId, caretakerId, reason);
+      
+      if (success) {
+        final request = await _assistanceRequestService.getRequestById(requestId);
+        if (request != null) {
+          await _transactionService.logRequestDeclined(
+            requestId,
+            request.patientId,
+            caretakerId,
+            reason,
+          );
+        }
+      }
+      
+      return success;
     } catch (e) {
       debugPrint('Error declining request: $e');
       return false;
@@ -73,7 +103,20 @@ class RequestService {
   // Mark request as in progress
   Future<bool> markInProgress(String requestId) async {
     try {
-      return await _assistanceRequestService.markRequestInProgress(requestId);
+      bool success = await _assistanceRequestService.markRequestInProgress(requestId);
+      
+      if (success) {
+        final request = await _assistanceRequestService.getRequestById(requestId);
+        if (request != null && request.caretakerId != null) {
+          await _transactionService.logRequestInProgress(
+            requestId,
+            request.patientId,
+            request.caretakerId!,
+          );
+        }
+      }
+      
+      return success;
     } catch (e) {
       debugPrint('Error marking request in progress: $e');
       return false;
@@ -87,7 +130,21 @@ class RequestService {
     String notes,
   ) async {
     try {
-      return await _assistanceRequestService.completeRequest(requestId, caretakerId, notes);
+      bool success = await _assistanceRequestService.completeRequest(requestId, caretakerId, notes);
+      
+      if (success) {
+        final request = await _assistanceRequestService.getRequestById(requestId);
+        if (request != null) {
+          await _transactionService.logRequestCompleted(
+            requestId,
+            request.patientId,
+            caretakerId,
+            notes,
+          );
+        }
+      }
+      
+      return success;
     } catch (e) {
       debugPrint('Error completing request: $e');
       return false;
@@ -108,5 +165,20 @@ class RequestService {
       debugPrint('Error sending message: $e');
       return false;
     }
+  }
+
+  // Get transaction history for a request
+  Future<List<RequestTransaction>> getRequestTransactionHistory(String requestId) async {
+    try {
+      return await _transactionService.getRequestTransactions(requestId);
+    } catch (e) {
+      debugPrint('Error getting transaction history: $e');
+      return [];
+    }
+  }
+
+  // Stream transaction history for a request
+  Stream<List<RequestTransaction>> streamRequestTransactionHistory(String requestId) {
+    return _transactionService.streamRequestTransactions(requestId);
   }
 }

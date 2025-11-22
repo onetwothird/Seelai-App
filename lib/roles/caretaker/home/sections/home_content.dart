@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/services/request_service.dart';
+import 'package:seelai_app/firebase/caretaker/request_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 
 class HomeContent extends StatelessWidget {
@@ -46,8 +46,6 @@ class HomeContent extends StatelessWidget {
           
           SizedBox(height: spacingXLarge),
           
-          // Quick Actions Section
-          _buildQuickActionsSection(context),
           
           SizedBox(height: spacingXLarge),
           
@@ -245,196 +243,7 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActionsSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quick Actions',
-          style: h3.copyWith(
-            fontSize: 20,
-            color: theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionCard(
-                context,
-                icon: Icons.location_on_rounded,
-                title: 'Track Patients',
-                subtitle: 'View locations',
-                iconColor: Colors.blue,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Track Patients coming soon'),
-                      backgroundColor: Colors.blue,
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: spacingMedium),
-            Expanded(
-              child: _buildQuickActionCard(
-                context,
-                icon: Icons.notifications_active_rounded,
-                title: 'Alerts',
-                subtitle: '2 new alerts',
-                iconColor: Colors.orange,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('View Alerts coming soon'),
-                      backgroundColor: Colors.orange,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: spacingMedium),
-        Row(
-          children: [
-            Expanded(
-              child: _buildQuickActionCard(
-                context,
-                icon: Icons.schedule_rounded,
-                title: 'Schedule',
-                subtitle: 'Today\'s tasks',
-                iconColor: Colors.purple,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Schedule coming soon'),
-                      backgroundColor: Colors.purple,
-                    ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: spacingMedium),
-            Expanded(
-              child: _buildQuickActionCard(
-                context,
-                icon: Icons.analytics_rounded,
-                title: 'Reports',
-                subtitle: 'View insights',
-                iconColor: Colors.green,
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Reports coming soon'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildQuickActionCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    return Semantics(
-      label: '$title. $subtitle',
-      button: true,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(radiusLarge),
-          boxShadow: isDarkMode
-              ? [
-                  BoxShadow(
-                    color: iconColor.withOpacity(0.1),
-                    blurRadius: 16,
-                    offset: Offset(0, 6),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 12,
-                    offset: Offset(0, 3),
-                  ),
-                ],
-        ),
-        child: Material(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(radiusLarge),
-            child: Container(
-              padding: EdgeInsets.all(spacingLarge),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    iconColor.withOpacity(isDarkMode ? 0.15 : 0.1),
-                    iconColor.withOpacity(isDarkMode ? 0.08 : 0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(radiusLarge),
-                border: Border.all(
-                  color: iconColor.withOpacity(isDarkMode ? 0.2 : 0.15),
-                  width: 1,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: iconColor.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(radiusMedium),
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 28,
-                      color: iconColor,
-                    ),
-                  ),
-                  SizedBox(height: spacingMedium),
-                  Text(
-                    title,
-                    style: bodyBold.copyWith(
-                      fontSize: 15,
-                      color: theme.textColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: caption.copyWith(
-                      fontSize: 12,
-                      color: theme.subtextColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
+ 
   Widget _buildRecentActivity(BuildContext context) {
     final activities = [
       {

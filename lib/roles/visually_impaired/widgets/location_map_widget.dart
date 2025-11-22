@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/services/location_tracking_service.dart';
+import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
