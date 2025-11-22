@@ -19,11 +19,9 @@ class RoleSelectionScreen extends StatefulWidget {
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
-  late AnimationController _scaleController;
-  late AnimationController _floatController;
+  late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _floatAnimation;
+  late Animation<Offset> _slideAnimation;
 
   String? _selectedRole;
 
@@ -31,37 +29,29 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
   void initState() {
     super.initState();
     _fadeController = AnimationController(
+      duration: Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _slideController = AnimationController(
       duration: Duration(milliseconds: 800),
       vsync: this,
     );
-    _scaleController = AnimationController(
-      duration: Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    _floatController = AnimationController(
-      duration: Duration(milliseconds: 3000),
-      vsync: this,
-    )..repeat(reverse: true);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
     );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
-    );
-    _floatAnimation = Tween<double>(begin: -5, end: 5).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
     );
 
     _fadeController.forward();
-    _scaleController.forward();
+    _slideController.forward();
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
-    _scaleController.dispose();
-    _floatController.dispose();
+    _slideController.dispose();
     super.dispose();
   }
 
@@ -73,7 +63,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
     return Scaffold(
       body: Stack(
         children: [
-          // Background gradient
+          // Modern gradient background
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -81,121 +71,85 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                 end: Alignment.bottomRight,
                 colors: [
                   Color(0xFFFAF5FF),
-                  Color(0xFFFFF1F2),
+                  Color(0xFFFFF8F7),
                   Color(0xFFF0FDFA),
                 ],
-                stops: [0.0, 0.5, 1.0],
               ),
             ),
           ),
 
-          // Animated background shapes
-          AnimatedBuilder(
-            animation: _floatAnimation,
-            builder: (context, child) {
-              return Positioned(
-                top: -90 + _floatAnimation.value,
-                left: -30,
-                child: Opacity(
-                  opacity: 0.7,
-                  child: Image.asset(
-                    'assets/images/bg_shape_3.png',
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              );
-            },
-          ),
-
-          AnimatedBuilder(
-            animation: _floatAnimation,
-            builder: (context, child) {
-              return Positioned(
-                bottom: -60 - _floatAnimation.value,
-                right: -60,
-                child: Opacity(
-                  opacity: 0.7,
-                  child: Image.asset(
-                    'assets/images/bg_shape_1.png',
-                    width: 200,
-                    height: 200,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Main content
           SafeArea(
             child: SingleChildScrollView(
               physics: BouncingScrollPhysics(),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06, vertical: 20),
                 child: Column(
                   children: [
-                    SizedBox(height: screenHeight * 0.05),
-
                     // Back button
                     Align(
                       alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.arrow_back_ios_rounded),
-                        color: primary,
-                        iconSize: 24,
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.arrow_back_ios_rounded),
+                          color: primary,
+                          iconSize: 24,
+                          padding: EdgeInsets.zero,
+                          constraints: BoxConstraints(),
+                        ),
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: screenHeight * 0.04),
 
-                    // Header with animation
+                    // Header
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Column(
                         children: [
+                          // Animated icon
                           Container(
-                            padding: EdgeInsets.all(20),
+                            padding: EdgeInsets.all(18),
                             decoration: BoxDecoration(
                               gradient: primaryGradient,
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: primary.withOpacity(0.3),
-                                  blurRadius: 20,
-                                  offset: Offset(0, 8),
+                                  color: primary.withOpacity(0.25),
+                                  blurRadius: 25,
+                                  offset: Offset(0, 10),
                                 ),
                               ],
                             ),
                             child: Icon(
-                              Icons.people_rounded,
-                              size: 48,
+                              Icons.person_outline_rounded,
+                              size: 40,
                               color: white,
                             ),
                           ),
-                          SizedBox(height: 24),
+                          SizedBox(height: 28),
                           ShaderMask(
                             shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                             child: Text(
-                              "Choose Your Role",
+                              "Select Your Role",
                               style: h1.copyWith(
-                                fontSize: screenWidth * 0.085,
+                                fontSize: screenWidth * 0.080,
                                 color: white,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: -0.5,
+                                letterSpacing: -0.8,
                               ),
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          SizedBox(height: 12),
+                          SizedBox(height: 14),
                           Text(
-                            "Select how you'll be using the app",
+                            "Choose how you'll use the app",
                             style: body.copyWith(
-                              fontSize: screenWidth * 0.042,
+                              fontSize: screenWidth * 0.040,
                               color: grey,
                               fontWeight: FontWeight.w500,
+                              letterSpacing: 0.2,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -203,43 +157,49 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.05),
+                    SizedBox(height: screenHeight * 0.06),
 
-                    // Role Cards with staggered animation
-                    ScaleTransition(
-                      scale: _scaleAnimation,
+                    // Role Cards Grid
+                    SlideTransition(
+                      position: _slideAnimation,
                       child: FadeTransition(
                         opacity: _fadeAnimation,
                         child: Column(
                           children: [
-                            _buildModernRoleCard(
+                            _buildEnhancedRoleCard(
                               role: 'visually_impaired',
-                              icon: Icons.remove_red_eye_rounded,
+                              icon: Icons.visibility_off_rounded,
                               title: 'Visually Impaired',
-                              description: 'Visually impaired individual',
+                              subtitle: 'Get personalized support',
                               gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                                 colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                               ),
                               screenWidth: screenWidth,
                             ),
-                            SizedBox(height: 16),
-                            _buildModernRoleCard(
+                            SizedBox(height: 14),
+                            _buildEnhancedRoleCard(
                               role: 'caretaker',
                               icon: Icons.favorite_rounded,
                               title: 'Caretaker',
-                              description: 'Care provider and support',
+                              subtitle: 'Provide care and support',
                               gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                                 colors: [Color(0xFFF093FB), Color(0xFFF5576C)],
                               ),
                               screenWidth: screenWidth,
                             ),
-                            SizedBox(height: 16),
-                            _buildModernRoleCard(
+                            SizedBox(height: 14),
+                            _buildEnhancedRoleCard(
                               role: 'admin',
-                              icon: Icons.admin_panel_settings_rounded,
+                              icon: Icons.business,
                               title: 'MSWD Staff',
-                              description: 'Department administrator',
+                              subtitle: 'Manage and oversee',
                               gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                                 colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
                               ),
                               screenWidth: screenWidth,
@@ -249,7 +209,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.04),
+                    SizedBox(height: screenHeight * 0.06),
 
                     // Continue Button
                     FadeTransition(
@@ -263,7 +223,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.04),
+                    SizedBox(height: screenHeight * 0.02),
                   ],
                 ),
               ),
@@ -274,11 +234,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
     );
   }
 
-  Widget _buildModernRoleCard({
+  Widget _buildEnhancedRoleCard({
     required String role,
     required IconData icon,
     required String title,
-    required String description,
+    required String subtitle,
     required LinearGradient gradient,
     required double screenWidth,
   }) {
@@ -291,99 +251,106 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
         });
       },
       child: AnimatedContainer(
-        duration: Duration(milliseconds: 300),
+        duration: Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
-        padding: EdgeInsets.all(20),
+        padding: EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: isSelected ? primary : greyLighter,
-            width: isSelected ? 2.5 : 1.5,
+            color: isSelected ? primary : Colors.transparent,
+            width: isSelected ? 2.5 : 0,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: primary.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                    spreadRadius: 0,
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+          boxShadow: [
+            BoxShadow(
+              color: isSelected ? primary.withOpacity(0.35) : black.withOpacity(0.08),
+              blurRadius: isSelected ? 28 : 14,
+              offset: Offset(0, isSelected ? 12 : 6),
+              spreadRadius: isSelected ? 2 : 0,
+            ),
+          ],
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon container with gradient
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: isSelected ? gradient : LinearGradient(
-                  colors: [greyLighter, greyLighter],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: isSelected ? [
-                  BoxShadow(
-                    color: primary.withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
+            Row(
+              children: [
+                // Icon container
+                AnimatedContainer(
+                  duration: Duration(milliseconds: 400),
+                  padding: EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: isSelected ? gradient : LinearGradient(
+                      colors: [greyLighter, greyLighter],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: isSelected ? [
+                      BoxShadow(
+                        color: primary.withOpacity(0.3),
+                        blurRadius: 16,
+                        offset: Offset(0, 6),
+                      ),
+                    ] : [],
                   ),
-                ] : [],
-              ),
-              child: Icon(
-                icon,
-                color: isSelected ? white : grey,
-                size: 32,
-              ),
-            ),
-            SizedBox(width: 16),
-            // Text content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: bodyBold.copyWith(
-                      fontSize: screenWidth * 0.048,
-                      color: isSelected ? primary : black,
-                      fontWeight: FontWeight.w700,
+                  child: Icon(
+                    icon,
+                    color: isSelected ? white : grey,
+                    size: 36,
+                  ),
+                ),
+                SizedBox(width: 18),
+                // Title and subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: bodyBold.copyWith(
+                          fontSize: screenWidth * 0.050,
+                          color: isSelected ? primary : black,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        subtitle,
+                        style: body.copyWith(
+                          fontSize: screenWidth * 0.038,
+                          color: grey,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Check indicator
+                AnimatedScale(
+                  scale: isSelected ? 1.0 : 0.0,
+                  duration: Duration(milliseconds: 300),
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: gradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: primary.withOpacity(0.3),
+                          blurRadius: 12,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: white,
+                      size: 18,
                     ),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: caption.copyWith(
-                      fontSize: screenWidth * 0.036,
-                      color: grey,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Check icon
-            AnimatedScale(
-              scale: isSelected ? 1.0 : 0.0,
-              duration: Duration(milliseconds: 200),
-              child: Container(
-                padding: EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  gradient: primaryGradient,
-                  shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.check_rounded,
-                  color: white,
-                  size: 20,
-                ),
-              ),
+              ],
             ),
           ],
         ),
@@ -396,19 +363,20 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      barrierColor: black.withOpacity(0.4),
       builder: (context) => Container(
         padding: EdgeInsets.all(28),
         decoration: BoxDecoration(
           color: white,
           borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(28),
-            topRight: Radius.circular(28),
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
           ),
           boxShadow: [
             BoxShadow(
-              color: black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: Offset(0, -4),
+              color: black.withOpacity(0.15),
+              blurRadius: 30,
+              offset: Offset(0, -8),
             ),
           ],
         ),
@@ -417,15 +385,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
           children: [
             // Drag handle
             Container(
-              width: 50,
+              width: 48,
               height: 5,
               decoration: BoxDecoration(
                 color: greyLighter,
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            SizedBox(height: 28),
-            
+            SizedBox(height: 32),
+
             // Icon
             Container(
               padding: EdgeInsets.all(16),
@@ -435,54 +403,56 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                 boxShadow: [
                   BoxShadow(
                     color: primary.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: Offset(0, 6),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
                   ),
                 ],
               ),
               child: Icon(
                 Icons.login_rounded,
                 color: white,
-                size: 32,
+                size: 36,
               ),
             ),
-            
-            SizedBox(height: 20),
-            
+
+            SizedBox(height: 24),
+
             Text(
-              "What would you like to do?",
+              "What's next?",
               style: bodyBold.copyWith(
-                fontSize: 20,
+                fontSize: 22,
                 color: black,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 10),
             Text(
-              "Choose an option to continue",
+              "Sign in or create an account to get started",
               style: body.copyWith(
                 fontSize: 14,
                 color: grey,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            
-            SizedBox(height: 28),
-            
+
+            SizedBox(height: 32),
+
             // Login button
             CustomButton(
-              text: "Login to Existing Account",
+              text: "Sign In",
               onPressed: () {
                 Navigator.pop(context);
                 _navigateToLogin(context);
               },
               isLarge: true,
             ),
-            
-            SizedBox(height: 12),
-            
+
+            SizedBox(height: 14),
+
             // Sign up button
             CustomButton(
-              text: "Create New Account",
+              text: "Create Account",
               isTransparent: true,
               onPressed: () {
                 Navigator.pop(context);
@@ -490,8 +460,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
               },
               isLarge: true,
             ),
-            
-            SizedBox(height: 16),
+
+            SizedBox(height: 20),
           ],
         ),
       ),
@@ -500,7 +470,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
 
   void _navigateToLogin(BuildContext context) {
     Widget loginScreen;
-    
+
     switch (_selectedRole) {
       case 'visually_impaired':
         loginScreen = LoginScreenVisuallyImpaired();
@@ -514,7 +484,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
       default:
         return;
     }
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => loginScreen),
@@ -523,7 +493,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
 
   void _navigateToSignup(BuildContext context) {
     Widget signupScreen;
-    
+
     switch (_selectedRole) {
       case 'visually_impaired':
         signupScreen = VisuallyImpairedSignupScreen();
@@ -537,7 +507,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
       default:
         return;
     }
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => signupScreen),

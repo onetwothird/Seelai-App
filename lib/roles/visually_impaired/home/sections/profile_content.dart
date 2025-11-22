@@ -22,167 +22,139 @@ class ProfileContent extends StatefulWidget {
   State<ProfileContent> createState() => _ProfileContentState();
 }
 
-class _ProfileContentState extends State<ProfileContent> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _selectedTab = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        _selectedTab = _tabController.index;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _ProfileContentState extends State<ProfileContent> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    
-    return Padding(
-      padding: EdgeInsets.only(
-        left: width * 0.05,
-        right: width * 0.05,
-        top: spacingMedium,
-        bottom: 100,
-      ),
-      child: Column(
-        children: [
-          
-          SizedBox(height: spacingLarge),
-          
-          // Tab Bar
-          _buildTabBar(width),
-          
-          SizedBox(height: spacingLarge),
-          
-          // Tab Content
-          if (_selectedTab == 0)
-            _buildMyProfileTab(width)
-          else if (_selectedTab == 1)
-            _buildMedicalInfoTab(width)
-          else
-            _buildSettingsTab(width),
-        ],
-      ),
-    );
-  }
 
-  
-
-  Widget _buildTabBar(double width) {
-    return Container(
-      padding: EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: widget.isDarkMode 
-          ? [
-              BoxShadow(
-                color: primary.withOpacity(0.1),
-                blurRadius: 16,
-                offset: Offset(0, 4),
-              ),
-            ]
-          : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: Offset(0, 3),
-              ),
-            ],
-        border: widget.isDarkMode 
-          ? Border.all(color: primary.withOpacity(0.2), width: 1)
-          : Border.all(color: Colors.black.withOpacity(0.06), width: 1),
-      ),
-      child: Row(
-        children: [
-          _buildTab(0, Icons.person_outline_rounded, 'Profile'),
-          _buildTab(1, Icons.medical_information_outlined, 'Medical'),
-          _buildTab(2, Icons.settings_outlined, 'Settings'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTab(int index, IconData icon, String label) {
-    final isSelected = _selectedTab == index;
-    
-    return Expanded(
-      child: Semantics(
-        label: '$label tab',
-        selected: isSelected,
-        button: true,
-        child: GestureDetector(
-          onTap: () {
-            _tabController.animateTo(index);
-          },
-          child: AnimatedContainer(
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeInOutCubic,
-            padding: EdgeInsets.symmetric(vertical: spacingMedium),
-            decoration: BoxDecoration(
-              gradient: isSelected ? primaryGradient : null,
-              color: isSelected ? null : Colors.transparent,
-              borderRadius: BorderRadius.circular(radiusMedium),
-              boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: primary.withOpacity(0.25),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ]
-                : [],
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: width * 0.05,
+          right: width * 0.05,
+          top: spacingMedium,
+          bottom: 100,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Personal Information Section
+            _buildSectionTitle('Personal Information', Icons.person_rounded),
+            SizedBox(height: spacingMedium),
+            _buildPersonalInfoGrid(),
+            
+            SizedBox(height: spacingXLarge),
+            
+            // Medical & Disability Information
+            _buildSectionTitle('Medical Information', Icons.medical_information_rounded),
+            SizedBox(height: spacingMedium),
+            _buildMedicalInfoGrid(),
+            
+            SizedBox(height: spacingXLarge),
+            
+            // Contact & Emergency
+            _buildSectionTitle('Contact & Emergency', Icons.phone_in_talk_rounded),
+            SizedBox(height: spacingMedium),
+            _buildContactGrid(),
+            
+            SizedBox(height: spacingXLarge),
+            
+            // Caretaker Information
+            _buildSectionTitle('Caretaker Status', Icons.support_agent_rounded),
+            SizedBox(height: spacingMedium),
+            _buildCaretakerStatus(),
+            
+            SizedBox(height: spacingXLarge),
+            
+            // Account Actions
+            _buildSectionTitle('Account Actions', Icons.tune_rounded),
+            SizedBox(height: spacingMedium),
+            
+            _buildActionMenuItem(
+              'Update Profile',
+              'Edit your personal information',
+              Icons.edit_rounded,
+              primary,
+              onTap: () => _showSnackbar('Update profile feature coming soon'),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  size: 20,
-                  color: isSelected 
-                    ? white 
-                    : widget.theme.subtextColor,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected 
-                      ? white 
-                      : widget.theme.subtextColor,
-                  ),
-                ),
-              ],
+            
+            SizedBox(height: spacingSmall),
+            
+            _buildActionMenuItem(
+              'Change Password',
+              'Update your account password',
+              Icons.lock_reset_rounded,
+              accent,
+              onTap: () => _showSnackbar('Change password feature coming soon'),
             ),
-          ),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Preferences Section
+            _buildSectionTitle('Preferences', Icons.settings_rounded),
+            SizedBox(height: spacingMedium),
+            
+            _buildActionMenuItem(
+              'Notification Settings',
+              'Manage alerts and notifications',
+              Icons.notifications_rounded,
+              Colors.blue,
+              onTap: () => _showSnackbar('Notification settings coming soon'),
+            ),
+            
+            SizedBox(height: spacingSmall),
+            
+            _buildActionMenuItem(
+              'Accessibility Settings',
+              'Voice speed, text size, and more',
+              Icons.accessibility_rounded,
+              Colors.teal,
+              onTap: () => _showSnackbar('Accessibility settings coming soon'),
+            ),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Danger Zone
+            _buildSectionTitle('Danger Zone', Icons.warning_amber_rounded),
+            SizedBox(height: spacingMedium),
+            
+            _buildActionMenuItem(
+              'Sign Out',
+              'Log out of your account',
+              Icons.logout_rounded,
+              error,
+              onTap: () => _showLogoutDialog(),
+            ),
+            
+            SizedBox(height: spacingSmall),
+            
+            _buildActionMenuItem(
+              'Delete Account',
+              'Permanently delete your account',
+              Icons.delete_forever_rounded,
+              error,
+              isDestructive: true,
+              onTap: () => _showDeleteAccountDialog(),
+            ),
+            
+            SizedBox(height: spacingLarge),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildMyProfileTab(double width) {
-    final name = widget.userData['name'] ?? '';
-    final email = widget.userData['email'] ?? '';
-    final idNumber = widget.userData['idNumber'] ?? '';
-    final sex = widget.userData['sex'] ?? '';
+  Widget _buildPersonalInfoGrid() {
+    final name = widget.userData['name'] ?? 'Not provided';
+    final email = widget.userData['email'] ?? 'Not provided';
     final age = widget.userData['age'] ?? 0;
-    final birthdateStr = widget.userData['birthdate'] ?? '';
-    final address = widget.userData['address'] ?? '';
-    final contactNumber = widget.userData['contactNumber'] ?? '';
+    final sex = widget.userData['sex'] ?? 'Not specified';
+    final contactNumber = widget.userData['contactNumber'] ?? 'Not provided';
+    final address = widget.userData['address'] ?? 'Not provided';
+    final idNumber = widget.userData['idNumber'] ?? '';
     
     String formattedBirthdate = '';
+    final birthdateStr = widget.userData['birthdate'] ?? '';
     if (birthdateStr.isNotEmpty) {
       try {
         final date = DateTime.parse(birthdateStr);
@@ -191,65 +163,88 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
         formattedBirthdate = birthdateStr;
       }
     }
-    
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('Personal Information', Icons.person_rounded),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildInfoCard([
-          _InfoItem(icon: Icons.person_outline, label: 'Full Name', value: name),
-          _InfoItem(icon: Icons.email_outlined, label: 'Email', value: email),
-          if (idNumber.isNotEmpty)
-            _InfoItem(icon: Icons.badge_outlined, label: 'ID Number', value: idNumber),
-          _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
-          _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: age > 0 ? '$age years old' : 'Not specified'),
-          _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
-          _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: contactNumber),
-          _InfoItem(icon: Icons.home_outlined, label: 'Address', value: address),
-        ]),
-        
-        SizedBox(height: spacingLarge),
+        _buildInfoMenuItem(
+          'Full Name',
+          name,
+          Icons.person_outline_rounded,
+          primary,
+        ),
+        _buildInfoMenuItem(
+          'Email Address',
+          email,
+          Icons.email_outlined,
+          accent,
+        ),
+        _buildInfoMenuItem(
+          'Age',
+          age > 0 ? '$age years old' : 'Not specified',
+          Icons.cake_outlined,
+          Colors.orange,
+        ),
+        _buildInfoMenuItem(
+          'Sex',
+          sex,
+          Icons.wc_outlined,
+          Colors.purple,
+        ),
+        if (formattedBirthdate.isNotEmpty)
+          _buildInfoMenuItem(
+            'Birthdate',
+            formattedBirthdate,
+            Icons.calendar_today_outlined,
+            Colors.pink,
+          ),
+        _buildInfoMenuItem(
+          'Contact Number',
+          contactNumber,
+          Icons.phone_outlined,
+          Colors.green,
+        ),
+        _buildInfoMenuItem(
+          'Address',
+          address,
+          Icons.home_outlined,
+          Colors.blue,
+        ),
+        if (idNumber.isNotEmpty)
+          _buildInfoMenuItem(
+            'ID Number',
+            idNumber,
+            Icons.badge_outlined,
+            Colors.indigo,
+          ),
       ],
     );
   }
 
-  Widget _buildMedicalInfoTab(double width) {
-    final disabilityType = widget.userData['disabilityType'] ?? '';
-    final diagnosis = widget.userData['diagnosis'] ?? '';
-    
+  Widget _buildMedicalInfoGrid() {
+    final disabilityType = widget.userData['disabilityType'] ?? 'Visual Impairment';
+    final diagnosis = widget.userData['diagnosis'] ?? 'Not provided';
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('Disability Information', Icons.accessible_outlined),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildInfoCard([
-          _InfoItem(
-            icon: Icons.medical_information_outlined,
-            label: 'Type of Disability',
-            value: disabilityType,
-          ),
-          _InfoItem(
-            icon: Icons.assignment_outlined,
-            label: 'Diagnosis',
-            value: diagnosis,
-          ),
-        ]),
-        
-        SizedBox(height: spacingLarge),
-        
-        // Important Notice
+        _buildInfoMenuItem(
+          'Type of Disability',
+          disabilityType,
+          Icons.accessible_outlined,
+          error,
+        ),
+        _buildInfoMenuItem(
+          'Diagnosis',
+          diagnosis,
+          Icons.medical_information_outlined,
+          Colors.red.shade400,
+        ),
         Container(
           padding: EdgeInsets.all(spacingLarge),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
               ? error.withOpacity(0.12)
               : error.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(radiusXLarge),
+            borderRadius: BorderRadius.circular(radiusLarge),
             border: Border.all(
               color: error.withOpacity(0.25),
               width: 1,
@@ -272,17 +267,17 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Important',
+                      'Keep Updated',
                       style: bodyBold.copyWith(
-                        fontSize: 15,
+                        fontSize: 14,
                         color: widget.theme.textColor,
                       ),
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Keep your medical information updated for emergency situations.',
+                      'Ensure your medical information is current for emergency situations',
                       style: caption.copyWith(
-                        fontSize: 13,
+                        fontSize: 12,
                         color: widget.theme.subtextColor,
                       ),
                     ),
@@ -292,296 +287,260 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
             ],
           ),
         ),
-        
-        SizedBox(height: spacingLarge),
       ],
     );
   }
 
-  Widget _buildSettingsTab(double width) {
+  Widget _buildContactGrid() {
+    final contactNumber = widget.userData['contactNumber'] ?? 'Not provided';
+    final email = widget.userData['email'] ?? 'Not provided';
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionLabel('Account Actions', Icons.tune_rounded),
-        
-        SizedBox(height: spacingMedium),
-        
-        // Update Profile Button
-        _buildActionButton(
-          icon: Icons.edit_outlined,
-          label: 'Update Profile',
-          subtitle: 'Edit your personal information',
-          color: primary,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Update profile feature coming soon'),
-                backgroundColor: primary,
-              ),
-            );
-          },
+        _buildInfoMenuItem(
+          'Primary Phone',
+          contactNumber,
+          Icons.phone_in_talk_rounded,
+          Colors.green,
         ),
-        
-        SizedBox(height: spacingSmall),
-        
-        // Change Password Button
-        _buildActionButton(
-          icon: Icons.lock_reset_outlined,
-          label: 'Change Password',
-          subtitle: 'Update your account password',
-          color: accent,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Change password feature coming soon'),
-                backgroundColor: accent,
-              ),
-            );
-          },
+        _buildInfoMenuItem(
+          'Email',
+          email,
+          Icons.email_rounded,
+          accent,
         ),
-        
-        SizedBox(height: spacingLarge),
-        
-        _buildSectionLabel('Danger Zone', Icons.warning_amber_rounded),
-        
-        SizedBox(height: spacingMedium),
-        
-        // Sign Out Button
-        _buildActionButton(
-          icon: Icons.logout_rounded,
-          label: 'Sign Out',
-          subtitle: 'Log out of your account',
-          color: error,
-          onTap: () async {
-            final confirm = await _showConfirmDialog(
-              'Sign Out',
-              'Are you sure you want to sign out?',
-            );
-            
-            if (confirm == true) {
-              await authService.value.signOut();
-            }
-          },
-        ),
-        
-        SizedBox(height: spacingSmall),
-        
-        // Delete Account Button
-        _buildActionButton(
-          icon: Icons.delete_forever_outlined,
-          label: 'Delete Account',
-          subtitle: 'Permanently delete your account',
-          color: error,
-          isDanger: true,
-          onTap: () async {
-            final confirm = await _showConfirmDialog(
-              'Delete Account',
-              'This action cannot be undone. Are you sure you want to delete your account?',
-              isDanger: true,
-            );
-            
-            if (confirm == true) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Delete account feature coming soon'),
-                  backgroundColor: error,
-                ),
-              );
-            }
-          },
-        ),
-        
-        SizedBox(height: spacingLarge),
-      ],
-    );
-  }
-
-  Widget _buildSectionLabel(String title, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: primary.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(radiusSmall),
-          ),
-          child: Icon(icon, color: primary, size: 16),
-        ),
-        SizedBox(width: spacingSmall),
-        Text(
-          title,
-          style: bodyBold.copyWith(
-            fontSize: 14,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w600,
-          ),
+        _buildInfoMenuItem(
+          'Emergency Contacts',
+          'Manage your emergency list',
+          Icons.sos_rounded,
+          error,
         ),
       ],
     );
   }
 
-  Widget _buildInfoCard(List<_InfoItem> items) {
+  Widget _buildCaretakerStatus() {
+    final assignedCaretakers = widget.userData['assignedCaretakers'] as Map?;
+    final caretakerCount = assignedCaretakers?.length ?? 0;
+
     return Container(
       padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: widget.isDarkMode 
-          ? [
-              BoxShadow(
-                color: primary.withOpacity(0.1),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ]
-          : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: Offset(0, 3),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(radiusLarge),
         border: Border.all(
           color: widget.isDarkMode
               ? primary.withOpacity(0.2)
               : Colors.black.withOpacity(0.06),
           width: 1,
         ),
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < items.length; i++) ...[
-            _buildInfoRow(items[i]),
-            if (i < items.length - 1) ...[
-              SizedBox(height: spacingMedium),
-              Divider(
-                height: 1,
-                color: widget.theme.subtextColor.withOpacity(0.15),
-              ),
-              SizedBox(height: spacingMedium),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(_InfoItem item) {
-    return Semantics(
-      label: '${item.label}: ${item.value}',
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: widget.isDarkMode 
-                ? primary.withOpacity(0.15)
-                : primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(radiusSmall),
-            ),
-            child: Icon(
-              item.icon,
-              size: 18,
-              color: primary,
-            ),
-          ),
-          SizedBox(width: spacingMedium),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.label,
-                  style: caption.copyWith(
-                    fontSize: 12,
-                    color: widget.theme.subtextColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  item.value.isNotEmpty ? item.value : 'Not provided',
-                  style: body.copyWith(
-                    fontSize: 14,
-                    color: widget.theme.textColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-    bool isDanger = false,
-  }) {
-    return Semantics(
-      label: '$label button',
-      button: true,
-      hint: subtitle,
-      child: Container(
-        decoration: BoxDecoration(
-          boxShadow: widget.isDarkMode 
+        boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: color.withOpacity(0.1),
+                  color: primary.withOpacity(0.1),
                   blurRadius: 16,
                   offset: Offset(0, 6),
                 ),
               ]
-            : [
-                BoxShadow(
-                  color: color.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: Offset(0, 3),
+            : softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(radiusMedium),
                 ),
-              ],
-          borderRadius: BorderRadius.circular(radiusXLarge),
-        ),
-        child: Material(
-          color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(radiusXLarge),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(radiusXLarge),
-            splashColor: color.withOpacity(0.2),
-            child: Container(
-              padding: EdgeInsets.all(spacingLarge),
-              decoration: BoxDecoration(
-                gradient: isDanger 
-                  ? LinearGradient(
-                      colors: [
-                        color.withOpacity(widget.isDarkMode ? 0.2 : 0.1),
-                        color.withOpacity(widget.isDarkMode ? 0.1 : 0.05),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
-                borderRadius: BorderRadius.circular(radiusXLarge),
-                border: Border.all(
-                  color: color.withOpacity(widget.isDarkMode ? 0.3 : 0.25),
-                  width: 1,
+                child: Icon(Icons.people_rounded, color: primary, size: 20),
+              ),
+              SizedBox(width: spacingMedium),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Assigned Caretakers',
+                      style: bodyBold.copyWith(
+                        fontSize: 15,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      caretakerCount > 0
+                          ? '$caretakerCount caretaker${caretakerCount != 1 ? 's' : ''} assigned'
+                          : 'No caretakers assigned yet',
+                      style: caption.copyWith(
+                        fontSize: 13,
+                        color: widget.theme.subtextColor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: caretakerCount > 0 
+                      ? Colors.green.withOpacity(0.15)
+                      : Colors.orange.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(radiusSmall),
+                ),
+                child: Text(
+                  caretakerCount > 0 ? 'Active' : 'Pending',
+                  style: caption.copyWith(
+                    fontSize: 11,
+                    color: caretakerCount > 0 ? Colors.green : Colors.orange,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoMenuItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: spacingMedium),
+      child: Container(
+        padding: EdgeInsets.all(spacingMedium),
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusLarge),
+          border: Border.all(
+            color: widget.isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.06),
+            width: 1,
+          ),
+          boxShadow: widget.isDarkMode
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(radiusMedium),
+              ),
+              child: Center(
+                child: Icon(icon, color: color, size: 22),
+              ),
+            ),
+            SizedBox(width: spacingMedium),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: caption.copyWith(
+                      fontSize: 12,
+                      color: widget.theme.subtextColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    value,
+                    style: bodyBold.copyWith(
+                      fontSize: 15,
+                      color: widget.theme.textColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionMenuItem(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color, {
+    bool isDestructive = false,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: spacingMedium),
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusLarge),
+          border: Border.all(
+            color: widget.isDarkMode
+                ? (isDestructive 
+                    ? Colors.red.withOpacity(0.3)
+                    : Colors.white.withOpacity(0.1))
+                : (isDestructive
+                    ? Colors.red.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.06)),
+            width: 1,
+          ),
+          boxShadow: widget.isDarkMode
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(radiusLarge),
+            child: Padding(
+              padding: EdgeInsets.all(spacingMedium),
               child: Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(12),
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.15),
+                      color: isDestructive
+                          ? Colors.red.withOpacity(0.1)
+                          : color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(radiusMedium),
                     ),
-                    child: Icon(icon, color: color, size: 20),
+                    child: Center(
+                      child: Icon(
+                        icon,
+                        color: isDestructive ? Colors.red : color,
+                        size: 22,
+                      ),
+                    ),
                   ),
                   SizedBox(width: spacingMedium),
                   Expanded(
@@ -589,14 +548,16 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          label,
+                          title,
                           style: bodyBold.copyWith(
                             fontSize: 15,
-                            color: widget.theme.textColor,
-                            fontWeight: FontWeight.w700,
+                            color: isDestructive
+                                ? Colors.red
+                                : widget.theme.textColor,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        SizedBox(height: 4),
                         Text(
                           subtitle,
                           style: caption.copyWith(
@@ -609,7 +570,7 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
                   ),
                   Icon(
                     Icons.arrow_forward_ios_rounded,
-                    color: color,
+                    color: widget.theme.subtextColor.withOpacity(0.5),
                     size: 16,
                   ),
                 ],
@@ -621,39 +582,71 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
     );
   }
 
-  Future<bool?> _showConfirmDialog(
-    String title,
-    String message, {
-    bool isDanger = false,
-  }) {
-    return showDialog<bool>(
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(radiusSmall),
+            ),
+            child: Icon(icon, color: primary, size: 16),
+          ),
+          SizedBox(width: spacingSmall),
+          Text(
+            title.toUpperCase(),
+            style: caption.copyWith(
+              fontSize: 11,
+              color: widget.theme.subtextColor.withOpacity(0.7),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMedium),
+        ),
+        backgroundColor: primary,
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: widget.theme.cardColor,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusXLarge),
+          borderRadius: BorderRadius.circular(radiusLarge),
         ),
         title: Row(
           children: [
-            Icon(
-              isDanger ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
-              color: isDanger ? error : primary,
-              size: 24,
-            ),
+            Icon(Icons.logout_rounded, color: error, size: 24),
             SizedBox(width: spacingSmall),
-            Expanded(
-              child: Text(
-                title,
-                style: bodyBold.copyWith(
-                  fontSize: 16,
-                  color: widget.theme.textColor,
-                ),
+            Text(
+              'Sign Out',
+              style: h2.copyWith(
+                fontSize: 18,
+                color: widget.theme.textColor,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
         ),
         content: Text(
-          message,
+          'Are you sure you want to sign out?',
           style: body.copyWith(
             fontSize: 14,
             color: widget.theme.subtextColor,
@@ -661,37 +654,104 @@ class _ProfileContentState extends State<ProfileContent> with SingleTickerProvid
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: body.copyWith(color: widget.theme.subtextColor),
+              style: TextStyle(
+                color: widget.theme.subtextColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () async {
+              Navigator.pop(context);
+              await authService.value.signOut();
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDanger ? error : primary,
+              backgroundColor: error,
               foregroundColor: white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(radiusMedium),
               ),
             ),
-            child: Text(isDanger ? 'Delete' : 'Confirm'),
+            child: Text('Sign Out'),
           ),
         ],
       ),
     );
   }
-}
 
-class _InfoItem {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  _InfoItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: widget.theme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: error, size: 24),
+            SizedBox(width: spacingSmall),
+            Text(
+              'Delete Account',
+              style: h2.copyWith(
+                fontSize: 18,
+                color: widget.theme.textColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This action cannot be undone.',
+              style: bodyBold.copyWith(
+                fontSize: 14,
+                color: error,
+              ),
+            ),
+            SizedBox(height: spacingSmall),
+            Text(
+              'All your data, including contacts and activity history, will be permanently deleted.',
+              style: body.copyWith(
+                fontSize: 13,
+                color: widget.theme.subtextColor,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: widget.theme.subtextColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showSnackbar('Delete account feature coming soon');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: error,
+              foregroundColor: white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(radiusMedium),
+              ),
+            ),
+            child: Text('Delete Account'),
+          ),
+        ],
+      ),
+    );
+  }
 }

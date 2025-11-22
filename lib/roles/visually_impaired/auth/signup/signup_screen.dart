@@ -42,7 +42,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String? _selectedSex;
-  String _selectedDisabilityType = 'Visual Impairment';
+  String? _selectedDisabilityType;
   DateTime? _selectedBirthdate;
 
   final List<String> _sexOptions = ['Male', 'Female'];
@@ -297,85 +297,90 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          "User Registration",
-                          style: bodyBold.copyWith(
-                            fontSize: screenWidth * 0.05,
-                            color: primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          "Start your journey with us today",
-                          style: body.copyWith(
-                            fontSize: screenWidth * 0.042,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
+                        
                         SizedBox(height: screenHeight * 0.03),
 
-                        // Profile Picture Section
+                        // Profile Picture Section - Redesigned
                         GestureDetector(
                           onTap: _isLoading ? null : _showImageSourceDialog,
                           child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primary.withOpacity(0.2),
-                                  blurRadius: 15,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  primary.withOpacity(0.08),
+                                  primary.withOpacity(0.04),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: primary.withOpacity(0.2),
+                                width: 2,
+                              ),
                             ),
-                            child: Stack(
+                            child: Column(
                               children: [
-                                CircleAvatar(
-                                  radius: 60,
-                                  backgroundColor: lightBlue,
-                                  backgroundImage: _profileImage != null
-                                      ? FileImage(_profileImage!)
-                                      : null,
-                                  child: _profileImage == null
-                                      ? Icon(
-                                          Icons.person,
-                                          size: 60,
-                                          color: primary,
-                                        )
-                                      : null,
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: EdgeInsets.all(8),
+                                if (_profileImage != null)
+                                  Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 50,
+                                        backgroundImage: FileImage(_profileImage!),
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            gradient: primaryGradient,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: white, width: 2),
+                                          ),
+                                          child: Icon(
+                                            Icons.edit,
+                                            size: 16,
+                                            color: white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Container(
+                                    padding: EdgeInsets.all(20),
                                     decoration: BoxDecoration(
-                                      gradient: primaryGradient,
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: white, width: 3),
+                                      color: primary.withOpacity(0.1),
                                     ),
                                     child: Icon(
-                                      Icons.camera_alt,
-                                      size: 20,
-                                      color: white,
+                                      Icons.camera_alt_outlined,
+                                      size: 40,
+                                      color: primary,
                                     ),
+                                  ),
+                                SizedBox(height: 12),
+                                Text(
+                                  _profileImage != null ? 'Tap to change photo' : 'Add Profile Picture',
+                                  style: bodyBold.copyWith(
+                                    fontSize: screenWidth * 0.04,
+                                    color: primary,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'JPG, PNG (Max 2MB)',
+                                  style: body.copyWith(
+                                    fontSize: screenWidth * 0.032,
+                                    color: grey,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          'Tap to add profile picture',
-                          style: body.copyWith(
-                            fontSize: screenWidth * 0.035,
-                            color: grey,
                           ),
                         ),
 
@@ -441,7 +446,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                           icon: Icons.accessible_outlined,
                           onChanged: (value) {
                             setState(() {
-                              _selectedDisabilityType = value!;
+                              _selectedDisabilityType = value;
                             });
                           },
                           screenHeight: screenHeight,
@@ -740,7 +745,14 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         items: items.map((String item) {
           return DropdownMenuItem<String>(
             value: item,
-            child: Text(item),
+            child: Text(
+              item,
+              style: body.copyWith(
+                fontSize: 16,
+                color: black,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
           );
         }).toList(),
         onChanged: _isLoading ? null : onChanged,
@@ -749,6 +761,15 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
           color: black,
           fontWeight: FontWeight.w400,
         ),
+        hint: Text(
+          hint,
+          style: body.copyWith(
+            fontSize: 16,
+            color: grey.withOpacity(0.5),
+            fontWeight: FontWeight.w400,
+          ),
+        ),
+        isExpanded: true,
         decoration: InputDecoration(
           fillColor: white,
           filled: true,
@@ -845,12 +866,13 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   }
 
   Future<void> _handleSignup() async {
-    // Validation checks
+    // Validation checks - ALL FIELDS ARE REQUIRED
     if (_idNumberController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||
         _selectedSex == null ||
         _ageController.text.trim().isEmpty ||
         _selectedBirthdate == null ||
+        _selectedDisabilityType == null ||
         _diagnosisController.text.trim().isEmpty ||
         _addressController.text.trim().isEmpty ||
         _contactNumberController.text.trim().isEmpty ||
@@ -859,8 +881,9 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         _confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please fill in all fields'),
+          content: Text('Please fill in all required fields'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -871,6 +894,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         SnackBar(
           content: Text('Passwords do not match'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -881,6 +905,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         SnackBar(
           content: Text('Password must be at least 6 characters'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -892,6 +917,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         SnackBar(
           content: Text('Please enter a valid age'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -927,7 +953,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         sex: _selectedSex!,
         age: age,
         birthdate: _selectedBirthdate!,
-        disabilityType: _selectedDisabilityType,
+        disabilityType: _selectedDisabilityType!,
         diagnosis: _diagnosisController.text.trim(),
         address: _addressController.text.trim(),
         contactNumber: _contactNumberController.text.trim(),
@@ -989,6 +1015,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: error,
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -998,6 +1025,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: error,
+            duration: Duration(seconds: 2),
           ),
         );
       }

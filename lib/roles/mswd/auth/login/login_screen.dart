@@ -51,7 +51,6 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic));
 
-
     _fadeController.forward();
   }
 
@@ -148,7 +147,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                         ShaderMask(
                           shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                           child: Text(
-                            "MSWD Login",
+                            "Welcome Back",
                             style: h1.copyWith(
                               fontSize: screenWidth * 0.095,
                               color: white,
@@ -158,7 +157,17 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.015),
+                        SizedBox(height: screenHeight * 0.01),
+                        Text(
+                          "MSWD Staff Login",
+                          style: bodyBold.copyWith(
+                            fontSize: screenWidth * 0.05,
+                            color: primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: screenHeight * 0.01),
                         Text(
                           "Staff Portal Access",
                           style: body.copyWith(
@@ -170,38 +179,6 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                         ),
 
                         SizedBox(height: screenHeight * 0.05),
-
-                        // Role indicator
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          decoration: BoxDecoration(
-                            gradient: primaryGradient,
-                            borderRadius: BorderRadius.circular(radiusLarge),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primary.withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.admin_panel_settings_rounded, color: white, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'MSWD Staff Account',
-                                style: bodyBold.copyWith(
-                                  color: white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.045),
 
                         // Email Field
                         Container(
@@ -510,7 +487,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('This account is not registered as MSWD staff'),
+                content: Text('This account is not registered as MSWD Staff'),
                 backgroundColor: error,
               ),
             );
@@ -522,7 +499,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
         await activityLogsService.logActivity(
           userId: userCredential.user!.uid,
           action: 'login',
-          details: 'MSWD staff logged in',
+          details: 'MSWD staff logged in as $userRole',
         );
         
         if (mounted) {
@@ -541,7 +518,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Welcome, MSWD Staff!'),
+                  content: Text('Welcome back!'),
                   backgroundColor: success,
                 ),
               );
