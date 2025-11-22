@@ -57,6 +57,7 @@ class TextScanService {
       await _logToActivityLogs(
         userId: userId,
         action: 'text_scanned',
+        // ignore: unnecessary_brace_in_string_interps
         details: 'Scanned ${textBlockCount} text blocks (${scannedText.length} chars)',
       );
 

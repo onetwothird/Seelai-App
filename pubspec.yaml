@@ -33,6 +33,7 @@ dependencies:
   tflite_flutter: ^0.12.1
   image_picker: ^1.2.1
   image: ^4.5.4
+  flutter_vision: ^2.0.0
 
   
 dev_dependencies:
@@ -47,6 +48,8 @@ flutter:
     - assets/
     - assets/icons/
     - assets/images/
+    - assets/object_model/objects.tflite
+    - assets/object_model/labels.txt
 
 flutter_launcher_icons:
   android: true

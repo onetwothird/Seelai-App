@@ -10,7 +10,7 @@ import 'package:seelai_app/roles/caretaker/home/sections/profile_content.dart';
 import 'package:seelai_app/roles/caretaker/screens/realtime_tracking_screen.dart';
 import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
-import 'package:seelai_app/roles/caretaker/services/request_service.dart';
+import 'package:seelai_app/firebase/caretaker/request_service.dart';
 
 class CaretakerHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;

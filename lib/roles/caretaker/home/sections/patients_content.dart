@@ -1,4 +1,4 @@
-// ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use, duplicate_ignore
+// ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use, duplicate_ignore, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -9,7 +9,7 @@ import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
-/// Real-Time Patients Content - Redesigned
+/// Real-Time Patients Content - Redesigned with Communications
 class PatientsContent extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
@@ -138,6 +138,209 @@ class _PatientsContentState extends State<PatientsContent> {
     }).toList();
   }
 
+  /// Handle call action
+  Future<void> _handleCall(PatientModel patient) async {
+    try {
+      await communicationsService.initiateCall(
+        receiverId: patient.id,
+        receiverName: patient.name,
+        receiverImage: patient.profileImageUrl ?? '',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Calling ${patient.name}...'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error initiating call: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initiate call: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Handle message action
+Future<void> _handleMessage(PatientModel patient) async {
+  try {
+    // Navigate to message screen or show message dialog
+    _showMessageDialog(patient);
+  } catch (e) {
+    debugPrint('Error with message: $e');
+  }
+}
+
+/// Show message dialog
+void _showMessageDialog(PatientModel patient) {
+  final messageController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: widget.theme.cardColor,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Message ${patient.name}',
+              style: h2.copyWith(color: widget.theme.textColor),
+            ),
+            SizedBox(height: 8),
+            if (patient.contactNumber != null && patient.contactNumber != 'N/A')
+              Text(
+                patient.contactNumber!,
+                style: body.copyWith(
+                  color: widget.theme.subtextColor,
+                  fontSize: 13,
+                ),
+              ),
+          ],
+        ),
+        content: TextField(
+          controller: messageController,
+          style: body.copyWith(color: widget.theme.textColor),
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: 'Type your message...',
+            hintStyle: body.copyWith(color: widget.theme.subtextColor),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(radiusMedium),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(radiusMedium),
+              borderSide: BorderSide(color: primary.withOpacity(0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(radiusMedium),
+              borderSide: BorderSide(color: primary),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: bodyBold.copyWith(color: widget.theme.subtextColor),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final messageText = messageController.text.trim();
+              
+              if (messageText.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Please enter a message'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+
+              try {
+                // Show loading indicator
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext loadingContext) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(primary),
+                      ),
+                    );
+                  },
+                );
+
+                // Send the message
+                await communicationsService.sendMessage(
+                  receiverId: patient.id,
+                  text: messageText,
+                );
+
+                if (mounted) {
+                  // Close loading dialog
+                  Navigator.pop(context);
+                  
+                  // Close message dialog
+                  Navigator.pop(context);
+                  
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: white),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text('Message sent to ${patient.name}'),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                      duration: Duration(seconds: 3),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(radiusMedium),
+                      ),
+                    ),
+                  );
+                }
+              } catch (e) {
+                debugPrint('Error sending message: $e');
+                
+                if (mounted) {
+                  // Close loading dialog
+                  Navigator.pop(context);
+                  
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          Icon(Icons.error_rounded, color: white),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text('Failed to send message: $e'),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 4),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(radiusMedium),
+                      ),
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: primary,
+            ),
+            child: Text(
+              'Send',
+              style: bodyBold.copyWith(color: white),
+            ),
+          ),
+        ],
+      );
+    },
+  ).then((_) => messageController.dispose());
+}
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -181,46 +384,44 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   Widget _buildHeader() {
-  final onlineCount = _patients.where((p) => p.isOnline).length;
+    final onlineCount = _patients.where((p) => p.isOnline).length;
 
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          // 🔥 REMOVED THE ICON CONTAINER
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'My Patients',
-                  style: h2.copyWith(
-                    fontSize: 26,
-                    color: widget.theme.textColor,
-                    fontWeight: FontWeight.w700,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Patients',
+                    style: h2.copyWith(
+                      fontSize: 26,
+                      color: widget.theme.textColor,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  _patients.isEmpty 
-                    ? 'No patients yet'
-                    : '${_patients.length} patient${_patients.length != 1 ? 's' : ''}'
-                      '${onlineCount > 0 ? ' • $onlineCount online' : ''}',
-                  style: body.copyWith(
-                    color: widget.theme.subtextColor,
-                    fontSize: 14,
+                  SizedBox(height: 4),
+                  Text(
+                    _patients.isEmpty 
+                      ? 'No patients yet'
+                      : '${_patients.length} patient${_patients.length != 1 ? 's' : ''}'
+                        '${onlineCount > 0 ? ' • $onlineCount online' : ''}',
+                    style: body.copyWith(
+                      color: widget.theme.subtextColor,
+                      fontSize: 14,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
+          ],
+        ),
+      ],
+    );
+  }
 
   Widget _buildSearchBar() {
     return Container(
@@ -409,7 +610,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 fontSize: 14,
                 height: 1.5,
                 fontWeight: FontWeight.w400,
-
               ),
               textAlign: TextAlign.center,
             ),
@@ -625,8 +825,6 @@ class _PatientsContentState extends State<PatientsContent> {
                                   Icons.location_on_rounded,
                                   size: 14,
                                   color: widget.theme.subtextColor,
-                                  fontWeight: FontWeight.w400,
-
                                 ),
                                 SizedBox(width: 4),
                                 Expanded(
@@ -636,7 +834,6 @@ class _PatientsContentState extends State<PatientsContent> {
                                       fontSize: 13,
                                       color: widget.theme.subtextColor,
                                       fontWeight: FontWeight.w400,
-
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -668,14 +865,7 @@ class _PatientsContentState extends State<PatientsContent> {
                         icon: Icons.phone_rounded,
                         label: 'Call',
                         color: Colors.green,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Calling ${patient.name}...'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
-                        },
+                        onTap: () => _handleCall(patient),
                       ),
                     ),
                     SizedBox(width: spacingSmall),
@@ -685,14 +875,7 @@ class _PatientsContentState extends State<PatientsContent> {
                         label: 'Message',
                         color: primary,
                         isOutlined: true,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Opening messages with ${patient.name}...'),
-                              backgroundColor: primary,
-                            ),
-                          );
-                        },
+                        onTap: () => _handleMessage(patient),
                       ),
                     ),
                   ],

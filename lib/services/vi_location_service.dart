@@ -2,7 +2,7 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-import 'package:seelai_app/roles/caretaker/services/location_tracking_service.dart';
+import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
 
 /// Location service for visually impaired users
 class VILocationService {

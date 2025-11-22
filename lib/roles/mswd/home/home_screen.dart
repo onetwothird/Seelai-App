@@ -5,9 +5,9 @@ import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/users_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/tracking_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/analytics_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/profile_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/requests_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/alerts_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/more_content.dart';
 
 class MSWDHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -27,6 +27,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   // UI State
   bool _isDarkMode = false;
   int _selectedIndex = 0;
+  int _pendingAlertsCount = 0; // Badge count
   
   // Animation
   late AnimationController _animationController;
@@ -100,6 +101,12 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
     _animationController.forward();
   }
 
+  void _updateAlertsCount(int count) {
+    setState(() {
+      _pendingAlertsCount = count;
+    });
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
@@ -132,7 +139,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
                 onToggleDarkMode: _toggleDarkMode,
                 onProfileTap: () {
                   setState(() {
-                    _selectedIndex = 4; // Profile is at index 4
+                    _selectedIndex = 4; // More section
                   });
                 },
                 textColor: theme.textColor,
@@ -166,6 +173,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
             onItemTapped: _onNavItemTapped,
             textColor: theme.textColor,
             subtextColor: theme.subtextColor,
+            pendingCount: _pendingAlertsCount,
           ),
         ),
       ),
@@ -174,7 +182,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
     switch (_selectedIndex) {
-      case 0:
+      case 0: // Home/Dashboard
         return DashboardContent(
           isDarkMode: _isDarkMode,
           theme: theme,
@@ -182,32 +190,34 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           scrollController: _scrollController,
         );
       
-      case 1:
+      case 1: // Users
         return UsersContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
         );
       
-      case 2:
-        return TrackingContent(
+      case 2: // Requests
+        return RequestsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
         );
       
-      case 3:
-        return AnalyticsContent(
+      case 3: // Alerts
+        return AlertsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
+          onAlertsCountChanged: _updateAlertsCount,
         );
       
-      case 4:
-        return ProfileContent(
+      case 4: // More
+        return MoreContent(
           userData: widget.userData,
           isDarkMode: _isDarkMode,
           theme: theme,
+          onToggleDarkMode: _toggleDarkMode,
         );
       
       default:

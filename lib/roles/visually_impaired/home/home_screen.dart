@@ -13,7 +13,7 @@ import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activiti
 import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
-import 'package:seelai_app/firebase/assistance_request_service.dart';
+import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
 import 'package:seelai_app/roles/visually_impaired/screens/scanner/mode_selection_screen.dart';

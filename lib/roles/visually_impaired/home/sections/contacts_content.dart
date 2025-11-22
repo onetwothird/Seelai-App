@@ -196,6 +196,208 @@ class _ContactsContentState extends State<ContactsContent> {
     }).toList();
   }
 
+  /// Handle call action
+  Future<void> _handleCall(ContactModel contact) async {
+    try {
+      await communicationService.initiateCall(
+        receiverId: contact.id,
+        receiverName: contact.name,
+        receiverImage: contact.profileImageUrl ?? '',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Calling ${contact.name}...'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error initiating call: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initiate call: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Handle message action
+  Future<void> _handleMessage(ContactModel contact) async {
+    try {
+      _showMessageDialog(contact);
+    } catch (e) {
+      debugPrint('Error with message: $e');
+    }
+  }
+
+  /// Show message dialog
+  void _showMessageDialog(ContactModel contact) {
+    final messageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: widget.theme.cardColor,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Message ${contact.name}',
+                style: h2.copyWith(color: widget.theme.textColor),
+              ),
+              SizedBox(height: 8),
+              if (contact.phoneNumber != 'N/A')
+                Text(
+                  contact.phoneNumber,
+                  style: body.copyWith(
+                    color: widget.theme.subtextColor,
+                    fontSize: 13,
+                  ),
+                ),
+            ],
+          ),
+          content: TextField(
+            controller: messageController,
+            style: body.copyWith(color: widget.theme.textColor),
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'Type your message...',
+              hintStyle: body.copyWith(color: widget.theme.subtextColor),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(radiusMedium),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(radiusMedium),
+                borderSide: BorderSide(color: primary.withOpacity(0.3)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(radiusMedium),
+                borderSide: BorderSide(color: primary),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: bodyBold.copyWith(color: widget.theme.subtextColor),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final messageText = messageController.text.trim();
+                
+                if (messageText.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Please enter a message'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  return;
+                }
+
+                try {
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (BuildContext loadingContext) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(primary),
+                        ),
+                      );
+                    },
+                  );
+
+                  // Send the message
+                  await communicationService.sendMessage(
+                    receiverId: contact.id,
+                    text: messageText,
+                  );
+
+                  if (mounted) {
+                    // Close loading dialog
+                    Navigator.pop(context);
+                    
+                    // Close message dialog
+                    Navigator.pop(context);
+                    
+                    // Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.check_circle_rounded, color: white),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text('Message sent to ${contact.name}'),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 3),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                        ),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Error sending message: $e');
+                  
+                  if (mounted) {
+                    // Close loading dialog
+                    Navigator.pop(context);
+                    
+                    // Show error message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.error_rounded, color: white),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text('Failed to send message: $e'),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 4),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                        ),
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+              ),
+              child: Text(
+                'Send',
+                style: bodyBold.copyWith(color: white),
+              ),
+            ),
+          ],
+        );
+      },
+    ).then((_) => messageController.dispose());
+  }
+
   Future<void> _showAddContactDialog() async {
     final nameController = TextEditingController();
     final relationshipController = TextEditingController();
@@ -411,7 +613,7 @@ Widget build(BuildContext context) {
 
   return RefreshIndicator(
     onRefresh: _refreshContacts,
-    child: Padding(  // ✅ Changed from SingleChildScrollView to just Padding
+    child: Padding(
       padding: EdgeInsets.only(
         left: width * 0.05,
         right: width * 0.05,
@@ -476,7 +678,6 @@ Widget build(BuildContext context) {
                 ],
               ),
             ),
-            // Add Contact Button
             Semantics(
               label: 'Add new contact button',
               button: true,
@@ -746,236 +947,211 @@ Widget build(BuildContext context) {
       );
     }
 
-  // Separate caretakers and emergency contacts
-final caretakers = filteredContacts.where((c) => c.isCaretaker).toList();
-final emergencyContacts = filteredContacts.where((c) => c.isEmergencyContact).toList();
+    final caretakers = filteredContacts.where((c) => c.isCaretaker).toList();
+    final emergencyContacts = filteredContacts.where((c) => c.isEmergencyContact).toList();
 
-return Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    // Caretakers Section
-    if (caretakers.isNotEmpty) ...[
-      _buildSectionLabel('My Caretakers', primary),
-      SizedBox(height: spacingMedium),
-      ...caretakers.map((contact) => Padding(
-        padding: EdgeInsets.only(bottom: spacingMedium),
-        child: _buildContactCard(contact),
-      )),
-      if (emergencyContacts.isNotEmpty)
-        SizedBox(height: spacingLarge),
-    ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (caretakers.isNotEmpty) ...[
+          _buildSectionLabel('My Caretakers', primary),
+          SizedBox(height: spacingMedium),
+          ...caretakers.map((contact) => Padding(
+            padding: EdgeInsets.only(bottom: spacingMedium),
+            child: _buildContactCard(contact),
+          )),
+          if (emergencyContacts.isNotEmpty)
+            SizedBox(height: spacingLarge),
+        ],
 
-    // Emergency Contacts Section
-    if (emergencyContacts.isNotEmpty) ...[
-      _buildSectionLabel('Emergency Contacts', error),
-      SizedBox(height: spacingMedium),
-      ...emergencyContacts.map((contact) => Padding(
-        padding: EdgeInsets.only(bottom: spacingMedium),
-        child: _buildContactCard(contact),
-      )),
-    ],
-  ],
-);
-}
+        if (emergencyContacts.isNotEmpty) ...[
+          _buildSectionLabel('Emergency Contacts', error),
+          SizedBox(height: spacingMedium),
+          ...emergencyContacts.map((contact) => Padding(
+            padding: EdgeInsets.only(bottom: spacingMedium),
+            child: _buildContactCard(contact),
+          )),
+        ],
+      ],
+    );
+  }
 
-
-/// SECTION LABEL WITHOUT ICON
-Widget _buildSectionLabel(String title, Color color) {
-  return Text(
-    title,
-    style: bodyBold.copyWith(
-      fontSize: 14,
-      color: widget.theme.textColor,
-      fontWeight: FontWeight.w600,
-    ),
-  );
-}
-
-
-/// CONTACT CARD (unchanged except for indentation)
-Widget _buildContactCard(ContactModel contact) {
-  return Container(
-    decoration: BoxDecoration(
-      color: widget.theme.cardColor,
-      borderRadius: BorderRadius.circular(radiusXLarge),
-      boxShadow: widget.isDarkMode
-          ? [
-              BoxShadow(
-                color: contact.color.withOpacity(0.1),
-                blurRadius: 16,
-                offset: Offset(0, 6),
-              ),
-            ]
-          : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 12,
-                offset: Offset(0, 3),
-              ),
-            ],
-      border: Border.all(
-        color: widget.isDarkMode
-            ? contact.color.withOpacity(0.2)
-            : Colors.black.withOpacity(0.06),
-        width: 1,
+  Widget _buildSectionLabel(String title, Color color) {
+    return Text(
+      title,
+      style: bodyBold.copyWith(
+        fontSize: 14,
+        color: widget.theme.textColor,
+        fontWeight: FontWeight.w600,
       ),
-    ),
-    child: Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showContactOptions(contact),
+    );
+  }
+
+  Widget _buildContactCard(ContactModel contact) {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
-        child: Padding(
-          padding: EdgeInsets.all(spacingLarge),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  // Profile Avatar
-                  _buildProfileAvatar(contact),
-                  SizedBox(width: spacingMedium),
+        boxShadow: widget.isDarkMode
+            ? [
+                BoxShadow(
+                  color: contact.color.withOpacity(0.1),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
+                ),
+              ]
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 12,
+                  offset: Offset(0, 3),
+                ),
+              ],
+        border: Border.all(
+          color: widget.isDarkMode
+              ? contact.color.withOpacity(0.2)
+              : Colors.black.withOpacity(0.06),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showContactOptions(contact),
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          child: Padding(
+            padding: EdgeInsets.all(spacingLarge),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _buildProfileAvatar(contact),
+                    SizedBox(width: spacingMedium),
 
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                contact.name,
-                                style: bodyBold.copyWith(
-                                  fontSize: 18,
-                                  color: widget.theme.textColor,
-                                  fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  contact.name,
+                                  style: bodyBold.copyWith(
+                                    fontSize: 18,
+                                    color: widget.theme.textColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
-                            ),
 
-                            // Role Badge
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: spacingSmall,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: contact.color.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(radiusSmall),
-                              ),
-                              child: Text(
-                                contact.isCaretaker ? 'CARETAKER' : 'SOS',
-                                style: caption.copyWith(
-                                  fontSize: 10,
-                                  color: contact.color,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.5,
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: spacingSmall,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: contact.color.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(radiusSmall),
+                                ),
+                                child: Text(
+                                  contact.isCaretaker ? 'CARETAKER' : 'SOS',
+                                  style: caption.copyWith(
+                                    fontSize: 10,
+                                    color: contact.color,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
+                            ],
+                          ),
 
-                        SizedBox(height: 6),
+                          SizedBox(height: 6),
 
-                        /// Relationship
-                        Row(
-                          children: [
-                            Icon(Icons.badge_rounded,
-                                size: 14, color: widget.theme.subtextColor),
-                            SizedBox(width: 4),
-                            Text(
-                              contact.relationship,
-                              style: caption.copyWith(
-                                fontSize: 13,
-                                color: widget.theme.subtextColor,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: 4),
-
-                        /// Phone
-                        Row(
-                          children: [
-                            Icon(Icons.phone_rounded,
-                                size: 14, color: widget.theme.subtextColor),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                contact.phoneNumber,
+                          Row(
+                            children: [
+                              Icon(Icons.badge_rounded,
+                                  size: 14, color: widget.theme.subtextColor),
+                              SizedBox(width: 4),
+                              Text(
+                                contact.relationship,
                                 style: caption.copyWith(
                                   fontSize: 13,
                                   color: widget.theme.subtextColor,
                                   fontWeight: FontWeight.w400,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    color: widget.theme.subtextColor.withOpacity(0.5),
-                    size: 18,
-                  ),
-                ],
-              ),
-
-              SizedBox(height: spacingMedium),
-              Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
-              SizedBox(height: spacingMedium),
-
-              // Quick Actions
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.phone_rounded,
-                      label: 'Call',
-                      color: Colors.green,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Calling ${contact.name}...'),
-                            backgroundColor: Colors.green,
+                            ],
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  SizedBox(width: spacingSmall),
-                  Expanded(
-                    child: _buildActionButton(
-                      icon: Icons.message_rounded,
-                      label: 'Message',
-                      color: contact.color,
-                      isOutlined: true,
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Opening messages with ${contact.name}...'),
-                            backgroundColor: contact.color,
+
+                          SizedBox(height: 4),
+
+                          Row(
+                            children: [
+                              Icon(Icons.phone_rounded,
+                                  size: 14, color: widget.theme.subtextColor),
+                              SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  contact.phoneNumber,
+                                  style: caption.copyWith(
+                                    fontSize: 13,
+                                    color: widget.theme.subtextColor,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: widget.theme.subtextColor.withOpacity(0.5),
+                      size: 18,
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: spacingMedium),
+                Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
+                SizedBox(height: spacingMedium),
+
+                // Quick Actions
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.phone_rounded,
+                        label: 'Call',
+                        color: Colors.green,
+                        onTap: () => _handleCall(contact),
+                      ),
+                    ),
+                    SizedBox(width: spacingSmall),
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.message_rounded,
+                        label: 'Message',
+                        color: contact.color,
+                        isOutlined: true,
+                        onTap: () => _handleMessage(contact),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildActionButton({
     required IconData icon,
