@@ -150,19 +150,18 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     );
   }
 
-
-Future<String?> _uploadProfileImage(String userId) async {
-  if (_profileImage == null) return null;
-  try {
-    return await cloudinaryService.uploadProfileImage(
-      _profileImage!,
-      userId,
-      'mswd',
-    );
-  } catch (e) {
-    throw Exception('Failed to upload profile image: $e');
+  Future<String?> _uploadProfileImage(String userId) async {
+    if (_profileImage == null) return null;
+    try {
+      return await cloudinaryService.uploadProfileImage(
+        _profileImage!,
+        userId,
+        'mswd',
+      );
+    } catch (e) {
+      throw Exception('Failed to upload profile image: $e');
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +226,7 @@ Future<String?> _uploadProfileImage(String userId) async {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        SizedBox(height: screenHeight * 0.04),
+                        SizedBox(height: screenHeight * 0.05),
 
                         // Back button
                         Align(
@@ -239,12 +238,10 @@ Future<String?> _uploadProfileImage(String userId) async {
                           ),
                         ),
 
-                        SizedBox(height: screenHeight * 0.01),
-
                         ShaderMask(
                           shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                           child: Text(
-                            "MSWD Signup",
+                            "Create Account",
                             style: h1.copyWith(
                               fontSize: screenWidth * 0.09,
                               color: white,
@@ -252,107 +249,90 @@ Future<String?> _uploadProfileImage(String userId) async {
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          "Join the MSWD team",
-                          style: body.copyWith(
-                            fontSize: screenWidth * 0.042,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
+                        
                         SizedBox(height: screenHeight * 0.03),
 
-                        // Role indicator
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          decoration: BoxDecoration(
-                            gradient: primaryGradient,
-                            borderRadius: BorderRadius.circular(radiusLarge),
-                            boxShadow: [
-                              BoxShadow(
-                                color: primary.withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.admin_panel_settings_rounded, color: white, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'MSWD Staff Account',
-                                style: bodyBold.copyWith(
-                                  color: white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.03),
-
-                        // Profile Picture Section
+                        // Profile Picture Section - Redesigned
                         GestureDetector(
                           onTap: _isLoading ? null : _showImageSourceDialog,
                           child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primary.withOpacity(0.2),
-                                  blurRadius: 15,
-                                  offset: Offset(0, 5),
-                                ),
-                              ],
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  primary.withOpacity(0.08),
+                                  primary.withOpacity(0.04),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: primary.withOpacity(0.2),
+                                width: 2,
+                              ),
                             ),
-                            child: Stack(
+                            child: Column(
                               children: [
-                                CircleAvatar(
-                                  radius: 60,
-                                  backgroundColor: lightBlue,
-                                  backgroundImage: _profileImage != null
-                                      ? FileImage(_profileImage!)
-                                      : null,
-                                  child: _profileImage == null
-                                      ? Icon(
-                                          Icons.person,
-                                          size: 60,
-                                          color: primary,
-                                        )
-                                      : null,
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: Container(
-                                    padding: EdgeInsets.all(8),
+                                if (_profileImage != null)
+                                  Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 50,
+                                        backgroundImage: FileImage(_profileImage!),
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: Container(
+                                          padding: EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            gradient: primaryGradient,
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: white, width: 2),
+                                          ),
+                                          child: Icon(
+                                            Icons.edit,
+                                            size: 16,
+                                            color: white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  Container(
+                                    padding: EdgeInsets.all(20),
                                     decoration: BoxDecoration(
-                                      gradient: primaryGradient,
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: white, width: 3),
+                                      color: primary.withOpacity(0.1),
                                     ),
                                     child: Icon(
-                                      Icons.camera_alt,
-                                      size: 20,
-                                      color: white,
+                                      Icons.camera_alt_outlined,
+                                      size: 40,
+                                      color: primary,
                                     ),
+                                  ),
+                                SizedBox(height: 12),
+                                Text(
+                                  _profileImage != null ? 'Tap to change photo' : 'Add Profile Picture',
+                                  style: bodyBold.copyWith(
+                                    fontSize: screenWidth * 0.04,
+                                    color: primary,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'JPG, PNG (Max 2MB)',
+                                  style: body.copyWith(
+                                    fontSize: screenWidth * 0.032,
+                                    color: grey,
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          'Tap to add profile picture',
-                          style: body.copyWith(
-                            fontSize: screenWidth * 0.035,
-                            color: grey,
                           ),
                         ),
 
@@ -408,7 +388,7 @@ Future<String?> _uploadProfileImage(String userId) async {
                             style: body.copyWith(
                               fontSize: 16,
                               color: black,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                             decoration: InputDecoration(
                               fillColor: white,
@@ -471,7 +451,7 @@ Future<String?> _uploadProfileImage(String userId) async {
                             style: body.copyWith(
                               fontSize: 16,
                               color: black,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.w400,
                             ),
                             decoration: InputDecoration(
                               fillColor: white,
@@ -595,7 +575,7 @@ Future<String?> _uploadProfileImage(String userId) async {
         style: body.copyWith(
           fontSize: 16,
           color: black,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w400,
         ),
         decoration: InputDecoration(
           fillColor: white,
@@ -641,8 +621,9 @@ Future<String?> _uploadProfileImage(String userId) async {
         _confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please fill in all fields'),
+          content: Text('Please fill in all required fields'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -653,6 +634,7 @@ Future<String?> _uploadProfileImage(String userId) async {
         SnackBar(
           content: Text('Passwords do not match'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -663,6 +645,7 @@ Future<String?> _uploadProfileImage(String userId) async {
         SnackBar(
           content: Text('Password must be at least 6 characters'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -674,6 +657,7 @@ Future<String?> _uploadProfileImage(String userId) async {
         SnackBar(
           content: Text('Please enter a valid age'),
           backgroundColor: error,
+          duration: Duration(seconds: 2),
         ),
       );
       return;
@@ -724,14 +708,14 @@ Future<String?> _uploadProfileImage(String userId) async {
       await activityLogsService.logActivity(
         userId: userCredential.user!.uid,
         action: 'account_created',
-        details: 'MSWD staff account created',
+        details: 'User signed up as admin',
       );
 
       // Success!
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('MSWD account created successfully!'),
+            content: Text('Account created successfully!'),
             backgroundColor: success,
             duration: Duration(seconds: 2),
           ),
@@ -765,6 +749,7 @@ Future<String?> _uploadProfileImage(String userId) async {
           SnackBar(
             content: Text(errorMessage),
             backgroundColor: error,
+            duration: Duration(seconds: 2),
           ),
         );
       }
@@ -774,6 +759,7 @@ Future<String?> _uploadProfileImage(String userId) async {
           SnackBar(
             content: Text('Error: ${e.toString()}'),
             backgroundColor: error,
+            duration: Duration(seconds: 2),
           ),
         );
       }

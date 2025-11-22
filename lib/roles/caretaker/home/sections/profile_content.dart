@@ -19,32 +19,19 @@ class ProfileContent extends StatefulWidget {
   State<ProfileContent> createState() => _ProfileContentState();
 }
 
-class _ProfileContentState extends State<ProfileContent>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  int _selectedTab = 0;
+class _ProfileContentState extends State<ProfileContent> {
+  late Map<String, dynamic> _userData;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {
-        _selectedTab = _tabController.index;
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+    _userData = widget.userData;
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    
+
     return SingleChildScrollView(
       padding: EdgeInsets.only(
         left: width * 0.06,
@@ -53,365 +40,381 @@ class _ProfileContentState extends State<ProfileContent>
         bottom: 100,
       ),
       child: Column(
-        children: [          
-          SizedBox(height: spacingLarge),
-          
-          // Tab Bar
-          _buildTabBar(width),
-          
-          SizedBox(height: spacingLarge),
-          
-          // Tab Content (no fixed height, no nested scroll)
-          if (_selectedTab == 0)
-            _buildMyProfileTab(width)
-          else
-            _buildSettingsTab(width),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar(double width) {
-    return Container(
-      padding: EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  // ignore: deprecated_member_use
-                  color: primary.withOpacity(0.15),
-                  blurRadius: 16,
-                  offset: Offset(0, 4),
-                ),
-              ]
-            : softShadow,
-        border: widget.isDarkMode
-            // ignore: deprecated_member_use
-            ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
-            : null,
-      ),
-      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTab(0, Icons.person_outline_rounded, 'My Profile'),
-          _buildTab(1, Icons.settings_outlined, 'Settings'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTab(int index, IconData icon, String label) {
-    final isSelected = _selectedTab == index;
-    
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          _tabController.animateTo(index);
-        },
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          padding: EdgeInsets.symmetric(vertical: spacingMedium),
-          decoration: BoxDecoration(
-            gradient: isSelected ? primaryGradient : null,
-            color: isSelected ? null : Colors.transparent,
-            borderRadius: BorderRadius.circular(radiusMedium),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      // ignore: deprecated_member_use
-                      color: primary.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ]
-                : [],
+          // Personal Information Section
+          _buildSectionTitle('Personal Information', Icons.person_rounded),
+          SizedBox(height: spacingMedium),
+          _buildMenuItem(
+            'Full Name',
+            _userData['name'] ?? 'Not provided',
+            Icons.person_rounded,
+            primary,
+            onTap: () => _showSnackbar('Name: ${_userData['name']}'),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: isSelected
-                    ? white
-                    : (widget.isDarkMode ? widget.theme.subtextColor : grey),
-              ),
-              SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected
-                      ? white
-                      : (widget.isDarkMode ? widget.theme.subtextColor : grey),
-                ),
-              ),
-            ],
+          _buildMenuItem(
+            'Email Address',
+            _userData['email'] ?? 'Not provided',
+            Icons.email_rounded,
+            accent,
+            onTap: () => _showSnackbar('Email: ${_userData['email']}'),
           ),
-        ),
-      ),
-    );
-  }
+          _buildMenuItem(
+            'Phone Number',
+            _userData['phone'] ?? _userData['contactNumber'] ?? 'Not provided',
+            Icons.phone_rounded,
+            Colors.green,
+            onTap: () => _showSnackbar('Phone: ${_userData['phone']}'),
+          ),
+          _buildMenuItem(
+            'Relationship',
+            _userData['relationship'] ?? 'Not specified',
+            Icons.people_rounded,
+            Colors.purple,
+            onTap: () => _showSnackbar('Role: ${_userData['relationship']}'),
+          ),
 
-  Widget _buildMyProfileTab(double width) {
-    final name = widget.userData['name'] ?? '';
-    final email = widget.userData['email'] ?? '';
-    final phone = widget.userData['phone'] ?? widget.userData['contactNumber'] ?? '';
-    final relationship = widget.userData['relationship'] ?? '';
-    final age = widget.userData['age'] ?? 0;
-    final sex = widget.userData['sex'] ?? '';
-    final birthdateStr = widget.userData['birthdate'] ?? '';
-    
-    String formattedBirthdate = '';
-    if (birthdateStr.isNotEmpty) {
-      try {
-        final date = DateTime.parse(birthdateStr);
-        formattedBirthdate = DateFormat('MMMM dd, yyyy').format(date);
-      } catch (e) {
-        formattedBirthdate = birthdateStr;
-      }
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Personal Information', Icons.info_outline_rounded),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildInfoCard([
-          _InfoItem(icon: Icons.person_outline, label: 'Full Name', value: name),
-          _InfoItem(icon: Icons.medical_services_outlined, label: 'Role/Relationship', value: relationship),
-          _InfoItem(icon: Icons.wc_outlined, label: 'Sex', value: sex),
-          _InfoItem(icon: Icons.cake_outlined, label: 'Age', value: age > 0 ? '$age years old' : 'Not specified'),
-          if (formattedBirthdate.isNotEmpty)
-            _InfoItem(icon: Icons.calendar_today_outlined, label: 'Birthdate', value: formattedBirthdate),
-        ]),
-        
-        SizedBox(height: spacingXLarge),
-        
-        _buildSectionHeader('Contact Information', Icons.contact_phone_rounded),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildInfoCard([
-          _InfoItem(icon: Icons.phone_outlined, label: 'Phone Number', value: phone),
-          _InfoItem(icon: Icons.email_outlined, label: 'Email', value: email),
-        ]),
-        
-        SizedBox(height: spacingLarge),
-      ],
-    );
-  }
+          SizedBox(height: spacingXLarge),
 
-  Widget _buildSettingsTab(double width) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader('Account Actions', Icons.admin_panel_settings_outlined),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildActionButton(
-          icon: Icons.edit_outlined,
-          label: 'Update Profile',
-          subtitle: 'Edit your personal information',
-          color: primary,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Update profile feature coming soon'),
-                backgroundColor: primary,
-              ),
-            );
-          },
-        ),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildActionButton(
-          icon: Icons.lock_reset_outlined,
-          label: 'Change Password',
-          subtitle: 'Update your account password',
-          color: accent,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Change password feature coming soon'),
-                backgroundColor: accent,
-              ),
-            );
-          },
-        ),
-        
-        SizedBox(height: spacingXLarge),
-        
-        _buildSectionHeader('Danger Zone', Icons.warning_amber_rounded),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildActionButton(
-          icon: Icons.logout_rounded,
-          label: 'Sign Out',
-          subtitle: 'Log out of your account',
-          color: error,
-          onTap: () async {
-            final confirm = await _showConfirmDialog(
-              'Sign Out',
-              'Are you sure you want to sign out?',
-            );
-            
-            if (confirm == true) {
-              await authService.value.signOut();
-            }
-          },
-        ),
-        
-        SizedBox(height: spacingMedium),
-        
-        _buildActionButton(
-          icon: Icons.delete_forever_outlined,
-          label: 'Delete Account',
-          subtitle: 'Permanently delete your account',
-          color: error,
-          isDanger: true,
-          onTap: () async {
-            final confirm = await _showConfirmDialog(
-              'Delete Account',
-              'This action cannot be undone. Are you sure you want to delete your account?',
-              isDanger: true,
-            );
-            
-            if (confirm == true) {
-              // ignore: use_build_context_synchronously
+          // Demographic Information Section
+          _buildSectionTitle('Demographic Information', Icons.info_outline_rounded),
+          SizedBox(height: spacingMedium),
+          _buildMenuItem(
+            'Age',
+            _userData['age'] != null && _userData['age'] > 0
+                ? '${_userData['age']} years old'
+                : 'Not specified',
+            Icons.cake_rounded,
+            Colors.orange,
+            onTap: () => _showSnackbar('Age: ${_userData['age']} years'),
+          ),
+          _buildMenuItem(
+            'Gender',
+            _userData['sex'] ?? 'Not specified',
+            Icons.wc_rounded,
+            Colors.cyan,
+            onTap: () => _showSnackbar('Gender: ${_userData['sex']}'),
+          ),
+          if (_userData['birthdate'] != null && _userData['birthdate'].isNotEmpty)
+            _buildMenuItem(
+              'Date of Birth',
+              _formatBirthdate(_userData['birthdate']),
+              Icons.calendar_today_rounded,
+              Colors.indigo,
+              onTap: () => _showSnackbar('DOB: ${_formatBirthdate(_userData['birthdate'])}'),
+            ),
+
+          SizedBox(height: spacingXLarge),
+
+          // Account Information Section
+          _buildSectionTitle('Account Information', Icons.verified_user_rounded),
+          SizedBox(height: spacingMedium),
+          _buildMenuItem(
+            'Account Type',
+            'Caretaker',
+            Icons.shield_rounded,
+            primary,
+            onTap: () => _showSnackbar('Account Type: Caretaker'),
+          ),
+          _buildMenuItem(
+            'Account Status',
+            _userData['status'] ?? 'Active',
+            Icons.check_circle_rounded,
+            Colors.green,
+            onTap: () => _showSnackbar('Status: ${_userData['status'] ?? 'Active'}'),
+          ),
+          if (_userData['createdAt'] != null)
+            _buildMenuItem(
+              'Member Since',
+              _formatDate(_userData['createdAt']),
+              Icons.date_range_rounded,
+              accent,
+              onTap: () => _showSnackbar('Joined: ${_formatDate(_userData['createdAt'])}'),
+            ),
+
+          SizedBox(height: spacingXLarge),
+
+          // Caretaking Information Section
+          _buildSectionTitle('Caretaking Experience', Icons.favorite_rounded),
+          SizedBox(height: spacingMedium),
+          _buildMenuItem(
+            'Total Patients',
+            _userData['totalPatients']?.toString() ?? '0',
+            Icons.people_rounded,
+            primary,
+            onTap: () => _showSnackbar('Total Patients: ${_userData['totalPatients'] ?? 0}'),
+          ),
+          _buildMenuItem(
+            'Active Assignments',
+            _userData['activeAssignments']?.toString() ?? '0',
+            Icons.assignment_turned_in_rounded,
+            Colors.green,
+            onTap: () => _showSnackbar('Active: ${_userData['activeAssignments'] ?? 0}'),
+          ),
+          _buildMenuItem(
+            'Completed Tasks',
+            _userData['completedTasks']?.toString() ?? '0',
+            Icons.task_alt_rounded,
+            accent,
+            onTap: () => _showSnackbar('Completed: ${_userData['completedTasks'] ?? 0}'),
+          ),
+          _buildMenuItem(
+            'Average Rating',
+            _userData['rating'] != null
+                ? '${_userData['rating']}/5.0 ⭐'
+                : 'No ratings yet',
+            Icons.star_rounded,
+            Colors.amber,
+            onTap: () => _showSnackbar('Rating: ${_userData['rating'] ?? 'N/A'}'),
+          ),
+
+          SizedBox(height: spacingXLarge),
+
+          // Availability & Preferences Section
+          _buildSectionTitle('Availability & Preferences', Icons.schedule_rounded),
+          SizedBox(height: spacingMedium),
+          _buildMenuItem(
+            'Availability Status',
+            _userData['availabilityStatus'] ?? 'Available',
+            Icons.access_time_rounded,
+            Colors.green,
+            onTap: () => _showSnackbar('Status: ${_userData['availabilityStatus'] ?? 'Available'}'),
+          ),
+          _buildMenuItem(
+            'Preferred Hours',
+            _userData['preferredHours'] ?? 'Flexible',
+            Icons.schedule_rounded,
+            primary,
+            onTap: () => _showSnackbar('Hours: ${_userData['preferredHours'] ?? 'Flexible'}'),
+          ),
+          _buildMenuItem(
+            'Service Types',
+            _userData['serviceTypes'] ?? 'General Care',
+            Icons.home_repair_service_rounded,
+            accent,
+            onTap: () => _showSnackbar('Services: ${_userData['serviceTypes'] ?? 'General Care'}'),
+          ),
+
+          SizedBox(height: spacingXLarge),
+
+          // Account Actions Section
+          _buildSectionTitle('Account Actions', Icons.settings_rounded),
+          SizedBox(height: spacingMedium),
+          _buildActionButton(
+            icon: Icons.edit_rounded,
+            label: 'Edit Profile',
+            subtitle: 'Update your personal information',
+            color: primary,
+            onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Delete account feature coming soon'),
-                  backgroundColor: error,
+                  content: Text('Edit profile feature coming soon'),
+                  backgroundColor: primary,
                 ),
               );
-            }
-          },
-        ),
-        
-        SizedBox(height: spacingLarge),
-      ],
-    );
-  }
-
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.all(spacingSmall),
-          decoration: BoxDecoration(
-            gradient: primaryGradient,
-            borderRadius: BorderRadius.circular(radiusSmall),
+            },
           ),
-          child: Icon(icon, color: white, size: 18),
-        ),
-        SizedBox(width: spacingSmall),
-        Text(
-          title,
-          style: bodyBold.copyWith(
-            fontSize: 18,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoCard(List<_InfoItem> items) {
-    return Container(
-      padding: EdgeInsets.all(spacingLarge),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  // ignore: deprecated_member_use
-                  color: primary.withOpacity(0.15),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
+          SizedBox(height: spacingMedium),
+          _buildActionButton(
+            icon: Icons.lock_reset_rounded,
+            label: 'Change Password',
+            subtitle: 'Update your account password',
+            color: accent,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Change password feature coming soon'),
+                  backgroundColor: accent,
                 ),
-              ]
-            : softShadow,
-        border: widget.isDarkMode
-            // ignore: deprecated_member_use
-            ? Border.all(color: primary.withOpacity(0.3), width: 1.5)
-            // ignore: deprecated_member_use
-            : Border.all(color: greyLighter.withOpacity(0.5), width: 1),
-      ),
-      child: Column(
-        children: [
-          for (int i = 0; i < items.length; i++) ...[
-            _buildInfoRow(items[i]),
-            if (i < items.length - 1) ...[
-              SizedBox(height: spacingMedium),
-              Divider(
-                height: 1,
-                color: widget.theme.subtextColor.withOpacity(0.2),
-              ),
-              SizedBox(height: spacingMedium),
-            ],
-          ],
+              );
+            },
+          ),
+          SizedBox(height: spacingMedium),
+          _buildActionButton(
+            icon: Icons.notifications_rounded,
+            label: 'Notification Settings',
+            subtitle: 'Manage your notification preferences',
+            color: Colors.blue,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Notification settings coming soon'),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            },
+          ),
+
+          SizedBox(height: spacingXLarge),
+
+          // Danger Zone Section
+          _buildSectionTitle('Danger Zone', Icons.warning_amber_rounded),
+          SizedBox(height: spacingMedium),
+          _buildActionButton(
+            icon: Icons.logout_rounded,
+            label: 'Sign Out',
+            subtitle: 'Log out of your account',
+            color: Colors.orange,
+            onTap: () async {
+              final confirm = await _showConfirmDialog(
+                'Sign Out',
+                'Are you sure you want to sign out?',
+              );
+
+              if (confirm == true) {
+                await authService.value.signOut();
+              }
+            },
+          ),
+          SizedBox(height: spacingMedium),
+          _buildActionButton(
+            icon: Icons.delete_forever_rounded,
+            label: 'Delete Account',
+            subtitle: 'Permanently delete your account and data',
+            color: Colors.red,
+            isDanger: true,
+            onTap: () async {
+              final confirm = await _showConfirmDialog(
+                'Delete Account',
+                'This action cannot be undone. Are you sure you want to delete your account?',
+                isDanger: true,
+              );
+
+              if (confirm == true) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Delete account feature coming soon'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+          ),
+
+          SizedBox(height: spacingLarge),
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(_InfoItem item) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: EdgeInsets.all(spacingSmall),
-          decoration: BoxDecoration(
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(radiusSmall),
+            ),
+            child: Icon(icon, color: primary, size: 16),
+          ),
+          SizedBox(width: spacingSmall),
+          Text(
+            title.toUpperCase(),
+            style: caption.copyWith(
+              fontSize: 11,
+              color: widget.theme.subtextColor.withOpacity(0.7),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    String title,
+    String value,
+    IconData icon,
+    Color color, {
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: spacingMedium),
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusLarge),
+          border: Border.all(
             color: widget.isDarkMode
-                // ignore: deprecated_member_use
-                ? primary.withOpacity(0.2)
-                // ignore: deprecated_member_use
-                : primaryLight.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(radiusSmall),
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.06),
           ),
-          child: Icon(
-            item.icon,
-            size: 20,
-            color: widget.isDarkMode ? primaryLight : primary,
+          boxShadow: widget.isDarkMode
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(radiusLarge),
+            child: Padding(
+              padding: EdgeInsets.all(spacingMedium),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        icon,
+                        color: color,
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: spacingMedium),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: caption.copyWith(
+                            fontSize: 12,
+                            color: widget.theme.subtextColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          value,
+                          style: bodyBold.copyWith(
+                            fontSize: 15,
+                            color: widget.theme.textColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: widget.theme.subtextColor.withOpacity(0.5),
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-        SizedBox(width: spacingMedium),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.label,
-                style: caption.copyWith(
-                  fontSize: 12,
-                  color: widget.theme.subtextColor,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                item.value.isNotEmpty ? item.value : 'Not provided',
-                style: bodyBold.copyWith(
-                  fontSize: 15,
-                  color: widget.theme.textColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -428,7 +431,6 @@ class _ProfileContentState extends State<ProfileContent>
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  // ignore: deprecated_member_use
                   color: color.withOpacity(0.2),
                   blurRadius: 16,
                   offset: Offset(0, 6),
@@ -443,7 +445,6 @@ class _ProfileContentState extends State<ProfileContent>
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(radiusLarge),
-          // ignore: deprecated_member_use
           splashColor: color.withOpacity(0.2),
           child: Container(
             padding: EdgeInsets.all(spacingLarge),
@@ -451,9 +452,7 @@ class _ProfileContentState extends State<ProfileContent>
               gradient: isDanger
                   ? LinearGradient(
                       colors: [
-                        // ignore: deprecated_member_use
                         color.withOpacity(widget.isDarkMode ? 0.25 : 0.1),
-                        // ignore: deprecated_member_use
                         color.withOpacity(widget.isDarkMode ? 0.15 : 0.05),
                       ],
                       begin: Alignment.topLeft,
@@ -462,9 +461,7 @@ class _ProfileContentState extends State<ProfileContent>
                   : null,
               borderRadius: BorderRadius.circular(radiusLarge),
               border: widget.isDarkMode
-                  // ignore: deprecated_member_use
                   ? Border.all(color: color.withOpacity(0.4), width: 1.5)
-                  // ignore: deprecated_member_use
                   : Border.all(color: color.withOpacity(0.3), width: 1.5),
             ),
             child: Row(
@@ -472,7 +469,6 @@ class _ProfileContentState extends State<ProfileContent>
                 Container(
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
-                    // ignore: deprecated_member_use
                     color: color.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(radiusMedium),
                   ),
@@ -487,7 +483,7 @@ class _ProfileContentState extends State<ProfileContent>
                         label,
                         style: bodyBold.copyWith(
                           fontSize: 16,
-                          color: widget.theme.textColor,
+                          color: isDanger ? color : widget.theme.textColor,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -530,7 +526,7 @@ class _ProfileContentState extends State<ProfileContent>
           children: [
             Icon(
               isDanger ? Icons.warning_amber_rounded : Icons.info_outline_rounded,
-              color: isDanger ? error : primary,
+              color: isDanger ? Colors.red : primary,
             ),
             SizedBox(width: spacingSmall),
             Text(title),
@@ -545,7 +541,7 @@ class _ProfileContentState extends State<ProfileContent>
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: isDanger ? error : primary,
+              backgroundColor: isDanger ? Colors.red : primary,
               foregroundColor: white,
             ),
             child: Text(isDanger ? 'Delete' : 'Confirm'),
@@ -554,16 +550,40 @@ class _ProfileContentState extends State<ProfileContent>
       ),
     );
   }
-}
 
-class _InfoItem {
-  final IconData icon;
-  final String label;
-  final String value;
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
 
-  _InfoItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  String _formatBirthdate(String birthdate) {
+    try {
+      final date = DateTime.parse(birthdate);
+      return DateFormat('MMMM dd, yyyy').format(date);
+    } catch (e) {
+      return birthdate;
+    }
+  }
+
+  String _formatDate(dynamic date) {
+    try {
+      if (date is String) {
+        final parsedDate = DateTime.parse(date);
+        return DateFormat('MMM dd, yyyy').format(parsedDate);
+      } else if (date is DateTime) {
+        return DateFormat('MMM dd, yyyy').format(date);
+      }
+      return 'Unknown';
+    } catch (e) {
+      return 'Unknown';
+    }
+  }
 }

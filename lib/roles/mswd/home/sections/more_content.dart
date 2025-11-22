@@ -45,11 +45,9 @@ class _MoreContentState extends State<MoreContent> {
           children: [
             _buildHeader(),
             SizedBox(height: spacingLarge),
-            _buildProfileCard(),
-            SizedBox(height: spacingLarge),
             
             // Verifications Section
-            _buildSectionTitle('Approvals & Verifications'),
+            _buildSectionTitle('Approvals & Verifications', Icons.verified_user_rounded),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Verifications',
@@ -63,7 +61,7 @@ class _MoreContentState extends State<MoreContent> {
             SizedBox(height: spacingLarge),
             
             // Tracking & Monitoring Section
-            _buildSectionTitle('Tracking & Monitoring'),
+            _buildSectionTitle('Tracking & Monitoring', Icons.map_rounded),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Location Tracking',
@@ -83,7 +81,7 @@ class _MoreContentState extends State<MoreContent> {
             SizedBox(height: spacingLarge),
             
             // Communications Section
-            _buildSectionTitle('Communications'),
+            _buildSectionTitle('Communications', Icons.campaign_rounded),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Send Announcement',
@@ -103,7 +101,7 @@ class _MoreContentState extends State<MoreContent> {
             SizedBox(height: spacingLarge),
             
             // Emergency & Safety Section
-            _buildSectionTitle('Emergency & Safety'),
+            _buildSectionTitle('Emergency & Safety', Icons.phone_in_talk_rounded),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Emergency Hotlines',
@@ -123,7 +121,7 @@ class _MoreContentState extends State<MoreContent> {
             SizedBox(height: spacingLarge),
             
             // Administration Section
-            _buildSectionTitle('Administration'),
+            _buildSectionTitle('Administration', Icons.admin_panel_settings_rounded),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Admin Management',
@@ -143,7 +141,7 @@ class _MoreContentState extends State<MoreContent> {
             SizedBox(height: spacingLarge),
             
             // Support Section
-            _buildSectionTitle('Help & Support'),
+            _buildSectionTitle('Help & Support', Icons.help_rounded),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Help Center',
@@ -163,7 +161,7 @@ class _MoreContentState extends State<MoreContent> {
             SizedBox(height: spacingLarge),
             
             // Account Actions
-            _buildSectionTitle('Account'),
+            _buildSectionTitle('Account', Icons.security_rounded),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Security Settings',
@@ -183,11 +181,7 @@ class _MoreContentState extends State<MoreContent> {
             
             SizedBox(height: spacingLarge),
             
-            // App Info
-            _buildAppInfo(),
-            
-            SizedBox(height: spacingLarge),
-          ],
+         ],
         ),
       ),
     );
@@ -223,161 +217,30 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
-  Widget _buildProfileCard() {
-    final adminName = widget.userData['name'] ?? 'Admin';
-    final adminEmail = widget.userData['email'] ?? 'admin@mswd.gov.ph';
-    
-    return Container(
-      padding: EdgeInsets.all(spacingLarge),
-      decoration: BoxDecoration(
-        gradient: widget.isDarkMode
-            ? LinearGradient(
-                colors: [
-                  primary.withOpacity(0.2),
-                  primary.withOpacity(0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : LinearGradient(
-                colors: [
-                  primary.withOpacity(0.1),
-                  primary.withOpacity(0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-        borderRadius: BorderRadius.circular(radiusXLarge),
-        border: Border.all(
-          color: widget.isDarkMode
-              ? primary.withOpacity(0.3)
-              : primary.withOpacity(0.2),
-          width: 1,
-        ),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: primary.withOpacity(0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : softShadow,
-      ),
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
       child: Row(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            padding: EdgeInsets.all(6),
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: primaryGradient,
-              border: Border.all(
-                color: white,
-                width: 2.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: primary.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: primary.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(radiusSmall),
             ),
-            child: Center(
-              child: Text(
-                adminName.substring(0, 1).toUpperCase(),
-                style: h2.copyWith(
-                  color: white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
+            child: Icon(icon, color: primary, size: 16),
           ),
-          SizedBox(width: spacingMedium),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  adminName,
-                  style: bodyBold.copyWith(
-                    fontSize: 16,
-                    color: widget.theme.textColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  adminEmail,
-                  style: caption.copyWith(
-                    fontSize: 12,
-                    color: widget.theme.subtextColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 6),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacingSmall,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(radiusSmall),
-                    border: Border.all(
-                      color: Colors.green.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 6,
-                        height: 6,
-                        decoration: const BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Admin',
-                        style: caption.copyWith(
-                          fontSize: 10,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+          SizedBox(width: spacingSmall),
+          Text(
+            title.toUpperCase(),
+            style: caption.copyWith(
+              fontSize: 11,
+              color: widget.theme.subtextColor.withOpacity(0.7),
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
             ),
-          ),
-          Icon(
-            Icons.arrow_forward_ios_rounded,
-            color: widget.theme.subtextColor,
-            size: 18,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        title.toUpperCase(),
-        style: caption.copyWith(
-          fontSize: 11,
-          color: widget.theme.subtextColor.withOpacity(0.7),
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-        ),
       ),
     );
   }
@@ -515,55 +378,6 @@ class _MoreContentState extends State<MoreContent> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAppInfo() {
-    return Container(
-      padding: EdgeInsets.all(spacingLarge),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(
-          color: widget.isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.06),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.info_outline_rounded,
-            size: 32,
-            color: widget.theme.subtextColor.withOpacity(0.5),
-          ),
-          SizedBox(height: spacingSmall),
-          Text(
-            'SEELAI MSWD',
-            style: bodyBold.copyWith(
-              fontSize: 14,
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Version 2.1.0',
-            style: caption.copyWith(
-              fontSize: 12,
-              color: widget.theme.subtextColor,
-            ),
-          ),
-          SizedBox(height: spacingSmall),
-          Text(
-            '© 2024 MSWD Philippines',
-            style: caption.copyWith(
-              fontSize: 11,
-              color: widget.theme.subtextColor.withOpacity(0.7),
-            ),
-          ),
-        ],
       ),
     );
   }
