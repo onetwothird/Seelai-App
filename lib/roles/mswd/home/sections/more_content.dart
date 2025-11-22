@@ -1,22 +1,23 @@
 // File: lib/roles/mswd/home/sections/more_content.dart
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/auth_service.dart';
 
 class MoreContent extends StatefulWidget {
-  final Map<String, dynamic> userData;
   final bool isDarkMode;
   final dynamic theme;
-  final VoidCallback onToggleDarkMode;
+  final Map<String, dynamic> userData;
+  final VoidCallback? onToggleDarkMode;
+  final ScrollController? scrollController;
 
   const MoreContent({
     super.key,
-    required this.userData,
     required this.isDarkMode,
     required this.theme,
-    required this.onToggleDarkMode,
+    required this.userData,
+    this.onToggleDarkMode,
+    this.scrollController,
   });
 
   @override
@@ -24,431 +25,493 @@ class MoreContent extends StatefulWidget {
 }
 
 class _MoreContentState extends State<MoreContent> {
+  int _pendingVerifications = 12;
   
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: width * 0.05,
-        right: width * 0.05,
-        top: spacingMedium,
-        bottom: 100,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Profile Card
-          _buildProfileCard(),
-          
-          SizedBox(height: spacingXLarge),
-          
-          // Management Section
-          _buildSectionHeader('Management', Icons.admin_panel_settings_rounded),
-          SizedBox(height: spacingMedium),
-          _buildMenuItem(
-            icon: Icons.verified_user_rounded,
-            title: 'Verifications',
-            subtitle: 'Pending approvals',
-            badge: '12',
-            badgeColor: Colors.orange,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Verifications coming soon')),
-              );
-            },
-          ),
-          SizedBox(height: spacingSmall),
-          _buildMenuItem(
-            icon: Icons.map_rounded,
-            title: 'Location Tracking',
-            subtitle: 'Real-time user locations',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Location Tracking coming soon')),
-              );
-            },
-          ),
-          SizedBox(height: spacingSmall),
-          _buildMenuItem(
-            icon: Icons.bar_chart_rounded,
-            title: 'Analytics & Reports',
-            subtitle: 'View system statistics',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Analytics coming soon')),
-              );
-            },
-          ),
-          
-          SizedBox(height: spacingXLarge),
-          
-          // Communications Section
-          _buildSectionHeader('Communications', Icons.campaign_rounded),
-          SizedBox(height: spacingMedium),
-          _buildMenuItem(
-            icon: Icons.announcement_rounded,
-            title: 'Send Announcement',
-            subtitle: 'Broadcast to all users',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Send Announcement coming soon')),
-              );
-            },
-          ),
-          SizedBox(height: spacingSmall),
-          _buildMenuItem(
-            icon: Icons.phone_in_talk_rounded,
-            title: 'Emergency Hotlines',
-            subtitle: 'Manage hotline directory',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Emergency Hotlines coming soon')),
-              );
-            },
-          ),
-          
-          SizedBox(height: spacingXLarge),
-          
-          // System Section
-          _buildSectionHeader('System', Icons.settings_rounded),
-          SizedBox(height: spacingMedium),
-          _buildMenuItem(
-            icon: Icons.history_rounded,
-            title: 'Audit Logs',
-            subtitle: 'System activity logs',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Audit Logs coming soon')),
-              );
-            },
-          ),
-          SizedBox(height: spacingSmall),
-          _buildMenuItem(
-            icon: Icons.admin_panel_settings_rounded,
-            title: 'Admin Management',
-            subtitle: 'Manage admin users',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Admin Management coming soon')),
-              );
-            },
-          ),
-          SizedBox(height: spacingSmall),
-          _buildMenuItem(
-            icon: widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-            title: 'Theme',
-            subtitle: widget.isDarkMode ? 'Dark mode' : 'Light mode',
-            trailing: Switch(
-              value: widget.isDarkMode,
-              onChanged: (value) => widget.onToggleDarkMode(),
-              activeColor: primary,
+      controller: widget.scrollController,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: width * 0.05,
+          right: width * 0.05,
+          top: spacingMedium,
+          bottom: 100,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            SizedBox(height: spacingLarge),
+            _buildProfileCard(),
+            SizedBox(height: spacingLarge),
+            
+            // Verifications Section
+            _buildSectionTitle('Approvals & Verifications'),
+            SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'Verifications',
+              'Pending approvals and documents',
+              Icons.verified_user_rounded,
+              Colors.orange,
+              badge: _pendingVerifications,
+              onTap: () => _showSnackbar('Opening Verifications...'),
             ),
-            onTap: widget.onToggleDarkMode,
-          ),
-          
-          SizedBox(height: spacingXLarge),
-          
-          // Account Section
-          _buildSectionHeader('Account', Icons.person_rounded),
-          SizedBox(height: spacingMedium),
-          _buildMenuItem(
-            icon: Icons.edit_rounded,
-            title: 'Edit Profile',
-            subtitle: 'Update your information',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Edit Profile coming soon')),
-              );
-            },
-          ),
-          SizedBox(height: spacingSmall),
-          _buildMenuItem(
-            icon: Icons.logout_rounded,
-            title: 'Sign Out',
-            subtitle: 'Log out of your account',
-            color: error,
-            onTap: () => _showSignOutDialog(),
-          ),
-          
-          SizedBox(height: spacingLarge),
-          
-          // App Version
-          Center(
-            child: Text(
-              'SeelAI MSWD Portal v1.0.0',
-              style: caption.copyWith(
-                fontSize: 12,
-                color: widget.theme.subtextColor.withOpacity(0.5),
-              ),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Tracking & Monitoring Section
+            _buildSectionTitle('Tracking & Monitoring'),
+            SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'Location Tracking',
+              'Real-time map view of all users',
+              Icons.map_rounded,
+              Colors.green,
+              onTap: () => _showSnackbar('Opening Location Tracking...'),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileCard() {
-    final name = widget.userData['name'] ?? 'Admin';
-    final email = widget.userData['email'] ?? '';
-    final department = widget.userData['department'] ?? 'MSWD Staff';
-    final profileImageUrl = widget.userData['profileImageUrl'] as String?;
-
-    return Container(
-      padding: EdgeInsets.all(spacingLarge * 1.2),
-      decoration: BoxDecoration(
-        gradient: primaryGradient,
-        borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withOpacity(0.3),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Profile Picture
-          Container(
-            width: 70,
-            height: 70,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: white, width: 3),
+            _buildMenuItem(
+              'Analytics & Reports',
+              'Usage statistics and demographics',
+              Icons.analytics_rounded,
+              Colors.blue,
+              onTap: () => _showSnackbar('Opening Analytics...'),
             ),
-            child: ClipOval(
-              child: profileImageUrl != null && profileImageUrl.isNotEmpty
-                  ? Image.network(
-                      profileImageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildDefaultAvatar(name);
-                      },
-                    )
-                  : _buildDefaultAvatar(name),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Communications Section
+            _buildSectionTitle('Communications'),
+            SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'Send Announcement',
+              'Broadcast messages to users',
+              Icons.campaign_rounded,
+              Colors.purple,
+              onTap: () => _showSnackbar('Opening Communications...'),
             ),
-          ),
-          SizedBox(width: spacingLarge),
-          
-          // Profile Info
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: h2.copyWith(
-                    fontSize: 20,
-                    color: white,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  department,
-                  style: bodyBold.copyWith(
-                    fontSize: 13,
-                    color: white.withOpacity(0.9),
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  email,
-                  style: caption.copyWith(
-                    fontSize: 12,
-                    color: white.withOpacity(0.8),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            _buildMenuItem(
+              'Message Templates',
+              'Manage announcement templates',
+              Icons.message_rounded,
+              accent,
+              onTap: () => _showSnackbar('Opening Templates...'),
             ),
-          ),
-          
-          // Edit button
-          Container(
-            padding: EdgeInsets.all(spacingSmall),
-            decoration: BoxDecoration(
-              color: white.withOpacity(0.2),
-              shape: BoxShape.circle,
+            
+            SizedBox(height: spacingLarge),
+            
+            // Emergency & Safety Section
+            _buildSectionTitle('Emergency & Safety'),
+            SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'Emergency Hotlines',
+              'Manage emergency contact directory',
+              Icons.phone_in_talk_rounded,
+              error,
+              onTap: () => _showSnackbar('Opening Hotlines...'),
             ),
-            child: Icon(
-              Icons.edit_rounded,
-              color: white,
-              size: 20,
+            _buildMenuItem(
+              'Audit Logs',
+              'System activity and security events',
+              Icons.history_rounded,
+              Colors.indigo,
+              onTap: () => _showSnackbar('Opening Audit Logs...'),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDefaultAvatar(String name) {
-    String initials = '';
-    if (name.isNotEmpty) {
-      List<String> parts = name.trim().split(' ');
-      if (parts.length >= 2) {
-        initials = parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
-      } else {
-        initials = parts[0].substring(0, parts[0].length >= 2 ? 2 : 1).toUpperCase();
-      }
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            primary.withOpacity(0.8),
-            primary.withOpacity(0.6),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Administration Section
+            _buildSectionTitle('Administration'),
+            SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'Admin Management',
+              'Manage admin users and permissions',
+              Icons.admin_panel_settings_rounded,
+              Colors.deepPurple,
+              onTap: () => _showSnackbar('Opening Admin Management...'),
+            ),
+            _buildMenuItem(
+              'System Settings',
+              'App configuration and maintenance',
+              Icons.settings_rounded,
+              Colors.grey,
+              onTap: () => _showSnackbar('Opening System Settings...'),
+            ),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Support Section
+            _buildSectionTitle('Help & Support'),
+            SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'Help Center',
+              'FAQ, user manual, and support',
+              Icons.help_rounded,
+              Colors.teal,
+              onTap: () => _showSnackbar('Opening Help Center...'),
+            ),
+            _buildMenuItem(
+              'Report a Bug',
+              'Submit technical issues',
+              Icons.bug_report_rounded,
+              Colors.red,
+              onTap: () => _showSnackbar('Opening Bug Report...'),
+            ),
+            
+            SizedBox(height: spacingLarge),
+            
+            // Account Actions
+            _buildSectionTitle('Account'),
+            SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'Security Settings',
+              'Password, 2FA, and active sessions',
+              Icons.security_rounded,
+              Colors.cyan,
+              onTap: () => _showSnackbar('Opening Security Settings...'),
+            ),
+            _buildMenuItem(
+              'Logout',
+              'Sign out of your account',
+              Icons.logout_rounded,
+              Colors.red,
+              isDestructive: true,
+              onTap: () => _showLogoutDialog(),
+            ),
+            
+            SizedBox(height: spacingLarge),
+            
+            // App Info
+            _buildAppInfo(),
+            
+            SizedBox(height: spacingLarge),
           ],
         ),
       ),
-      child: Center(
-        child: Text(
-          initials,
-          style: TextStyle(
-            color: white,
-            fontSize: 24,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
+  Widget _buildHeader() {
     return Row(
       children: [
-        Container(
-          padding: EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: primary.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(radiusSmall),
-          ),
-          child: Icon(icon, color: primary, size: 16),
-        ),
-        SizedBox(width: spacingSmall),
-        Text(
-          title,
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
+          Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'More Options',
+                style: h2.copyWith(
+                  fontSize: 24,
+                  color: widget.theme.textColor,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Settings and management',
+                style: body.copyWith(
+                  color: widget.theme.subtextColor,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    String? badge,
-    Color? badgeColor,
-    Color? color,
-    Widget? trailing,
-    required VoidCallback onTap,
-  }) {
-    final itemColor = color ?? primary;
-
+  Widget _buildProfileCard() {
+    final adminName = widget.userData['name'] ?? 'Admin';
+    final adminEmail = widget.userData['email'] ?? 'admin@mswd.gov.ph';
+    
     return Container(
+      padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
+        gradient: widget.isDarkMode
+            ? LinearGradient(
+                colors: [
+                  primary.withOpacity(0.2),
+                  primary.withOpacity(0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [
+                  primary.withOpacity(0.1),
+                  primary.withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        borderRadius: BorderRadius.circular(radiusXLarge),
+        border: Border.all(
+          color: widget.isDarkMode
+              ? primary.withOpacity(0.3)
+              : primary.withOpacity(0.2),
+          width: 1,
+        ),
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: itemColor.withOpacity(0.1),
+                  color: primary.withOpacity(0.1),
                   blurRadius: 16,
-                  offset: Offset(0, 6),
+                  offset: const Offset(0, 6),
                 ),
               ]
             : softShadow,
-        borderRadius: BorderRadius.circular(radiusLarge),
       ),
-      child: Material(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          splashColor: itemColor.withOpacity(0.1),
-          child: Container(
-            padding: EdgeInsets.all(spacingLarge),
+      child: Row(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: widget.isDarkMode
-                  ? Border.all(color: itemColor.withOpacity(0.2), width: 1)
-                  : Border.all(color: Colors.black.withOpacity(0.06), width: 1),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(spacingMedium),
-                  decoration: BoxDecoration(
-                    color: itemColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(radiusMedium),
-                  ),
-                  child: Icon(icon, color: itemColor, size: 22),
+              shape: BoxShape.circle,
+              gradient: primaryGradient,
+              border: Border.all(
+                color: white,
+                width: 2.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                SizedBox(width: spacingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ],
+            ),
+            child: Center(
+              child: Text(
+                adminName.substring(0, 1).toUpperCase(),
+                style: h2.copyWith(
+                  color: white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: spacingMedium),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  adminName,
+                  style: bodyBold.copyWith(
+                    fontSize: 16,
+                    color: widget.theme.textColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 4),
+                Text(
+                  adminEmail,
+                  style: caption.copyWith(
+                    fontSize: 12,
+                    color: widget.theme.subtextColor,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                SizedBox(height: 6),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: spacingSmall,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(radiusSmall),
+                    border: Border.all(
+                      color: Colors.green.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: bodyBold.copyWith(
-                                fontSize: 15,
-                                color: widget.theme.textColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          if (badge != null)
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: spacingSmall,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: badgeColor ?? error,
-                                borderRadius: BorderRadius.circular(radiusSmall),
-                              ),
-                              child: Text(
-                                badge,
-                                style: caption.copyWith(
-                                  fontSize: 11,
-                                  color: white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                        ],
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: Colors.green,
+                          shape: BoxShape.circle,
+                        ),
                       ),
-                      SizedBox(height: 4),
+                      SizedBox(width: 4),
                       Text(
-                        subtitle,
+                        'Admin',
                         style: caption.copyWith(
-                          fontSize: 13,
-                          color: widget.theme.subtextColor,
+                          fontSize: 10,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(width: spacingSmall),
-                trailing ??
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: widget.theme.subtextColor,
-                      size: 20,
-                    ),
               ],
+            ),
+          ),
+          Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: widget.theme.subtextColor,
+            size: 18,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title.toUpperCase(),
+        style: caption.copyWith(
+          fontSize: 11,
+          color: widget.theme.subtextColor.withOpacity(0.7),
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color, {
+    int? badge,
+    bool isDestructive = false,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: spacingMedium),
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusLarge),
+          border: Border.all(
+            color: widget.isDarkMode
+                ? (isDestructive 
+                    ? Colors.red.withOpacity(0.3)
+                    : Colors.white.withOpacity(0.1))
+                : (isDestructive
+                    ? Colors.red.withOpacity(0.2)
+                    : Colors.black.withOpacity(0.06)),
+          ),
+          boxShadow: widget.isDarkMode
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(radiusLarge),
+            child: Padding(
+              padding: EdgeInsets.all(spacingMedium),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: isDestructive
+                          ? Colors.red.withOpacity(0.1)
+                          : color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        icon,
+                        color: isDestructive ? Colors.red : color,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: spacingMedium),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: bodyBold.copyWith(
+                                  fontSize: 15,
+                                  color: isDestructive
+                                      ? Colors.red
+                                      : widget.theme.textColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (badge != null && badge > 0)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: error,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: error.withOpacity(0.3),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  badge > 99 ? '99+' : badge.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: white,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: caption.copyWith(
+                            fontSize: 12,
+                            color: widget.theme.subtextColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: spacingSmall),
+                  Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    color: widget.theme.subtextColor.withOpacity(0.5),
+                    size: 16,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -456,8 +519,70 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
-  Future<void> _showSignOutDialog() async {
-    final confirmed = await showDialog<bool>(
+  Widget _buildAppInfo() {
+    return Container(
+      padding: EdgeInsets.all(spacingLarge),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusLarge),
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white.withOpacity(0.1)
+              : Colors.black.withOpacity(0.06),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 32,
+            color: widget.theme.subtextColor.withOpacity(0.5),
+          ),
+          SizedBox(height: spacingSmall),
+          Text(
+            'SEELAI MSWD',
+            style: bodyBold.copyWith(
+              fontSize: 14,
+              color: widget.theme.textColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Version 2.1.0',
+            style: caption.copyWith(
+              fontSize: 12,
+              color: widget.theme.subtextColor,
+            ),
+          ),
+          SizedBox(height: spacingSmall),
+          Text(
+            '© 2024 MSWD Philippines',
+            style: caption.copyWith(
+              fontSize: 11,
+              color: widget.theme.subtextColor.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackbar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        backgroundColor: primary,
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: widget.theme.cardColor,
@@ -466,19 +591,24 @@ class _MoreContentState extends State<MoreContent> {
         ),
         title: Row(
           children: [
-            Icon(Icons.logout_rounded, color: error),
+            const Icon(
+              Icons.logout_rounded,
+              color: Colors.red,
+              size: 24,
+            ),
             SizedBox(width: spacingSmall),
             Text(
-              'Sign Out',
-              style: bodyBold.copyWith(
+              'Logout',
+              style: h2.copyWith(
                 fontSize: 18,
                 color: widget.theme.textColor,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
         ),
         content: Text(
-          'Are you sure you want to sign out?',
+          'Are you sure you want to logout from your account?',
           style: body.copyWith(
             fontSize: 14,
             color: widget.theme.subtextColor,
@@ -486,29 +616,40 @@ class _MoreContentState extends State<MoreContent> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: bodyBold.copyWith(color: widget.theme.subtextColor),
+              style: TextStyle(
+                color: widget.theme.subtextColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () {
+              Navigator.pop(context);
+              _showSnackbar('Logged out successfully');
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: error,
+              backgroundColor: Colors.red,
               foregroundColor: white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(radiusMedium),
               ),
+              padding: EdgeInsets.symmetric(
+                horizontal: spacingLarge,
+                vertical: spacingMedium,
+              ),
             ),
-            child: Text('Sign Out'),
+            child: const Text(
+              'Logout',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
     );
-
-    if (confirmed == true) {
-      await authService.value.signOut();
-    }
   }
 }
