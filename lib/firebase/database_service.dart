@@ -47,6 +47,7 @@ class DatabaseService {
     String? phone,
     String? relationship,
     String? department,
+    bool? approved,
   }) async {
     try {
       Map<String, dynamic> userData = {
@@ -70,6 +71,7 @@ class DatabaseService {
         userData['birthdate'] = birthdate?.toIso8601String() ?? 
             DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
         userData['address'] = address ?? '';
+        userData['approved'] = approved ?? false; // ✅ Caretaker needs approval
       } else if (role == 'admin') {
         userData['department'] = department ?? '';
         userData['sex'] = sex ?? 'Not Specified';
@@ -86,6 +88,8 @@ class DatabaseService {
         userData['idNumber'] = idNumber;
         userData['sex'] = sex;
         userData['birthdate'] = birthdate.toIso8601String();
+        userData['disabilityType'] = disabilityType;
+        userData['diagnosis'] = diagnosis;
         userData['address'] = address;
         userData['contactNumber'] = contactNumber;
         userData['assignedCaretakers'] = {};

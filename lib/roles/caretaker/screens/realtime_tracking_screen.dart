@@ -821,27 +821,7 @@ void _drawDefaultMarkerAvatar(Canvas canvas, double size, String name, Color col
   Widget _buildHeader() {
     return Row(
       children: [
-        Container(
-          padding: EdgeInsets.all(spacingMedium),
-          decoration: BoxDecoration(
-            gradient: primaryGradient,
-            borderRadius: BorderRadius.circular(radiusMedium),
-            boxShadow: [
-              BoxShadow(
-                color: primary.withOpacity(0.3),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.my_location_rounded,
-            color: white,
-            size: 24,
-          ),
-        ),
-        SizedBox(width: spacingMedium),
-        Expanded(
+          Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

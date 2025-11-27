@@ -37,6 +37,8 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
   String _lastReadText = '';
   bool _hasReadObjects = false;
   Timer? _readingDebounceTimer;
+  bool _isStreamRunning = false;
+  bool _isDisposing = false;
 
   @override
   void initState() {
@@ -50,23 +52,45 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
 
   @override
   void dispose() {
+    _isDisposing = true;
+    _cleanupResources();
+    super.dispose();
+  }
+
+  Future<void> _cleanupResources() async {
     try {
+      // Cancel timers first
       _readingDebounceTimer?.cancel();
-      _flutterTts.stop();
-      vision.closeYoloModel();
       
-      // FIXED: Only stop image stream if it's actually running
-      if (widget.cameraService.isInitialized && 
+      // Stop TTS
+      await _flutterTts.stop();
+      
+      // Stop image stream if running
+      if (_isStreamRunning && 
           widget.cameraService.controller != null &&
           widget.cameraService.controller!.value.isStreamingImages) {
-        widget.cameraService.controller!.stopImageStream().catchError((e) {
-          print('Error stopping image stream: $e');
-        });
+        try {
+          await widget.cameraService.controller!.stopImageStream();
+          _isStreamRunning = false;
+          print('✅ Image stream stopped successfully');
+        } catch (e) {
+          print('⚠️ Error stopping image stream: $e');
+        }
+      }
+      
+      // Small delay to ensure stream is fully stopped
+      await Future.delayed(Duration(milliseconds: 100));
+      
+      // Close vision model
+      try {
+        await vision.closeYoloModel();
+        print('✅ YOLO model closed successfully');
+      } catch (e) {
+        print('⚠️ Error closing YOLO model: $e');
       }
     } catch (e) {
-      print('Error during dispose: $e');
+      print('❌ Error during cleanup: $e');
     }
-    super.dispose();
   }
 
   Future<void> _initializeTts() async {
@@ -76,7 +100,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
     await _flutterTts.setPitch(1.0);
 
     _flutterTts.setCompletionHandler(() {
-      if (mounted) {
+      if (mounted && !_isDisposing) {
         setState(() {
           _isReading = false;
         });
@@ -84,7 +108,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
     });
 
     _flutterTts.setStartHandler(() {
-      if (mounted) {
+      if (mounted && !_isDisposing) {
         setState(() {
           _isReading = true;
         });
@@ -92,7 +116,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
     });
 
     _flutterTts.setErrorHandler((msg) {
-      if (mounted) {
+      if (mounted && !_isDisposing) {
         setState(() {
           _isReading = false;
         });
@@ -102,7 +126,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
 
   void _announceMode() {
     Future.delayed(Duration(milliseconds: 500), () {
-      if (mounted) {
+      if (mounted && !_isDisposing) {
         _flutterTts.speak('Object detection mode activated. Point camera at objects.');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -125,27 +149,47 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
         numThreads: 4,
         useGpu: true,
       );
-      setState(() {
-        isModelLoaded = true;
-      });
-      print('Model loaded successfully with GPU acceleration');
+      if (mounted && !_isDisposing) {
+        setState(() {
+          isModelLoaded = true;
+        });
+      }
+      print('✅ Model loaded successfully with GPU acceleration');
     } catch (e) {
-      print('Error loading model: $e');
+      print('❌ Error loading model: $e');
     }
   }
 
   void startObjectDetection() async {
+    if (_isDisposing) return;
     if (!widget.cameraService.isInitialized || widget.cameraService.controller == null) return;
+    
+    // Check if stream is already running
+    if (widget.cameraService.controller!.value.isStreamingImages) {
+      print('⚠️ Image stream already running');
+      return;
+    }
 
-    widget.cameraService.controller!.startImageStream((image) {
-      if (!isDetecting && isModelLoaded) {
-        isDetecting = true;
-        detectObjects(image);
-      }
-    });
+    try {
+      await widget.cameraService.controller!.startImageStream((image) {
+        if (!isDetecting && isModelLoaded && !_isDisposing) {
+          isDetecting = true;
+          detectObjects(image);
+        }
+      });
+      _isStreamRunning = true;
+      print('✅ Image stream started successfully');
+    } catch (e) {
+      print('❌ Error starting image stream: $e');
+    }
   }
 
   Future<void> detectObjects(CameraImage image) async {
+    if (_isDisposing) {
+      isDetecting = false;
+      return;
+    }
+
     final now = DateTime.now();
 
     try {
@@ -158,7 +202,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
         classThreshold: 0.5,
       );
 
-      if (mounted) {
+      if (mounted && !_isDisposing) {
         setState(() {
           recognitions = result;
           frameCount++;
@@ -178,16 +222,18 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
         }
       }
     } catch (e) {
-      print('Error detecting objects: $e');
+      print('❌ Error detecting objects: $e');
     }
 
     isDetecting = false;
   }
 
   void _announceDetectedObjects() {
+    if (_isDisposing) return;
+    
     _readingDebounceTimer?.cancel();
     _readingDebounceTimer = Timer(Duration(milliseconds: 500), () {
-      if (recognitions.isNotEmpty && mounted) {
+      if (recognitions.isNotEmpty && mounted && !_isDisposing) {
         final objects = recognitions
             .map((r) => '${r['tag']} ${((r['box'][4] ?? 0) * 100).toStringAsFixed(0)}%')
             .join(', ');
@@ -244,59 +290,66 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
     var scale = screenSize.aspectRatio * widget.cameraService.controller!.value.aspectRatio;
     if (scale < 1) scale = 1 / scale;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Transform.scale(
-            scale: scale,
-            child: Center(
-              child: CameraPreview(widget.cameraService.controller!),
+    return WillPopScope(
+      onWillPop: () async {
+        // Ensure cleanup happens before popping
+        await _cleanupResources();
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Transform.scale(
+              scale: scale,
+              child: Center(
+                child: CameraPreview(widget.cameraService.controller!),
+              ),
             ),
-          ),
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.5),
-                    Colors.black.withOpacity(0.2),
-                    Colors.black.withOpacity(0.2),
-                    Colors.black.withOpacity(0.6),
-                  ],
-                  stops: [0.0, 0.3, 0.7, 1.0],
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withOpacity(0.5),
+                      Colors.black.withOpacity(0.2),
+                      Colors.black.withOpacity(0.2),
+                      Colors.black.withOpacity(0.6),
+                    ],
+                    stops: [0.0, 0.3, 0.7, 1.0],
+                  ),
                 ),
               ),
             ),
-          ),
-          if (isModelLoaded)
-            BoundingBoxes(
-              recognitions: recognitions,
-              previewH: widget.cameraService.controller!.value.previewSize!.width,
-              previewW: widget.cameraService.controller!.value.previewSize!.height,
-              screenH: screenHeight,
-              screenW: screenWidth,
+            if (isModelLoaded)
+              BoundingBoxes(
+                recognitions: recognitions,
+                previewH: widget.cameraService.controller!.value.previewSize!.width,
+                previewW: widget.cameraService.controller!.value.previewSize!.height,
+                screenH: screenHeight,
+                screenW: screenWidth,
+              ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: _buildHeader(screenWidth),
+              ),
             ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: _buildHeader(screenWidth),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: _buildControls(screenWidth),
+              ),
             ),
-          ),
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              child: _buildControls(screenWidth),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -313,7 +366,13 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => Navigator.pop(context),
+                onTap: () async {
+                  // Ensure cleanup before navigation
+                  await _cleanupResources();
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                },
                 borderRadius: BorderRadius.circular(radiusMedium),
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium),

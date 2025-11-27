@@ -1,11 +1,13 @@
 // File: lib/roles/mswd/home/home_screen.dart
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
-import 'package:seelai_app/roles/mswd/home/sections/dashboard_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/users_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/requests_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard/dashboard_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/users/users_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/requests/requests_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/alerts_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/more_content.dart';
 

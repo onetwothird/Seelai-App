@@ -1,4 +1,4 @@
-// File: lib/firebase/assistance_request_service.dart
+// File: lib/firebase/caretaker/assistance_request_service.dart
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:seelai_app/roles/caretaker/models/request_model.dart';
@@ -172,6 +172,68 @@ class AssistanceRequestService {
       
       return requests;
     });
+  }
+  
+  /// Stream ALL requests (for admin/MSWD role)
+  Stream<List<RequestModel>> streamAllRequests() {
+    return _database
+        .ref('assistance_requests')
+        .onValue
+        .map((event) {
+      if (!event.snapshot.exists) {
+        return <RequestModel>[];
+      }
+      
+      final requestsMap = Map<String, dynamic>.from(event.snapshot.value as Map);
+      final requests = <RequestModel>[];
+      
+      requestsMap.forEach((key, value) {
+        try {
+          final requestData = Map<String, dynamic>.from(value as Map);
+          requests.add(RequestModel.fromJson(requestData, key));
+        } catch (e) {
+          debugPrint('Error parsing request $key: $e');
+        }
+      });
+      
+      // Sort by timestamp (newest first)
+      requests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      
+      return requests;
+    });
+  }
+  
+  /// Get ALL requests (for admin/MSWD role)
+  Future<List<RequestModel>> getAllRequests() async {
+    try {
+      final snapshot = await _database
+          .ref('assistance_requests')
+          .once();
+      
+      if (!snapshot.snapshot.exists) {
+        return [];
+      }
+      
+      final requestsMap = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      final requests = <RequestModel>[];
+      
+      requestsMap.forEach((key, value) {
+        try {
+          final requestData = Map<String, dynamic>.from(value as Map);
+          requests.add(RequestModel.fromJson(requestData, key));
+        } catch (e) {
+          debugPrint('Error parsing request $key: $e');
+        }
+      });
+      
+      // Sort by timestamp (newest first)
+      requests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      
+      return requests;
+    } catch (e) {
+      debugPrint('Error getting all requests: $e');
+      return [];
+    }
   }
   
   /// Get pending requests for a caretaker

@@ -271,15 +271,17 @@ class _DashboardContentState extends State<DashboardContent> {
 
           SizedBox(height: spacingXLarge),
 
+          // Announcement Section
+          _buildAnnouncementSection(),
+
+          SizedBox(height: spacingXLarge),
+
           // User Breakdown Section
           _buildUserBreakdownSection(),
 
           SizedBox(height: spacingXLarge),
 
-          // Recent Activity
-          _buildRecentActivity(),
-
-          SizedBox(height: spacingXLarge),
+         
         ],
       ),
     );
@@ -292,7 +294,7 @@ class _DashboardContentState extends State<DashboardContent> {
         'label': 'Total Users',
         'value': _isLoading ? '...' : _totalUsers.toString(),
         'color': primary,
-        'subtitle': '👥 All Users',
+        'subtitle': '👥 Registered Users',
       },
       {
         'icon': Icons.pending_actions_rounded,
@@ -612,92 +614,95 @@ class _DashboardContentState extends State<DashboardContent> {
       ),
     );
   }
+  // Replace the _buildRecentActivity() method with this new announcement section
 
-  Widget _buildRecentActivity() {
-    final activities = [
-      {
-        'title': 'New User Registration',
-        'description': 'Maria Santos registered as Visually Impaired',
-        'time': '5 mins ago',
-        'icon': Icons.person_add_rounded,
-        'color': Colors.green,
-      },
-      {
-        'title': 'Request Completed',
-        'description': 'Navigation assistance completed for Juan',
-        'time': '15 mins ago',
-        'icon': Icons.check_circle_rounded,
-        'color': Colors.blue,
-      },
-      {
-        'title': 'Emergency Alert',
-        'description': 'SOS activated by Juan Dela Cruz',
-        'time': '1 hour ago',
-        'icon': Icons.warning_rounded,
-        'color': error,
-      },
-      {
-        'title': 'Verification Approved',
-        'description': 'Anna Reyes verified as Community Helper',
-        'time': '2 hours ago',
-        'icon': Icons.verified_rounded,
-        'color': Colors.purple,
-      },
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Recent Activity',
-              style: h3.copyWith(
-                fontSize: 20,
-                color: widget.theme.textColor,
-                fontWeight: FontWeight.w700,
-              ),
+Widget _buildAnnouncementSection() {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Announcements',
+            style: h3.copyWith(
+              fontSize: 20,
+              color: widget.theme.textColor,
+              fontWeight: FontWeight.w700,
             ),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Activity Log coming soon'),
-                      duration: Duration(seconds: 2),
+          ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _showCreateAnnouncementDialog(),
+              borderRadius: BorderRadius.circular(radiusMedium),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                  border: Border.all(color: primary.withOpacity(0.3), width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.add_rounded, color: primary, size: 18),
+                    SizedBox(width: 4),
+                    Text(
+                      'Create',
+                      style: bodyBold.copyWith(
+                        fontSize: 14,
+                        color: primary,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(radiusMedium),
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Text(
-                    'View All',
-                    style: bodyBold.copyWith(
-                      fontSize: 14,
-                      color: primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
-        SizedBox(height: spacingMedium),
-        ...activities.map(
-          (activity) => Padding(
-            padding: EdgeInsets.only(bottom: spacingMedium),
-            child: _buildActivityCard(activity),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      ),
+      SizedBox(height: spacingMedium),
+      
+      // Sample announcements - Replace with Firebase data
+      _buildAnnouncementCard(
+        title: 'Community Event This Weekend',
+        message: 'Join us for a community gathering at the town hall this Saturday at 10 AM.',
+        targetAudience: 'Caretakers',
+        timestamp: '2 hours ago',
+        icon: Icons.event_rounded,
+        color: Colors.blue,
+      ),
+      SizedBox(height: spacingMedium),
+      _buildAnnouncementCard(
+        title: 'New Navigation Features Available',
+        message: 'We\'ve added improved voice guidance and obstacle detection to help you navigate better.',
+        targetAudience: 'Visually Impaired',
+        timestamp: '1 day ago',
+        icon: Icons.navigation_rounded,
+        color: Colors.purple,
+      ),
+      SizedBox(height: spacingMedium),
+      _buildAnnouncementCard(
+        title: 'Important: App Maintenance',
+        message: 'The app will undergo maintenance on Sunday from 2 AM to 4 AM. Services may be temporarily unavailable.',
+        targetAudience: 'All Users',
+        timestamp: '2 days ago',
+        icon: Icons.build_rounded,
+        color: Colors.orange,
+      ),
+    ],
+  );
+}
 
-  Widget _buildActivityCard(Map<String, dynamic> activity) {
+  Widget _buildAnnouncementCard({
+    required String title,
+    required String message,
+    required String targetAudience,
+    required String timestamp,
+    required IconData icon,
+    required Color color,
+  }) {
     return Container(
       padding: EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
@@ -706,7 +711,7 @@ class _DashboardContentState extends State<DashboardContent> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: (activity['color'] as Color).withOpacity(0.1),
+                  color: color.withOpacity(0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -714,62 +719,384 @@ class _DashboardContentState extends State<DashboardContent> {
             : softShadow,
         border: widget.isDarkMode
             ? Border.all(
-                color: (activity['color'] as Color).withOpacity(0.2),
+                color: color.withOpacity(0.2),
                 width: 1,
               )
             : null,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.all(spacingSmall),
-            decoration: BoxDecoration(
-              color: (activity['color'] as Color).withOpacity(0.15),
-              borderRadius: BorderRadius.circular(radiusMedium),
-            ),
-            child: Icon(
-              activity['icon'] as IconData,
-              color: activity['color'] as Color,
-              size: 24,
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(spacingSmall),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 24,
+                ),
+              ),
+              SizedBox(width: spacingMedium),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: bodyBold.copyWith(
+                        fontSize: 15,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(radiusSmall),
+                            border: Border.all(color: color.withOpacity(0.3), width: 1),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                targetAudience == 'Caretakers' 
+                                    ? Icons.volunteer_activism_rounded 
+                                    : targetAudience == 'Visually Impaired'
+                                        ? Icons.visibility_off_rounded
+                                        : Icons.people_rounded,
+                                color: color,
+                                size: 12,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                targetAudience,
+                                style: caption.copyWith(
+                                  fontSize: 11,
+                                  color: color,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: spacingMedium),
+          Text(
+            message,
+            style: caption.copyWith(
+              fontSize: 13,
+              color: widget.theme.subtextColor,
+              height: 1.5,
             ),
           ),
-          SizedBox(width: spacingMedium),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  activity['title'] as String,
-                  style: bodyBold.copyWith(
-                    fontSize: 15,
-                    color: widget.theme.textColor,
-                    fontWeight: FontWeight.w700,
+          SizedBox(height: spacingSmall),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                timestamp,
+                style: caption.copyWith(
+                  fontSize: 11,
+                  color: widget.theme.subtextColor.withOpacity(0.7),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    // TODO: Implement delete announcement
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Delete announcement functionality coming soon'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(radiusSmall),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: widget.theme.subtextColor.withOpacity(0.5),
+                      size: 18,
+                    ),
                   ),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  activity['description'] as String,
-                  style: caption.copyWith(
-                    fontSize: 13,
-                    color: widget.theme.subtextColor,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 6),
-                Text(
-                  activity['time'] as String,
-                  style: caption.copyWith(
-                    fontSize: 11,
-                    color: widget.theme.subtextColor.withOpacity(0.7),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+
+  void _showCreateAnnouncementDialog() {
+    String selectedAudience = 'Visually Impaired';
+    final titleController = TextEditingController();
+    final messageController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: widget.theme.cardColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(radiusLarge),
+              ),
+              title: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(spacingSmall),
+                    decoration: BoxDecoration(
+                      color: primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    child: Icon(Icons.campaign_rounded, color: primary, size: 24),
+                  ),
+                  SizedBox(width: spacingSmall),
+                  Text(
+                    'Create Announcement',
+                    style: h3.copyWith(
+                      fontSize: 18,
+                      color: widget.theme.textColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Audience Selection
+                    Text(
+                      'Target Audience',
+                      style: bodyBold.copyWith(
+                        fontSize: 14,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: spacingSmall),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: widget.theme.backgroundColor,
+                        borderRadius: BorderRadius.circular(radiusMedium),
+                        border: Border.all(
+                          color: widget.theme.subtextColor.withOpacity(0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedAudience,
+                          isExpanded: true,
+                          padding: EdgeInsets.symmetric(horizontal: spacingMedium),
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                          dropdownColor: widget.theme.cardColor,
+                          style: body.copyWith(color: widget.theme.textColor),
+                          icon: Icon(Icons.arrow_drop_down, color: widget.theme.textColor),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'Visually Impaired',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.visibility_off_rounded, 
+                                      color: Colors.purple, size: 20),
+                                  SizedBox(width: spacingSmall),
+                                  Text('Visually Impaired'),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Caretakers',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.volunteer_activism_rounded, 
+                                      color: Colors.green, size: 20),
+                                  SizedBox(width: spacingSmall),
+                                  Text('Caretakers'),
+                                ],
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: 'All Users',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.people_rounded, 
+                                      color: primary, size: 20),
+                                  SizedBox(width: spacingSmall),
+                                  Text('All Users'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setDialogState(() {
+                              selectedAudience = value!;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: spacingMedium),
+                    
+                    // Title Input
+                    Text(
+                      'Title',
+                      style: bodyBold.copyWith(
+                        fontSize: 14,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: spacingSmall),
+                    TextField(
+                      controller: titleController,
+                      style: body.copyWith(color: widget.theme.textColor),
+                      decoration: InputDecoration(
+                        hintText: 'Enter announcement title',
+                        hintStyle: body.copyWith(
+                          color: widget.theme.subtextColor.withOpacity(0.5),
+                        ),
+                        filled: true,
+                        fillColor: widget.theme.backgroundColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                          borderSide: BorderSide(
+                            color: widget.theme.subtextColor.withOpacity(0.2),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                          borderSide: BorderSide(
+                            color: widget.theme.subtextColor.withOpacity(0.2),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                          borderSide: BorderSide(color: primary, width: 2),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: spacingMedium),
+                    
+                    // Message Input
+                    Text(
+                      'Message',
+                      style: bodyBold.copyWith(
+                        fontSize: 14,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: spacingSmall),
+                    TextField(
+                      controller: messageController,
+                      maxLines: 4,
+                      style: body.copyWith(color: widget.theme.textColor),
+                      decoration: InputDecoration(
+                        hintText: 'Enter announcement message',
+                        hintStyle: body.copyWith(
+                          color: widget.theme.subtextColor.withOpacity(0.5),
+                        ),
+                        filled: true,
+                        fillColor: widget.theme.backgroundColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                          borderSide: BorderSide(
+                            color: widget.theme.subtextColor.withOpacity(0.2),
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                          borderSide: BorderSide(
+                            color: widget.theme.subtextColor.withOpacity(0.2),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                          borderSide: BorderSide(color: primary, width: 2),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Cancel',
+                    style: bodyBold.copyWith(
+                      color: widget.theme.subtextColor,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // TODO: Implement Firebase save logic
+                    if (titleController.text.isNotEmpty && 
+                        messageController.text.isNotEmpty) {
+                      // Save announcement to Firebase
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Announcement sent to $selectedAudience'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please fill in all fields'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: spacingLarge,
+                      vertical: spacingSmall,
+                    ),
+                  ),
+                  child: Text(
+                    'Send',
+                    style: bodyBold.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  } 
 }
