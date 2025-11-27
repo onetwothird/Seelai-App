@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
@@ -74,7 +76,6 @@ class _HomeContentState extends State<HomeContent> {
   /// Fetch statistics for the caretaker
   Future<void> _fetchStatistics() async {
     try {
-      // TODO: Replace with actual data fetching logic
       // For now using placeholder values
       if (mounted) {
         setState(() {

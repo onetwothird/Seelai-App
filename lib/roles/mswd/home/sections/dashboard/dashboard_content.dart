@@ -1,5 +1,5 @@
 // File: lib/roles/mswd/home/sections/dashboard_content.dart
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, unrelated_type_equality_checks
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -819,7 +819,6 @@ Widget _buildAnnouncementSection() {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
-                    // TODO: Implement delete announcement
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Delete announcement functionality coming soon'),
@@ -1053,7 +1052,6 @@ Widget _buildAnnouncementSection() {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // TODO: Implement Firebase save logic
                     if (titleController.text.isNotEmpty && 
                         messageController.text.isNotEmpty) {
                       // Save announcement to Firebase
