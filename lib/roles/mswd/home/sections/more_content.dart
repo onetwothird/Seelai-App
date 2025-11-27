@@ -1,5 +1,5 @@
 // File: lib/roles/mswd/home/sections/more_content.dart
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, prefer_final_fields
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';

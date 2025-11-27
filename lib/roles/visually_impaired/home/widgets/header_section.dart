@@ -72,56 +72,107 @@ class HeaderSection extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Profile Picture - Clickable
+            // Profile Picture - Clickable with Role Badge
             Semantics(
-              label: 'Profile picture',
+              label: 'Profile picture, Patient role',
               hint: 'Double tap to view profile',
               button: true,
               child: GestureDetector(
                 onTap: onProfileTap,
-                child: Hero(
-                  tag: 'profile_picture',
-                  child: Container(
-                    width: profileSize,
-                    height: profileSize,
-                      decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          primary,
-                          primary.withOpacity(0.7),
-                        ],
-                      ),
-                      border: Border.all(
-                        color: const Color.fromARGB(255, 255, 255, 255),
-                        width: 2.5,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Hero(
+                      tag: 'profile_picture',
+                      child: Container(
+                        width: profileSize,
+                        height: profileSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color.fromARGB(255, 0, 0, 0),
+                              const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
+                            ],
+                          ),
+                          border: Border.all(
+                            color: Colors.black.withOpacity(0.25),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: ClipOval(
+                          child: profileImageUrl != null && profileImageUrl!.isNotEmpty
+                              ? Image.network(
+                                  profileImageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildDefaultAvatar(profileSize);
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : _buildDefaultAvatar(profileSize),
+                        ),
                       ),
                     ),
-                    child: ClipOval(
-                      child: profileImageUrl != null && profileImageUrl!.isNotEmpty
-                          ? Image.network(
-                              profileImageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildDefaultAvatar(profileSize);
-                              },
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : _buildDefaultAvatar(profileSize),
+                    // Role Badge (Gradient Version)
+                    Positioned(
+                      bottom: -4,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Color(0xFF7C3AED),
+                                Color(0xFF7C3AED).withOpacity(0.7), // slightly transparent end
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDarkMode
+                                  ? Colors.white.withOpacity(0.12)
+                                  : Colors.black.withOpacity(0.1),
+                              width: 1.2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF7C3AED).withOpacity(0.35),
+                                blurRadius: 5,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Patient',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w700,
+                              height: 1.1,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+
+                  ],
                 ),
               ),
             ),

@@ -104,6 +104,62 @@ class AdminService {
       throw Exception('Failed to reactivate user: $e');
     }
   }
+/// Approve caretaker account (Admin only)
+Future<void> approveCaretaker(String caretakerId) async {
+  try {
+    await _database.ref('user_info/caretaker/$caretakerId').update({
+      'approved': true,
+      'approvedAt': ServerValue.timestamp,
+      'updatedAt': ServerValue.timestamp,
+    });
+  } catch (e) {
+    throw Exception('Failed to approve caretaker: $e');
+  }
+}
+
+/// Reject caretaker account (Admin only)
+Future<void> rejectCaretaker(String caretakerId, {String? reason}) async {
+  try {
+    await _database.ref('user_info/caretaker/$caretakerId').update({
+      'approved': false,
+      'rejected': true,
+      'rejectionReason': reason ?? 'Not specified',
+      'rejectedAt': ServerValue.timestamp,
+      'updatedAt': ServerValue.timestamp,
+    });
+  } catch (e) {
+    throw Exception('Failed to reject caretaker: $e');
+  }
+}
+
+/// Get pending caretaker approvals
+Future<List<Map<String, dynamic>>> getPendingCaretakers() async {
+  try {
+    DatabaseEvent event = await _database
+        .ref('user_info/caretaker')
+        .orderByChild('approved')
+        .equalTo(false)
+        .once();
+    
+    if (!event.snapshot.exists) return [];
+    
+    Map<dynamic, dynamic> caretakersMap = event.snapshot.value as Map;
+    List<Map<String, dynamic>> pendingCaretakers = [];
+    
+    caretakersMap.forEach((key, value) {
+      Map<String, dynamic> caretakerData = Map<String, dynamic>.from(value as Map);
+      // Only include if not rejected
+      if (caretakerData['rejected'] != true) {
+        caretakerData['userId'] = key;
+        pendingCaretakers.add(caretakerData);
+      }
+    });
+    
+    return pendingCaretakers;
+  } catch (e) {
+    throw Exception('Failed to get pending caretakers: $e');
+  }
+}
 
   /// Get user statistics
   Future<Map<String, int>> getUserStatistics() async {

@@ -9,6 +9,11 @@
 			<string>http</string>
 			<string>https</string>
 		</array>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>tel</string>
+			<string>sms</string>
+		</array>
 		<key>NSCameraUsageDescription</key>
 		<string>This app needs camera access to help visually impaired users identify objects and read text</string>
 		<key>NSMicrophoneUsageDescription</key>
