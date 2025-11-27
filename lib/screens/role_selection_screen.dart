@@ -109,27 +109,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       child: Column(
                         children: [
                           // Animated icon
-                          Container(
-                            padding: EdgeInsets.all(18),
-                            decoration: BoxDecoration(
-                              gradient: primaryGradient,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: primary.withOpacity(0.25),
-                                  blurRadius: 25,
-                                  offset: Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.person_outline_rounded,
-                              size: 40,
-                              color: white,
-                            ),
-                          ),
-                          SizedBox(height: 28),
-                          ShaderMask(
+                            ShaderMask(
                             shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                             child: Text(
                               "Select Your Role",
@@ -209,7 +189,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.06),
+                    SizedBox(height: screenHeight * 0.04),
 
                     // Continue Button
                     FadeTransition(

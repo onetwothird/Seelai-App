@@ -82,9 +82,9 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
           opacity: _fadeAnimation,
           child: Center(
             child: Lottie.asset(
-              'assets/Morphing.json',
-              width: 300,
-              height: 300,
+              'assets/icons/Seelai.json',
+              width: 400,
+              height: 400,
               fit: BoxFit.contain,
               repeat: true,
               animate: true,
