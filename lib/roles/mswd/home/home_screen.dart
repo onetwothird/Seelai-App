@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
-import 'package:seelai_app/roles/mswd/home/sections/dashboard/dashboard_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard/overview.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard/announcement.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard/user_breakdown.dart';
 import 'package:seelai_app/roles/mswd/home/sections/users/users_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/alerts_content.dart';
@@ -187,11 +189,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
     
     switch (_selectedIndex) {
       case 0:
-        content = DashboardContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          userData: widget.userData,
-        );
+        content = _buildDashboardContent(width, theme);
         break;
       
       case 1:
@@ -229,17 +227,53 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
         break;
       
       default:
-        content = DashboardContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          userData: widget.userData,
-        );
+        content = _buildDashboardContent(width, theme);
     }
     
     return SingleChildScrollView(
       controller: _scrollController,
       physics: ClampingScrollPhysics(),
       child: content,
+    );
+  }
+
+  /// Build dashboard content with separated sections
+  Widget _buildDashboardContent(double width, _AppTheme theme) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: width * 0.05,
+        right: width * 0.05,
+        top: spacingMedium,
+        bottom: 100,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Overview Section (Quick Stats)
+          OverviewSection(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+          ),
+          
+          SizedBox(height: spacingXLarge),
+          
+          // Announcement Section
+          AnnouncementSection(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+          ),
+          
+          SizedBox(height: spacingXLarge),
+          
+          // User Breakdown Section
+          UserBreakdownSection(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+          ),
+          
+          SizedBox(height: spacingXLarge),
+        ],
+      ),
     );
   }
 
@@ -254,6 +288,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       textColor: white,
       subtextColor: Color(0xFFB0B8D4),
       cardColor: Color(0xFF1A1F3A),
+      backgroundColor: Color(0xFF0F1429),
     );
   }
 
@@ -268,6 +303,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       textColor: black,
       subtextColor: grey,
       cardColor: white,
+      backgroundColor: backgroundPrimary,
     );
   }
 }
@@ -277,11 +313,13 @@ class _AppTheme {
   final Color textColor;
   final Color subtextColor;
   final Color cardColor;
+  final Color backgroundColor;
 
   _AppTheme({
     required this.backgroundGradient,
     required this.textColor,
     required this.subtextColor,
     required this.cardColor,
+    required this.backgroundColor,
   });
 }

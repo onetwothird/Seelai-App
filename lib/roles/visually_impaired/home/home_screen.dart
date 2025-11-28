@@ -6,7 +6,7 @@ import 'dart:async';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/bottom_navigation.dart';
-import 'package:seelai_app/roles/visually_impaired/home/sections/home_content.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/home_screen/home_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/contacts_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/profile_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activities_content.dart';
