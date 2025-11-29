@@ -10,7 +10,6 @@ class MSWDBottomNavigation extends StatelessWidget {
   final Function(int) onItemTapped;
   final Color textColor;
   final Color subtextColor;
-  final int pendingCount; // Badge count for alerts
 
   const MSWDBottomNavigation({
     super.key,
@@ -19,7 +18,6 @@ class MSWDBottomNavigation extends StatelessWidget {
     required this.onItemTapped,
     required this.textColor,
     required this.subtextColor,
-    this.pendingCount = 0,
   });
 
   @override
@@ -55,9 +53,54 @@ class MSWDBottomNavigation extends StatelessWidget {
         children: [
           _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen, isMediumScreen),
           _buildNavItem(1, Icons.people_rounded, 'Users', isSmallScreen, isMediumScreen),
+          _buildCenterTrackButton(isSmallScreen, isMediumScreen),
           _buildNavItem(2, Icons.assignment_rounded, 'Requests', isSmallScreen, isMediumScreen),
-          _buildNavItem(3, Icons.notifications_rounded, 'Alerts', isSmallScreen, isMediumScreen, badgeCount: pendingCount),
           _buildNavItem(4, Icons.menu_rounded, 'More', isSmallScreen, isMediumScreen),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCenterTrackButton(bool isSmallScreen, bool isMediumScreen) {
+    final isSelected = selectedIndex == 3;
+    
+    return GestureDetector(
+      onTap: () => onItemTapped(3),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOutCubic,
+            padding: EdgeInsets.all(isSmallScreen ? 12 : (isMediumScreen ? 14 : 16)),
+            decoration: BoxDecoration(
+              color: isDarkMode ? Color(0xFF1A1F3A) : white,
+              shape: BoxShape.circle,
+              border: Border.all(
+                width: isSmallScreen ? 2.5 : 3,
+                color: primary,
+              ),
+            ),
+            child: Icon(
+              Icons.location_pin,
+              size: isSmallScreen ? 24 : (isMediumScreen ? 27 : 30),
+              color: primary,
+            ),
+          ),
+          SizedBox(height: isSmallScreen ? 4 : 6),
+          Text(
+            'Track',
+            style: TextStyle(
+              fontSize: isSmallScreen ? 10 : 11,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected
+                  ? (isDarkMode ? white : primary)
+                  : (isDarkMode
+                      ? subtextColor.withOpacity(0.6)
+                      : grey.withOpacity(0.7)),
+              letterSpacing: 0.2,
+            ),
+          ),
         ],
       ),
     );
