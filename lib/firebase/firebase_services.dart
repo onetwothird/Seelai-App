@@ -16,9 +16,11 @@ export 'caretaker/assistance_request_service.dart';
 export 'auth_service.dart';
 export 'visually_impaired/user_activity_service.dart'; 
 export 'visually_impaired/text_scan_service.dart'; 
+export 'visually_impaired/object_detection_service.dart';
 export 'caretaker/communications_service.dart';
 export 'visually_impaired/communications_service.dart';
-
+export 'mswd/mswd_location_tracking_service.dart';
+export 'visually_impaired/face_detection_service.dart';
 /// Usage Example:
 /// 
 /// Instead of importing individual files:
