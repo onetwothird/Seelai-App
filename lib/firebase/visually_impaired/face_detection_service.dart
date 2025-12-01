@@ -236,22 +236,37 @@ class FaceDetectionService {
       
       int totalDetections = detections.length;
       int totalFaces = 0;
+      double totalConfidence = 0.0;
       
       for (final detection in detections) {
-        totalFaces += (detection['faceCount'] as int? ?? 0);
+        final faces = detection['faces'] as List? ?? [];
+        totalFaces += faces.length;
+        
+        for (final face in faces) {
+          final faceMap = face as Map<String, dynamic>;
+          totalConfidence += faceMap['confidence'] ?? 0.0;
+        }
       }
 
       return {
         'totalDetections': totalDetections,
         'totalFaces': totalFaces,
-        'averageFacesPerDetection': totalDetections > 0 ? (totalFaces / totalDetections).toStringAsFixed(1) : '0',
-        'lastDetectionDate': detections.isNotEmpty ? detections.first['timestamp'] : null,
+        'averageFacesPerDetection': totalDetections > 0 
+            ? (totalFaces / totalDetections).toStringAsFixed(1) 
+            : '0',
+        'averageConfidence': totalFaces > 0 
+            ? (totalConfidence / totalFaces).toStringAsFixed(2) 
+            : '0',
+        'lastDetectionDate': detections.isNotEmpty 
+            ? detections.first['timestamp'] 
+            : null,
       };
     } catch (e) {
       return {
         'totalDetections': 0,
         'totalFaces': 0,
         'averageFacesPerDetection': '0',
+        'averageConfidence': '0',
         'lastDetectionDate': null,
       };
     }
@@ -272,6 +287,26 @@ class FaceDetectionService {
       }).toList();
 
       return filteredDetections;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Get detections with multiple faces
+  Future<List<Map<String, dynamic>>> getMultiFaceDetections({
+    required String userId,
+    int minFaces = 2,
+    int limit = 50,
+  }) async {
+    try {
+      final allDetections = await getDetectedFaces(userId, limit: limit);
+      
+      final multipleDetections = allDetections.where((detection) {
+        final faceCount = detection['faceCount'] as int? ?? 0;
+        return faceCount >= minFaces;
+      }).toList();
+
+      return multipleDetections;
     } catch (e) {
       return [];
     }
