@@ -1,0 +1,216 @@
+{
+  "rules": {
+    "user_info": {
+      "visually_impaired": {
+        ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || auth != null",
+        "$uid": {
+          ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $uid).val() === true",
+          ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          "emergencyContacts": {
+            ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $uid).val() === true",
+            ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'"
+          },
+          "medicalInfo": {
+            ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $uid).val() === true",
+            ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $uid).val() === true"
+          },
+          "assignedCaretakers": {
+            ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+            ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'"
+          }
+        }
+      },
+      "caretaker": {
+        ".read": "auth != null",
+        "$uid": {
+          ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/visually_impaired/' + auth.uid + '/assignedCaretakers/' + $uid).val() === true",
+          ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          "assignedPatients": {
+            "$patientId": {
+              ".write": "$patientId === auth.uid || $uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'"
+            }
+          },
+          "updatedAt": {
+            ".write": "auth != null"
+          }
+        }
+      },
+      "mswd": {
+        ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || auth != null",
+        "$uid": {
+          ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'"
+        }
+      }
+    },
+    "announcements": {
+      ".read": "auth != null",
+      ".write": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+      ".indexOn": ["timestamp", "targetAudience", "createdBy"],
+      "$announcementId": {
+        ".validate": "newData.hasChildren(['id', 'title', 'message', 'targetAudience', 'timestamp', 'createdBy', 'iconCodePoint', 'colorValue']) && newData.child('title').isString() && newData.child('message').isString() && newData.child('timestamp').isNumber()"
+      }
+    },
+    "scanned_texts": {
+      ".read": "auth != null",
+      ".indexOn": ["timestamp"],
+      "$userId": {
+        ".read": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $userId).val() === true",
+        ".write": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+        ".indexOn": ["timestamp", "sourceType"],
+        "$scanId": {
+          ".validate": "newData.hasChildren(['userId', 'text', 'timestamp']) && newData.child('text').isString() && newData.child('userId').val() === $userId"
+        }
+      }
+    },
+    "detected_objects": {
+      ".read": "auth != null",
+      "$userId": {
+        ".read": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $userId).val() === true",
+        ".write": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+        ".indexOn": ["timestamp", "createdAt"],
+        "$detectionId": {
+          ".validate": "newData.hasChildren(['userId', 'objects', 'objectCount', 'timestamp', 'createdAt']) && newData.child('userId').val() === $userId && newData.child('objectCount').isNumber()"
+        }
+      }
+    },
+    "detected_faces": {
+      ".read": "auth != null",
+      "$userId": {
+        ".read": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $userId).val() === true",
+        ".write": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+        ".indexOn": ["timestamp", "createdAt"],
+        "$detectionId": {
+          ".validate": "newData.hasChildren(['userId', 'faces', 'faceCount', 'timestamp', 'createdAt']) && newData.child('userId').val() === $userId && newData.child('faceCount').isNumber()"
+        }
+      }
+    },
+    "user_locations": {
+      ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+      "visually_impaired": {
+        ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || auth != null",
+        ".indexOn": ["timestamp", "lastUpdated", "lastUpdateMillis"],
+        "$patientId": {
+          ".read": "$patientId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $patientId).val() === true",
+          ".write": "$patientId === auth.uid",
+          ".validate": "newData.hasChildren(['latitude', 'longitude', 'timestamp', 'accuracy'])"
+        }
+      },
+      "caretaker": {
+        ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || auth != null",
+        ".indexOn": ["timestamp", "lastUpdated", "lastUpdateMillis"],
+        "$caretakerId": {
+          ".read": "$caretakerId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/visually_impaired/' + auth.uid + '/assignedCaretakers/' + $caretakerId).val() === true",
+          ".write": "$caretakerId === auth.uid",
+          ".validate": "newData.hasChildren(['latitude', 'longitude', 'timestamp', 'accuracy'])"
+        }
+      }
+    },
+    "assistance_requests": {
+      ".read": "auth != null",
+      ".indexOn": ["caretakerId", "patientId", "status", "timestamp"],
+      "$requestId": {
+        ".write": "auth != null && (!data.exists() || data.child('patientId').val() === auth.uid || data.child('caretakerId').val() === auth.uid)"
+      }
+    },
+    "request_transactions": {
+      ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+      ".write": "auth != null",
+      ".indexOn": ["requestId", "caretakerId", "patientId", "status", "timestamp", "action"],
+      "$transactionId": {
+        ".validate": "newData.hasChildren(['requestId', 'caretakerId', 'patientId', 'action', 'status', 'timestamp']) && newData.child('timestamp').isNumber()"
+      }
+    },
+    "emergency_hotlines": {
+      "$uid": {
+        ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+        ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+        "$hotlineId": {
+          ".validate": "newData.hasChildren(['id', 'departmentName', 'phoneNumber', 'address', 'iconCode', 'colorValue'])"
+        }
+      }
+    },
+    "activity_logs": {
+      ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+      ".write": "auth != null",
+      ".indexOn": ["userId", "action", "timestamp"],
+      "$logId": {
+        ".validate": "newData.hasChildren(['userId', 'action', 'timestamp'])"
+      }
+    },
+    "recent_activities": {
+      "$userId": {
+        ".read": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $userId).val() === true",
+        ".write": "$userId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+        ".indexOn": ["timestamp", "activityType"],
+        "$activityId": {
+          ".validate": "newData.hasChildren(['title', 'description', 'activityType', 'timestamp'])"
+        }
+      }
+    },
+    "caretaker_communication": {
+      "calls": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": ["callerId", "receiverId", "timestamp"],
+        "$callId": {
+          ".read": "data.child('callerId').val() === auth.uid || data.child('receiverId').val() === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          ".write": "data.child('callerId').val() === auth.uid || !data.exists()",
+          ".validate": "newData.hasChildren(['callerId', 'receiverId', 'timestamp']) && newData.child('timestamp').isNumber()"
+        }
+      },
+      "messages": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": ["senderId", "receiverId", "conversationId", "timestamp"],
+        "$messageId": {
+          ".read": "data.child('senderId').val() === auth.uid || data.child('receiverId').val() === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          ".write": "data.child('senderId').val() === auth.uid || !data.exists()",
+          ".validate": "newData.hasChildren(['senderId', 'receiverId', 'text', 'timestamp']) && newData.child('text').isString() && newData.child('timestamp').isNumber()"
+        }
+      },
+      "conversations": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": ["participant1", "participant2", "lastMessageTime"],
+        "$conversationId": {
+          ".read": "data.child('participant1').val() === auth.uid || data.child('participant2').val() === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          ".write": "data.child('participant1').val() === auth.uid || data.child('participant2').val() === auth.uid || !data.exists()",
+          ".validate": "newData.hasChildren(['participant1', 'participant2']) && newData.child('participant1').val() !== newData.child('participant2').val()"
+        }
+      }
+    },
+    "visually_impaired_communication": {
+      "calls": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": ["callerId", "receiverId", "timestamp"],
+        "$callId": {
+          ".read": "data.child('callerId').val() === auth.uid || data.child('receiverId').val() === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          ".write": "data.child('callerId').val() === auth.uid || !data.exists()",
+          ".validate": "newData.hasChildren(['callerId', 'receiverId', 'timestamp']) && newData.child('timestamp').isNumber()"
+        }
+      },
+      "messages": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": ["senderId", "receiverId", "conversationId", "timestamp"],
+        "$messageId": {
+          ".read": "data.child('senderId').val() === auth.uid || data.child('receiverId').val() === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          ".write": "data.child('senderId').val() === auth.uid || !data.exists()",
+          ".validate": "newData.hasChildren(['senderId', 'receiverId', 'text', 'timestamp']) && newData.child('text').isString() && newData.child('timestamp').isNumber()"
+        }
+      },
+      "conversations": {
+        ".read": "auth != null",
+        ".write": "auth != null",
+        ".indexOn": ["participant1", "participant2", "lastMessageTime"],
+        "$conversationId": {
+          ".read": "data.child('participant1').val() === auth.uid || data.child('participant2').val() === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
+          ".write": "data.child('participant1').val() === auth.uid || data.child('participant2').val() === auth.uid || !data.exists()",
+          ".validate": "newData.hasChildren(['participant1', 'participant2']) && newData.child('participant1').val() !== newData.child('participant2').val()"
+        }
+      }
+    }
+  }
+}
