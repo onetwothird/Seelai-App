@@ -268,30 +268,7 @@ class _ProfileContentState extends State<ProfileContent> {
               }
             },
           ),
-          SizedBox(height: spacingMedium),
-          _buildActionButton(
-            icon: Icons.delete_forever_rounded,
-            label: 'Delete Account',
-            subtitle: 'Permanently delete your account and data',
-            color: Colors.red,
-            isDanger: true,
-            onTap: () async {
-              final confirm = await _showConfirmDialog(
-                'Delete Account',
-                'This action cannot be undone. Are you sure you want to delete your account?',
-                isDanger: true,
-              );
-
-              if (confirm == true) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Delete account feature coming soon'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-          ),
+          // Delete Account Button Removed Here
 
           SizedBox(height: spacingLarge),
         ],

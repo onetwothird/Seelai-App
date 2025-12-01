@@ -1,4 +1,5 @@
-// File: lib/roles/caretaker/services/location_tracking_service.dart
+// File: lib/firebase/caretaker/location_tracking_service.dart
+// Improved location tracking with accurate distance calculation and better error handling
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:math';
@@ -19,6 +20,7 @@ class LocationTrackingService {
     double? heading,
   }) async {
     try {
+      final timestamp = DateTime.now();
       await _database.ref('user_locations/visually_impaired/$patientId').set({
         'latitude': latitude,
         'longitude': longitude,
@@ -27,13 +29,15 @@ class LocationTrackingService {
         'speed': speed ?? 0.0,
         'heading': heading ?? 0.0,
         'timestamp': ServerValue.timestamp,
-        'lastUpdated': DateTime.now().toIso8601String(),
+        'lastUpdated': timestamp.toIso8601String(),
+        'lastUpdateMillis': timestamp.millisecondsSinceEpoch,
       });
 
-      debugPrint('✅ Patient location updated in Firebase: $patientId');
       return true;
     } catch (e) {
-      debugPrint('❌ Error updating patient location: $e');
+      if (kDebugMode) {
+        print('Error updating patient location: $e');
+      }
       return false;
     }
   }
@@ -50,7 +54,9 @@ class LocationTrackingService {
       }
       return null;
     } catch (e) {
-      debugPrint('❌ Error getting patient location: $e');
+      if (kDebugMode) {
+        print('Error getting patient location: $e');
+      }
       return null;
     }
   }
@@ -81,6 +87,7 @@ class LocationTrackingService {
     double? heading,
   }) async {
     try {
+      final timestamp = DateTime.now();
       await _database.ref('user_locations/caretaker/$caretakerId').set({
         'latitude': latitude,
         'longitude': longitude,
@@ -89,13 +96,15 @@ class LocationTrackingService {
         'speed': speed ?? 0.0,
         'heading': heading ?? 0.0,
         'timestamp': ServerValue.timestamp,
-        'lastUpdated': DateTime.now().toIso8601String(),
+        'lastUpdated': timestamp.toIso8601String(),
+        'lastUpdateMillis': timestamp.millisecondsSinceEpoch,
       });
 
-      debugPrint('✅ Caretaker location updated in Firebase: $caretakerId');
       return true;
     } catch (e) {
-      debugPrint('❌ Error updating caretaker location: $e');
+      if (kDebugMode) {
+        print('Error updating caretaker location: $e');
+      }
       return false;
     }
   }
@@ -112,7 +121,9 @@ class LocationTrackingService {
       }
       return null;
     } catch (e) {
-      debugPrint('❌ Error getting caretaker location: $e');
+      if (kDebugMode) {
+        print('Error getting caretaker location: $e');
+      }
       return null;
     }
   }
@@ -132,26 +143,31 @@ class LocationTrackingService {
 
   // ==================== DISTANCE CALCULATION ====================
 
-  /// Calculate distance between two coordinates (in meters)
+  /// Calculate distance between two coordinates using Haversine formula (in meters)
+  /// This provides accurate distance calculations for any two points on Earth
   double calculateDistance({
     required double lat1,
     required double lon1,
     required double lat2,
     required double lon2,
   }) {
-    const double earthRadius = 6371000; // meters
+    const double earthRadiusMeters = 6371000; // Earth's radius in meters
 
-    double dLat = _toRadians(lat2 - lat1);
-    double dLon = _toRadians(lon2 - lon1);
+    // Convert degrees to radians
+    final double lat1Rad = _toRadians(lat1);
+    final double lat2Rad = _toRadians(lat2);
+    final double dLat = _toRadians(lat2 - lat1);
+    final double dLon = _toRadians(lon2 - lon1);
 
-    double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_toRadians(lat1)) *
-            cos(_toRadians(lat2)) *
-            sin(dLon / 2) *
-            sin(dLon / 2);
+    // Haversine formula
+    final double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1Rad) * cos(lat2Rad) *
+        sin(dLon / 2) * sin(dLon / 2);
 
-    double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    double distance = earthRadius * c;
+    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    
+    // Distance in meters
+    final double distance = earthRadiusMeters * c;
 
     return distance;
   }
@@ -163,9 +179,9 @@ class LocationTrackingService {
   /// Format distance for display
   String formatDistance(double distanceInMeters) {
     if (distanceInMeters < 1000) {
-      return '${distanceInMeters.round()}m';
+      return '${distanceInMeters.round()} m';
     } else {
-      return '${(distanceInMeters / 1000).toStringAsFixed(1)}km';
+      return '${(distanceInMeters / 1000).toStringAsFixed(2)} km';
     }
   }
 
@@ -181,7 +197,7 @@ class LocationTrackingService {
       
       final snapshot = await _database
           .ref('user_locations/visually_impaired/$patientId')
-          .orderByChild('timestamp')
+          .orderByChild('lastUpdateMillis')
           .startAt(cutoffTime)
           .once();
 
@@ -198,14 +214,50 @@ class LocationTrackingService {
         });
 
         // Sort by timestamp (newest first)
-        history.sort((a, b) => (b['timestamp'] as int).compareTo(a['timestamp'] as int));
+        history.sort((a, b) {
+          final aTime = a['lastUpdateMillis'] as int? ?? 0;
+          final bTime = b['lastUpdateMillis'] as int? ?? 0;
+          return bTime.compareTo(aTime);
+        });
         
         return history;
       }
       return [];
     } catch (e) {
-      debugPrint('❌ Error getting location history: $e');
+      if (kDebugMode) {
+        print('Error getting location history: $e');
+      }
       return [];
+    }
+  }
+
+  // ==================== LOCATION VALIDATION ====================
+
+  /// Check if location data is recent (within last 5 minutes)
+  bool isLocationRecent(Map<String, dynamic> locationData) {
+    try {
+      final lastUpdateMillis = locationData['lastUpdateMillis'] as int?;
+      if (lastUpdateMillis == null) return false;
+
+      final lastUpdate = DateTime.fromMillisecondsSinceEpoch(lastUpdateMillis);
+      final now = DateTime.now();
+      final difference = now.difference(lastUpdate);
+
+      return difference.inMinutes < 5;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Check if location accuracy is acceptable (less than 50 meters)
+  bool isLocationAccurate(Map<String, dynamic> locationData) {
+    try {
+      final accuracy = locationData['accuracy'] as double?;
+      if (accuracy == null) return false;
+      
+      return accuracy <= 50.0; // Consider accurate if within 50 meters
+    } catch (e) {
+      return false;
     }
   }
 }

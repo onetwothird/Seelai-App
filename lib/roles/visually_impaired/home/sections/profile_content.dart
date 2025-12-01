@@ -127,17 +127,7 @@ class _ProfileContentState extends State<ProfileContent> {
             ),
             
             SizedBox(height: spacingSmall),
-            
-            _buildActionMenuItem(
-              'Delete Account',
-              'Permanently delete your account',
-              Icons.delete_forever_rounded,
-              error,
-              isDestructive: true,
-              onTap: () => _showDeleteAccountDialog(),
-            ),
-            
-            SizedBox(height: spacingLarge),
+           
           ],
         ),
       ),
@@ -676,79 +666,6 @@ class _ProfileContentState extends State<ProfileContent> {
               ),
             ),
             child: Text('Sign Out'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteAccountDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusLarge),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: error, size: 24),
-            SizedBox(width: spacingSmall),
-            Text(
-              'Delete Account',
-              style: h2.copyWith(
-                fontSize: 18,
-                color: widget.theme.textColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'This action cannot be undone.',
-              style: bodyBold.copyWith(
-                fontSize: 14,
-                color: error,
-              ),
-            ),
-            SizedBox(height: spacingSmall),
-            Text(
-              'All your data, including contacts and activity history, will be permanently deleted.',
-              style: body.copyWith(
-                fontSize: 13,
-                color: widget.theme.subtextColor,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: widget.theme.subtextColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSnackbar('Delete account feature coming soon');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: error,
-              foregroundColor: white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(radiusMedium),
-              ),
-            ),
-            child: Text('Delete Account'),
           ),
         ],
       ),

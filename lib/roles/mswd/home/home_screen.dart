@@ -2,6 +2,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
@@ -10,7 +11,6 @@ import 'package:seelai_app/roles/mswd/home/sections/dashboard/announcement.dart'
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/user_breakdown.dart';
 import 'package:seelai_app/roles/mswd/home/sections/users/users_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/alerts_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/more_content.dart';
 
 class MSWDHomeScreen extends StatefulWidget {
@@ -31,7 +31,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   // UI State
   bool _isDarkMode = false;
   int _selectedIndex = 0;
-  int _pendingAlertsCount = 0;
   
   // Animation
   late AnimationController _animationController;
@@ -105,11 +104,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
     _animationController.forward();
   }
 
-  void _updateAlertsCount(int count) {
-    setState(() {
-      _pendingAlertsCount = count;
-    });
-  }
 
   @override
   void dispose() {
@@ -177,7 +171,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
             onItemTapped: _onNavItemTapped,
             textColor: theme.textColor,
             subtextColor: theme.subtextColor,
-            pendingCount: _pendingAlertsCount,
           ),
         ),
       ),
@@ -199,7 +192,13 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           userData: widget.userData,
         );
         break;
-      
+      case 3:
+      content = TrackContent(
+        isDarkMode: _isDarkMode,
+        theme: theme,
+        userData: widget.userData,
+      );
+      break;
       case 2:
         content = RequestsContent(
           isDarkMode: _isDarkMode,
@@ -208,14 +207,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
         );
         break;
       
-      case 3:
-        content = AlertsContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          userData: widget.userData,
-          onAlertsCountChanged: _updateAlertsCount,
-        );
-        break;
       
       case 4:
         content = MoreContent(

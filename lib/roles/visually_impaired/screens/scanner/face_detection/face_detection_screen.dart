@@ -1,6 +1,6 @@
 // File: lib/roles/visually_impaired/screens/scanner/face_detection/face_detection_screen.dart
 
-// ignore_for_file: curly_braces_in_flow_control_structures, avoid_print, deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: curly_braces_in_flow_control_structures, use_build_context_synchronously, deprecated_member_use
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 class FaceDetectionScreen extends StatefulWidget {
@@ -34,13 +35,12 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
   double fps = 0.0;
   final FlutterTts _flutterTts = FlutterTts();
   bool _isReading = false;
-  String _lastReadText = '';
-  bool _hasReadFaces = false;
-  Timer? _readingDebounceTimer;
   bool _isStreamRunning = false;
   bool _isDisposing = false;
-  int _detectedFaceCount = 0;
-  List<String> _detectedCaretakers = [];
+  
+  // Detection state - matching object_detection_screen.dart
+  String _lastDetectedFaces = '';
+  bool _readingCompleted = false;
 
   @override
   void initState() {
@@ -61,43 +61,28 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
 
   Future<void> _cleanupResources() async {
     try {
-      // Cancel timers first
-      _readingDebounceTimer?.cancel();
-      
-      // Stop TTS
       await _flutterTts.stop();
       
-      // Stop image stream if running
       if (_isStreamRunning && 
           widget.cameraService.controller != null &&
           widget.cameraService.controller!.value.isStreamingImages) {
         try {
           await widget.cameraService.controller!.stopImageStream();
           _isStreamRunning = false;
-          print('✅ Image stream stopped successfully');
-        } catch (e) {
-          print('⚠️ Error stopping image stream: $e');
-        }
+        } catch (_) {}
       }
       
-      // Small delay to ensure stream is fully stopped
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
       
-      // Close vision model
       try {
         await vision.closeYoloModel();
-        print('✅ YOLO model closed successfully');
-      } catch (e) {
-        print('⚠️ Error closing YOLO model: $e');
-      }
-    } catch (e) {
-      print('❌ Error during cleanup: $e');
-    }
+      } catch (_) {}
+    } catch (_) {}
   }
 
   Future<void> _initializeTts() async {
     await _flutterTts.setLanguage("en-US");
-    await _flutterTts.setSpeechRate(0.4);
+    await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
 
@@ -105,6 +90,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       if (mounted && !_isDisposing) {
         setState(() {
           _isReading = false;
+          _readingCompleted = true;
         });
       }
     });
@@ -113,6 +99,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       if (mounted && !_isDisposing) {
         setState(() {
           _isReading = true;
+          _readingCompleted = false;
         });
       }
     });
@@ -121,18 +108,19 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       if (mounted && !_isDisposing) {
         setState(() {
           _isReading = false;
+          _readingCompleted = true;
         });
       }
     });
   }
 
   void _announceMode() {
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted && !_isDisposing) {
-        _flutterTts.speak('Face detection mode activated. Point camera at faces.');
+        _flutterTts.speak('Face detection mode activated. Looking for faces.');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Face detection mode activated - Point camera at faces'),
+          const SnackBar(
+            content: Text('Face detection mode activated - Looking for faces'),
             backgroundColor: Colors.purple,
             behavior: SnackBarBehavior.floating,
             duration: Duration(seconds: 2),
@@ -146,31 +134,33 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     try {
       await vision.loadYoloModel(
         labels: 'assets/face_model/labels.txt',
-        modelPath: 'assets/face_model/face-detection.tflite',
+        modelPath: 'assets/face_model/face_detection.tflite',
         modelVersion: "yolov8",
         numThreads: 4,
         useGpu: true,
       );
       if (mounted && !_isDisposing) {
-        setState(() {
-          isModelLoaded = true;
-        });
+        setState(() => isModelLoaded = true);
       }
-      print('✅ Face detection model loaded successfully with GPU acceleration');
     } catch (e) {
-      print('❌ Error loading face detection model: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error loading face model. Check model files.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
   void startFaceDetection() async {
     if (_isDisposing) return;
-    if (!widget.cameraService.isInitialized || widget.cameraService.controller == null) return;
+    if (!widget.cameraService.isInitialized || 
+        widget.cameraService.controller == null) return;
     
-    // Check if stream is already running
-    if (widget.cameraService.controller!.value.isStreamingImages) {
-      print('⚠️ Image stream already running');
-      return;
-    }
+    if (widget.cameraService.controller!.value.isStreamingImages) return;
 
     try {
       await widget.cameraService.controller!.startImageStream((image) {
@@ -180,10 +170,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
         }
       });
       _isStreamRunning = true;
-      print('✅ Image stream started successfully');
-    } catch (e) {
-      print('❌ Error starting image stream: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> detectFaces(CameraImage image) async {
@@ -200,21 +187,13 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.4,
-        confThreshold: 0.5,  // Higher confidence for faces
-        classThreshold: 0.6,
+        confThreshold: 0.3,
+        classThreshold: 0.4,
       );
 
       if (mounted && !_isDisposing) {
         setState(() {
           recognitions = result;
-          _detectedFaceCount = result.length;
-          
-          // Extract caretaker names from detected faces
-          _detectedCaretakers = result
-              .map((r) => r['tag']?.toString() ?? 'Unknown')
-              .toSet()
-              .toList();
-          
           frameCount++;
 
           if (lastFrameTime != null) {
@@ -226,53 +205,86 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           lastFrameTime = now;
         });
 
-        // Auto-announce detected faces
-        if (recognitions.isNotEmpty && !_isReading && !_hasReadFaces) {
-          _announceDetectedFaces();
+        // Auto-detect and read faces (matching object_detection_screen.dart)
+        if (recognitions.isNotEmpty && !_isReading) {
+          await _detectAndReadFaces();
         } else if (recognitions.isEmpty) {
-          // Reset flag when no faces detected
-          _hasReadFaces = false;
+          _readingCompleted = false;
         }
       }
-    } catch (e) {
-      print('❌ Error detecting faces: $e');
-    }
+    } catch (_) {}
 
     isDetecting = false;
   }
 
-  void _announceDetectedFaces() {
-    if (_isDisposing) return;
+  /// Detect and read faces - matching object_detection_screen.dart pattern
+  Future<void> _detectAndReadFaces() async {
+    if (_isDisposing || _isReading) return;
     
-    _readingDebounceTimer?.cancel();
-    _readingDebounceTimer = Timer(Duration(milliseconds: 800), () {
-      if (recognitions.isNotEmpty && mounted && !_isDisposing) {
-        // Create announcement text
-        String announcement;
-        if (_detectedFaceCount == 1) {
-          final name = recognitions[0]['tag'] ?? 'Unknown person';
-          final confidence = ((recognitions[0]['box'][4] ?? 0) * 100).toStringAsFixed(0);
-          announcement = 'Detected: $name with $confidence percent confidence';
-        } else {
-          final names = _detectedCaretakers.join(', ');
-          announcement = 'Detected $_detectedFaceCount faces: $names';
+    try {
+      // Create simple face text (matching object detection pattern)
+      final faceCount = recognitions.length;
+      final detectedFacesText = List.generate(faceCount, (index) => 'face').join(', ');
+      
+      if (detectedFacesText.isNotEmpty) {
+        // Check if it's different from last read
+        bool isDifferentFaces = (detectedFacesText.length - _lastDetectedFaces.length).abs() > 2 ||
+                               !detectedFacesText.contains(_lastDetectedFaces.substring(0, _lastDetectedFaces.length.clamp(0, 4)));
+        
+        if ((isDifferentFaces || _lastDetectedFaces.isEmpty) && !_isReading) {
+          _lastDetectedFaces = detectedFacesText;
+          _readingCompleted = false;
+          
+          // Save to Firebase BEFORE speaking (exactly like object_detection_screen.dart)
+          await _saveDetectedFacesToFirebase(faceCount);
+          
+          // Then speak - simple format: "I see face" or "I see face, face"
+          await _flutterTts.speak('I see $detectedFacesText');
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Reading detected faces: $faceCount face(s)'),
+                backgroundColor: Colors.purple,
+                duration: Duration(milliseconds: 800),
+              ),
+            );
+          }
         }
-
-        if (announcement != _lastReadText && !_isReading) {
-          _lastReadText = announcement;
-          _hasReadFaces = true;
-          _flutterTts.speak(announcement);
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(announcement),
-              backgroundColor: Colors.purple,
-              duration: Duration(milliseconds: 800),
-            ),
-          );
+      } else {
+        if (!_isReading) {
+          _readingCompleted = true;
         }
       }
-    });
+    } catch (e) {
+      // Silent fail
+    }
+  }
+
+  /// Save detected faces to Firebase - matching object_detection_service.dart pattern
+  Future<void> _saveDetectedFacesToFirebase(int faceCount) async {
+    try {
+      final userId = authService.value.currentUser?.uid;
+      if (userId == null) {
+        return;
+      }
+
+      final success = await faceDetectionService.saveDetectedFaces(
+        userId: userId,
+        detectedFaces: recognitions,
+        faceCount: faceCount,
+        metadata: {
+          'fps': fps.toStringAsFixed(1),
+          'deviceInfo': 'mobile_camera',
+        },
+      );
+
+      if (success) {
+        // Successfully saved
+      }
+    } catch (e) {
+      // Silent fail
+    }
   }
 
   @override
@@ -281,7 +293,8 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
 
-    if (!widget.cameraService.isInitialized || widget.cameraService.controller == null) {
+    if (!widget.cameraService.isInitialized || 
+        widget.cameraService.controller == null) {
       return Scaffold(
         backgroundColor: Colors.black,
         body: Center(
@@ -307,12 +320,12 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       );
     }
 
-    var scale = screenSize.aspectRatio * widget.cameraService.controller!.value.aspectRatio;
+    var scale = screenSize.aspectRatio * 
+        widget.cameraService.controller!.value.aspectRatio;
     if (scale < 1) scale = 1 / scale;
 
     return WillPopScope(
       onWillPop: () async {
-        // Ensure cleanup happens before popping
         await _cleanupResources();
         return true;
       },
@@ -321,15 +334,12 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            // Camera Preview
             Transform.scale(
               scale: scale,
               child: Center(
                 child: CameraPreview(widget.cameraService.controller!),
               ),
             ),
-            
-            // Gradient Overlay
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
@@ -342,23 +352,20 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                       Colors.black.withOpacity(0.2),
                       Colors.black.withOpacity(0.6),
                     ],
-                    stops: [0.0, 0.3, 0.7, 1.0],
+                    stops: const [0.0, 0.3, 0.7, 1.0],
                   ),
                 ),
               ),
             ),
-            
-            // Bounding Boxes
             if (isModelLoaded)
               FaceBoundingBoxes(
                 recognitions: recognitions,
-                previewH: widget.cameraService.controller!.value.previewSize!.width,
-                previewW: widget.cameraService.controller!.value.previewSize!.height,
+                previewH: widget.cameraService.controller!.value.previewSize!.height,
+                previewW: widget.cameraService.controller!.value.previewSize!.width,
                 screenH: screenHeight,
                 screenW: screenWidth,
+                scale: scale,
               ),
-            
-            // Header
             Positioned(
               top: 0,
               left: 0,
@@ -367,8 +374,6 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                 child: _buildHeader(screenWidth),
               ),
             ),
-            
-            // Controls
             Positioned(
               bottom: 0,
               left: 0,
@@ -396,7 +401,6 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () async {
-                  // Ensure cleanup before navigation
                   await _cleanupResources();
                   if (mounted) {
                     Navigator.pop(context);
@@ -428,7 +432,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Detect Faces',
+                  'Face Detection',
                   style: h2.copyWith(
                     color: white,
                     fontSize: screenWidth * 0.05,
@@ -437,7 +441,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                 ),
                 Text(
                   recognitions.isNotEmpty
-                      ? 'Detecting: $_detectedFaceCount ${_detectedFaceCount == 1 ? "face" : "faces"}'
+                      ? 'Reading: ${recognitions.length} face(s)'
                       : 'Looking for faces...',
                   style: caption.copyWith(
                     color: recognitions.isNotEmpty
@@ -459,14 +463,62 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.8),
-        borderRadius: BorderRadius.vertical(
+        borderRadius: const BorderRadius.vertical(
           top: Radius.circular(radiusXLarge),
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Status Row
+          // Show detected faces info (matching object_detection_screen.dart)
+          if (_lastDetectedFaces.isNotEmpty)
+            Container(
+              margin: EdgeInsets.only(bottom: spacingLarge),
+              padding: EdgeInsets.all(spacingMedium),
+              decoration: BoxDecoration(
+                color: Colors.purple.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(radiusMedium),
+                border: Border.all(
+                  color: Colors.purple.withOpacity(0.4),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.purple,
+                        size: screenWidth * 0.05,
+                      ),
+                      SizedBox(width: spacingSmall),
+                      Expanded(
+                        child: Text(
+                          'Faces Auto-Read & Saved',
+                          style: bodyBold.copyWith(
+                            color: white,
+                            fontSize: screenWidth * 0.035,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: spacingSmall),
+                  Text(
+                    'Detected: $_lastDetectedFaces',
+                    style: caption.copyWith(
+                      color: white.withOpacity(0.7),
+                      fontSize: screenWidth * 0.03,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -487,62 +539,17 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
               Flexible(
                 child: Text(
                   _isReading
-                      ? 'Speaking...'
+                      ? 'Reading faces...'
                       : recognitions.isNotEmpty
-                          ? '$_detectedFaceCount ${_detectedFaceCount == 1 ? "face" : "faces"} detected'
-                          : 'Scanning for faces...',
+                          ? (_readingCompleted ? 'Done - Ready for next scan' : 'Auto-scanning active')
+                          : 'Looking for faces...',
                   style: bodyBold.copyWith(
                     color: white.withOpacity(0.9),
                     fontSize: screenWidth * 0.035,
                   ),
                 ),
               ),
-            ],
-          ),
-          
-          // Detected Caretakers List
-          if (_detectedCaretakers.isNotEmpty) ...[
-            SizedBox(height: spacingMedium),
-            Container(
-              padding: EdgeInsets.all(spacingMedium),
-              decoration: BoxDecoration(
-                color: Colors.purple.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(radiusMedium),
-                border: Border.all(
-                  color: Colors.purple.withOpacity(0.4),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.person,
-                    color: Colors.purple,
-                    size: screenWidth * 0.05,
-                  ),
-                  SizedBox(width: spacingSmall),
-                  Expanded(
-                    child: Text(
-                      _detectedCaretakers.join(', '),
-                      style: bodyBold.copyWith(
-                        color: white,
-                        fontSize: screenWidth * 0.035,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          
-          SizedBox(height: spacingMedium),
-          
-          // FPS Counter
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+              SizedBox(width: spacingLarge),
               Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: screenWidth * 0.03,
@@ -569,13 +576,13 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
   }
 }
 
-// Custom Widget for Face Bounding Boxes
 class FaceBoundingBoxes extends StatelessWidget {
   final List<Map<String, dynamic>> recognitions;
   final double previewH;
   final double previewW;
   final double screenH;
   final double screenW;
+  final double scale;
 
   const FaceBoundingBoxes({
     super.key,
@@ -584,6 +591,7 @@ class FaceBoundingBoxes extends StatelessWidget {
     required this.previewW,
     required this.screenH,
     required this.screenW,
+    required this.scale,
   });
 
   @override
@@ -597,18 +605,19 @@ class FaceBoundingBoxes extends StatelessWidget {
         previewW: previewW,
         screenH: screenH,
         screenW: screenW,
+        scale: scale,
       ),
     );
   }
 }
 
-// Custom Painter for Face Bounding Boxes
 class FaceBoxPainter extends CustomPainter {
   final List<Map<String, dynamic>> recognitions;
   final double previewH;
   final double previewW;
   final double screenH;
   final double screenW;
+  final double scale;
 
   FaceBoxPainter({
     required this.recognitions,
@@ -616,6 +625,7 @@ class FaceBoxPainter extends CustomPainter {
     required this.previewW,
     required this.screenH,
     required this.screenW,
+    required this.scale,
   });
 
   @override
@@ -623,7 +633,26 @@ class FaceBoxPainter extends CustomPainter {
     final paint = Paint()
       ..color = Colors.purple
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.5;
+      ..strokeWidth = 2.5;
+
+    // Calculate proper aspect ratio and scaling
+    final cameraAspectRatio = previewH / previewW;
+    final screenAspectRatio = size.width / size.height;
+
+    double scaleX, scaleY;
+    double offsetX = 0, offsetY = 0;
+
+    if (screenAspectRatio > cameraAspectRatio) {
+      // Screen is wider - fit to height
+      scaleY = size.height / previewW;
+      scaleX = scaleY;
+      offsetX = (size.width - (previewH * scaleX)) / 2;
+    } else {
+      // Screen is taller - fit to width
+      scaleX = size.width / previewH;
+      scaleY = scaleX;
+      offsetY = (size.height - (previewW * scaleY)) / 2;
+    }
 
     for (var recognition in recognitions) {
       final box = recognition['box'];
@@ -633,84 +662,84 @@ class FaceBoxPainter extends CustomPainter {
       double w = box[2].toDouble();
       double h = box[3].toDouble();
 
-      final scaleW = size.width / previewW;
-      final scaleH = size.height / previewH;
+      // Transform coordinates from camera space to screen space
+      final left = (x * scaleX) + offsetX;
+      final top = (y * scaleY) + offsetY;
+      final width = w * scaleX;
+      final height = h * scaleY;
 
-      final left = x * scaleW;
-      final top = y * scaleH;
-      final width = w * scaleW;
-      final height = h * scaleH;
-
-      // Draw rounded rectangle for face
+      // Draw rounded rectangle
       final rect = RRect.fromRectAndRadius(
         Rect.fromLTWH(left, top, width, height),
-        Radius.circular(12),
+        const Radius.circular(8),
       );
       canvas.drawRRect(rect, paint);
 
-      // Draw corners for enhanced effect
-      final cornerLength = 20.0;
+      // Responsive corner length based on box size
+      final cornerLength = (width * 0.15).clamp(15.0, 30.0);
       final cornerPaint = Paint()
         ..color = Colors.purple
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 5.0;
+        ..strokeWidth = 3.5;
 
       // Top-left corner
       canvas.drawLine(
-        Offset(left, top + cornerLength),
-        Offset(left, top),
-        cornerPaint,
+        Offset(left, top + cornerLength), 
+        Offset(left, top), 
+        cornerPaint
       );
       canvas.drawLine(
-        Offset(left, top),
-        Offset(left + cornerLength, top),
-        cornerPaint,
+        Offset(left, top), 
+        Offset(left + cornerLength, top), 
+        cornerPaint
       );
-
+      
       // Top-right corner
       canvas.drawLine(
-        Offset(left + width - cornerLength, top),
-        Offset(left + width, top),
-        cornerPaint,
+        Offset(left + width - cornerLength, top), 
+        Offset(left + width, top), 
+        cornerPaint
       );
       canvas.drawLine(
-        Offset(left + width, top),
-        Offset(left + width, top + cornerLength),
-        cornerPaint,
+        Offset(left + width, top), 
+        Offset(left + width, top + cornerLength), 
+        cornerPaint
       );
-
+      
       // Bottom-left corner
       canvas.drawLine(
-        Offset(left, top + height - cornerLength),
-        Offset(left, top + height),
-        cornerPaint,
+        Offset(left, top + height - cornerLength), 
+        Offset(left, top + height), 
+        cornerPaint
       );
       canvas.drawLine(
-        Offset(left, top + height),
-        Offset(left + cornerLength, top + height),
-        cornerPaint,
+        Offset(left, top + height), 
+        Offset(left + cornerLength, top + height), 
+        cornerPaint
       );
-
+      
       // Bottom-right corner
       canvas.drawLine(
-        Offset(left + width - cornerLength, top + height),
-        Offset(left + width, top + height),
-        cornerPaint,
+        Offset(left + width - cornerLength, top + height), 
+        Offset(left + width, top + height), 
+        cornerPaint
       );
       canvas.drawLine(
-        Offset(left + width, top + height - cornerLength),
-        Offset(left + width, top + height),
-        cornerPaint,
+        Offset(left + width, top + height - cornerLength), 
+        Offset(left + width, top + height), 
+        cornerPaint
       );
 
-      // Draw label
-      final label = recognition['tag'] ?? 'Unknown';
+      final label = recognition['tag'] ?? 'Person';
       final confidence = box[4] ?? 0.0;
       final text = '$label ${(confidence * 100).toStringAsFixed(0)}%';
 
+      // Responsive text size based on box width
+      final fontSize = (width * 0.08).clamp(12.0, 18.0);
+
       final textStyle = TextStyle(
         color: Colors.white,
-        fontSize: 15,
+        fontSize: fontSize,
         fontWeight: FontWeight.bold,
         backgroundColor: Colors.purple,
       );
@@ -723,21 +752,27 @@ class FaceBoxPainter extends CustomPainter {
 
       textPainter.layout();
 
-      // Position label above the box
+      // Responsive label padding and height
+      final labelPadding = (width * 0.03).clamp(6.0, 10.0);
+      final labelHeight = (fontSize * 1.8).clamp(20.0, 28.0);
+
       final labelRect = Rect.fromLTWH(
         left,
-        top - 24,
-        textPainter.width + 12,
-        24,
+        top - labelHeight - 2,
+        textPainter.width + (labelPadding * 2),
+        labelHeight,
       );
       
       final labelRRect = RRect.fromRectAndRadius(
         labelRect,
-        Radius.circular(6),
+        const Radius.circular(4),
       );
       
       canvas.drawRRect(labelRRect, Paint()..color = Colors.purple);
-      textPainter.paint(canvas, Offset(left + 6, top - 22));
+      textPainter.paint(
+        canvas, 
+        Offset(left + labelPadding, top - labelHeight + (labelHeight - fontSize) / 2 - 2)
+      );
     }
   }
 

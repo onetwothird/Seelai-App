@@ -343,28 +343,34 @@ class _OverviewSectionState extends State<OverviewSection> {
               ),
             ],
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: h1.copyWith(
-                  fontSize: 32,
-                  color: widget.theme.textColor,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 21),
+                  child: Text(
+                    value,
+                    style: h1.copyWith(
+                      fontSize: 32,
+                      color: widget.theme.textColor,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                label,
-                style: caption.copyWith(
-                  fontSize: 13,
-                  color: widget.theme.subtextColor,
-                  fontWeight: FontWeight.w500,
+                SizedBox(height: 4),
+                Text(
+                  label,
+                  style: caption.copyWith(
+                    fontSize: 13,
+                    color: widget.theme.subtextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
