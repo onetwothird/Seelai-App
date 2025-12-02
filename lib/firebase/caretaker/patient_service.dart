@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/firebase/visually_impaired/caretaker_patient_service.dart';
 

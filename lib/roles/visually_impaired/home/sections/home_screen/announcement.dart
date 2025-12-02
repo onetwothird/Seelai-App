@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/mswd/announcement_service.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
-import 'package:seelai_app/roles/visually_impaired/home/sections/home_screen/all_announcements.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/home_screen/screens/all_announcements.dart';
 
 class AnnouncementSection extends StatefulWidget {
   final bool isDarkMode;

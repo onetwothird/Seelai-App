@@ -1,13 +1,13 @@
 // File: lib/roles/caretaker/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/home_content.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/bottom_navigation.dart';
-import 'package:seelai_app/roles/caretaker/home/sections/patients_content.dart';
-import 'package:seelai_app/roles/caretaker/home/sections/requests_content.dart';
-import 'package:seelai_app/roles/caretaker/home/sections/profile_content.dart';
-import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patients_content.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/requests_content.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/profile_content.dart';
 import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
