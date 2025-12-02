@@ -1,6 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
-import 'package:seelai_app/roles/caretaker/models/request_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import '../database_service.dart';
 
 /// Transaction record model

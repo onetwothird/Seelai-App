@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/visually_impaired/widgets/location_map_widget.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/home_screen/widgets/location_map_widget.dart';
 
 class LocationSection extends StatelessWidget {
   final bool isDarkMode;

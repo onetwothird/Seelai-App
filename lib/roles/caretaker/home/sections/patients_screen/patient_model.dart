@@ -1,3 +1,5 @@
+// File: lib/roles/caretaker/home/sections/patients_screen/patient_model.dart
+
 class PatientModel {
   final String id;
   final String name;

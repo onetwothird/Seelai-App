@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:seelai_app/roles/caretaker/models/request_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'dart:async';
 
 class RequestsContent extends StatefulWidget {

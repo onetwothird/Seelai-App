@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/models/request_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
-import 'package:seelai_app/roles/caretaker/screens/request_details_screen.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_details_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';

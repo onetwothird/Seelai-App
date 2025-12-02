@@ -1,10 +1,12 @@
+// File: lib/roles/caretaker/home/sections/patients_screen/patients_content.dart
+
 // ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use, duplicate_ignore, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
-import 'package:seelai_app/roles/caretaker/screens/patient_details_screen.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_details_screen.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';

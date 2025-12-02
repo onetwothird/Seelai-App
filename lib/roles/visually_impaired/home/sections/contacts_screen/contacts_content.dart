@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/contacts_content.dart
+// File: lib/roles/visually_impaired/home/sections/contacts_screen/contacts_content.dart
 // ignore_for_file: deprecated_member_use, use_build_context_synchronously, prefer_final_fields
 
 import 'package:flutter/material.dart';
@@ -6,6 +6,11 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'contact_model.dart';
+import 'adding_contact.dart';
+import 'call_contact.dart';
+import 'message_contact.dart';
+import 'edit_contact.dart';
 
 class ContactsContent extends StatefulWidget {
   final bool isDarkMode;
@@ -196,340 +201,85 @@ class _ContactsContentState extends State<ContactsContent> {
     }).toList();
   }
 
-  /// Handle call action
-  Future<void> _handleCall(ContactModel contact) async {
-    try {
-      await communicationService.initiateCall(
-        receiverId: contact.id,
-        receiverName: contact.name,
-        receiverImage: contact.profileImageUrl ?? '',
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Calling ${contact.name}...'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error initiating call: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to initiate call: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Handle message action
-  Future<void> _handleMessage(ContactModel contact) async {
-    try {
-      _showMessageDialog(contact);
-    } catch (e) {
-      debugPrint('Error with message: $e');
-    }
-  }
-
-  /// Show message dialog
-  void _showMessageDialog(ContactModel contact) {
-    final messageController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: widget.theme.cardColor,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Message ${contact.name}',
-                style: h2.copyWith(color: widget.theme.textColor),
-              ),
-              SizedBox(height: 8),
-              if (contact.phoneNumber != 'N/A')
-                Text(
-                  contact.phoneNumber,
-                  style: body.copyWith(
-                    color: widget.theme.subtextColor,
-                    fontSize: 13,
-                  ),
-                ),
-            ],
-          ),
-          content: TextField(
-            controller: messageController,
-            style: body.copyWith(color: widget.theme.textColor),
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: 'Type your message...',
-              hintStyle: body.copyWith(color: widget.theme.subtextColor),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(radiusMedium),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(radiusMedium),
-                borderSide: BorderSide(color: primary.withOpacity(0.3)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(radiusMedium),
-                borderSide: BorderSide(color: primary),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: bodyBold.copyWith(color: widget.theme.subtextColor),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final messageText = messageController.text.trim();
-                
-                if (messageText.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please enter a message'),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                  return;
-                }
-
-                try {
-                  // Show loading indicator
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (BuildContext loadingContext) {
-                      return Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(primary),
-                        ),
-                      );
-                    },
-                  );
-
-                  // Send the message
-                  await communicationService.sendMessage(
-                    receiverId: contact.id,
-                    text: messageText,
-                  );
-
-                  if (mounted) {
-                    // Close loading dialog
-                    Navigator.pop(context);
-                    
-                    // Close message dialog
-                    Navigator.pop(context);
-                    
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.check_circle_rounded, color: white),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text('Message sent to ${contact.name}'),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: Colors.green,
-                        duration: Duration(seconds: 3),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(radiusMedium),
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  debugPrint('Error sending message: $e');
-                  
-                  if (mounted) {
-                    // Close loading dialog
-                    Navigator.pop(context);
-                    
-                    // Show error message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.error_rounded, color: white),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text('Failed to send message: $e'),
-                            ),
-                          ],
-                        ),
-                        backgroundColor: Colors.red,
-                        duration: Duration(seconds: 4),
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(radiusMedium),
-                        ),
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-              ),
-              child: Text(
-                'Send',
-                style: bodyBold.copyWith(color: white),
-              ),
-            ),
-          ],
-        );
-      },
-    ).then((_) => messageController.dispose());
-  }
-
   Future<void> _showAddContactDialog() async {
-    final nameController = TextEditingController();
-    final relationshipController = TextEditingController();
-    final phoneController = TextEditingController();
+    if (_patientId != null) {
+      await showDialog(
+        context: context,
+        builder: (context) => AddContactDialog(
+          patientId: _patientId!,
+          isDarkMode: widget.isDarkMode,
+          theme: widget.theme,
+          onContactAdded: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Contact added successfully'),
+                backgroundColor: success,
+              ),
+            );
+          },
+        ),
+      );
+    }
+  }
 
-    return showDialog(
+  Future<void> _handleCall(ContactModel contact) async {
+    if (contact.phoneNumber == 'N/A') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Phone number not available for ${contact.name}'),
+          backgroundColor: error,
+        ),
+      );
+      return;
+    }
+
+    await CallContact.call(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusXLarge),
-        ),
-        title: Text(
-          'Add Emergency Contact',
-          style: h3.copyWith(color: widget.theme.textColor),
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTextField(
-                controller: nameController,
-                label: 'Full Name',
-                icon: Icons.person_outline,
-              ),
-              SizedBox(height: spacingMedium),
-              _buildTextField(
-                controller: relationshipController,
-                label: 'Relationship',
-                icon: Icons.family_restroom_rounded,
-              ),
-              SizedBox(height: spacingMedium),
-              _buildTextField(
-                controller: phoneController,
-                label: 'Phone Number',
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: body.copyWith(color: widget.theme.subtextColor)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameController.text.isEmpty || 
-                  relationshipController.text.isEmpty || 
-                  phoneController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please fill all fields'),
-                    backgroundColor: error,
-                  ),
-                );
-                return;
-              }
-
-              try {
-                if (_patientId != null) {
-                  await emergencyContactsService.addEmergencyContact(
-                    userId: _patientId!,
-                    contactName: nameController.text,
-                    contactPhone: phoneController.text,
-                    relationship: relationshipController.text,
-                  );
-
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Contact added successfully'),
-                      backgroundColor: success,
-                    ),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to add contact: $e'),
-                    backgroundColor: error,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(radiusMedium),
-              ),
-            ),
-            child: Text('Add Contact'),
-          ),
-        ],
-      ),
+      contact: contact,
+      isDarkMode: widget.isDarkMode,
+      theme: widget.theme,
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType? keyboardType,
-  }) {
-    return TextField(
-      controller: controller,
-      style: body.copyWith(color: widget.theme.textColor),
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: body.copyWith(color: widget.theme.subtextColor),
-        prefixIcon: Icon(icon, color: widget.theme.subtextColor, size: 20),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: widget.theme.subtextColor.withOpacity(0.3)),
+  Future<void> _handleMessage(ContactModel contact) async {
+    if (contact.phoneNumber == 'N/A') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Phone number not available for ${contact.name}'),
+          backgroundColor: error,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: widget.theme.subtextColor.withOpacity(0.2)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: primary, width: 2),
-        ),
-        filled: true,
-        fillColor: widget.isDarkMode 
-          ? Colors.white.withOpacity(0.03)
-          : Colors.black.withOpacity(0.02),
-      ),
+      );
+      return;
+    }
+
+    await MessageContact.message(
+      context: context,
+      contact: contact,
+      isDarkMode: widget.isDarkMode,
+      theme: widget.theme,
     );
+  }
+
+  Future<void> _editContact(ContactModel contact) async {
+    if (_patientId != null && !contact.isCaretaker) {
+      await showDialog(
+        context: context,
+        builder: (context) => EditContactDialog(
+          patientId: _patientId!,
+          contact: contact,
+          isDarkMode: widget.isDarkMode,
+          theme: widget.theme,
+          onContactUpdated: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Contact updated successfully'),
+                backgroundColor: success,
+              ),
+            );
+          },
+        ),
+      );
+    }
   }
 
   Future<void> _deleteContact(ContactModel contact) async {
@@ -607,40 +357,40 @@ class _ContactsContentState extends State<ContactsContent> {
   }
 
   @override
-Widget build(BuildContext context) {
-  final width = MediaQuery.of(context).size.width;
-  final isLoading = (_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty;
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final isLoading = (_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty;
 
-  return RefreshIndicator(
-    onRefresh: _refreshContacts,
-    child: Padding(
-      padding: EdgeInsets.only(
-        left: width * 0.05,
-        right: width * 0.05,
-        top: spacingMedium,
-        bottom: 100,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          SizedBox(height: spacingLarge),
-          if (_allContacts.isNotEmpty) ...[
-            _buildSearchBar(),
+    return RefreshIndicator(
+      onRefresh: _refreshContacts,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: width * 0.05,
+          right: width * 0.05,
+          top: spacingMedium,
+          bottom: 100,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
             SizedBox(height: spacingLarge),
+            if (_allContacts.isNotEmpty) ...[
+              _buildSearchBar(),
+              SizedBox(height: spacingLarge),
+            ],
+            isLoading
+                ? _buildLoadingState()
+                : _error != null && _allContacts.isEmpty
+                    ? _buildErrorState()
+                    : _allContacts.isEmpty
+                        ? _buildEmptyState()
+                        : _buildContactsList(),
           ],
-          isLoading
-              ? _buildLoadingState()
-              : _error != null && _allContacts.isEmpty
-                  ? _buildErrorState()
-                  : _allContacts.isEmpty
-                      ? _buildEmptyState()
-                      : _buildContactsList(),
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildHeader() {
     final caretakerCount = _caretakerContacts.length;
@@ -1222,12 +972,7 @@ Widget build(BuildContext context) {
                 title: Text('Edit Contact', style: body.copyWith(color: widget.theme.textColor)),
                 onTap: () {
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Edit contact feature coming soon'),
-                      backgroundColor: primary,
-                    ),
-                  );
+                  _editContact(contact);
                 },
               ),
             ListTile(
@@ -1322,29 +1067,4 @@ Widget build(BuildContext context) {
       ),
     );
   }
-}
-
-// Contact Model
-class ContactModel {
-  final String id;
-  final String name;
-  final String relationship;
-  final String phoneNumber;
-  final bool isEmergencyContact;
-  final bool isCaretaker;
-  final IconData avatar;
-  final Color color;
-  final String? profileImageUrl;
-
-  ContactModel({
-    required this.id,
-    required this.name,
-    required this.relationship,
-    required this.phoneNumber,
-    required this.isEmergencyContact,
-    required this.isCaretaker,
-    required this.avatar,
-    required this.color,
-    this.profileImageUrl,
-  });
 }

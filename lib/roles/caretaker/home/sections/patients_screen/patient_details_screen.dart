@@ -1,8 +1,9 @@
 // ignore_for_file: deprecated_member_use, duplicate_ignore
+// File: lib/roles/caretaker/home/sections/patients_screen/patient_details_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 
 class PatientDetailsScreen extends StatelessWidget {
@@ -93,43 +94,6 @@ class PatientDetailsScreen extends StatelessWidget {
             ),
             
             SizedBox(height: spacingLarge),
-            
-            // Quick Actions
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionButton(
-                    context,
-                    icon: Icons.phone_rounded,
-                    label: 'Call',
-                    color: Colors.green,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Calling ${patient.name}...')),
-                      );
-                    },
-                    cardColor: cardColor,
-                  ),
-                ),
-                SizedBox(width: spacingMedium),
-                Expanded(
-                  child: _buildActionButton(
-                    context,
-                    icon: Icons.message_rounded,
-                    label: 'Message',
-                    color: primary,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Message feature coming soon')),
-                      );
-                    },
-                    cardColor: cardColor,
-                  ),
-                ),
-              ],
-            ),
-            
-            SizedBox(height: spacingMedium),
             
             // Contact Information
             _buildInfoSection(
@@ -253,60 +217,6 @@ class PatientDetailsScreen extends StatelessWidget {
                   color: white,
                 ),
               ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-    required Color cardColor,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: isDarkMode
-            ? [BoxShadow(color: color.withOpacity(0.2), blurRadius: 16, offset: Offset(0, 6))]
-            : softShadow,
-        borderRadius: BorderRadius.circular(radiusLarge),
-      ),
-      child: Material(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: Container(
-            padding: EdgeInsets.symmetric(vertical: spacingLarge),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(spacingMedium),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                SizedBox(width: spacingMedium),
-                Text(
-                  label,
-                  style: bodyBold.copyWith(
-                    fontSize: 16,
-                    color: isDarkMode ? white : black,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -2,20 +2,20 @@
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use, duplicate_ignore, unnecessary_import
 
 import 'package:flutter/material.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activities/view_recent_activites.dart';
 import 'dart:async';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/visually_impaired/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/home_screen/home_content.dart';
-import 'package:seelai_app/roles/visually_impaired/home/sections/contacts_content.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/contacts_screen/contacts_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/profile_content.dart';
-import 'package:seelai_app/roles/visually_impaired/home/sections/recent_activities_content.dart';
 import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
 import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:seelai_app/roles/caretaker/models/request_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/roles/visually_impaired/screens/scanner/mode_selection_screen.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
@@ -727,10 +727,11 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           ),
         );
       case 3:
-        content = RecentActivitiesContent(
+        // Use ViewRecentActivities
+        content = ViewRecentActivities(
           isDarkMode: _isDarkMode,
           theme: theme,
-          userId: userId,
+          userId: userId, 
         );
         break;
       case 4:
@@ -760,6 +761,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
+  // ✅ UPDATED: Added backgroundColor property
   _AppTheme _getDarkTheme() {
     return _AppTheme(
       backgroundGradient: LinearGradient(
@@ -768,12 +770,14 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         end: Alignment.bottomRight,
         stops: [0.0, 0.5, 1.0],
       ),
+      backgroundColor: Color(0xFF0A0E27),  // ✅ ADDED
       textColor: white,
       subtextColor: Color(0xFFB0B8D4),
       cardColor: Color(0xFF1A1F3A),
     );
   }
 
+  // ✅ UPDATED: Added backgroundColor property
   _AppTheme _getLightTheme() {
     return _AppTheme(
       backgroundGradient: LinearGradient(
@@ -783,6 +787,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
         stops: [0.0, 0.5, 1.0],
       ),
+      backgroundColor: backgroundPrimary,  // ✅ ADDED
       textColor: black,
       subtextColor: grey,
       cardColor: white,
@@ -790,14 +795,17 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   }
 }
 
+// ✅ UPDATED: Added backgroundColor property to _AppTheme class
 class _AppTheme {
   final LinearGradient backgroundGradient;
+  final Color backgroundColor;  // ✅ ADDED
   final Color textColor;
   final Color subtextColor;
   final Color cardColor;
 
   _AppTheme({
     required this.backgroundGradient,
+    required this.backgroundColor,  // ✅ ADDED
     required this.textColor,
     required this.subtextColor,
     required this.cardColor,

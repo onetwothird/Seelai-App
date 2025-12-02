@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/models/patient_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';

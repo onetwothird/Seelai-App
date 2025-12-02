@@ -4,7 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/visually_impaired/screens/emergency_hotlines_screen.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/home_screen/screens/emergency_hotlines_screen.dart';
 
 class EmergencyHotlineButton extends StatelessWidget {
   final bool isDarkMode;

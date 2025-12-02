@@ -222,11 +222,14 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     if (_isDisposing || _isReading) return;
     
     try {
-      // Create simple face text (matching object detection pattern)
       final faceCount = recognitions.length;
-      final detectedFacesText = List.generate(faceCount, (index) => 'face').join(', ');
       
-      if (detectedFacesText.isNotEmpty) {
+      if (faceCount > 0) {
+        // Get the class names from detections (same as object detection)
+        final detectedFacesText = recognitions
+            .map((r) => r['tag'] ?? 'face')
+            .join(', ');
+        
         // Check if it's different from last read
         bool isDifferentFaces = (detectedFacesText.length - _lastDetectedFaces.length).abs() > 2 ||
                                !detectedFacesText.contains(_lastDetectedFaces.substring(0, _lastDetectedFaces.length.clamp(0, 4)));
@@ -238,7 +241,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           // Save to Firebase BEFORE speaking (exactly like object_detection_screen.dart)
           await _saveDetectedFacesToFirebase(faceCount);
           
-          // Then speak - simple format: "I see face" or "I see face, face"
+          // Then speak - EXACT format: "I see face detection" or "I see face detection, face detection"
           await _flutterTts.speak('I see $detectedFacesText');
           
           if (mounted) {
@@ -635,7 +638,6 @@ class FaceBoxPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
-    // Calculate proper aspect ratio and scaling
     final cameraAspectRatio = previewH / previewW;
     final screenAspectRatio = size.width / size.height;
 
@@ -643,12 +645,10 @@ class FaceBoxPainter extends CustomPainter {
     double offsetX = 0, offsetY = 0;
 
     if (screenAspectRatio > cameraAspectRatio) {
-      // Screen is wider - fit to height
       scaleY = size.height / previewW;
       scaleX = scaleY;
       offsetX = (size.width - (previewH * scaleX)) / 2;
     } else {
-      // Screen is taller - fit to width
       scaleX = size.width / previewH;
       scaleY = scaleX;
       offsetY = (size.height - (previewW * scaleY)) / 2;
@@ -662,79 +662,37 @@ class FaceBoxPainter extends CustomPainter {
       double w = box[2].toDouble();
       double h = box[3].toDouble();
 
-      // Transform coordinates from camera space to screen space
       final left = (x * scaleX) + offsetX;
       final top = (y * scaleY) + offsetY;
       final width = w * scaleX;
       final height = h * scaleY;
 
-      // Draw rounded rectangle
       final rect = RRect.fromRectAndRadius(
         Rect.fromLTWH(left, top, width, height),
         const Radius.circular(8),
       );
       canvas.drawRRect(rect, paint);
 
-      // Responsive corner length based on box size
       final cornerLength = (width * 0.15).clamp(15.0, 30.0);
       final cornerPaint = Paint()
         ..color = Colors.purple
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3.5;
 
-      // Top-left corner
-      canvas.drawLine(
-        Offset(left, top + cornerLength), 
-        Offset(left, top), 
-        cornerPaint
-      );
-      canvas.drawLine(
-        Offset(left, top), 
-        Offset(left + cornerLength, top), 
-        cornerPaint
-      );
-      
-      // Top-right corner
-      canvas.drawLine(
-        Offset(left + width - cornerLength, top), 
-        Offset(left + width, top), 
-        cornerPaint
-      );
-      canvas.drawLine(
-        Offset(left + width, top), 
-        Offset(left + width, top + cornerLength), 
-        cornerPaint
-      );
-      
-      // Bottom-left corner
-      canvas.drawLine(
-        Offset(left, top + height - cornerLength), 
-        Offset(left, top + height), 
-        cornerPaint
-      );
-      canvas.drawLine(
-        Offset(left, top + height), 
-        Offset(left + cornerLength, top + height), 
-        cornerPaint
-      );
-      
-      // Bottom-right corner
-      canvas.drawLine(
-        Offset(left + width - cornerLength, top + height), 
-        Offset(left + width, top + height), 
-        cornerPaint
-      );
-      canvas.drawLine(
-        Offset(left + width, top + height - cornerLength), 
-        Offset(left + width, top + height), 
-        cornerPaint
-      );
+      // Draw corner brackets
+      canvas.drawLine(Offset(left, top + cornerLength), Offset(left, top), cornerPaint);
+      canvas.drawLine(Offset(left, top), Offset(left + cornerLength, top), cornerPaint);
+      canvas.drawLine(Offset(left + width - cornerLength, top), Offset(left + width, top), cornerPaint);
+      canvas.drawLine(Offset(left + width, top), Offset(left + width, top + cornerLength), cornerPaint);
+      canvas.drawLine(Offset(left, top + height - cornerLength), Offset(left, top + height), cornerPaint);
+      canvas.drawLine(Offset(left, top + height), Offset(left + cornerLength, top + height), cornerPaint);
+      canvas.drawLine(Offset(left + width - cornerLength, top + height), Offset(left + width, top + height), cornerPaint);
+      canvas.drawLine(Offset(left + width, top + height - cornerLength), Offset(left + width, top + height), cornerPaint);
 
       final label = recognition['tag'] ?? 'Person';
       final confidence = box[4] ?? 0.0;
       final text = '$label ${(confidence * 100).toStringAsFixed(0)}%';
 
-      // Responsive text size based on box width
       final fontSize = (width * 0.08).clamp(12.0, 18.0);
 
       final textStyle = TextStyle(
@@ -752,7 +710,6 @@ class FaceBoxPainter extends CustomPainter {
 
       textPainter.layout();
 
-      // Responsive label padding and height
       final labelPadding = (width * 0.03).clamp(6.0, 10.0);
       final labelHeight = (fontSize * 1.8).clamp(20.0, 28.0);
 

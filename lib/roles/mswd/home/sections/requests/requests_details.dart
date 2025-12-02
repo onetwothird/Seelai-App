@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/models/request_model.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:intl/intl.dart';
 
 class RequestDetailsScreen extends StatefulWidget {
