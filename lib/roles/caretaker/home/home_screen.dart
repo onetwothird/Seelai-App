@@ -248,6 +248,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
+          scrollController: _scrollController, 
           locationService: _locationService,
         );
       
@@ -258,6 +259,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           theme: theme,
           userData: widget.userData,
           requestService: _requestService,
+          scrollController: _scrollController, // ADD THIS LINE
           onRequestCountChange: (count) {
             setState(() {
               _pendingRequestsCount = count;
