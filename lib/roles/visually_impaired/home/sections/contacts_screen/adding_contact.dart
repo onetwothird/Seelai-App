@@ -1,4 +1,6 @@
 // File: lib/roles/visually_impaired/home/sections/contacts_screen/adding_contact.dart
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';

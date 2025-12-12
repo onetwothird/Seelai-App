@@ -11,9 +11,65 @@ class EmergencyHotlineService {
 
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // UPDATED: New path structure - emergencyHotlines/{userId}
+  // Path structure - emergency_hotlines/{userId}
   String _getHotlinesPath(String userId) {
     return 'emergency_hotlines/$userId';
+  }
+
+  // ==================== INITIALIZATION ====================
+
+  /// Initialize predefined hotlines for new users
+  Future<bool> initializePredefinedHotlines() async {
+    try {
+      if (currentUserId == null) {
+        debugPrint('❌ Error: No user logged in');
+        return false;
+      }
+
+      // Check if user already has hotlines
+      final existingHotlines = await getHotlines();
+      
+      // Check if any predefined hotlines exist
+      final hasPredefined = existingHotlines.any((h) => h.isPredefined);
+      
+      if (hasPredefined) {
+        debugPrint('ℹ️ Predefined hotlines already initialized');
+        return true;
+      }
+
+      debugPrint('🔄 Initializing predefined hotlines for user: $currentUserId');
+
+      // Get predefined hotlines
+      final predefinedHotlines = EmergencyHotline.getNaicPredefinedHotlines(currentUserId!);
+
+      // Save each predefined hotline
+      int successCount = 0;
+      for (final hotline in predefinedHotlines) {
+        final success = await saveHotline(hotline);
+        if (success) successCount++;
+      }
+
+      debugPrint('✅ Initialized $successCount predefined hotlines');
+      return successCount == predefinedHotlines.length;
+    } catch (e) {
+      debugPrint('❌ Error initializing predefined hotlines: $e');
+      return false;
+    }
+  }
+
+  /// Check if predefined hotlines need to be initialized
+  Future<bool> needsPredefinedInitialization() async {
+    try {
+      if (currentUserId == null) return false;
+      
+      final hotlines = await getHotlines();
+      final hasPredefined = hotlines.any((h) => h.isPredefined);
+      
+      return !hasPredefined;
+    } catch (e) {
+      debugPrint('❌ Error checking initialization: $e');
+      return false;
+    }
   }
 
   // ==================== CRUD OPERATIONS ====================
@@ -58,7 +114,7 @@ class EmergencyHotlineService {
       }
 
       final path = _getHotlinesPath(currentUserId!);
-      debugPrint('🔍 Fetching hotlines from: $path');
+      debugPrint('📍 Fetching hotlines from: $path');
       
       final event = await _database.ref(path).once();
 
@@ -81,10 +137,14 @@ class EmergencyHotlineService {
         }
       });
 
-      // Sort by creation date (newest first)
-      hotlines.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
+      // Sort: predefined first, then by creation date
+      hotlines.sort((a, b) {
+        if (a.isPredefined && !b.isPredefined) return -1;
+        if (!a.isPredefined && b.isPredefined) return 1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
 
-      debugPrint('✅ Loaded ${hotlines.length} hotlines');
+      debugPrint('✅ Loaded ${hotlines.length} hotlines (${hotlines.where((h) => h.isPredefined).length} predefined)');
       return hotlines;
     } catch (e) {
       debugPrint('❌ Error getting hotlines: $e');
@@ -124,7 +184,7 @@ class EmergencyHotlineService {
     }
   }
 
-  /// Delete emergency hotline
+  /// Delete emergency hotline (works for both predefined and user-created)
   Future<bool> deleteHotline(String hotlineId) async {
     try {
       if (currentUserId == null) {
@@ -137,12 +197,15 @@ class EmergencyHotlineService {
       // Get hotline name before deleting for logging
       final event = await _database.ref('$path/$hotlineId').once();
       String hotlineName = 'Unknown';
+      bool wasPredefined = false;
+      
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
         hotlineName = data['departmentName'] ?? 'Unknown';
+        wasPredefined = data['isPredefined'] ?? false;
       }
       
-      debugPrint('🗑️ Deleting hotline at: $path/$hotlineId');
+      debugPrint('🗑️ Deleting hotline at: $path/$hotlineId (predefined: $wasPredefined)');
       
       await _database.ref('$path/$hotlineId').remove();
       
@@ -151,7 +214,7 @@ class EmergencyHotlineService {
       // Log activity
       await _logActivity(
         action: 'hotline_deleted',
-        details: 'Deleted hotline: $hotlineName',
+        details: 'Deleted hotline: $hotlineName (predefined: $wasPredefined)',
       );
       
       return true;
@@ -191,8 +254,12 @@ class EmergencyHotlineService {
         }
       });
 
-      // Sort by creation date
-      hotlines.sort((a, b) => b.createdAt!.compareTo(a.createdAt!));
+      // Sort: predefined first, then by creation date
+      hotlines.sort((a, b) {
+        if (a.isPredefined && !b.isPredefined) return -1;
+        if (!a.isPredefined && b.isPredefined) return 1;
+        return b.createdAt!.compareTo(a.createdAt!);
+      });
 
       debugPrint('✅ Stream update: ${hotlines.length} hotlines');
       return hotlines;
@@ -319,7 +386,7 @@ class EmergencyHotlineService {
       }
       
       final path = _getHotlinesPath(currentUserId!);
-      debugPrint('🔍 Testing connection to: $path');
+      debugPrint('📍 Testing connection to: $path');
       
       await _database.ref(path).once();
       debugPrint('✅ Connection test successful');

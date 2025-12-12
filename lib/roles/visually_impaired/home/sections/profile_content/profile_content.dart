@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
+import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:intl/intl.dart';
 
 class ProfileContent extends StatefulWidget {
@@ -655,8 +656,46 @@ class _ProfileContentState extends State<ProfileContent> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(context); // Close the dialog
+              
+              // Sign out
               await authService.value.signOut();
+              
+              // Navigate to onboarding screen and remove all previous routes
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => const OnboardingScreen(),
+                ),
+                (route) => false,
+              );
+              
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: white, size: 20),
+                      SizedBox(width: spacingSmall),
+                      Expanded(
+                        child: Text(
+                          'Successfully signed out',
+                          style: TextStyle(
+                            color: white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(radiusMedium),
+                  ),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                  margin: EdgeInsets.all(spacingMedium),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: error,

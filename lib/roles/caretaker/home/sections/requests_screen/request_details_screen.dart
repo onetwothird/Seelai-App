@@ -183,29 +183,43 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusLarge),
+          borderRadius: BorderRadius.circular(radiusMedium),
         ),
         title: Row(
           children: [
             Icon(Icons.cancel_outlined, color: error),
             SizedBox(width: spacingSmall),
-            Text('Decline Request'),
+            Text(
+              'Decline Request',
+              style: bodyBold.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
         content: TextField(
           controller: controller,
           decoration: InputDecoration(
             hintText: 'Reason for declining...',
+            hintStyle: caption.copyWith(fontSize: 13),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(radiusMedium),
+              borderRadius: BorderRadius.circular(radiusSmall),
             ),
           ),
+          style: body.copyWith(fontSize: 14),
           maxLines: 3,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: bodyBold.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, controller.text),
@@ -213,7 +227,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               backgroundColor: error,
               foregroundColor: white,
             ),
-            child: Text('Decline'),
+            child: Text(
+              'Decline',
+              style: bodyBold.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -227,13 +247,19 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusLarge),
+          borderRadius: BorderRadius.circular(radiusMedium),
         ),
         title: Row(
           children: [
             Icon(Icons.check_circle_outline, color: Colors.green),
             SizedBox(width: spacingSmall),
-            Text('Complete Request'),
+            Text(
+              'Complete Request',
+              style: bodyBold.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -242,17 +268,19 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           children: [
             Text(
               'Add completion notes (optional)',
-              style: body.copyWith(fontSize: 14),
+              style: caption.copyWith(fontSize: 13),
             ),
             SizedBox(height: spacingMedium),
             TextField(
               controller: controller,
               decoration: InputDecoration(
                 hintText: 'What did you do to help?',
+                hintStyle: caption.copyWith(fontSize: 13),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(radiusMedium),
+                  borderRadius: BorderRadius.circular(radiusSmall),
                 ),
               ),
+              style: body.copyWith(fontSize: 14),
               maxLines: 4,
             ),
           ],
@@ -260,7 +288,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: bodyBold.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, controller.text.isEmpty ? 'Completed' : controller.text),
@@ -268,7 +302,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               backgroundColor: Colors.green,
               foregroundColor: white,
             ),
-            child: Text('Complete'),
+            child: Text(
+              'Complete',
+              style: bodyBold.copyWith(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -277,7 +317,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isDarkMode ? Color(0xFF0A0E27) : backgroundPrimary;
+    final bgColor = widget.isDarkMode ? Color(0xFF0A0E27) : white;
     final textColor = widget.isDarkMode ? white : black;
     final subtextColor = widget.isDarkMode ? Color(0xFFB0B8D4) : grey;
     final cardColor = widget.isDarkMode ? Color(0xFF1A1F3A) : white;
@@ -285,225 +325,289 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: textColor),
+          icon: Icon(Icons.arrow_back_rounded, color: textColor),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'Request Details',
-          style: h2.copyWith(color: textColor, fontSize: 22),
+          style: h3.copyWith(
+            fontSize: 18,
+            color: textColor,
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(spacingLarge),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Priority Badge
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: _currentRequest.getPriorityColor().withOpacity(0.2),
-                borderRadius: BorderRadius.circular(radiusMedium),
-                border: Border.all(
-                  color: _currentRequest.getPriorityColor(),
-                  width: 1.5,
+      body: Container(
+        color: bgColor,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(spacingLarge),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Priority Badge
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: spacingMedium, vertical: spacingSmall),
+                decoration: BoxDecoration(
+                  color: _currentRequest.getPriorityColor().withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(radiusSmall),
+                  border: Border.all(
+                    color: _currentRequest.getPriorityColor(),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.flag_rounded,
+                      color: _currentRequest.getPriorityColor(),
+                      size: 18,
+                    ),
+                    SizedBox(width: spacingSmall),
+                    Text(
+                      _currentRequest.priority.toString().split('.').last.toUpperCase(),
+                      style: bodyBold.copyWith(
+                        color: _currentRequest.getPriorityColor(),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.flag_rounded,
-                    color: _currentRequest.getPriorityColor(),
-                    size: 20,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    _currentRequest.priority.toString().split('.').last.toUpperCase(),
-                    style: bodyBold.copyWith(
-                      color: _currentRequest.getPriorityColor(),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            SizedBox(height: spacingLarge),
-            
-            // Patient Info Card with Profile Image - Updated to match patients_content style
-            Container(
-              padding: EdgeInsets.all(spacingLarge),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(radiusLarge),
-                boxShadow: widget.isDarkMode
-                    ? [BoxShadow(color: primary.withOpacity(0.1), blurRadius: 16)]
-                    : softShadow,
-              ),
-              child: Row(
-                children: [
-                  // Profile Image - Updated to match patients_content style
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: widget.isDarkMode ? primary.withOpacity(0.3) : Colors.white,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: primary.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ClipOval(
-                      child: _isLoadingImage
-                          ? Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(primary),
-                              ),
-                            )
-                          : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
-                              ? Image.network(
-                                  _profileImageUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return _buildDefaultAvatar();
-                                  },
-                                )
-                              : _buildDefaultAvatar(),
-                    ),
-                  ),
-                  SizedBox(width: spacingMedium),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _currentRequest.patientName,
-                          style: bodyBold.copyWith(
-                            fontSize: 20,
-                            color: textColor,
-                          ),
-                        ),
-                        SizedBox(height: spacingXSmall),
-                        Text(
-                          DateFormat('MMM dd, yyyy • hh:mm a').format(_currentRequest.timestamp),
-                          style: caption.copyWith(
-                            fontSize: 13,
-                            color: subtextColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            SizedBox(height: spacingLarge),
-            
-            // Request Type
-            Text('Request Type', style: bodyBold.copyWith(fontSize: 16, color: textColor)),
-            SizedBox(height: spacingSmall),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(spacingLarge),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(radiusMedium),
-                border: Border.all(color: subtextColor.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(_currentRequest.getIcon(), color: primary, size: 24),
-                  SizedBox(width: spacingMedium),
-                  Text(
-                    _currentRequest.requestType,
-                    style: body.copyWith(fontSize: 16, color: textColor),
-                  ),
-                ],
-              ),
-            ),
-            
-            SizedBox(height: spacingLarge),
-            
-            // Message
-            Text('Message', style: bodyBold.copyWith(fontSize: 16, color: textColor)),
-            SizedBox(height: spacingSmall),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(spacingLarge),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(radiusMedium),
-                border: Border.all(color: subtextColor.withOpacity(0.3)),
-              ),
-              child: Text(
-                _currentRequest.message,
-                style: body.copyWith(fontSize: 15, color: textColor),
-              ),
-            ),
-            
-            if (_currentRequest.location != null) ...[
+              
               SizedBox(height: spacingLarge),
-              Text('Location', style: bodyBold.copyWith(fontSize: 16, color: textColor)),
-              SizedBox(height: spacingSmall),
+              
+              // Patient Info Card with Profile Image
               Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(spacingLarge),
+                padding: EdgeInsets.all(spacingMedium),
                 decoration: BoxDecoration(
                   color: cardColor,
                   borderRadius: BorderRadius.circular(radiusMedium),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(
+                    color: widget.isDarkMode
+                        ? subtextColor.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.06),
+                    width: 1,
+                  ),
+                  boxShadow: widget.isDarkMode
+                      ? [BoxShadow(color: primary.withOpacity(0.1), blurRadius: 16, offset: Offset(0, 4))]
+                      : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: Offset(0, 3))],
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on_rounded, color: Colors.green, size: 24),
-                    SizedBox(width: spacingMedium),
+                    // Profile Image
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.isDarkMode ? subtextColor.withOpacity(0.2) : Colors.white,
+                          width: 2,
+                        ),
+                      ),
+                      child: ClipOval(
+                        child: _isLoadingImage
+                            ? Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(primary),
+                                ),
+                              )
+                            : _profileImageUrl != null && _profileImageUrl!.isNotEmpty
+                                ? Image.network(
+                                    _profileImageUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return _buildDefaultAvatar();
+                                    },
+                                  )
+                                : _buildDefaultAvatar(),
+                      ),
+                    ),
+                    SizedBox(width: spacingSmall),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Location Available',
-                            style: bodyBold.copyWith(fontSize: 15, color: textColor),
+                            _currentRequest.patientName,
+                            style: bodyBold.copyWith(
+                              fontSize: 15,
+                              color: textColor,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          SizedBox(height: 4),
+                          SizedBox(height: 2),
                           Text(
-                            'Lat: ${_currentRequest.location!['latitude']}, Long: ${_currentRequest.location!['longitude']}',
-                            style: caption.copyWith(fontSize: 13, color: subtextColor),
+                            DateFormat('MMM dd, yyyy • hh:mm a').format(_currentRequest.timestamp),
+                            style: caption.copyWith(
+                              fontSize: 12,
+                              color: subtextColor,
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Opening map...')),
-                        );
-                      },
-                      icon: Icon(Icons.map_rounded, color: Colors.green),
+                  ],
+                ),
+              ),
+              
+              SizedBox(height: spacingLarge),
+              
+              // Request Type
+              Text(
+                'Request Type',
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: spacingSmall),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(spacingMedium),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(radiusSmall),
+                  border: Border.all(
+                    color: widget.isDarkMode
+                        ? subtextColor.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.06),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(spacingSmall),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(radiusSmall),
+                      ),
+                      child: Icon(_currentRequest.getIcon(), color: primary, size: 22),
+                    ),
+                    SizedBox(width: spacingMedium),
+                    Text(
+                      _currentRequest.requestType,
+                      style: bodyBold.copyWith(
+                        fontSize: 15,
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
               ),
+              
+              SizedBox(height: spacingLarge),
+              
+              // Message
+              Text(
+                'Message',
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  color: textColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: spacingSmall),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(spacingMedium),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(radiusSmall),
+                  border: Border.all(
+                    color: widget.isDarkMode
+                        ? subtextColor.withOpacity(0.2)
+                        : Colors.black.withOpacity(0.06),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  _currentRequest.message,
+                  style: body.copyWith(fontSize: 14, color: textColor),
+                ),
+              ),
+              
+              if (_currentRequest.location != null) ...[
+                SizedBox(height: spacingLarge),
+                Text(
+                  'Location',
+                  style: bodyBold.copyWith(
+                    fontSize: 16,
+                    color: textColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(height: spacingSmall),
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(spacingMedium),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(radiusSmall),
+                    border: Border.all(
+                      color: Colors.green.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(spacingSmall),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(radiusSmall),
+                        ),
+                        child: Icon(Icons.location_on_rounded, color: Colors.green, size: 22),
+                      ),
+                      SizedBox(width: spacingMedium),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Location Available',
+                              style: bodyBold.copyWith(
+                                fontSize: 15,
+                                color: textColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Lat: ${_currentRequest.location!['latitude']}, Long: ${_currentRequest.location!['longitude']}',
+                              style: caption.copyWith(fontSize: 12, color: subtextColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Opening map...')),
+                          );
+                        },
+                        icon: Icon(Icons.map_rounded, color: Colors.green, size: 22),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              
+              SizedBox(height: spacingXLarge),
+              
+              // Action Buttons based on status
+              _buildActionButtons(cardColor),
             ],
-            
-            SizedBox(height: spacingXLarge),
-            
-            // Action Buttons based on status
-            _buildActionButtons(cardColor),
-          ],
+          ),
         ),
       ),
     );
@@ -518,7 +622,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         child: Icon(
           Icons.person_rounded,
           color: white,
-          size: 36,
+          size: 28,
         ),
       ),
     );
@@ -532,15 +636,21 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: _isProcessing ? null : _declineRequest,
-              icon: Icon(Icons.close_rounded),
-              label: Text('Decline'),
+              icon: Icon(Icons.close_rounded, size: 20),
+              label: Text(
+                'Decline',
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: cardColor,
+                backgroundColor: white,
                 foregroundColor: error,
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: spacingMedium),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
-                  side: BorderSide(color: error),
+                  side: BorderSide(color: error, width: 1),
                 ),
               ),
             ),
@@ -558,12 +668,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         color: white,
                       ),
                     )
-                  : Icon(Icons.check_rounded),
-              label: Text(_isProcessing ? 'Processing...' : 'Accept'),
+                  : Icon(Icons.check_rounded, size: 20),
+              label: Text(
+                _isProcessing ? 'Processing...' : 'Accept',
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: white,
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: spacingMedium),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
@@ -582,12 +698,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _isProcessing ? null : _markInProgress,
-              icon: Icon(Icons.play_arrow_rounded),
-              label: Text('Mark as In Progress'),
+              icon: Icon(Icons.play_arrow_rounded, size: 20),
+              label: Text(
+                'Mark as In Progress',
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: accent,
                 foregroundColor: white,
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: spacingMedium),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
@@ -608,12 +730,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         color: white,
                       ),
                     )
-                  : Icon(Icons.check_circle_rounded),
-              label: Text(_isProcessing ? 'Processing...' : 'Complete Request'),
+                  : Icon(Icons.check_circle_rounded, size: 20),
+              label: Text(
+                _isProcessing ? 'Processing...' : 'Complete Request',
+                style: bodyBold.copyWith(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: white,
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: spacingMedium),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
@@ -639,12 +767,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     color: white,
                   ),
                 )
-              : Icon(Icons.check_circle_rounded),
-          label: Text(_isProcessing ? 'Processing...' : 'Complete Request'),
+              : Icon(Icons.check_circle_rounded, size: 20),
+          label: Text(
+            _isProcessing ? 'Processing...' : 'Complete Request',
+            style: bodyBold.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green,
             foregroundColor: white,
-            padding: EdgeInsets.symmetric(vertical: 16),
+            padding: EdgeInsets.symmetric(vertical: spacingMedium),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(radiusMedium),
             ),
@@ -657,12 +791,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     else {
       return Container(
         width: double.infinity,
-        padding: EdgeInsets.all(spacingLarge),
+        padding: EdgeInsets.all(spacingMedium),
         decoration: BoxDecoration(
           color: _getStatusColor(_currentRequest.status).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(radiusMedium),
+          borderRadius: BorderRadius.circular(radiusSmall),
           border: Border.all(
             color: _getStatusColor(_currentRequest.status),
+            width: 1,
           ),
         ),
         child: Row(
@@ -671,6 +806,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             Icon(
               _getStatusIcon(_currentRequest.status),
               color: _getStatusColor(_currentRequest.status),
+              size: 20,
             ),
             SizedBox(width: spacingSmall),
             Text(
@@ -678,6 +814,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               style: bodyBold.copyWith(
                 color: _getStatusColor(_currentRequest.status),
                 fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

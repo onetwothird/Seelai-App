@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, empty_catches
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -46,20 +46,20 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   Map<String, dynamic>? _currentPatientLocation;
   Map<String, dynamic>? _currentCaretakerLocation;
   
-  // OSM Map Controller
   late MapController _mapController;
   bool _isMapReady = false;
   double _currentZoom = 15.0;
   
-  // Tracking
   Timer? _pulseTimer;
   bool _isPulseExpanded = false;
   String? _distanceToPatient;
   String? _estimatedTime;
   
-  // Road/Route
-  RoadInfo? _currentRoute;
   bool _isLoadingRoute = false;
+
+  // Track last known positions to prevent duplicate updates
+  GeoPoint? _lastPatientGeoPoint;
+  GeoPoint? _lastCaretakerGeoPoint;
 
   @override
   void initState() {
@@ -89,22 +89,19 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
 
-      // Draw shadow
       final shadowPaint = Paint()
         ..color = Colors.black.withOpacity(0.3)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
       canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
 
-      // Draw white border
       final borderPaint = Paint()
         ..color = Colors.white
         ..style = PaintingStyle.fill;
       canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 5, borderPaint);
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
-        // Try to load network image
         try {
-          final response = await http.get(Uri.parse(imageUrl));
+          final response = await http.get(Uri.parse(imageUrl)).timeout(Duration(seconds: 5));
           if (response.statusCode == 200) {
             final codec = await ui.instantiateImageCodec(
               response.bodyBytes,
@@ -113,7 +110,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
             );
             final frame = await codec.getNextFrame();
             
-            // Clip to circle
             final path = Path()
               ..addOval(Rect.fromCircle(
                 center: Offset(size / 2, size / 2),
@@ -121,7 +117,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
               ));
             canvas.clipPath(path);
             
-            // Draw image
             canvas.drawImageRect(
               frame.image,
               Rect.fromLTWH(0, 0, frame.image.width.toDouble(), frame.image.height.toDouble()),
@@ -139,7 +134,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         _drawDefaultMarkerAvatar(canvas, size, name, borderColor);
       }
 
-      // Draw colored border
       final coloredBorderPaint = Paint()
         ..color = borderColor
         ..style = PaintingStyle.stroke
@@ -158,7 +152,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   }
 
   void _drawDefaultMarkerAvatar(Canvas canvas, double size, String name, Color color) {
-    // Draw gradient background
     final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10);
     final gradient = ui.Gradient.linear(
       Offset(rect.left, rect.top),
@@ -168,7 +161,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     final paint = Paint()..shader = gradient;
     canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
 
-    // Draw initial
     final textPainter = TextPainter(
       text: TextSpan(
         text: name.isNotEmpty ? name[0].toUpperCase() : '?',
@@ -231,33 +223,56 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
 
     _caretakerLocationStream = Geolocator.getPositionStream(
       locationSettings: LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 5, // Update every 5 meters
       ),
-    ).listen((Position position) {
-      setState(() {
-        _currentCaretakerLocation = {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'accuracy': position.accuracy,
-        };
-      });
+    ).listen((Position position) async {
+      final newLocation = {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'accuracy': position.accuracy,
+      };
 
-      locationTrackingService.updateCaretakerLocation(
-        caretakerId: _caretakerId!,
-        latitude: position.latitude,
-        longitude: position.longitude,
-        accuracy: position.accuracy,
-      );
+      // Only update if significantly changed
+      if (_hasCaretakerLocationChanged(newLocation)) {
+        setState(() {
+          _currentCaretakerLocation = newLocation;
+        });
 
-      if (_currentPatientLocation != null) {
-        _updateDistance();
-      }
+        await locationTrackingService.updateCaretakerLocation(
+          caretakerId: _caretakerId!,
+          latitude: position.latitude,
+          longitude: position.longitude,
+          accuracy: position.accuracy,
+        );
 
-      if (_isMapReady && _isTracking) {
-        _updateMapMarkers();
+        if (_currentPatientLocation != null) {
+          _updateDistance();
+        }
+
+        if (_isMapReady && _isTracking) {
+          await _updateMapMarkers();
+        }
       }
     });
+  }
+
+  bool _hasCaretakerLocationChanged(Map<String, dynamic> newLocation) {
+    if (_currentCaretakerLocation == null) return true;
+    
+    final oldLat = _currentCaretakerLocation!['latitude'] as double;
+    final oldLng = _currentCaretakerLocation!['longitude'] as double;
+    final newLat = newLocation['latitude'] as double;
+    final newLng = newLocation['longitude'] as double;
+    
+    double distance = locationTrackingService.calculateDistance(
+      lat1: oldLat,
+      lon1: oldLng,
+      lat2: newLat,
+      lon2: newLng,
+    );
+    
+    return distance > 3.0; // Update if moved more than 3 meters
   }
 
   Future<void> _initializeCaretakerId() async {
@@ -269,15 +284,13 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     }
     
     if (caretakerId == null || caretakerId.isEmpty) {
-      setState(() {
-      });
+      setState(() {});
       return;
     }
 
     setState(() {
       _caretakerId = caretakerId;
     });
-
   }
 
   @override
@@ -293,7 +306,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     setState(() {
       _selectedPatient = patient;
       _isTracking = false;
-      _currentRoute = null;
+      _lastPatientGeoPoint = null;
     });
     
     _locationTrackingStream?.cancel();
@@ -302,8 +315,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     if (_isMapReady) {
       await _mapController.clearAllRoads();
     }
-
-    // Load full patient data including profile image
+    
     final patientData = await databaseService.getUserDataByRole(patient.id, 'visually_impaired');
     if (patientData != null && mounted) {
       setState(() {
@@ -349,118 +361,133 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     if (!_isMapReady) return;
 
     try {
-      await _mapController.clearAllRoads();
-
-      // Add patient marker with profile picture
+      // Update patient marker
       if (_currentPatientLocation != null && _selectedPatient != null) {
         final patientGeo = GeoPoint(
           latitude: _currentPatientLocation!['latitude'] as double,
           longitude: _currentPatientLocation!['longitude'] as double,
         );
 
-        // Get patient profile image
-        final patientImageUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
-        final patientMarkerBytes = await _createProfileMarker(
-          imageUrl: patientImageUrl,
-          name: _selectedPatient!.name,
-          borderColor: primary,
-        );
+        // Only update if position changed significantly
+        if (_lastPatientGeoPoint == null || 
+            _geoPointDistance(_lastPatientGeoPoint!, patientGeo) > 3.0) {
+          
+          // Remove old marker
+          try {
+            if (_lastPatientGeoPoint != null) {
+              await _mapController.removeMarker(_lastPatientGeoPoint!);
+            }
+          } catch (e) {}
 
-        if (patientMarkerBytes != null) {
-          await _mapController.addMarker(
-            patientGeo,
-            markerIcon: MarkerIcon(
-              iconWidget: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: MemoryImage(patientMarkerBytes),
-                    fit: BoxFit.cover,
+          final patientImageUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
+          final patientMarkerBytes = await _createProfileMarker(
+            imageUrl: patientImageUrl,
+            name: _selectedPatient!.name,
+            borderColor: primary,
+          );
+
+          if (patientMarkerBytes != null && mounted) {
+            await _mapController.addMarker(
+              patientGeo,
+              markerIcon: MarkerIcon(
+                iconWidget: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: MemoryImage(patientMarkerBytes),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        } else {
-          // Fallback to icon marker
-          await _mapController.addMarker(
-            patientGeo,
-            markerIcon: MarkerIcon(
-              icon: Icon(
-                Icons.person_pin_circle,
-                color: primary,
-                size: 48,
-              ),
-            ),
-          );
-        }
+            );
 
-        if (_isTracking) {
-          await _mapController.drawCircle(
-            CircleOSM(
-              key: 'patient_circle',
-              centerPoint: patientGeo,
-              radius: _isPulseExpanded ? 80.0 : 40.0,
-              color: primary.withOpacity(0.2),
-              strokeWidth: 2,
-            ),
-          );
+            // Add pulse circle only when tracking
+            if (_isTracking) {
+              await _mapController.drawCircle(
+                CircleOSM(
+                  key: 'patient_circle',
+                  centerPoint: patientGeo,
+                  radius: _isPulseExpanded ? 80.0 : 40.0,
+                  color: primary.withOpacity(0.2),
+                  strokeWidth: 2,
+                ),
+              );
+            }
+
+            _lastPatientGeoPoint = patientGeo;
+          }
         }
       }
 
-      // Add caretaker marker with profile picture
+      // Update caretaker marker
       if (_currentCaretakerLocation != null) {
         final caretakerGeo = GeoPoint(
           latitude: _currentCaretakerLocation!['latitude'] as double,
           longitude: _currentCaretakerLocation!['longitude'] as double,
         );
 
-        // Get caretaker profile image
-        final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
-        final caretakerName = widget.userData['name'] ?? 'You';
-        final caretakerMarkerBytes = await _createProfileMarker(
-          imageUrl: caretakerImageUrl,
-          name: caretakerName,
-          borderColor: Colors.blue,
-        );
+        // Only update if position changed significantly
+        if (_lastCaretakerGeoPoint == null || 
+            _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeo) > 3.0) {
+          
+          // Remove old marker
+          try {
+            if (_lastCaretakerGeoPoint != null) {
+              await _mapController.removeMarker(_lastCaretakerGeoPoint!);
+            }
+          } catch (e) {}
 
-        if (caretakerMarkerBytes != null) {
-          await _mapController.addMarker(
-            caretakerGeo,
-            markerIcon: MarkerIcon(
-              iconWidget: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: MemoryImage(caretakerMarkerBytes),
-                    fit: BoxFit.cover,
+          final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
+          final caretakerName = widget.userData['name'] ?? 'You';
+          final caretakerMarkerBytes = await _createProfileMarker(
+            imageUrl: caretakerImageUrl,
+            name: caretakerName,
+            borderColor: Colors.blue,
+          );
+
+          if (caretakerMarkerBytes != null && mounted) {
+            await _mapController.addMarker(
+              caretakerGeo,
+              markerIcon: MarkerIcon(
+                iconWidget: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    image: DecorationImage(
+                      image: MemoryImage(caretakerMarkerBytes),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        } else {
-          // Fallback to icon marker
-          await _mapController.addMarker(
-            caretakerGeo,
-            markerIcon: MarkerIcon(
-              icon: Icon(
-                Icons.my_location_rounded,
-                color: Colors.blue,
-                size: 40,
-              ),
-            ),
-          );
+            );
+
+            _lastCaretakerGeoPoint = caretakerGeo;
+          }
         }
+      }
+
+      // Update route if tracking
+      if (_isTracking && _lastPatientGeoPoint != null && _lastCaretakerGeoPoint != null) {
+        await _drawRoute();
       }
 
     } catch (e) {
       debugPrint('Error updating markers: $e');
     }
+  }
+
+  double _geoPointDistance(GeoPoint p1, GeoPoint p2) {
+    return locationTrackingService.calculateDistance(
+      lat1: p1.latitude,
+      lon1: p1.longitude,
+      lat2: p2.latitude,
+      lon2: p2.longitude,
+    );
   }
 
   void _updateDistance() {
@@ -475,7 +502,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       lon2: _currentPatientLocation!['longitude'] as double,
     );
 
-    // Estimate time (assuming average walking speed of 5 km/h)
     final timeInMinutes = (distance / 1000) / 5 * 60;
 
     setState(() {
@@ -513,15 +539,24 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
           .trackPatientLocation(_selectedPatient!.id)
           .listen((location) async {
         if (location != null && mounted) {
-          setState(() {
-            _currentPatientLocation = location;
-          });
-          _updateDistance();
-          await _updateMapMarkers();
-          
-          if (_currentRoute == null || 
-              DateTime.now().difference(DateTime.parse(location['timestamp'])).inMinutes > 2) {
-            await _drawRoute();
+          // Check if location has significantly changed
+          if (_hasPatientLocationChanged(location)) {
+            setState(() {
+              _currentPatientLocation = location;
+            });
+            _updateDistance();
+            await _updateMapMarkers();
+            
+            // Redraw route if patient moved significantly
+            if (_lastPatientGeoPoint != null) {
+              final newPatientGeo = GeoPoint(
+                latitude: location['latitude'] as double,
+                longitude: location['longitude'] as double,
+              );
+              if (_geoPointDistance(_lastPatientGeoPoint!, newPatientGeo) > 10.0) {
+                await _drawRoute();
+              }
+            }
           }
         }
       });
@@ -548,10 +583,29 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     }
   }
 
+  bool _hasPatientLocationChanged(Map<String, dynamic> newLocation) {
+    if (_currentPatientLocation == null) return true;
+    
+    final oldLat = _currentPatientLocation!['latitude'] as double;
+    final oldLng = _currentPatientLocation!['longitude'] as double;
+    final newLat = newLocation['latitude'] as double;
+    final newLng = newLocation['longitude'] as double;
+    
+    double distance = locationTrackingService.calculateDistance(
+      lat1: oldLat,
+      lon1: oldLng,
+      lat2: newLat,
+      lon2: newLng,
+    );
+    
+    return distance > 3.0; // Update if moved more than 3 meters
+  }
+
   Future<void> _drawRoute() async {
     if (!_isMapReady || 
         _currentPatientLocation == null || 
-        _currentCaretakerLocation == null) {
+        _currentCaretakerLocation == null ||
+        _isLoadingRoute) {
       return;
     }
 
@@ -570,7 +624,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         longitude: _currentPatientLocation!['longitude'] as double,
       );
 
-      final route = await _mapController.drawRoad(
+      await _mapController.clearAllRoads();
+
+      await _mapController.drawRoad(
         start,
         end,
         roadType: RoadType.car,
@@ -583,7 +639,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       );
 
       setState(() {
-        _currentRoute = route;
         _isLoadingRoute = false;
       });
 
@@ -643,7 +698,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     final lat = _currentPatientLocation!['latitude'];
     final lng = _currentPatientLocation!['longitude'];
     
-    // Google Maps URL for navigation
     final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
     
     if (await canLaunchUrl(url)) {

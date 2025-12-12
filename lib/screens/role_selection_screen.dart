@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/roles/visually_impaired/auth/login/login_screen.dart';
@@ -20,8 +21,10 @@ class RoleSelectionScreen extends StatefulWidget {
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _slideController;
+  late AnimationController _floatController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _floatAnimation;
 
   String? _selectedRole;
 
@@ -36,12 +39,19 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
       duration: Duration(milliseconds: 800),
       vsync: this,
     );
+    _floatController = AnimationController(
+      duration: Duration(milliseconds: 3000),
+      vsync: this,
+    )..repeat(reverse: true);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
     );
     _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(
       CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
+    _floatAnimation = Tween<double>(begin: -8, end: 8).animate(
+      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
     );
 
     _fadeController.forward();
@@ -52,6 +62,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
+    _floatController.dispose();
     super.dispose();
   }
 
@@ -59,11 +70,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 700;
+    final isLargeScreen = screenHeight > 900;
 
     return Scaffold(
       body: Stack(
         children: [
-          // Modern gradient background
+          // Enhanced gradient background (matching onboarding)
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -71,9 +84,40 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                 end: Alignment.bottomRight,
                 colors: [
                   Color(0xFFFAF5FF),
-                  Color(0xFFFFF8F7),
+                  Color(0xFFFFF1F2),
                   Color(0xFFF0FDFA),
                 ],
+                stops: [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+
+          // Top left background shape
+          Positioned(
+            top: -90,
+            left: -30,
+            child: Opacity(
+              opacity: 0.8,
+              child: Image.asset(
+                'assets/images/bg_shape_3.png',
+                width: 200,
+                height: 200,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+
+          // Bottom right background shape
+          Positioned(
+            bottom: -60,
+            right: -60,
+            child: Opacity(
+              opacity: 0.8,
+              child: Image.asset(
+                'assets/images/bg_shape_1.png',
+                width: 200,
+                height: 200,
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -82,7 +126,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
             child: SingleChildScrollView(
               physics: BouncingScrollPhysics(),
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06, vertical: 20),
+                padding: EdgeInsets.only(
+                  left: screenWidth * 0.06,
+                  right: screenWidth * 0.06,
+                  top: isSmallScreen ? 12 : 16,
+                  bottom: isSmallScreen ? 24 : 32,
+                ),
                 child: Column(
                   children: [
                     // Back button
@@ -101,20 +150,63 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.04),
+                    SizedBox(height: isSmallScreen ? 12 : (isLargeScreen ? screenHeight * 0.025 : screenHeight * 0.02)),
+
+                    // Eye Animation
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: AnimatedBuilder(
+                        animation: _floatAnimation,
+                        builder: (context, child) {
+                          return Transform.translate(
+                            offset: Offset(0, _floatAnimation.value * 0.5),
+                            child: Container(
+                              height: isSmallScreen 
+                                ? 70 
+                                : (isLargeScreen ? 110 : 90),
+                              width: isSmallScreen 
+                                ? 70 
+                                : (isLargeScreen ? 110 : 90),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: RadialGradient(
+                                  colors: [
+                                    primary.withOpacity(0.08),
+                                    Colors.transparent,
+                                  ],
+                                  stops: [0.5, 1.0],
+                                ),
+                              ),
+                              child: Lottie.asset(
+                                'assets/icons/eye.json',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    SizedBox(height: isSmallScreen ? 12 : (isLargeScreen ? 24 : 18)),
 
                     // Header
                     FadeTransition(
                       opacity: _fadeAnimation,
                       child: Column(
                         children: [
-                          // Animated icon
-                            ShaderMask(
+                          ShaderMask(
                             shaderCallback: (bounds) => primaryGradient.createShader(bounds),
                             child: Text(
                               "Select Your Role",
                               style: h1.copyWith(
-                                fontSize: screenWidth * 0.080,
+                                fontSize: _getResponsiveFontSize(
+                                  screenWidth, 
+                                  isSmallScreen, 
+                                  isLargeScreen, 
+                                  0.080, 
+                                  0.070, 
+                                  0.090
+                                ),
                                 color: white,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.8,
@@ -122,11 +214,18 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          SizedBox(height: 14),
+                          SizedBox(height: isSmallScreen ? 8 : 12),
                           Text(
                             "Choose how you'll use the app",
                             style: body.copyWith(
-                              fontSize: screenWidth * 0.040,
+                              fontSize: _getResponsiveFontSize(
+                                screenWidth, 
+                                isSmallScreen, 
+                                isLargeScreen, 
+                                0.038, 
+                                0.034, 
+                                0.042
+                              ),
                               color: grey,
                               fontWeight: FontWeight.w500,
                               letterSpacing: 0.2,
@@ -137,7 +236,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.06),
+                    SizedBox(height: isSmallScreen ? 20 : (isLargeScreen ? screenHeight * 0.04 : 28)),
 
                     // Role Cards Grid
                     SlideTransition(
@@ -157,8 +256,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                                 colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                               ),
                               screenWidth: screenWidth,
+                              isSmallScreen: isSmallScreen,
+                              isLargeScreen: isLargeScreen,
                             ),
-                            SizedBox(height: 14),
+                            SizedBox(height: isSmallScreen ? 10 : 12),
                             _buildEnhancedRoleCard(
                               role: 'caretaker',
                               icon: Icons.favorite_rounded,
@@ -170,8 +271,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                                 colors: [Color(0xFFF093FB), Color(0xFFF5576C)],
                               ),
                               screenWidth: screenWidth,
+                              isSmallScreen: isSmallScreen,
+                              isLargeScreen: isLargeScreen,
                             ),
-                            SizedBox(height: 14),
+                            SizedBox(height: isSmallScreen ? 10 : 12),
                             _buildEnhancedRoleCard(
                               role: 'admin',
                               icon: Icons.business,
@@ -183,13 +286,15 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                                 colors: [Color(0xFF4FACFE), Color(0xFF00F2FE)],
                               ),
                               screenWidth: screenWidth,
+                              isSmallScreen: isSmallScreen,
+                              isLargeScreen: isLargeScreen,
                             ),
                           ],
                         ),
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.04),
+                    SizedBox(height: isSmallScreen ? 20 : (isLargeScreen ? screenHeight * 0.035 : 28)),
 
                     // Continue Button
                     FadeTransition(
@@ -203,7 +308,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       ),
                     ),
 
-                    SizedBox(height: screenHeight * 0.02),
+                    SizedBox(height: isSmallScreen ? 12 : 16),
                   ],
                 ),
               ),
@@ -214,6 +319,22 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
     );
   }
 
+  double _getResponsiveFontSize(
+    double screenWidth,
+    bool isSmallScreen,
+    bool isLargeScreen,
+    double normalSize,
+    double smallSize,
+    double largeSize,
+  ) {
+    if (isSmallScreen) {
+      return screenWidth * smallSize;
+    } else if (isLargeScreen) {
+      return screenWidth * largeSize;
+    }
+    return screenWidth * normalSize;
+  }
+
   Widget _buildEnhancedRoleCard({
     required String role,
     required IconData icon,
@@ -221,6 +342,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
     required String subtitle,
     required LinearGradient gradient,
     required double screenWidth,
+    required bool isSmallScreen,
+    required bool isLargeScreen,
   }) {
     final isSelected = _selectedRole == role;
 
@@ -233,10 +356,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
       child: AnimatedContainer(
         duration: Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
-        padding: EdgeInsets.all(24),
+        padding: EdgeInsets.all(isSmallScreen ? 16 : (isLargeScreen ? 24 : 20)),
         decoration: BoxDecoration(
           color: white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(isSmallScreen ? 20 : 24),
           border: Border.all(
             color: isSelected ? primary : Colors.transparent,
             width: isSelected ? 2.5 : 0,
@@ -258,12 +381,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                 // Icon container
                 AnimatedContainer(
                   duration: Duration(milliseconds: 400),
-                  padding: EdgeInsets.all(14),
+                  padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
                   decoration: BoxDecoration(
                     gradient: isSelected ? gradient : LinearGradient(
                       colors: [greyLighter, greyLighter],
                     ),
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: BorderRadius.circular(isSmallScreen ? 16 : 18),
                     boxShadow: isSelected ? [
                       BoxShadow(
                         color: primary.withOpacity(0.3),
@@ -275,10 +398,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                   child: Icon(
                     icon,
                     color: isSelected ? white : grey,
-                    size: 36,
+                    size: isSmallScreen ? 28 : (isLargeScreen ? 38 : 32),
                   ),
                 ),
-                SizedBox(width: 18),
+                SizedBox(width: isSmallScreen ? 12 : 14),
                 // Title and subtitle
                 Expanded(
                   child: Column(
@@ -287,17 +410,31 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                       Text(
                         title,
                         style: bodyBold.copyWith(
-                          fontSize: screenWidth * 0.050,
+                          fontSize: _getResponsiveFontSize(
+                            screenWidth, 
+                            isSmallScreen, 
+                            isLargeScreen, 
+                            0.050, 
+                            0.045, 
+                            0.055
+                          ),
                           color: isSelected ? primary : black,
                           fontWeight: FontWeight.w700,
                           letterSpacing: -0.3,
                         ),
                       ),
-                      SizedBox(height: 6),
+                      SizedBox(height: isSmallScreen ? 4 : 6),
                       Text(
                         subtitle,
                         style: body.copyWith(
-                          fontSize: screenWidth * 0.038,
+                          fontSize: _getResponsiveFontSize(
+                            screenWidth, 
+                            isSmallScreen, 
+                            isLargeScreen, 
+                            0.038, 
+                            0.034, 
+                            0.042
+                          ),
                           color: grey,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 0.1,
@@ -311,7 +448,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                   scale: isSelected ? 1.0 : 0.0,
                   duration: Duration(milliseconds: 300),
                   child: Container(
-                    padding: EdgeInsets.all(8),
+                    padding: EdgeInsets.all(isSmallScreen ? 6 : 8),
                     decoration: BoxDecoration(
                       gradient: gradient,
                       shape: BoxShape.circle,
@@ -326,7 +463,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> with TickerPr
                     child: Icon(
                       Icons.check_rounded,
                       color: white,
-                      size: 18,
+                      size: isSmallScreen ? 16 : 18,
                     ),
                   ),
                 ),

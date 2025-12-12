@@ -193,7 +193,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
         );
         break;
       case 3:
-      content = TrackContent(
+      content = MswdLocationTrackingScreen(
         isDarkMode: _isDarkMode,
         theme: theme,
         userData: widget.userData,

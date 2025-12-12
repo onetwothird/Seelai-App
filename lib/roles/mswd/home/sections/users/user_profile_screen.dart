@@ -165,11 +165,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             height: 100,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: hasProfileImage
-                  ? null
-                  : LinearGradient(
-                      colors: [primary, primary.withOpacity(0.7)],
-                    ),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  const Color.fromARGB(255, 0, 0, 0),
+                  const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.black.withOpacity(0.25),
+                width: 1.2,
+              ),
               boxShadow: [
                 BoxShadow(
                   color: primary.withOpacity(0.3),
@@ -177,25 +184,70 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   offset: Offset(0, 4),
                 ),
               ],
-              image: hasProfileImage
-                  ? DecorationImage(
-                      image: NetworkImage(profileImageUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
             ),
-            child: !hasProfileImage
-                ? Center(
-                    child: Text(
-                      name.substring(0, 1).toUpperCase(),
-                      style: h2.copyWith(
-                        color: white,
-                        fontSize: 48,
-                        fontWeight: FontWeight.w700,
+            child: ClipOval(
+              child: hasProfileImage
+                  ? Image.network(
+                      profileImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primary, primary.withOpacity(0.7)],
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              name.substring(0, 1).toUpperCase(),
+                              style: h2.copyWith(
+                                color: white,
+                                fontSize: 48,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [primary, primary.withOpacity(0.7)],
+                            ),
+                          ),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(white),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [primary, primary.withOpacity(0.7)],
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          name.substring(0, 1).toUpperCase(),
+                          style: h2.copyWith(
+                            color: white,
+                            fontSize: 48,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
-                  )
-                : null,
+            ),
           ),
           SizedBox(height: spacingMedium),
           Text(
@@ -227,7 +279,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
-
+  
   Widget _buildProfileContent() {
     final role = _fullUserData['role'];
     final isCaretaker = role == 'caretaker';

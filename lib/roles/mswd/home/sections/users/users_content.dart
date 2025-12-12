@@ -30,7 +30,6 @@ class _UsersContentState extends State<UsersContent>
   int _selectedTab = 0;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-  String? _selectedFilter;
   bool _showProfileScreen = false;
   Map<String, dynamic>? _selectedUser;
   List<Map<String, dynamic>> _visuallyImpairedUsers = [];
@@ -107,31 +106,6 @@ class _UsersContentState extends State<UsersContent>
         }
       }
 
-      // Status filter
-      if (_selectedFilter != null && _selectedFilter!.contains('Status:')) {
-        final status = user['isActive'] ?? true
-            ? 'Active'
-            : (user['deactivatedAt'] != null ? 'Suspended' : 'Pending');
-        if (!_selectedFilter!.contains(status)) {
-          return false;
-        }
-      }
-
-      // Region filter
-      if (_selectedFilter != null && _selectedFilter!.contains('Region:')) {
-        final region = user['region'] ?? user['address'] ?? '';
-        if (!_selectedFilter!.contains(region)) {
-          return false;
-        }
-      }
-
-      // Verified filter
-      if (_selectedFilter == 'Verified Only') {
-        if (user['verified'] != true) {
-          return false;
-        }
-      }
-
       return true;
     }).toList();
 
@@ -167,8 +141,6 @@ class _UsersContentState extends State<UsersContent>
           _buildHeader(),
           SizedBox(height: spacingLarge),
           _buildSearchBar(),
-          SizedBox(height: spacingMedium),
-          _buildFilterButton(),
           SizedBox(height: spacingLarge),
           _buildTabBar(width),
           SizedBox(height: spacingLarge),
@@ -257,143 +229,6 @@ class _UsersContentState extends State<UsersContent>
           contentPadding: EdgeInsets.symmetric(
             horizontal: spacingMedium,
             vertical: spacingMedium,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterButton() {
-    return Row(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: widget.theme.cardColor,
-            borderRadius: BorderRadius.circular(radiusLarge),
-            border: Border.all(
-              color: widget.isDarkMode
-                  ? Colors.white.withOpacity(0.1)
-                  : Colors.black.withOpacity(0.06),
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _showFilterOptions,
-              borderRadius: BorderRadius.circular(radiusLarge),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: spacingMedium,
-                  vertical: spacingMedium,
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.filter_list_rounded,
-                      color: primary,
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Filter',
-                      style: bodyBold.copyWith(
-                        fontSize: 14,
-                        color: widget.theme.textColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (_selectedFilter != null) ...[
-          SizedBox(width: spacingMedium),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: spacingMedium,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(radiusLarge),
-              border: Border.all(color: primary.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  _selectedFilter ?? '',
-                  style: caption.copyWith(
-                    fontSize: 12,
-                    color: primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: 6),
-                GestureDetector(
-                  onTap: () => setState(() => _selectedFilter = null),
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: 14,
-                    color: primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  void _showFilterOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: widget.theme.cardColor,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(spacingLarge),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filter by',
-              style: h2.copyWith(
-                color: widget.theme.textColor,
-                fontSize: 18,
-              ),
-            ),
-            SizedBox(height: spacingMedium),
-            _buildFilterOption('Status: Active'),
-            _buildFilterOption('Status: Suspended'),
-            SizedBox(height: spacingMedium),
-            _buildFilterOption('Verified Only'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterOption(String label) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() => _selectedFilter = label);
-          Navigator.pop(context);
-        },
-        borderRadius: BorderRadius.circular(radiusMedium),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            vertical: spacingMedium,
-            horizontal: spacingMedium,
-          ),
-          child: Text(
-            label,
-            style: body.copyWith(
-              color: widget.theme.textColor,
-              fontSize: 14,
-            ),
           ),
         ),
       ),
@@ -542,7 +377,7 @@ class _UsersContentState extends State<UsersContent>
     );
   }
 
-  Widget _buildUserCard(Map<String, dynamic> user) {
+ Widget _buildUserCard(Map<String, dynamic> user) {
     final isActive = user['isActive'] ?? true;
     final status = isActive ? 'Active' : 'Inactive';
     final profileImageUrl = user['profileImageUrl'] as String?;
@@ -584,16 +419,17 @@ class _UsersContentState extends State<UsersContent>
                       height: 60,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: hasProfileImage
-                            ? null
-                            : LinearGradient(
-                                colors: [primary, primary.withOpacity(0.7)],
-                              ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color.fromARGB(255, 0, 0, 0),
+                            const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
+                          ],
+                        ),
                         border: Border.all(
-                          color: widget.isDarkMode
-                              ? primary.withOpacity(0.3)
-                              : Colors.white,
-                          width: 2,
+                          color: Colors.black.withOpacity(0.25),
+                          width: 1.2,
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -602,28 +438,76 @@ class _UsersContentState extends State<UsersContent>
                             offset: Offset(0, 2),
                           ),
                         ],
-                        image: hasProfileImage
-                            ? DecorationImage(
-                                image: NetworkImage(profileImageUrl),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
                       ),
-                      child: !hasProfileImage
-                          ? Center(
-                              child: Text(
-                                (user['name'] ?? 'U')
-                                    .toString()
-                                    .substring(0, 1)
-                                    .toUpperCase(),
-                                style: h2.copyWith(
-                                  color: white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w700,
+                      child: ClipOval(
+                        child: hasProfileImage
+                            ? Image.network(
+                                profileImageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [primary, primary.withOpacity(0.7)],
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        (user['name'] ?? 'U')
+                                            .toString()
+                                            .substring(0, 1)
+                                            .toUpperCase(),
+                                        style: h2.copyWith(
+                                          color: white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [primary, primary.withOpacity(0.7)],
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(white),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [primary, primary.withOpacity(0.7)],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    (user['name'] ?? 'U')
+                                        .toString()
+                                        .substring(0, 1)
+                                        .toUpperCase(),
+                                    style: h2.copyWith(
+                                      color: white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            )
-                          : null,
+                      ),
                     ),
                     SizedBox(width: spacingMedium),
                     Expanded(
@@ -779,16 +663,17 @@ class _UsersContentState extends State<UsersContent>
                       height: 60,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: hasProfileImage
-                            ? null
-                            : LinearGradient(
-                                colors: [accent, accent.withOpacity(0.7)],
-                              ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            const Color.fromARGB(255, 0, 0, 0),
+                            const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
+                          ],
+                        ),
                         border: Border.all(
-                          color: widget.isDarkMode
-                              ? accent.withOpacity(0.3)
-                              : Colors.white,
-                          width: 2,
+                          color: Colors.black.withOpacity(0.25),
+                          width: 1.2,
                         ),
                         boxShadow: [
                           BoxShadow(
@@ -797,22 +682,64 @@ class _UsersContentState extends State<UsersContent>
                             offset: Offset(0, 2),
                           ),
                         ],
-                        image: hasProfileImage
-                            ? DecorationImage(
-                                image: NetworkImage(profileImageUrl),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
                       ),
-                      child: !hasProfileImage
-                          ? Center(
-                              child: Icon(
-                                Icons.favorite_rounded,
-                                color: white,
-                                size: 28,
+                      child: ClipOval(
+                        child: hasProfileImage
+                            ? Image.network(
+                                profileImageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [accent, accent.withOpacity(0.7)],
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.favorite_rounded,
+                                        color: white,
+                                        size: 28,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [accent, accent.withOpacity(0.7)],
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(white),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [accent, accent.withOpacity(0.7)],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Icon(
+                                    Icons.favorite_rounded,
+                                    color: white,
+                                    size: 28,
+                                  ),
+                                ),
                               ),
-                            )
-                          : null,
+                      ),
                     ),
                     SizedBox(width: spacingMedium),
                     Expanded(

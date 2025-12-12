@@ -1,8 +1,10 @@
 // File: lib/roles/mswd/home/sections/more_content.dart
-// ignore_for_file: deprecated_member_use, prefer_final_fields
+// ignore_for_file: deprecated_member_use, prefer_final_fields, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
+import 'package:seelai_app/firebase/auth_service.dart';
+import 'package:seelai_app/screens/onboarding_screen.dart';
 
 class MoreContent extends StatefulWidget {
   final bool isDarkMode;
@@ -440,9 +442,47 @@ class _MoreContentState extends State<MoreContent> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showSnackbar('Logged out successfully');
+            onPressed: () async {
+              Navigator.pop(context); // Close the dialog
+              
+              // Sign out
+              await authService.value.signOut();
+              
+              // Navigate to onboarding screen and remove all previous routes
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(
+                  builder: (context) => const OnboardingScreen(),
+                ),
+                (route) => false,
+              );
+              
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded, color: white, size: 20),
+                      SizedBox(width: spacingSmall),
+                      Expanded(
+                        child: Text(
+                          'Successfully logged out',
+                          style: TextStyle(
+                            color: white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(radiusMedium),
+                  ),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
+                  margin: EdgeInsets.all(spacingMedium),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
