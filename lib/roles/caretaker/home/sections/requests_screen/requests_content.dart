@@ -15,6 +15,7 @@ class RequestsContent extends StatefulWidget {
   final Map<String, dynamic> userData;
   final RequestService requestService;
   final Function(int) onRequestCountChange;
+  final ScrollController? scrollController; // ADD THIS
 
   const RequestsContent({
     super.key,
@@ -23,6 +24,7 @@ class RequestsContent extends StatefulWidget {
     required this.userData,
     required this.requestService,
     required this.onRequestCountChange,
+    this.scrollController, // ADD THIS
   });
 
   @override
@@ -40,7 +42,6 @@ class _RequestsContentState extends State<RequestsContent>
   String? _caretakerId;
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
   
-  // Cache for profile images
   final Map<String, String?> _profileImageCache = {};
 
   @override
@@ -187,7 +188,7 @@ class _RequestsContentState extends State<RequestsContent>
     }
   }
 
-  @override
+   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
@@ -230,6 +231,7 @@ class _RequestsContentState extends State<RequestsContent>
       onRefresh: _refreshRequests,
       color: primary,
       child: SingleChildScrollView(
+        controller: widget.scrollController, // USE THE PASSED CONTROLLER
         physics: AlwaysScrollableScrollPhysics(),
         child: Padding(
           padding: EdgeInsets.only(
@@ -242,13 +244,9 @@ class _RequestsContentState extends State<RequestsContent>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildStatsOverview(),
-              
               SizedBox(height: spacingXLarge),
-              
               _buildTabBar(),
-              
               SizedBox(height: spacingLarge),
-              
               _buildCurrentTabContent(),
             ],
           ),
@@ -371,7 +369,7 @@ class _RequestsContentState extends State<RequestsContent>
       padding: EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
+        borderRadius: BorderRadius.circular(radiusMedium),
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
@@ -426,7 +424,7 @@ class _RequestsContentState extends State<RequestsContent>
                     )
                   : null,
               color: isSelected ? null : Colors.transparent,
-              borderRadius: BorderRadius.circular(radiusMedium),
+              borderRadius: BorderRadius.circular(radiusSmall),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
@@ -442,16 +440,16 @@ class _RequestsContentState extends State<RequestsContent>
               children: [
                 Icon(
                   icon,
-                  size: 20,
+                  size: 18,
                   color: isSelected ? white : widget.theme.subtextColor,
                 ),
                 SizedBox(height: 4),
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? white : widget.theme.subtextColor,
+                  style: bodyBold.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isSelected ? white : widget.theme.textColor,
                   ),
                 ),
               ],
@@ -490,7 +488,7 @@ Widget _buildCurrentTabContent() {
   return Column(
     children: currentRequests.map((request) {
       return Padding(
-        padding: EdgeInsets.only(bottom: spacingLarge),
+        padding: EdgeInsets.only(bottom: spacingSmall),
         child: _buildRequestCard(request),
       );
     }).toList(),
@@ -540,9 +538,9 @@ Widget _buildCurrentTabContent() {
           SizedBox(height: spacingLarge),
           Text(
             message,
-            style: body.copyWith(
+            style: caption.copyWith(
               color: widget.theme.subtextColor,
-              fontSize: 15,
+              fontSize: 13,
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -576,15 +574,16 @@ Widget _buildCurrentTabContent() {
               'Failed to load requests',
               style: bodyBold.copyWith(
                 color: widget.theme.textColor,
-                fontSize: 18,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
             SizedBox(height: spacingSmall),
             Text(
               _error ?? 'An error occurred',
-              style: body.copyWith(
+              style: caption.copyWith(
                 color: widget.theme.subtextColor,
-                fontSize: 14,
+                fontSize: 13,
               ),
               textAlign: TextAlign.center,
             ),
@@ -621,13 +620,6 @@ Widget _buildCurrentTabContent() {
     final priorityColor = request.getPriorityColor();
     final cachedImage = _profileImageCache[request.patientId];
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    double responsiveWidth(double value) => value * (screenWidth / 375);
-    double responsiveHeight(double value) => value * (screenHeight / 812);
-    double responsiveFont(double value) => value * (screenWidth / 375);
-
     return Semantics(
       label: 'Request from ${request.patientName}',
       button: true,
@@ -637,22 +629,22 @@ Widget _buildCurrentTabContent() {
               ? [
                   BoxShadow(
                     color: priorityColor.withOpacity(0.15),
-                    blurRadius: responsiveWidth(20),
-                    offset: Offset(0, responsiveHeight(8)),
+                    blurRadius: 20,
+                    offset: Offset(0, 8),
                   ),
                 ]
               : [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.06),
-                    blurRadius: responsiveWidth(16),
-                    offset: Offset(0, responsiveHeight(4)),
+                    blurRadius: 16,
+                    offset: Offset(0, 4),
                   ),
                 ],
-          borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+          borderRadius: BorderRadius.circular(radiusMedium),
         ),
         child: Material(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+          borderRadius: BorderRadius.circular(radiusMedium),
           child: InkWell(
             onTap: () {
               Navigator.push(
@@ -666,15 +658,15 @@ Widget _buildCurrentTabContent() {
                 ),
               );
             },
-            borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+            borderRadius: BorderRadius.circular(radiusMedium),
             splashColor: priorityColor.withOpacity(0.1),
             child: Container(
-              padding: EdgeInsets.all(responsiveWidth(spacingLarge * 1.2)),
+              padding: EdgeInsets.all(spacingMedium),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(responsiveWidth(radiusXLarge)),
+                borderRadius: BorderRadius.circular(radiusMedium),
                 border: Border.all(
                   color: widget.isDarkMode
-                      ? primary.withOpacity(0.2)
+                      ? widget.theme.subtextColor.withOpacity(0.2)
                       : Colors.black.withOpacity(0.06),
                   width: 1,
                 ),
@@ -686,23 +678,16 @@ Widget _buildCurrentTabContent() {
                     children: [
                       // Profile Image Container with Network Image
                       Container(
-                        width: responsiveWidth(56),
-                        height: responsiveWidth(56),
+                        width: 56,
+                        height: 56,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: widget.isDarkMode
-                                ? primary.withOpacity(0.3)
+                                ? widget.theme.subtextColor.withOpacity(0.2)
                                 : Colors.white,
                             width: 2,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primary.withOpacity(0.15),
-                              blurRadius: responsiveWidth(8),
-                              offset: Offset(0, responsiveHeight(2)),
-                            ),
-                          ],
                         ),
                         child: ClipOval(
                           child: cachedImage != null && cachedImage.isNotEmpty
@@ -715,8 +700,8 @@ Widget _buildCurrentTabContent() {
                                     if (loadingProgress == null) return child;
                                     return Center(
                                       child: SizedBox(
-                                        width: responsiveWidth(20),
-                                        height: responsiveWidth(20),
+                                        width: 20,
+                                        height: 20,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                           valueColor: AlwaysStoppedAnimation<Color>(primary),
@@ -732,8 +717,8 @@ Widget _buildCurrentTabContent() {
                                         ConnectionState.waiting) {
                                       return Center(
                                         child: SizedBox(
-                                          width: responsiveWidth(20),
-                                          height: responsiveWidth(20),
+                                          width: 20,
+                                          height: 20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
                                             valueColor: AlwaysStoppedAnimation<Color>(primary),
@@ -757,7 +742,7 @@ Widget _buildCurrentTabContent() {
                                 ),
                         ),
                       ),
-                      SizedBox(width: responsiveWidth(spacingMedium)),
+                      SizedBox(width: spacingSmall),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,27 +750,26 @@ Widget _buildCurrentTabContent() {
                             Text(
                               request.patientName,
                               style: bodyBold.copyWith(
-                                fontSize: responsiveFont(17),
+                                fontSize: 15,
                                 color: widget.theme.textColor,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            SizedBox(height: responsiveHeight(4)),
+                            SizedBox(height: 2),
                             Row(
                               children: [
                                 Icon(
                                   request.getIcon(),
-                                  size: responsiveWidth(14),
+                                  size: 14,
                                   color: widget.theme.subtextColor,
                                 ),
-                                SizedBox(width: responsiveWidth(4)),
+                                SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     request.requestType,
                                     style: caption.copyWith(
-                                      fontSize: responsiveFont(13),
+                                      fontSize: 12,
                                       color: widget.theme.subtextColor,
-                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ),
@@ -796,19 +780,19 @@ Widget _buildCurrentTabContent() {
                       ),
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: responsiveWidth(spacingSmall),
-                          vertical: responsiveHeight(6),
+                          horizontal: spacingSmall,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [priorityColor, priorityColor.withOpacity(0.8)],
                           ),
-                          borderRadius: BorderRadius.circular(responsiveWidth(radiusSmall)),
+                          borderRadius: BorderRadius.circular(radiusSmall),
                           boxShadow: [
                             BoxShadow(
                               color: priorityColor.withOpacity(0.3),
-                              blurRadius: responsiveWidth(6),
-                              offset: Offset(0, responsiveHeight(2)),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
                             ),
                           ],
                         ),
@@ -817,26 +801,26 @@ Widget _buildCurrentTabContent() {
                           style: caption.copyWith(
                             color: white,
                             fontWeight: FontWeight.w800,
-                            fontSize: responsiveFont(10),
+                            fontSize: 10,
                             letterSpacing: 0.5,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: responsiveHeight(spacingMedium)),
+                  SizedBox(height: spacingSmall),
                   Container(
-                    padding: EdgeInsets.all(responsiveWidth(spacingMedium)),
+                    padding: EdgeInsets.all(spacingSmall),
                     decoration: BoxDecoration(
                       color: widget.isDarkMode
                           ? Colors.white.withOpacity(0.05)
                           : Colors.black.withOpacity(0.03),
-                      borderRadius: BorderRadius.circular(responsiveWidth(radiusMedium)),
+                      borderRadius: BorderRadius.circular(radiusSmall),
                     ),
                     child: Text(
                       request.message,
                       style: body.copyWith(
-                        fontSize: responsiveFont(14),
+                        fontSize: 14,
                         color: widget.theme.textColor,
                         height: 1.4,
                       ),
@@ -844,31 +828,31 @@ Widget _buildCurrentTabContent() {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  SizedBox(height: responsiveHeight(spacingMedium)),
+                  SizedBox(height: spacingSmall),
                   Row(
                     children: [
                       Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: responsiveWidth(spacingSmall),
-                          vertical: responsiveHeight(5),
+                          horizontal: spacingSmall,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
                           color: widget.theme.subtextColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(responsiveWidth(radiusSmall)),
+                          borderRadius: BorderRadius.circular(radiusSmall),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.access_time_rounded,
-                              size: responsiveWidth(14),
+                              size: 14,
                               color: widget.theme.subtextColor,
                             ),
-                            SizedBox(width: responsiveWidth(4)),
+                            SizedBox(width: 4),
                             Text(
                               _getTimeAgo(request.timestamp),
                               style: caption.copyWith(
-                                fontSize: responsiveFont(12),
+                                fontSize: 12,
                                 color: widget.theme.subtextColor,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -877,15 +861,15 @@ Widget _buildCurrentTabContent() {
                         ),
                       ),
                       if (request.location != null) ...[
-                        SizedBox(width: responsiveWidth(spacingSmall)),
+                        SizedBox(width: spacingSmall),
                         Container(
                           padding: EdgeInsets.symmetric(
-                            horizontal: responsiveWidth(spacingSmall),
-                            vertical: responsiveHeight(5),
+                            horizontal: spacingSmall,
+                            vertical: 5,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(responsiveWidth(radiusSmall)),
+                            borderRadius: BorderRadius.circular(radiusSmall),
                             border: Border.all(
                               color: Colors.green.withOpacity(0.3),
                               width: 1,
@@ -896,14 +880,14 @@ Widget _buildCurrentTabContent() {
                             children: [
                               Icon(
                                 Icons.location_on_rounded,
-                                size: responsiveWidth(14),
+                                size: 14,
                                 color: Colors.green,
                               ),
-                              SizedBox(width: responsiveWidth(4)),
+                              SizedBox(width: 4),
                               Text(
                                 'Location',
                                 style: caption.copyWith(
-                                  fontSize: responsiveFont(12),
+                                  fontSize: 12,
                                   color: Colors.green,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -915,8 +899,8 @@ Widget _buildCurrentTabContent() {
                       Spacer(),
                       Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: responsiveWidth(16),
-                        color: primary,
+                        size: 16,
+                        color: widget.theme.subtextColor,
                       ),
                     ],
                   ),

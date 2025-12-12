@@ -1,22 +1,22 @@
 // File: lib/roles/mswd/home/sections/location_track/location_tracking_screen.dart
-
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, unnecessary_import, prefer_final_fields, empty_catches
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
+import 'package:seelai_app/firebase/mswd/mswd_location_tracking_service.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
-class TrackContent extends StatefulWidget {
+class MswdLocationTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final Map<String, dynamic> userData;
 
-  const TrackContent({
+  const MswdLocationTrackingScreen({
     super.key,
     required this.isDarkMode,
     required this.theme,
@@ -24,177 +24,213 @@ class TrackContent extends StatefulWidget {
   });
 
   @override
-  State<TrackContent> createState() => _TrackContentState();
+  State<MswdLocationTrackingScreen> createState() => _MswdLocationTrackingScreenState();
 }
 
-class _TrackContentState extends State<TrackContent> {
+class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen> {
   late MapController _mapController;
   bool _isMapReady = false;
-  double _currentZoom = 13.0;
+  bool _isLoading = true;
+  double _currentZoom = 12.0;
   
-  // Location data
-  List<Map<String, dynamic>> _patientLocations = [];
-  List<Map<String, dynamic>> _caretakerLocations = [];
-  final Map<String, Map<String, dynamic>> _userDataCache = {};
+  StreamSubscription? _locationsStream;
+  Map<String, Map<String, dynamic>> _userLocations = {};
+  Map<String, Map<String, dynamic>> _userProfiles = {};
   
-  // Filters
-  bool _showPatients = true;
-  bool _showCaretakers = true;
-  String _filterStatus = 'all'; // all, active, offline
+  String _selectedFilter = 'all'; // 'all', 'patients', 'caretakers'
+  bool _showOnlyActive = false;
   
-  // Selected user
+  Timer? _refreshTimer;
   
-  // Stream subscriptions
-  StreamSubscription? _locationsSubscription;
-  
-  // Statistics
-  Map<String, dynamic> _stats = {
-    'total': 0,
-    'active': 0,
-    'offline': 0,
-    'patients': 0,
-    'caretakers': 0,
-  };
-
-  bool _isLoadingStats = true;
-  bool _isFullscreen = false;
+  // Track last known positions to prevent duplicate updates
+  Map<String, GeoPoint> _lastGeoPoints = {};
 
   @override
   void initState() {
     super.initState();
     _initializeMapController();
-    _loadInitialData();
-    _startLocationStream();
+    _startLocationTracking();
   }
 
   void _initializeMapController() {
     _mapController = MapController(
       initPosition: GeoPoint(
-        latitude: 14.4167, // Philippines center
+        latitude: 14.4167,
         longitude: 120.9833,
       ),
       areaLimit: BoundingBox.world(),
     );
   }
 
-  Future<void> _loadInitialData() async {
-    await _loadStatistics();
-    await _loadUserData();
-  }
+  Future<void> _startLocationTracking() async {
+    setState(() {
+      _isLoading = true;
+    });
 
-  Future<void> _loadStatistics() async {
-    setState(() => _isLoadingStats = true);
-    
-    final stats = await mswdLocationTrackingService.getLocationStatistics();
-    
-    if (mounted) {
-      setState(() {
-        _stats = stats;
-        _isLoadingStats = false;
-      });
-    }
-  }
+    // Start real-time location stream
+    _locationsStream = mswdLocationTrackingService
+        .streamAllUserLocations()
+        .listen((locationsData) async {
+      if (!mounted) return;
 
-  Future<void> _loadUserData() async {
-    try {
-      // Get all users
-      List<Map<String, dynamic>> allUsers = await adminService.getAllUsers();
+      Map<String, Map<String, dynamic>> newLocations = {};
       
-      for (var user in allUsers) {
-        String userId = user['userId'] ?? '';
-        if (userId.isNotEmpty) {
-          _userDataCache[userId] = user;
+      // Process patients
+      for (var location in locationsData['patients'] ?? []) {
+        String userId = location['userId'];
+        newLocations[userId] = location;
+        
+        // Fetch profile if not cached
+        if (!_userProfiles.containsKey(userId)) {
+          await _fetchUserProfile(userId, 'visually_impaired');
         }
       }
-    } catch (e) {
-      debugPrint('Error loading user data: $e');
-    }
-  }
+      
+      // Process caretakers
+      for (var location in locationsData['caretakers'] ?? []) {
+        String userId = location['userId'];
+        newLocations[userId] = location;
+        
+        // Fetch profile if not cached
+        if (!_userProfiles.containsKey(userId)) {
+          await _fetchUserProfile(userId, 'caretaker');
+        }
+      }
 
-  void _startLocationStream() {
-    _locationsSubscription = mswdLocationTrackingService
-        .streamAllUserLocations()
-        .listen((locations) {
       if (mounted) {
         setState(() {
-          _patientLocations = locations['patients'] ?? [];
-          _caretakerLocations = locations['caretakers'] ?? [];
+          _userLocations = newLocations;
+          _isLoading = false;
         });
-        
+
         if (_isMapReady) {
-          _updateMapMarkers();
+          await _updateMapMarkers();
         }
-        
-        _loadStatistics();
       }
+    });
+
+    // Periodic refresh timer to ensure data stays current
+    _refreshTimer = Timer.periodic(Duration(seconds: 30), (timer) async {
+      if (!mounted) return;
+      await _refreshLocationData();
     });
   }
 
-  List<Map<String, dynamic>> _getFilteredLocations() {
-    List<Map<String, dynamic>> filtered = [];
-    
-    if (_showPatients) {
-      filtered.addAll(_patientLocations);
+  Future<void> _fetchUserProfile(String userId, String userType) async {
+    try {
+      final userData = await databaseService.getUserDataByRole(userId, userType);
+      if (userData != null && mounted) {
+        setState(() {
+          _userProfiles[userId] = {
+            ...userData,
+            'userType': userType,
+          };
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching user profile: $e');
     }
+  }
+
+  Future<void> _refreshLocationData() async {
+    // This is called periodically to ensure we have the latest data
+    // The stream should handle updates, but this is a fallback
+    if (!mounted) return;
     
-    if (_showCaretakers) {
-      filtered.addAll(_caretakerLocations);
-    }
-    
-    if (_filterStatus != 'all') {
-      filtered = filtered.where((location) {
-        String status = mswdLocationTrackingService.getLocationStatus(location);
-        if (_filterStatus == 'active') {
-          return status == 'active';
-        } else if (_filterStatus == 'offline') {
-          return status == 'offline' || status == 'poor_signal';
+    try {
+      final allLocations = await mswdLocationTrackingService.getAllUserLocations();
+      
+      Map<String, Map<String, dynamic>> newLocations = {};
+      for (var location in allLocations) {
+        String userId = location['userId'];
+        newLocations[userId] = location;
+      }
+
+      if (mounted && newLocations.isNotEmpty) {
+        setState(() {
+          _userLocations = newLocations;
+        });
+
+        if (_isMapReady) {
+          await _updateMapMarkers();
         }
-        return true;
-      }).toList();
+      }
+    } catch (e) {
+      debugPrint('Error refreshing location data: $e');
     }
-    
-    return filtered;
   }
 
   Future<void> _updateMapMarkers() async {
-    if (!_isMapReady) return;
+    if (!_isMapReady || !mounted) return;
 
     try {
-      List<Map<String, dynamic>> filtered = _getFilteredLocations();
-      
-      for (var location in filtered) {
-        String userId = location['userId'] ?? '';
-        String userType = location['userType'] ?? '';
-        double lat = location['latitude'] as double? ?? 0.0;
-        double lng = location['longitude'] as double? ?? 0.0;
+      // Filter locations based on selected filter
+      List<MapEntry<String, Map<String, dynamic>>> filteredLocations = 
+          _userLocations.entries.where((entry) {
+        String userType = entry.value['userType'] ?? '';
+        bool isActive = mswdLocationTrackingService.isLocationRecent(entry.value);
         
-        if (lat == 0.0 || lng == 0.0) continue;
+        // Apply filters
+        if (_showOnlyActive && !isActive) return false;
         
-        GeoPoint geoPoint = GeoPoint(latitude: lat, longitude: lng);
-        
-        // Get user data
-        Map<String, dynamic>? userData = _userDataCache[userId];
-        String name = userData?['name'] ?? 'Unknown';
-        String? imageUrl = userData?['profileImageUrl'] as String?;
-        
-        // Determine marker color based on user type and status
-        Color markerColor = userType == 'visually_impaired' ? primary : Colors.blue;
-        String status = mswdLocationTrackingService.getLocationStatus(location);
-        
-        if (status == 'offline') {
-          markerColor = grey;
-        } else if (status == 'poor_signal') {
-          markerColor = Colors.orange;
+        if (_selectedFilter == 'patients' && userType != 'visually_impaired') {
+          return false;
+        }
+        if (_selectedFilter == 'caretakers' && userType != 'caretaker') {
+          return false;
         }
         
+        return true;
+      }).toList();
+
+      // Update markers for each user
+      for (var entry in filteredLocations) {
+        String userId = entry.key;
+        Map<String, dynamic> location = entry.value;
+        
+        final lat = location['latitude'] as double?;
+        final lng = location['longitude'] as double?;
+        
+        if (lat == null || lng == null) continue;
+
+        final geoPoint = GeoPoint(latitude: lat, longitude: lng);
+        
+        // Only update if position changed significantly (more than 5 meters)
+        if (_lastGeoPoints.containsKey(userId)) {
+          double distance = _geoPointDistance(_lastGeoPoints[userId]!, geoPoint);
+          if (distance < 5.0) continue; // Skip if moved less than 5 meters
+        }
+
+        // Remove old marker
+        if (_lastGeoPoints.containsKey(userId)) {
+          try {
+            await _mapController.removeMarker(_lastGeoPoints[userId]!);
+          } catch (e) {}
+        }
+
+        // Get user profile
+        final profile = _userProfiles[userId];
+        final imageUrl = profile?['profileImageUrl'] as String?;
+        final name = profile?['name'] ?? 'User';
+        final userType = location['userType'] ?? '';
+        
+        // Determine marker color
+        Color borderColor = userType == 'visually_impaired' ? primary : Colors.blue;
+        
+        // Check if location is recent (active) or stale
+        bool isActive = mswdLocationTrackingService.isLocationRecent(location);
+        if (!isActive) {
+          borderColor = grey; // Grey for offline/stale locations
+        }
+
         // Create marker
-        final markerBytes = await _createUserMarker(
+        final markerBytes = await _createProfileMarker(
           imageUrl: imageUrl,
           name: name,
-          borderColor: markerColor,
-          status: status,
+          borderColor: borderColor,
+          isActive: isActive,
         );
-        
+
         if (markerBytes != null && mounted) {
           await _mapController.addMarker(
             geoPoint,
@@ -212,18 +248,60 @@ class _TrackContentState extends State<TrackContent> {
               ),
             ),
           );
+
+          // Add accuracy circle for active locations
+          if (isActive) {
+            final accuracy = location['accuracy'] as double? ?? 20.0;
+            await _mapController.drawCircle(
+              CircleOSM(
+                key: 'accuracy_$userId',
+                centerPoint: geoPoint,
+                radius: accuracy.clamp(5.0, 100.0),
+                color: borderColor.withOpacity(0.15),
+                strokeWidth: 1,
+              ),
+            );
+          }
+
+          _lastGeoPoints[userId] = geoPoint;
         }
       }
+
+      // Remove markers for users no longer in filtered list
+      List<String> userIdsToRemove = [];
+      for (var userId in _lastGeoPoints.keys) {
+        if (!filteredLocations.any((entry) => entry.key == userId)) {
+          userIdsToRemove.add(userId);
+        }
+      }
+
+      for (var userId in userIdsToRemove) {
+        try {
+          await _mapController.removeMarker(_lastGeoPoints[userId]!);
+          await _mapController.removeCircle('accuracy_$userId');
+          _lastGeoPoints.remove(userId);
+        } catch (e) {}
+      }
+
     } catch (e) {
       debugPrint('Error updating map markers: $e');
     }
   }
 
-  Future<Uint8List?> _createUserMarker({
+  double _geoPointDistance(GeoPoint p1, GeoPoint p2) {
+    return mswdLocationTrackingService.calculateDistance(
+      lat1: p1.latitude,
+      lon1: p1.longitude,
+      lat2: p2.latitude,
+      lon2: p2.longitude,
+    );
+  }
+
+  Future<Uint8List?> _createProfileMarker({
     required String? imageUrl,
     required String name,
     required Color borderColor,
-    required String status,
+    required bool isActive,
     double size = 120.0,
   }) async {
     try {
@@ -264,16 +342,19 @@ class _TrackContentState extends State<TrackContent> {
               frame.image,
               Rect.fromLTWH(0, 0, frame.image.width.toDouble(), frame.image.height.toDouble()),
               Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10),
-              Paint(),
+              Paint()..colorFilter = isActive ? null : ColorFilter.mode(
+                Colors.grey.withOpacity(0.5),
+                BlendMode.saturation,
+              ),
             );
           } else {
-            _drawDefaultAvatar(canvas, size, name, borderColor);
+            _drawDefaultAvatar(canvas, size, name, borderColor, isActive);
           }
         } catch (e) {
-          _drawDefaultAvatar(canvas, size, name, borderColor);
+          _drawDefaultAvatar(canvas, size, name, borderColor, isActive);
         }
       } else {
-        _drawDefaultAvatar(canvas, size, name, borderColor);
+        _drawDefaultAvatar(canvas, size, name, borderColor, isActive);
       }
 
       // Draw colored border
@@ -283,20 +364,23 @@ class _TrackContentState extends State<TrackContent> {
         ..strokeWidth = 4;
       canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 7, coloredBorderPaint);
 
-      // Draw status indicator if offline or poor signal
-      if (status != 'active') {
-        final statusColor = status == 'offline' ? Colors.red : Colors.orange;
-        final statusPaint = Paint()
-          ..color = statusColor
-          ..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(size - 15, 15), 8, statusPaint);
-        
-        final statusBorderPaint = Paint()
-          ..color = Colors.white
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 2;
-        canvas.drawCircle(Offset(size - 15, 15), 8, statusBorderPaint);
-      }
+      // Draw status indicator
+      final statusColor = isActive ? Colors.green : Colors.red;
+      final statusPaint = Paint()..color = statusColor;
+      canvas.drawCircle(
+        Offset(size - 15, size - 15),
+        8,
+        statusPaint,
+      );
+      final statusBorderPaint = Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawCircle(
+        Offset(size - 15, size - 15),
+        8,
+        statusBorderPaint,
+      );
 
       final picture = recorder.endRecording();
       final img = await picture.toImage(size.toInt(), size.toInt());
@@ -309,12 +393,15 @@ class _TrackContentState extends State<TrackContent> {
     }
   }
 
-  void _drawDefaultAvatar(Canvas canvas, double size, String name, Color color) {
+  void _drawDefaultAvatar(Canvas canvas, double size, String name, Color color, bool isActive) {
     final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10);
     final gradient = ui.Gradient.linear(
       Offset(rect.left, rect.top),
       Offset(rect.right, rect.bottom),
-      [color, color.withOpacity(0.7)],
+      [
+        isActive ? color : color.withOpacity(0.5),
+        isActive ? color.withOpacity(0.7) : color.withOpacity(0.3),
+      ],
     );
     final paint = Paint()..shader = gradient;
     canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
@@ -340,61 +427,51 @@ class _TrackContentState extends State<TrackContent> {
     );
   }
 
-  Future<void> _centerOnUser(Map<String, dynamic> location) async {
-    if (!_isMapReady) return;
-    
-    double lat = location['latitude'] as double? ?? 0.0;
-    double lng = location['longitude'] as double? ?? 0.0;
-    
-    if (lat == 0.0 || lng == 0.0) return;
-    
-    GeoPoint geoPoint = GeoPoint(latitude: lat, longitude: lng);
-    await _mapController.moveTo(geoPoint, animate: true);
-    
-    setState(() {
-    });
+  Future<void> _centerOnAllMarkers() async {
+    if (!_isMapReady || _lastGeoPoints.isEmpty) return;
+
+    try {
+      // Calculate bounds
+      double minLat = 90.0, maxLat = -90.0;
+      double minLng = 180.0, maxLng = -180.0;
+
+      for (var geoPoint in _lastGeoPoints.values) {
+        if (geoPoint.latitude < minLat) minLat = geoPoint.latitude;
+        if (geoPoint.latitude > maxLat) maxLat = geoPoint.latitude;
+        if (geoPoint.longitude < minLng) minLng = geoPoint.longitude;
+        if (geoPoint.longitude > maxLng) maxLng = geoPoint.longitude;
+      }
+
+      // Add padding
+      double latPadding = (maxLat - minLat) * 0.1;
+      double lngPadding = (maxLng - minLng) * 0.1;
+
+      await _mapController.zoomToBoundingBox(
+        BoundingBox(
+          north: maxLat + latPadding,
+          south: minLat - latPadding,
+          east: maxLng + lngPadding,
+          west: minLng - lngPadding,
+        ),
+        paddinInPixel: 50,
+      );
+    } catch (e) {
+      debugPrint('Error centering on markers: $e');
+    }
   }
 
-  void _toggleFullscreen() {
-    setState(() {
-      _isFullscreen = !_isFullscreen;
-    });
-  }
-
-  Future<void> _zoomIn() async {
-    if (!_isMapReady || _currentZoom >= 19) return;
-    setState(() => _currentZoom += 1);
-    await _mapController.setZoom(zoomLevel: _currentZoom);
-  }
-
-  Future<void> _zoomOut() async {
-    if (!_isMapReady || _currentZoom <= 3) return;
-    setState(() => _currentZoom -= 1);
-    await _mapController.setZoom(zoomLevel: _currentZoom);
-  }
 
   @override
   void dispose() {
-    _locationsSubscription?.cancel();
+    _locationsStream?.cancel();
+    _refreshTimer?.cancel();
     _mapController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isFullscreen) {
-      return Scaffold(
-        body: Stack(
-          children: [
-            _buildMapView(fullscreen: true),
-            _buildFullscreenControls(),
-          ],
-        ),
-      );
-    }
-
     final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
 
     return SingleChildScrollView(
       padding: EdgeInsets.only(
@@ -407,13 +484,11 @@ class _TrackContentState extends State<TrackContent> {
         children: [
           _buildHeader(),
           SizedBox(height: spacingLarge),
+          _buildFilterControls(),
+          SizedBox(height: spacingLarge),
+          _buildMapContainer(),
+          SizedBox(height: spacingLarge),
           _buildStatistics(),
-          SizedBox(height: spacingLarge),
-          _buildFilters(),
-          SizedBox(height: spacingLarge),
-          _buildMapContainer(height),
-          SizedBox(height: spacingLarge),
-          _buildUsersList(),
         ],
       ),
     );
@@ -424,7 +499,7 @@ class _TrackContentState extends State<TrackContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Location Tracking',
+          'Location Monitoring',
           style: h2.copyWith(
             fontSize: 24,
             color: widget.theme.textColor,
@@ -433,7 +508,7 @@ class _TrackContentState extends State<TrackContent> {
         ),
         SizedBox(height: 4),
         Text(
-          'Monitor all users in real-time',
+          'Real-time tracking of all users',
           style: body.copyWith(
             color: widget.theme.subtextColor,
             fontSize: 13,
@@ -443,44 +518,361 @@ class _TrackContentState extends State<TrackContent> {
     );
   }
 
-  Widget _buildStatistics() {
-    if (_isLoadingStats) {
-      return Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(primary),
-        ),
-      );
-    }
-
-    return Row(
-      children: [
-        Expanded(child: _buildStatCard('Total', _stats['total'], primary, Icons.location_on)),
-        SizedBox(width: spacingSmall),
-        Expanded(child: _buildStatCard('Active', _stats['active'], Colors.green, Icons.check_circle)),
-        SizedBox(width: spacingSmall),
-        Expanded(child: _buildStatCard('Offline', _stats['offline'], error, Icons.offline_bolt)),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, int value, Color color, IconData icon) {
+  Widget _buildFilterControls() {
     return Container(
       padding: EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusMedium),
+        borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildFilterButton(
+                  'All Users',
+                  'all',
+                  Icons.people,
+                ),
+              ),
+              SizedBox(width: spacingSmall),
+              Expanded(
+                child: _buildFilterButton(
+                  'Patients',
+                  'patients',
+                  Icons.accessible,
+                ),
+              ),
+              SizedBox(width: spacingSmall),
+              Expanded(
+                child: _buildFilterButton(
+                  'Caretakers',
+                  'caretakers',
+                  Icons.medical_services,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: spacingSmall),
+          _buildToggleSwitch(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterButton(String label, String value, IconData icon) {
+    final isSelected = _selectedFilter == value;
+    
+    return Material(
+      color: isSelected ? primary : widget.theme.subtextColor.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(radiusMedium),
+      child: InkWell(
+        onTap: () async {
+          setState(() {
+            _selectedFilter = value;
+          });
+          await _updateMapMarkers();
+        },
+        borderRadius: BorderRadius.circular(radiusMedium),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? white : widget.theme.textColor,
+                size: 24,
+              ),
+              SizedBox(height: 4),
+              Text(
+                label,
+                style: caption.copyWith(
+                  color: isSelected ? white : widget.theme.textColor,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleSwitch() {
+    return Row(
+      children: [
+        Icon(
+          Icons.filter_list,
+          color: widget.theme.subtextColor,
+          size: 20,
+        ),
+        SizedBox(width: spacingSmall),
+        Text(
+          'Active Users Only',
+          style: body.copyWith(
+            color: widget.theme.textColor,
+            fontSize: 13,
+          ),
+        ),
+        Spacer(),
+        Switch(
+          value: _showOnlyActive,
+          onChanged: (value) async {
+            setState(() {
+              _showOnlyActive = value;
+            });
+            await _updateMapMarkers();
+          },
+          activeColor: primary,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMapContainer() {
+    return Container(
+      height: 500,
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusLarge),
+        boxShadow: widget.isDarkMode
+            ? [
+                BoxShadow(
+                  color: primary.withOpacity(0.2),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ]
+            : softShadow,
+        border: widget.isDarkMode
+            ? Border.all(color: primary.withOpacity(0.3), width: 2)
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radiusLarge),
+        child: Stack(
+          children: [
+            if (_isLoading)
+              _buildLoadingState()
+            else
+              _buildMapView(),
+            
+            if (!_isLoading)
+              _buildMapControls(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Container(
+      color: widget.theme.cardColor,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(primary),
+            ),
+            SizedBox(height: spacingMedium),
+            Text(
+              'Loading locations...',
+              style: body.copyWith(
+                color: widget.theme.textColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapView() {
+    return OSMFlutter(
+      controller: _mapController,
+      osmOption: OSMOption(
+        userTrackingOption: UserTrackingOption(
+          enableTracking: false,
+          unFollowUser: true,
+        ),
+        zoomOption: ZoomOption(
+          initZoom: _currentZoom,
+          minZoomLevel: 3,
+          maxZoomLevel: 19,
+          stepZoom: 1.0,
+        ),
+        staticPoints: [],
+        enableRotationByGesture: true,
+        showZoomController: false,
+        showDefaultInfoWindow: false,
+      ),
+      onMapIsReady: (isReady) async {
+        if (!mounted) return;
+        
+        setState(() {
+          _isMapReady = isReady;
+        });
+        
+        if (isReady) {
+          await Future.delayed(Duration(milliseconds: 300));
+          if (mounted) {
+            await _updateMapMarkers();
+            await _centerOnAllMarkers();
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildMapControls() {
+    return Positioned(
+      right: spacingMedium,
+      bottom: spacingMedium,
+      child: Column(
+        children: [
+          _buildControlButton(
+            icon: Icons.center_focus_strong,
+            onTap: _centerOnAllMarkers,
+            tooltip: 'Center on all users',
+          ),
+          SizedBox(height: spacingSmall),
+          _buildControlButton(
+            icon: Icons.refresh,
+            onTap: _refreshLocationData,
+            tooltip: 'Refresh locations',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required String tooltip,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(100),
+          child: Padding(
+            padding: EdgeInsets.all(12),
+            child: Icon(
+              icon,
+              color: primary,
+              size: 24,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatistics() {
+    final stats = _calculateStatistics();
+    
+    return Container(
+      padding: EdgeInsets.all(spacingLarge),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusLarge),
+        boxShadow: widget.isDarkMode ? [] : softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Statistics',
+            style: bodyBold.copyWith(
+              fontSize: 16,
+              color: widget.theme.textColor,
+            ),
+          ),
+          SizedBox(height: spacingMedium),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Total Users',
+                  '${stats['total']}',
+                  Icons.people,
+                  primary,
+                ),
+              ),
+              SizedBox(width: spacingSmall),
+              Expanded(
+                child: _buildStatCard(
+                  'Active',
+                  '${stats['active']}',
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: spacingSmall),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  'Patients',
+                  '${stats['patients']}',
+                  Icons.accessible,
+                  primary,
+                ),
+              ),
+              SizedBox(width: spacingSmall),
+              Expanded(
+                child: _buildStatCard(
+                  'Caretakers',
+                  '${stats['caretakers']}',
+                  Icons.medical_services,
+                  Colors.blue,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: EdgeInsets.all(spacingMedium),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(radiusMedium),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
+          Icon(icon, color: color, size: 28),
           SizedBox(height: spacingSmall),
           Text(
-            '$value',
-            style: h3.copyWith(
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.bold,
+            value,
+            style: h2.copyWith(
+              fontSize: 24,
+              color: color,
+              fontWeight: FontWeight.w800,
             ),
           ),
           Text(
@@ -495,343 +887,30 @@ class _TrackContentState extends State<TrackContent> {
     );
   }
 
-  Widget _buildFilters() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Filters',
-          style: bodyBold.copyWith(
-            color: widget.theme.textColor,
-            fontSize: 14,
-          ),
-        ),
-        SizedBox(height: spacingSmall),
-        Wrap(
-          spacing: spacingSmall,
-          runSpacing: spacingSmall,
-          children: [
-            _buildFilterChip(
-              'Patients',
-              _showPatients,
-              () => setState(() => _showPatients = !_showPatients),
-              primary,
-            ),
-            _buildFilterChip(
-              'Caretakers',
-              _showCaretakers,
-              () => setState(() => _showCaretakers = !_showCaretakers),
-              Colors.blue,
-            ),
-            _buildFilterChip(
-              'All Status',
-              _filterStatus == 'all',
-              () => setState(() => _filterStatus = 'all'),
-              grey,
-            ),
-            _buildFilterChip(
-              'Active Only',
-              _filterStatus == 'active',
-              () => setState(() => _filterStatus = 'active'),
-              Colors.green,
-            ),
-            _buildFilterChip(
-              'Offline Only',
-              _filterStatus == 'offline',
-              () => setState(() => _filterStatus = 'offline'),
-              error,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
+  Map<String, int> _calculateStatistics() {
+    int total = _userLocations.length;
+    int active = 0;
+    int patients = 0;
+    int caretakers = 0;
 
-  Widget _buildFilterChip(String label, bool isSelected, VoidCallback onTap, Color color) {
-    return InkWell(
-      onTap: () {
-        onTap();
-        if (_isMapReady) {
-          _updateMapMarkers();
-        }
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: spacingMedium, vertical: spacingSmall),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(radiusSmall),
-          border: Border.all(
-            color: isSelected ? color : widget.theme.subtextColor.withOpacity(0.3),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: caption.copyWith(
-            color: isSelected ? color : widget.theme.subtextColor,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMapContainer(double height) {
-    return Container(
-      height: height * 0.5,
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: widget.isDarkMode
-            ? [BoxShadow(color: primary.withOpacity(0.2), blurRadius: 24, offset: Offset(0, 8))]
-            : softShadow,
-        border: widget.isDarkMode ? Border.all(color: primary.withOpacity(0.3), width: 2) : null,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radiusLarge),
-        child: _buildMapView(fullscreen: false),
-      ),
-    );
-  }
-
-  Widget _buildMapView({required bool fullscreen}) {
-    return Stack(
-      children: [
-        OSMFlutter(
-          controller: _mapController,
-          osmOption: OSMOption(
-            userTrackingOption: UserTrackingOption(
-              enableTracking: false,
-              unFollowUser: true,
-            ),
-            zoomOption: ZoomOption(
-              initZoom: _currentZoom,
-              minZoomLevel: 3,
-              maxZoomLevel: 19,
-              stepZoom: 1.0,
-            ),
-            staticPoints: [],
-            enableRotationByGesture: true,
-            showZoomController: false,
-            showDefaultInfoWindow: false,
-          ),
-          onMapIsReady: (isReady) async {
-            setState(() => _isMapReady = isReady);
-            if (isReady) {
-              await Future.delayed(Duration(milliseconds: 300));
-              if (mounted) _updateMapMarkers();
-            }
-          },
-        ),
-        _buildZoomControls(fullscreen),
-        if (!fullscreen) _buildMapActionButtons(),
-      ],
-    );
-  }
-
-  Widget _buildZoomControls(bool fullscreen) {
-    return Positioned(
-      right: spacingMedium,
-      top: fullscreen ? 80 : spacingMedium,
-      child: Column(
-        children: [
-          _buildZoomButton(Icons.add, _zoomIn),
-          SizedBox(height: spacingSmall),
-          _buildZoomButton(Icons.remove, _zoomOut),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildZoomButton(IconData icon, VoidCallback onTap) {
-    return Container(
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 2))],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(100),
-          child: Padding(
-            padding: EdgeInsets.all(12),
-            child: Icon(icon, color: primary, size: 24),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMapActionButtons() {
-    return Positioned(
-      bottom: spacingMedium,
-      right: spacingMedium,
-      child: ElevatedButton(
-        onPressed: _toggleFullscreen,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          padding: EdgeInsets.all(12),
-          shape: CircleBorder(),
-        ),
-        child: Icon(Icons.fullscreen, color: white),
-      ),
-    );
-  }
-
-  Widget _buildFullscreenControls() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + spacingSmall,
-      left: spacingMedium,
-      right: spacingMedium,
-      child: Row(
-        children: [
-          ElevatedButton.icon(
-            onPressed: _toggleFullscreen,
-            icon: Icon(Icons.fullscreen_exit, size: 18),
-            label: Text('Exit'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: grey,
-              foregroundColor: white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUsersList() {
-    List<Map<String, dynamic>> filtered = _getFilteredLocations();
-    
-    if (filtered.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(spacingXLarge),
-          child: Text(
-            'No users found with current filters',
-            style: body.copyWith(color: widget.theme.subtextColor),
-          ),
-        ),
-      );
+    for (var location in _userLocations.values) {
+      if (mswdLocationTrackingService.isLocationRecent(location)) {
+        active++;
+      }
+      
+      String userType = location['userType'] ?? '';
+      if (userType == 'visually_impaired') {
+        patients++;
+      } else if (userType == 'caretaker') {
+        caretakers++;
+      }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Users (${filtered.length})',
-          style: bodyBold.copyWith(
-            color: widget.theme.textColor,
-            fontSize: 16,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        ...filtered.map((location) => _buildUserCard(location)),
-      ],
-    );
-  }
-
-  Widget _buildUserCard(Map<String, dynamic> location) {
-    String userId = location['userId'] ?? '';
-    String userType = location['userType'] ?? '';
-    Map<String, dynamic>? userData = _userDataCache[userId];
-    
-    String name = userData?['name'] ?? 'Unknown User';
-    String? imageUrl = userData?['profileImageUrl'] as String?;
-    String status = mswdLocationTrackingService.getLocationStatus(location);
-    
-    Color statusColor = status == 'active' 
-        ? Colors.green 
-        : status == 'poor_signal' 
-            ? Colors.orange 
-            : grey;
-    
-    Color typeColor = userType == 'visually_impaired' ? primary : Colors.blue;
-    
-    return Container(
-      margin: EdgeInsets.only(bottom: spacingMedium),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusMedium),
-        boxShadow: widget.isDarkMode ? [] : softShadow,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _centerOnUser(location),
-          borderRadius: BorderRadius.circular(radiusMedium),
-          child: Padding(
-            padding: EdgeInsets.all(spacingMedium),
-            child: Row(
-              children: [
-                Stack(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: imageUrl == null ? LinearGradient(colors: [typeColor, typeColor.withOpacity(0.7)]) : null,
-                        image: imageUrl != null 
-                            ? DecorationImage(image: NetworkImage(imageUrl), fit: BoxFit.cover)
-                            : null,
-                      ),
-                      child: imageUrl == null 
-                          ? Center(child: Text(name[0].toUpperCase(), style: TextStyle(color: white, fontSize: 20, fontWeight: FontWeight.bold)))
-                          : null,
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: statusColor,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: widget.theme.cardColor, width: 2),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(width: spacingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: bodyBold.copyWith(color: widget.theme.textColor)),
-                      SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: typeColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(radiusSmall),
-                            ),
-                            child: Text(
-                              userType == 'visually_impaired' ? 'Patient' : 'Caretaker',
-                              style: caption.copyWith(color: typeColor, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          SizedBox(width: spacingSmall),
-                          Text(
-                            status == 'active' ? 'Active' : status == 'poor_signal' ? 'Poor Signal' : 'Offline',
-                            style: caption.copyWith(color: statusColor, fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right, color: widget.theme.subtextColor),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return {
+      'total': total,
+      'active': active,
+      'patients': patients,
+      'caretakers': caretakers,
+    };
   }
 }

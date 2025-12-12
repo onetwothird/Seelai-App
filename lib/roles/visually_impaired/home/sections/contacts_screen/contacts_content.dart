@@ -992,8 +992,7 @@ class _ContactsContentState extends State<ContactsContent> {
       ),
     );
   }
-
-  Widget _buildProfileAvatar(ContactModel contact) {
+Widget _buildProfileAvatar(ContactModel contact) {
     final hasProfileImage = contact.profileImageUrl != null && 
                             contact.profileImageUrl!.isNotEmpty;
 
@@ -1002,14 +1001,9 @@ class _ContactsContentState extends State<ContactsContent> {
       height: 64,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: hasProfileImage ? null : LinearGradient(
-          colors: [contact.color.withOpacity(0.2), contact.color.withOpacity(0.1)],
-        ),
         border: Border.all(
-          color: widget.isDarkMode 
-              ? contact.color.withOpacity(0.3) 
-              : Colors.white,
-          width: 2,
+          color: Colors.black,
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -1028,12 +1022,17 @@ class _ContactsContentState extends State<ContactsContent> {
                   return Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [contact.color.withOpacity(0.2), contact.color.withOpacity(0.1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF9333EA), // Purple
+                          Color(0xFF7C3AED), // Darker purple
+                        ],
                       ),
                     ),
                     child: Icon(
                       contact.avatar,
-                      color: contact.color,
+                      color: Colors.white,
                       size: 28,
                     ),
                   );
@@ -1043,7 +1042,12 @@ class _ContactsContentState extends State<ContactsContent> {
                   return Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [contact.color.withOpacity(0.2), contact.color.withOpacity(0.1)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF9333EA), // Purple
+                          Color(0xFF7C3AED), // Darker purple
+                        ],
                       ),
                     ),
                     child: Center(
@@ -1053,16 +1057,28 @@ class _ContactsContentState extends State<ContactsContent> {
                                 loadingProgress.expectedTotalBytes!
                             : null,
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(contact.color),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
                   );
                 },
               )
-            : Icon(
-                contact.avatar,
-                color: contact.color,
-                size: 28,
+            : Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF9333EA), // Purple
+                      Color(0xFF7C3AED), // Darker purple
+                    ],
+                  ),
+                ),
+                child: Icon(
+                  contact.avatar,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
       ),
     );

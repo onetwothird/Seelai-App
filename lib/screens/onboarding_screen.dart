@@ -63,6 +63,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 700;
+    final isLargeScreen = screenHeight > 900;
 
     return Scaffold(
       body: Stack(
@@ -113,130 +115,151 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
 
           // Main content
           SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
-              child: Column(
-                children: [
-                  SizedBox(height: screenHeight * 0.07),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.08,
+                          vertical: isSmallScreen ? 20 : 0,
+                        ),
+                        child: Column(
+                          children: [
+                            SizedBox(height: isSmallScreen ? 20 : (isLargeScreen ? screenHeight * 0.08 : screenHeight * 0.07)),
 
-                  // Logo with enhanced animations
-                  ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: AnimatedBuilder(
-                        animation: _floatAnimation,
-                        builder: (context, child) {
-                          return Transform.translate(
-                            offset: Offset(0, _floatAnimation.value * 0.6),
-                            child: Container(
-                              height: screenHeight * 0.28,
-                              padding: EdgeInsets.all(spacingLarge),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: RadialGradient(
-                                  colors: [
-                                    primary.withOpacity(0.08),
-                                    Colors.transparent,
-                                  ],
-                                  stops: [0.5, 1.0],
-                                ),
-                              ),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Lottie.asset(
-                                  'assets/icons/eye.json',
-                                  fit: BoxFit.contain,
+                            // Logo with enhanced animations
+                            ScaleTransition(
+                              scale: _scaleAnimation,
+                              child: FadeTransition(
+                                opacity: _fadeAnimation,
+                                child: AnimatedBuilder(
+                                  animation: _floatAnimation,
+                                  builder: (context, child) {
+                                    return Transform.translate(
+                                      offset: Offset(0, _floatAnimation.value * 0.6),
+                                      child: Container(
+                                        height: isSmallScreen 
+                                          ? screenHeight * 0.20 
+                                          : (isLargeScreen 
+                                            ? screenHeight * 0.25 
+                                            : screenHeight * 0.28),
+                                        padding: EdgeInsets.all(spacingLarge),
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: RadialGradient(
+                                            colors: [
+                                              primary.withOpacity(0.08),
+                                              Colors.transparent,
+                                            ],
+                                            stops: [0.5, 1.0],
+                                          ),
+                                        ),
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Lottie.asset(
+                                            'assets/icons/eye.json',
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
 
-                  SizedBox(height: screenHeight * 0.04),
+                            SizedBox(height: isSmallScreen ? screenHeight * 0.02 : screenHeight * 0.04),
 
-                  // Welcome text with enhanced gradient
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: ShaderMask(
-                      shaderCallback: (bounds) => primaryGradient.createShader(bounds),
-                      child: Text(
-                        'Welcome to Seelai',
-                        style: h1.copyWith(
-                          fontSize: screenWidth * 0.095,
-                          color: white,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1.0,
+                            // Welcome text with enhanced gradient
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: ShaderMask(
+                                shaderCallback: (bounds) => primaryGradient.createShader(bounds),
+                                child: Text(
+                                  'Welcome to Seelai',
+                                  style: h1.copyWith(
+                                    fontSize: _getResponsiveFontSize(screenWidth, screenHeight, isSmallScreen, isLargeScreen, 0.095, 0.085, 0.105),
+                                    color: white,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -1.0,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: isSmallScreen ? screenHeight * 0.015 : screenHeight * 0.02),
+
+                            // Description with better styling
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: spacingMedium),
+                                child: Text(
+                                  "Your vision, our mission.\nExperience care that truly sees you.",
+                                  style: body.copyWith(
+                                    fontSize: _getResponsiveFontSize(screenWidth, screenHeight, isSmallScreen, isLargeScreen, 0.044, 0.040, 0.048),
+                                    height: 1.7,
+                                    color: grey,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+
+                            Spacer(),
+
+                            // Feature highlights
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  _buildFeaturePill(Icons.accessibility_new_rounded, "Accessible", isSmallScreen),
+                                  _buildFeaturePill(Icons.security_rounded, "Secure", isSmallScreen),
+                                  _buildFeaturePill(Icons.favorite_rounded, "Caring", isSmallScreen),
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: isSmallScreen ? screenHeight * 0.03 : screenHeight * 0.04),
+
+                            // Single Get Started button
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: CustomButton(
+                                text: 'Get Started',
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RoleSelectionScreen(),
+                                    ),
+                                  );
+                                },
+                                isLarge: true,
+                              ),
+                            ),
+
+                            SizedBox(height: isSmallScreen ? screenHeight * 0.04 : screenHeight * 0.06),
+                          ],
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
                   ),
-
-                  SizedBox(height: screenHeight * 0.02),
-
-                  // Description with better styling
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: spacingMedium),
-                      child: Text(
-                        "Your vision, our mission.\nExperience care that truly sees you.",
-                        style: body.copyWith(
-                          fontSize: screenWidth * 0.044,
-                          height: 1.7,
-                          color: grey,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-
-                  Spacer(),
-
-                  // Feature highlights
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildFeaturePill(Icons.accessibility_new_rounded, "Accessible"),
-                        SizedBox(width: 12),
-                        _buildFeaturePill(Icons.security_rounded, "Secure"),
-                        SizedBox(width: 12),
-                        _buildFeaturePill(Icons.favorite_rounded, "Caring"),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: screenHeight * 0.04),
-
-                  // Single Get Started button
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: CustomButton(
-                      text: 'Get Started',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RoleSelectionScreen(),
-                          ),
-                        );
-                      },
-                      isLarge: true,
-                    ),
-                  ),
-
-                  SizedBox(height: screenHeight * 0.06),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ],
@@ -244,9 +267,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
     );
   }
 
-  Widget _buildFeaturePill(IconData icon, String label) {
+  double _getResponsiveFontSize(
+    double screenWidth,
+    double screenHeight,
+    bool isSmallScreen,
+    bool isLargeScreen,
+    double normalSize,
+    double smallSize,
+    double largeSize,
+  ) {
+    if (isSmallScreen) {
+      return screenWidth * smallSize;
+    } else if (isLargeScreen) {
+      return screenWidth * largeSize;
+    }
+    return screenWidth * normalSize;
+  }
+
+  Widget _buildFeaturePill(IconData icon, String label, bool isSmallScreen) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 12 : 14,
+        vertical: isSmallScreen ? 7 : 8,
+      ),
       decoration: BoxDecoration(
         color: white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(radiusMedium),
@@ -262,13 +305,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> with TickerProvider
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: primary),
+          Icon(icon, size: isSmallScreen ? 14 : 16, color: primary),
           SizedBox(width: 6),
           Text(
             label,
             style: small.copyWith(
               color: grey,
               fontWeight: FontWeight.w600,
+              fontSize: isSmallScreen ? 11 : 12,
             ),
           ),
         ],

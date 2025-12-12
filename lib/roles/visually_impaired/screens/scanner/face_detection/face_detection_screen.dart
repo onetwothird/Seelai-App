@@ -38,9 +38,8 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
   bool _isStreamRunning = false;
   bool _isDisposing = false;
   
-  // Detection state - matching object_detection_screen.dart
   String _lastDetectedFaces = '';
-  bool _readingCompleted = false;
+  DateTime? _lastSpeakTime;
 
   @override
   void initState() {
@@ -90,7 +89,6 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       if (mounted && !_isDisposing) {
         setState(() {
           _isReading = false;
-          _readingCompleted = true;
         });
       }
     });
@@ -99,7 +97,6 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       if (mounted && !_isDisposing) {
         setState(() {
           _isReading = true;
-          _readingCompleted = false;
         });
       }
     });
@@ -108,7 +105,6 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       if (mounted && !_isDisposing) {
         setState(() {
           _isReading = false;
-          _readingCompleted = true;
         });
       }
     });
@@ -186,9 +182,9 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        iouThreshold: 0.4,
-        confThreshold: 0.3,
-        classThreshold: 0.4,
+        iouThreshold: 0.45,
+        confThreshold: 0.5,
+        classThreshold: 0.5,
       );
 
       if (mounted && !_isDisposing) {
@@ -205,11 +201,11 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           lastFrameTime = now;
         });
 
-        // Auto-detect and read faces (matching object_detection_screen.dart)
-        if (recognitions.isNotEmpty && !_isReading) {
+        // Real-time detection with debouncing
+        if (recognitions.isNotEmpty) {
           await _detectAndReadFaces();
-        } else if (recognitions.isEmpty) {
-          _readingCompleted = false;
+        } else {
+          _lastDetectedFaces = '';
         }
       }
     } catch (_) {}
@@ -217,31 +213,33 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     isDetecting = false;
   }
 
-  /// Detect and read faces - matching object_detection_screen.dart pattern
   Future<void> _detectAndReadFaces() async {
     if (_isDisposing || _isReading) return;
+    
+    // Debounce: only speak every 3 seconds
+    final now = DateTime.now();
+    if (_lastSpeakTime != null && 
+        now.difference(_lastSpeakTime!).inSeconds < 3) {
+      return;
+    }
     
     try {
       final faceCount = recognitions.length;
       
       if (faceCount > 0) {
-        // Get the class names from detections (same as object detection)
         final detectedFacesText = recognitions
             .map((r) => r['tag'] ?? 'face')
             .join(', ');
         
-        // Check if it's different from last read
-        bool isDifferentFaces = (detectedFacesText.length - _lastDetectedFaces.length).abs() > 2 ||
-                               !detectedFacesText.contains(_lastDetectedFaces.substring(0, _lastDetectedFaces.length.clamp(0, 4)));
+        // Check if detection changed significantly
+        bool isDifferentFaces = _lastDetectedFaces.isEmpty ||
+            (detectedFacesText.length - _lastDetectedFaces.length).abs() > 3;
         
-        if ((isDifferentFaces || _lastDetectedFaces.isEmpty) && !_isReading) {
+        if (isDifferentFaces && !_isReading) {
           _lastDetectedFaces = detectedFacesText;
-          _readingCompleted = false;
+          _lastSpeakTime = now;
           
-          // Save to Firebase BEFORE speaking (exactly like object_detection_screen.dart)
           await _saveDetectedFacesToFirebase(faceCount);
-          
-          // Then speak - EXACT format: "I see face detection" or "I see face detection, face detection"
           await _flutterTts.speak('I see $detectedFacesText');
           
           if (mounted) {
@@ -254,17 +252,12 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             );
           }
         }
-      } else {
-        if (!_isReading) {
-          _readingCompleted = true;
-        }
       }
     } catch (e) {
       // Silent fail
     }
   }
 
-  /// Save detected faces to Firebase - matching object_detection_service.dart pattern
   Future<void> _saveDetectedFacesToFirebase(int faceCount) async {
     try {
       final userId = authService.value.currentUser?.uid;
@@ -473,7 +466,6 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Show detected faces info (matching object_detection_screen.dart)
           if (_lastDetectedFaces.isNotEmpty)
             Container(
               margin: EdgeInsets.only(bottom: spacingLarge),
@@ -544,7 +536,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                   _isReading
                       ? 'Reading faces...'
                       : recognitions.isNotEmpty
-                          ? (_readingCompleted ? 'Done - Ready for next scan' : 'Auto-scanning active')
+                          ? 'Real-time scanning...'
                           : 'Looking for faces...',
                   style: bodyBold.copyWith(
                     color: white.withOpacity(0.9),
@@ -634,72 +626,95 @@ class FaceBoxPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.purple
+      ..color = Colors.purple.withOpacity(0.9)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.5;
 
-    final cameraAspectRatio = previewH / previewW;
+    // Calculate proper aspect ratio and scaling
+    final previewAspectRatio = previewH / previewW;
     final screenAspectRatio = size.width / size.height;
-
-    double scaleX, scaleY;
-    double offsetX = 0, offsetY = 0;
-
-    if (screenAspectRatio > cameraAspectRatio) {
+    
+    double scaleX, scaleY, offsetX = 0, offsetY = 0;
+    
+    // Determine if preview is wider or taller than screen
+    if (screenAspectRatio > previewAspectRatio) {
+      // Screen is wider - fit to height
       scaleY = size.height / previewW;
       scaleX = scaleY;
       offsetX = (size.width - (previewH * scaleX)) / 2;
     } else {
+      // Screen is taller - fit to width
       scaleX = size.width / previewH;
       scaleY = scaleX;
       offsetY = (size.height - (previewW * scaleY)) / 2;
     }
-
+    
     for (var recognition in recognitions) {
       final box = recognition['box'];
-
-      double x = box[0].toDouble();
-      double y = box[1].toDouble();
-      double w = box[2].toDouble();
-      double h = box[3].toDouble();
-
+      
+      if (box == null || box.length < 4) continue;
+      
+      // YOLOv8 returns [x, y, width, height] in normalized or pixel coordinates
+      double x = (box[0] as num).toDouble();
+      double y = (box[1] as num).toDouble();
+      double w = (box[2] as num).toDouble();
+      double h = (box[3] as num).toDouble();
+      
+      // Apply scaling with offsets for proper alignment
       final left = (x * scaleX) + offsetX;
       final top = (y * scaleY) + offsetY;
       final width = w * scaleX;
       final height = h * scaleY;
+      
+      // Ensure box is within bounds
+      if (left < 0 || top < 0 || left + width > size.width || top + height > size.height) {
+        continue;
+      }
 
+      // Draw main bounding box with rounded corners
       final rect = RRect.fromRectAndRadius(
         Rect.fromLTWH(left, top, width, height),
         const Radius.circular(8),
       );
       canvas.drawRRect(rect, paint);
 
-      final cornerLength = (width * 0.15).clamp(15.0, 30.0);
+      // Draw corner indicators for precise alignment
+      final cornerLength = (width * 0.12).clamp(12.0, 25.0);
       final cornerPaint = Paint()
         ..color = Colors.purple
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5;
+        ..strokeWidth = 4.0
+        ..strokeCap = StrokeCap.round;
 
-      // Draw corner brackets
+      // Top-left corner
       canvas.drawLine(Offset(left, top + cornerLength), Offset(left, top), cornerPaint);
       canvas.drawLine(Offset(left, top), Offset(left + cornerLength, top), cornerPaint);
+      
+      // Top-right corner
       canvas.drawLine(Offset(left + width - cornerLength, top), Offset(left + width, top), cornerPaint);
       canvas.drawLine(Offset(left + width, top), Offset(left + width, top + cornerLength), cornerPaint);
+      
+      // Bottom-left corner
       canvas.drawLine(Offset(left, top + height - cornerLength), Offset(left, top + height), cornerPaint);
       canvas.drawLine(Offset(left, top + height), Offset(left + cornerLength, top + height), cornerPaint);
+      
+      // Bottom-right corner
       canvas.drawLine(Offset(left + width - cornerLength, top + height), Offset(left + width, top + height), cornerPaint);
       canvas.drawLine(Offset(left + width, top + height - cornerLength), Offset(left + width, top + height), cornerPaint);
 
-      final label = recognition['tag'] ?? 'Person';
-      final confidence = box[4] ?? 0.0;
-      final text = '$label ${(confidence * 100).toStringAsFixed(0)}%';
+      // Draw confidence and label
+      final label = (recognition['tag'] ?? 'nash').toString();
+      final confidence = box.length > 4 ? (box[4] as num).toDouble() : 0.0;
+      final confidencePercent = (confidence * 100).toStringAsFixed(0);
+      final text = '$label $confidencePercent%';
 
-      final fontSize = (width * 0.08).clamp(12.0, 18.0);
+      final fontSize = (width * 0.08).clamp(13.0, 20.0);
 
       final textStyle = TextStyle(
         color: Colors.white,
         fontSize: fontSize,
-        fontWeight: FontWeight.bold,
-        backgroundColor: Colors.purple,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.5,
       );
 
       final textSpan = TextSpan(text: text, style: textStyle);
@@ -710,25 +725,57 @@ class FaceBoxPainter extends CustomPainter {
 
       textPainter.layout();
 
-      final labelPadding = (width * 0.03).clamp(6.0, 10.0);
-      final labelHeight = (fontSize * 1.8).clamp(20.0, 28.0);
+      final labelPadding = (width * 0.05).clamp(8.0, 14.0);
+      final labelHeight = (fontSize * 2.0).clamp(24.0, 32.0);
 
+      // Position label above the box, but keep it on screen
+      final labelTop = (top - labelHeight - 6).clamp(4.0, size.height - labelHeight);
+      
       final labelRect = Rect.fromLTWH(
-        left,
-        top - labelHeight - 2,
+        left.clamp(0, size.width - textPainter.width - (labelPadding * 2)),
+        labelTop,
         textPainter.width + (labelPadding * 2),
         labelHeight,
       );
       
       final labelRRect = RRect.fromRectAndRadius(
         labelRect,
-        const Radius.circular(4),
+        const Radius.circular(8),
       );
       
-      canvas.drawRRect(labelRRect, Paint()..color = Colors.purple);
+      // Draw label background with gradient
+      final gradient = LinearGradient(
+        colors: [
+          Colors.purple.shade600,
+          Colors.purple.shade700,
+        ],
+      );
+      
+      final gradientPaint = Paint()
+        ..shader = gradient.createShader(labelRect);
+      
+      canvas.drawRRect(labelRRect, gradientPaint);
+      
+      // Add subtle shadow to label
+      final shadowPaint = Paint()
+        ..color = Colors.black.withOpacity(0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+      
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          labelRect.shift(const Offset(0, 2)),
+          const Radius.circular(8),
+        ),
+        shadowPaint,
+      );
+      
+      // Draw label text centered
       textPainter.paint(
         canvas, 
-        Offset(left + labelPadding, top - labelHeight + (labelHeight - fontSize) / 2 - 2)
+        Offset(
+          labelRect.left + labelPadding, 
+          labelRect.top + (labelHeight - fontSize) / 2 - 2
+        )
       );
     }
   }

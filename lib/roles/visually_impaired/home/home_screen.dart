@@ -9,7 +9,7 @@ import 'package:seelai_app/roles/visually_impaired/home/widgets/header_section.d
 import 'package:seelai_app/roles/visually_impaired/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/home_screen/home_content.dart';
 import 'package:seelai_app/roles/visually_impaired/home/sections/contacts_screen/contacts_content.dart';
-import 'package:seelai_app/roles/visually_impaired/home/sections/profile_content.dart';
+import 'package:seelai_app/roles/visually_impaired/home/sections/profile_content/profile_content.dart';
 import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/permission_service.dart';
 import 'package:seelai_app/roles/visually_impaired/services/accessibility_service.dart';
@@ -446,181 +446,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     });
   }
 
-  Future<void> _requestCaretaker() async {
-    final userName = widget.userData['name'] ?? 'User';
-    final userId = widget.userData['uid'] ?? '';
-    
-    // Get assigned caretakers
-    final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
-    
-    if (assignedCaretakers == null || assignedCaretakers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('No caretaker assigned. Please assign a caretaker first.'),
-          backgroundColor: error,
-        ),
-      );
-      return;
-    }
-    
-    // Get first caretaker ID
-    final caretakerId = assignedCaretakers.keys.first.toString();
-    
-    // Show request dialog
-    _showCaretakerRequestDialog(userName, userId, caretakerId);
-  }
-
-  void _showCaretakerRequestDialog(String userName, String userId, String caretakerId) {
-    final requestTypes = [
-      'General Assistance',
-      'Navigation Help',
-      'Reading Assistance',
-      'Emergency Help',
-      'Other',
-    ];
-    
-    final priorityLevels = [
-      'Low',
-      'Medium',
-      'High',
-      'Emergency',
-    ];
-    
-    String selectedType = requestTypes[0];
-    String selectedPriority = 'Medium';
-    final messageController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('Request Caretaker Assistance'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Type of Assistance:', style: bodyBold),
-                SizedBox(height: spacingSmall),
-                DropdownButtonFormField<String>(
-                  value: selectedType,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(radiusMedium),
-                    ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  items: requestTypes.map((type) {
-                    return DropdownMenuItem(
-                      value: type,
-                      child: Text(type),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedType = value!;
-                    });
-                  },
-                ),
-                SizedBox(height: spacingMedium),
-                Text('Priority Level:', style: bodyBold),
-                SizedBox(height: spacingSmall),
-                DropdownButtonFormField<String>(
-                  value: selectedPriority,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(radiusMedium),
-                    ),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  items: priorityLevels.map((level) {
-                    return DropdownMenuItem(
-                      value: level,
-                      child: Text(level),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setDialogState(() {
-                      selectedPriority = value!;
-                    });
-                  },
-                ),
-                SizedBox(height: spacingMedium),
-                Text('Message (Optional):', style: bodyBold),
-                SizedBox(height: spacingSmall),
-                TextField(
-                  controller: messageController,
-                  decoration: InputDecoration(
-                    hintText: 'Describe what you need help with...',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(radiusMedium),
-                    ),
-                    contentPadding: EdgeInsets.all(12),
-                  ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(context);
-                
-                final success = await _assistanceRequestService.sendAssistanceRequest(
-                  patientId: userId,
-                  patientName: userName,
-                  caretakerId: caretakerId,
-                  requestType: selectedType,
-                  message: messageController.text.isNotEmpty 
-                    ? messageController.text 
-                    : 'User needs $selectedType',
-                  priority: selectedPriority.toLowerCase(),
-                );
-                
-                // Log the caretaker request activity
-                if (success) {
-                  await _userActivityService.logCaretakerRequest(
-                    userId: userId,
-                    requestType: selectedType,
-                    priority: selectedPriority,
-                  );
-                }
-                
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success 
-                          ? 'Request sent to caretaker successfully' 
-                          : 'Failed to send request'
-                      ),
-                      backgroundColor: success ? Colors.green : error,
-                    ),
-                  );
-                  
-                  if (success) {
-                    setState(() {
-                    });
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                foregroundColor: white,
-              ),
-              child: Text('Send Request'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   void dispose() {
     _cameraService.dispose();
@@ -711,7 +536,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           onNotificationUpdate: _updateNotification,
-          onRequestCaretaker: _requestCaretaker,
           userData: widget.userData,
         );
         break;
@@ -748,7 +572,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           onNotificationUpdate: _updateNotification,
-          onRequestCaretaker: _requestCaretaker,
           userData: widget.userData,
         );
     }
@@ -761,7 +584,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
-  // ✅ UPDATED: Added backgroundColor property
   _AppTheme _getDarkTheme() {
     return _AppTheme(
       backgroundGradient: LinearGradient(
@@ -770,14 +592,13 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         end: Alignment.bottomRight,
         stops: [0.0, 0.5, 1.0],
       ),
-      backgroundColor: Color(0xFF0A0E27),  // ✅ ADDED
+      backgroundColor: Color(0xFF0A0E27),
       textColor: white,
       subtextColor: Color(0xFFB0B8D4),
       cardColor: Color(0xFF1A1F3A),
     );
   }
 
-  // ✅ UPDATED: Added backgroundColor property
   _AppTheme _getLightTheme() {
     return _AppTheme(
       backgroundGradient: LinearGradient(
@@ -787,7 +608,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
         stops: [0.0, 0.5, 1.0],
       ),
-      backgroundColor: backgroundPrimary,  // ✅ ADDED
+      backgroundColor: backgroundPrimary,
       textColor: black,
       subtextColor: grey,
       cardColor: white,
@@ -795,17 +616,16 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   }
 }
 
-// ✅ UPDATED: Added backgroundColor property to _AppTheme class
 class _AppTheme {
   final LinearGradient backgroundGradient;
-  final Color backgroundColor;  // ✅ ADDED
+  final Color backgroundColor;
   final Color textColor;
   final Color subtextColor;
   final Color cardColor;
 
   _AppTheme({
     required this.backgroundGradient,
-    required this.backgroundColor,  // ✅ ADDED
+    required this.backgroundColor,
     required this.textColor,
     required this.subtextColor,
     required this.cardColor,

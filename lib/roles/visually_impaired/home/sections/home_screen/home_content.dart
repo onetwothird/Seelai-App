@@ -16,7 +16,6 @@ class HomeContent extends StatelessWidget {
   final bool isDarkMode;
   final dynamic theme;
   final Function(String) onNotificationUpdate;
-  final VoidCallback onRequestCaretaker;
   final Map<String, dynamic> userData;
 
   const HomeContent({
@@ -26,7 +25,6 @@ class HomeContent extends StatelessWidget {
     required this.isDarkMode,
     required this.theme,
     required this.onNotificationUpdate,
-    required this.onRequestCaretaker,
     required this.userData,
   });
 
@@ -68,7 +66,7 @@ class HomeContent extends StatelessWidget {
           RequestCaretakerButton(
             isDarkMode: isDarkMode,
             theme: theme,
-            onRequestCaretaker: onRequestCaretaker,
+            userData: userData,
           ),
           
           SizedBox(height: spacingMedium),

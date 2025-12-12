@@ -11,12 +11,17 @@ import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
+// Import the new call and message functions
+import 'call_patients.dart';
+import 'message_patients.dart';
+
 /// Real-Time Patients Content - Redesigned with Communications
 class PatientsContent extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final Map<String, dynamic> userData;
   final LocationService locationService;
+  final ScrollController? scrollController; 
 
   const PatientsContent({
     super.key,
@@ -24,6 +29,7 @@ class PatientsContent extends StatefulWidget {
     required this.theme,
     required this.userData,
     required this.locationService,
+    this.scrollController, 
   });
 
   @override
@@ -140,208 +146,8 @@ class _PatientsContentState extends State<PatientsContent> {
     }).toList();
   }
 
-  /// Handle call action
-  Future<void> _handleCall(PatientModel patient) async {
-    try {
-      await communicationsService.initiateCall(
-        receiverId: patient.id,
-        receiverName: patient.name,
-        receiverImage: patient.profileImageUrl ?? '',
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Calling ${patient.name}...'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      debugPrint('Error initiating call: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to initiate call: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  /// Handle message action
-Future<void> _handleMessage(PatientModel patient) async {
-  try {
-    // Navigate to message screen or show message dialog
-    _showMessageDialog(patient);
-  } catch (e) {
-    debugPrint('Error with message: $e');
-  }
-}
-
-/// Show message dialog
-void _showMessageDialog(PatientModel patient) {
-  final messageController = TextEditingController();
-
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Message ${patient.name}',
-              style: h2.copyWith(color: widget.theme.textColor),
-            ),
-            SizedBox(height: 8),
-            if (patient.contactNumber != null && patient.contactNumber != 'N/A')
-              Text(
-                patient.contactNumber!,
-                style: body.copyWith(
-                  color: widget.theme.subtextColor,
-                  fontSize: 13,
-                ),
-              ),
-          ],
-        ),
-        content: TextField(
-          controller: messageController,
-          style: body.copyWith(color: widget.theme.textColor),
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: 'Type your message...',
-            hintStyle: body.copyWith(color: widget.theme.subtextColor),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(radiusMedium),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(radiusMedium),
-              borderSide: BorderSide(color: primary.withOpacity(0.3)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(radiusMedium),
-              borderSide: BorderSide(color: primary),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: bodyBold.copyWith(color: widget.theme.subtextColor),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final messageText = messageController.text.trim();
-              
-              if (messageText.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter a message'),
-                    backgroundColor: Colors.orange,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-                return;
-              }
-
-              try {
-                // Show loading indicator
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (BuildContext loadingContext) {
-                    return Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(primary),
-                      ),
-                    );
-                  },
-                );
-
-                // Send the message
-                await communicationsService.sendMessage(
-                  receiverId: patient.id,
-                  text: messageText,
-                );
-
-                if (mounted) {
-                  // Close loading dialog
-                  Navigator.pop(context);
-                  
-                  // Close message dialog
-                  Navigator.pop(context);
-                  
-                  // Show success message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.check_circle_rounded, color: white),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text('Message sent to ${patient.name}'),
-                          ),
-                        ],
-                      ),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 3),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(radiusMedium),
-                      ),
-                    ),
-                  );
-                }
-              } catch (e) {
-                debugPrint('Error sending message: $e');
-                
-                if (mounted) {
-                  // Close loading dialog
-                  Navigator.pop(context);
-                  
-                  // Show error message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.error_rounded, color: white),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text('Failed to send message: $e'),
-                          ),
-                        ],
-                      ),
-                      backgroundColor: Colors.red,
-                      duration: Duration(seconds: 4),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(radiusMedium),
-                      ),
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-            ),
-            child: Text(
-              'Send',
-              style: bodyBold.copyWith(color: white),
-            ),
-          ),
-        ],
-      );
-    },
-  ).then((_) => messageController.dispose());
-}
+  // REMOVED the old _handleCall and _handleMessage methods
+  // They are now handled by the separate files
 
   @override
   Widget build(BuildContext context) {
@@ -350,6 +156,7 @@ void _showMessageDialog(PatientModel patient) {
     return RefreshIndicator(
       onRefresh: _refreshPatients,
       child: SingleChildScrollView(
+        controller: widget.scrollController, 
         physics: AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.only(
           left: width * 0.05,
@@ -859,7 +666,7 @@ void _showMessageDialog(PatientModel patient) {
                 Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
                 SizedBox(height: spacingMedium),
                 
-                // Quick Actions
+                // Quick Actions - UPDATED to use the new functions
                 Row(
                   children: [
                     Expanded(
@@ -867,7 +674,7 @@ void _showMessageDialog(PatientModel patient) {
                         icon: Icons.phone_rounded,
                         label: 'Call',
                         color: Colors.green,
-                        onTap: () => _handleCall(patient),
+                        onTap: () => callPatient(context, patientName: patient.name), // Using the new call function
                       ),
                     ),
                     SizedBox(width: spacingSmall),
@@ -877,7 +684,7 @@ void _showMessageDialog(PatientModel patient) {
                         label: 'Message',
                         color: primary,
                         isOutlined: true,
-                        onTap: () => _handleMessage(patient),
+                        onTap: () => messagePatient(context, patientName: patient.name), // Using the new message function
                       ),
                     ),
                   ],
@@ -941,20 +748,10 @@ void _showMessageDialog(PatientModel patient) {
       height: 64,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: hasProfileImage ? null : primaryGradient,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? primary.withOpacity(0.3) 
-              : Colors.white,
-          width: 2,
+          color: Colors.black,
+          width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withOpacity(0.2),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
       ),
       child: ClipOval(
         child: hasProfileImage
@@ -963,7 +760,16 @@ void _showMessageDialog(PatientModel patient) {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    decoration: BoxDecoration(gradient: primaryGradient),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF9333EA), // Purple
+                          Color(0xFF7C3AED), // Darker purple
+                        ],
+                      ),
+                    ),
                     child: Icon(
                       Icons.person_rounded,
                       color: white,
@@ -974,7 +780,16 @@ void _showMessageDialog(PatientModel patient) {
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return Container(
-                    decoration: BoxDecoration(gradient: primaryGradient),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF9333EA), // Purple
+                          Color(0xFF7C3AED), // Darker purple
+                        ],
+                      ),
+                    ),
                     child: Center(
                       child: CircularProgressIndicator(
                         value: loadingProgress.expectedTotalBytes != null
@@ -988,10 +803,22 @@ void _showMessageDialog(PatientModel patient) {
                   );
                 },
               )
-            : Icon(
-                Icons.person_rounded,
-                color: white,
-                size: 32,
+            : Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFF9333EA), // Purple
+                      Color(0xFF7C3AED), // Darker purple
+                    ],
+                  ),
+                ),
+                child: Icon(
+                  Icons.person_rounded,
+                  color: white,
+                  size: 32,
+                ),
               ),
       ),
     );
