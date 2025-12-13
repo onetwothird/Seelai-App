@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:seelai_app/firebase/mswd/mswd_call_service.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -12,7 +13,7 @@ class UserProfileScreen extends StatefulWidget {
   final ScrollController? scrollController;
   final VoidCallback onBackPressed;
   final VoidCallback? onDataChanged; 
-
+  final VoidCallback? onViewLocation; 
   const UserProfileScreen({
     super.key,
     required this.isDarkMode,
@@ -21,6 +22,7 @@ class UserProfileScreen extends StatefulWidget {
     required this.onBackPressed,
     this.scrollController,
     this.onDataChanged,
+    this.onViewLocation, 
   });
 
   @override
@@ -37,8 +39,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.initState();
     _loadFullUserData();
   }
-
-
 
   Future<void> _loadFullUserData() async {
     try {
@@ -73,6 +73,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  Future<void> _handleCallUser() async {
+    await MswdCallService.call(
+      context: context,
+      user: _fullUserData,
+      isDarkMode: widget.isDarkMode,
+      theme: widget.theme,
+    );
   }
 
   @override
@@ -854,46 +863,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             'Call User',
             Icons.call_rounded,
             primary,
-            () {},
+            _handleCallUser,
           ),
-          SizedBox(height: spacingMedium),
-          _buildActionButton(
-            'View Location',
-            Icons.location_on_rounded,
-            accent,
-            () {},
-          ),
-          SizedBox(height: spacingMedium),
-          _buildActionButton(
-            'Suspend Account',
-            Icons.block_rounded,
-            Colors.red,
-            () {},
-            outlined: true,
-          ),
+         SizedBox(height: spacingMedium),
+        _buildActionButton(
+          'View Location',
+          Icons.location_on_rounded,
+          accent,
+          () {
+            // REPLACE THE EMPTY FUNCTION WITH THIS:
+            if (widget.onViewLocation != null) {
+              widget.onViewLocation!();
+            }
+          },
+        ),
         ] else ...[
           _buildActionButton(
-            'View Performance',
-            Icons.analytics_rounded,
+            'Call Caretaker',
+            Icons.call_rounded,
             primary,
-            () {},
+            _handleCallUser,
           ),
-          SizedBox(height: spacingMedium),
-          _buildActionButton(
-            'Message Caretaker',
-            Icons.message_rounded,
-            accent,
-            () {},
-          ),
-        ],
-        SizedBox(height: spacingMedium),
+           SizedBox(height: spacingMedium),
         _buildActionButton(
-          'More Options',
-          Icons.more_horiz_rounded,
-          Colors.grey,
-          () {},
-          outlined: true,
+          'View Location',
+          Icons.location_on_rounded,
+          accent,
+          () {
+            // REPLACE THE EMPTY FUNCTION WITH THIS:
+            if (widget.onViewLocation != null) {
+              widget.onViewLocation!();
+            }
+          },
         ),
+        ],
       ],
     );
   }
@@ -948,4 +951,3 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 }
-
