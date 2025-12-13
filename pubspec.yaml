@@ -54,6 +54,7 @@ flutter:
     - assets/face_model/labels.txt
     - assets/face_model/face.tflite
     - assets/object_model/object.tflite
+    - assets/face_model/final_face.tflite
 
 flutter_launcher_icons:
   android: true

@@ -190,8 +190,12 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-        );
-        break;
+        onNavigateToLocation: () { // ADD THIS CALLBACK
+      // Switch to location tracking tab
+          _onNavItemTapped(3);
+        },
+      );
+      break;
       case 3:
       content = MswdLocationTrackingScreen(
         isDarkMode: _isDarkMode,

@@ -11,6 +11,7 @@ class UsersContent extends StatefulWidget {
   final dynamic theme;
   final Map<String, dynamic> userData;
   final ScrollController? scrollController;
+  final VoidCallback? onNavigateToLocation; 
 
   const UsersContent({
     super.key,
@@ -18,6 +19,7 @@ class UsersContent extends StatefulWidget {
     required this.theme,
     required this.userData,
     this.scrollController,
+    this.onNavigateToLocation,
   });
 
   @override
@@ -112,17 +114,26 @@ class _UsersContentState extends State<UsersContent>
     return filtered;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_showProfileScreen && _selectedUser != null) {
-      return UserProfileScreen(
-        isDarkMode: widget.isDarkMode,
-        theme: widget.theme,
-        selectedUser: _selectedUser!,
-        scrollController: widget.scrollController,
-        onBackPressed: () => setState(() => _showProfileScreen = false),
-      );
+ @override
+Widget build(BuildContext context) {
+  if (_showProfileScreen && _selectedUser != null) {
+    return UserProfileScreen(
+  isDarkMode: widget.isDarkMode,
+  theme: widget.theme,
+  selectedUser: _selectedUser!,
+  scrollController: widget.scrollController,
+  onBackPressed: () => setState(() => _showProfileScreen = false),
+  onViewLocation: () {
+    setState(() {
+      _showProfileScreen = false;
+    });
+    // Call parent's navigation callback
+    if (widget.onNavigateToLocation != null) {
+      widget.onNavigateToLocation!();
     }
+  },
+);
+  }
 
     final width = MediaQuery.of(context).size.width;
 
