@@ -591,7 +591,6 @@ class BoxPainter extends CustomPainter {
       final box = recognition['box'];
       
       if (box == null || box.length < 4) continue;
-
       // YOLO coordinates are in camera space
       double x = box[0].toDouble();
       double y = box[1].toDouble();
