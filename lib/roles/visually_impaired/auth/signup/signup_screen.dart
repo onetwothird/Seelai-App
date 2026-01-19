@@ -47,13 +47,13 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
   final List<String> _sexOptions = ['Male', 'Female'];
   final List<String> _disabilityTypes = [
-    'Visual Impairment',
-    'Hearing Impairment',
-    'Physical Disability',
-    'Intellectual Disability',
-    'Multiple Disabilities',
-    'Other',
-  ];
+  'Category 1: Moderate (20/70 – 20/200)',
+  'Category 2: Severe (20/200 – 20/400)',
+  'Category 3: Profound (< 20/400 or visual field ≤ 10°)',
+  'Category 4: Near Total (counting fingers ≤ 1m, light perception)',
+  'Category 5: Total (no light perception)',
+];
+
 
   @override
   void initState() {
