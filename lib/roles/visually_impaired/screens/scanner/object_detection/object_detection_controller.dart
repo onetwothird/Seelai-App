@@ -38,11 +38,11 @@ class ObjectDetectionController {
   
   // Detection tracking
   String lastDetectedObjects = '';
+  DateTime _lastSpeechTime = DateTime.now(); // Controls the "Again and Again" timing
   
   // Brightness monitoring
   int _darkFrameCount = 0;
   int _brightFrameCount = 0;
-  Timer? _brightnessMonitorTimer;
 
   ObjectDetectionController({
     required this.cameraService,
@@ -72,7 +72,6 @@ class ObjectDetectionController {
   Future<void> _cleanupResources() async {
     try {
       _flashIndicatorTimer?.cancel();
-      _brightnessMonitorTimer?.cancel();
       
       await _flutterTts.stop();
       await turnOffFlash();
@@ -138,7 +137,7 @@ class ObjectDetectionController {
   void _announceMode() {
     Future.delayed(Duration(milliseconds: 300), () {
       if (!isDisposing) {
-        _flutterTts.speak('Object detection mode activated. Point camera at objects.');
+        _flutterTts.speak('Object detection mode activated.');
       }
     });
   }
@@ -178,11 +177,15 @@ class ObjectDetectionController {
       await cameraService.controller!.startImageStream((image) {
         if (!isDetecting && isModelLoaded && !isDisposing) {
           isDetecting = true;
+          
+          // 1. Check brightness FIRST on every frame
+          _checkBrightnessAndManageFlash(image);
+
+          // 2. Run Detection
           detectObjects(image);
         }
       });
       isStreamRunning = true;
-      _startBrightnessMonitoring();
       _notifyStateChanged();
     } catch (e) {
       print('Stream start error: $e');
@@ -199,21 +202,24 @@ class ObjectDetectionController {
     final now = DateTime.now();
 
     try {
+      // UPGRADE 2: High Accuracy Settings
+      // Increased thresholds to 0.60 (60%) or 0.70 (70%) to ensure it matches ONLY your trained model
+      // and ignores random background noise.
       final result = await _vision.yoloOnFrame(
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.4,
-        confThreshold: 0.4,
-        classThreshold: 0.5,
+        confThreshold: 0.6, // Strict confidence (was 0.4)
+        classThreshold: 0.6, // Strict class matching (was 0.5)
       );
 
       if (!isDisposing) {
-        // Filter out low-confidence detections
+        // Double check filter for high confidence
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.4;
+            return confidence >= 0.6; // Only accept > 60%
           }
           return false;
         }).toList();
@@ -231,7 +237,7 @@ class ObjectDetectionController {
         _notifyStateChanged();
 
         // Auto-detect and read objects
-        if (recognitions.isNotEmpty && !isReading) {
+        if (recognitions.isNotEmpty) {
           await _detectAndReadObjects();
         }
       }
@@ -244,7 +250,7 @@ class ObjectDetectionController {
 
   /// Detect and read objects automatically
   Future<void> _detectAndReadObjects() async {
-    if (isDisposing || isReading) return;
+    if (isDisposing) return;
     
     try {
       final detectedObjectsText = recognitions
@@ -252,27 +258,28 @@ class ObjectDetectionController {
           .join(', ');
       
       if (detectedObjectsText.isNotEmpty) {
-        bool isDifferentObjects = (detectedObjectsText.length - lastDetectedObjects.length).abs() > 5 ||
-                                 !detectedObjectsText.contains(lastDetectedObjects.substring(0, lastDetectedObjects.length.clamp(0, 10)));
+        // UPGRADE 3: "Again and Again" Logic
+        // We check if enough time (e.g., 2.5 seconds) has passed since the last speech.
+        // If yes, we speak, even if the object is the same as before.
         
-        if ((isDifferentObjects || lastDetectedObjects.isEmpty) && !isReading) {
+        final timeSinceLastSpeech = DateTime.now().difference(_lastSpeechTime).inMilliseconds;
+        const speechInterval = 2500; // 2.5 seconds delay between repeats
+        
+        if (timeSinceLastSpeech > speechInterval && !isReading) {
+          
           lastDetectedObjects = detectedObjectsText;
           readingCompleted = false;
+          _lastSpeechTime = DateTime.now(); // Reset timer
           
-          // Save to Firebase BEFORE speaking
+          // Save to Firebase (Optional: You might want to limit this if it saves too often)
           await _saveDetectedObjectsToFirebase(recognitions.length);
           
-          // Then speak
+          // Speak
           await _flutterTts.speak('I see $detectedObjectsText');
           
           _notifyStateChanged();
         }
-      } else {
-        if (!isReading) {
-          readingCompleted = true;
-          _notifyStateChanged();
-        }
-      }
+      } 
     } catch (e) {
       print('Read objects error: $e');
     }
@@ -300,44 +307,56 @@ class ObjectDetectionController {
     }
   }
 
-  /// Start monitoring brightness and auto-manage flash
-  void _startBrightnessMonitoring() {
-    _brightnessMonitorTimer = Timer.periodic(Duration(seconds: 2), (timer) async {
-      if (isDisposing) {
-        timer.cancel();
-        return;
-      }
-      
-      if (recognitions.isEmpty || _hasPoorQualityDetections()) {
+  /// UPGRADE 1: Calculate pixel brightness directly from camera stream
+  /// UPGRADE 1: Calculate pixel brightness directly from camera stream
+  void _checkBrightnessAndManageFlash(CameraImage image) {
+    if (isDisposing) return;
+
+    final plane = image.planes[0];
+    final bytes = plane.bytes;
+    int totalBrightness = 0;
+    int sampleCount = 0;
+
+    for (int i = 0; i < bytes.length; i += 500) {
+      totalBrightness += bytes[i];
+      sampleCount++;
+    }
+
+    double averageBrightness = totalBrightness / sampleCount;
+    
+    // Thresholds
+    const int kDarkThreshold = 40;   // Turn ON point
+    const int kBrightThreshold = 150; // Turn OFF point (Higher to ignore flash glare)
+    
+    // Logic to toggle flash with Hysteresis
+    if (!isFlashOn) {
+      // Check if it's getting dark
+      if (averageBrightness < kDarkThreshold) {
         _darkFrameCount++;
         _brightFrameCount = 0;
-        
-        if (_darkFrameCount >= 3 && !isFlashOn) {
-          await turnOnFlash();
-        }
       } else {
+        _darkFrameCount = 0;
+      }
+
+      if (_darkFrameCount > 5) {
+        turnOnFlash();
+        _darkFrameCount = 0;
+      }
+    } else {
+      // Flash is ON: Check if environment is actually bright (Daylight/Indoor Lights)
+      if (averageBrightness > kBrightThreshold) {
         _brightFrameCount++;
         _darkFrameCount = 0;
-        
-        if (_brightFrameCount >= 3 && isFlashOn) {
-          await turnOffFlash();
-        }
+      } else {
+        _brightFrameCount = 0; // Keep flash ON
       }
-    });
-  }
 
-  bool _hasPoorQualityDetections() {
-    if (recognitions.isEmpty) return true;
-    
-    int lowConfidenceCount = 0;
-    for (var detection in recognitions) {
-      double confidence = detection['box'][4] ?? 0.0;
-      if (confidence < 0.4) {
-        lowConfidenceCount++;
+      // Require more frames (10) to be sure before turning off
+      if (_brightFrameCount > 10) {
+        turnOffFlash();
+        _brightFrameCount = 0;
       }
     }
-    
-    return lowConfidenceCount > (recognitions.length / 2);
   }
 
   /// Turn on flash/torch
@@ -352,7 +371,8 @@ class ObjectDetectionController {
         
         _notifyStateChanged();
         
-        _flutterTts.speak('Low light detected. Flashlight turned on.');
+        // Announce light change
+        _flutterTts.speak('Turning on light.');
         
         _flashIndicatorTimer?.cancel();
         _flashIndicatorTimer = Timer(Duration(seconds: 3), () {
