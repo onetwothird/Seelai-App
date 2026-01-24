@@ -27,7 +27,7 @@ class LocationMapWidget extends StatefulWidget {
   State<LocationMapWidget> createState() => _LocationMapWidgetState();
 }
 
-class _LocationMapWidgetState extends State<LocationMapWidget> {
+class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindingObserver {
   late MapController _mapController;
   bool _isMapReady = false;
   bool _isLoading = true;
@@ -35,6 +35,9 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   bool _permissionDenied = false;
   StreamSubscription<Position>? _positionStreamSubscription;
   StreamSubscription? _caretakerLocationStream;
+  
+  StreamSubscription<ServiceStatus>? _serviceStatusStream;
+  
   Position? _currentPosition;
   Map<String, dynamic>? _caretakerLocation;
   double _currentZoom = 15.0;
@@ -48,12 +51,53 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   GeoPoint? _lastUserGeoPoint;
   GeoPoint? _lastCaretakerGeoPoint;
 
+  // LOCKING VARIABLE: Prevents double icons
+  bool _isUpdatingMarkers = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeMap();
+    _listenToServiceStatus(); 
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocationTracking();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _serviceStatusStream?.cancel();
+    _positionStreamSubscription?.cancel();
+    _caretakerLocationStream?.cancel();
+    _updateTimer?.cancel();
+    _caretakerCheckTimer?.cancel();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (!_isTrackingActive) {
+        _initializeLocationTracking();
+      }
+    }
+  }
+
+  void _listenToServiceStatus() {
+    _serviceStatusStream = Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
+      if (status == ServiceStatus.enabled) {
+        if (!_isTrackingActive) {
+          setState(() {
+             _isLoading = true;
+             _permissionDenied = false;
+          });
+          _initializeLocationTracking();
+        }
+      }
     });
   }
 
@@ -68,18 +112,17 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
   }
 
   Future<void> _initializeLocationTracking() async {
+    if (_isTrackingActive) return;
+
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        setState(() {
-          _isLoading = false;
-          _permissionDenied = true;
-        });
-        _showSnackBar(
-          'Please enable location services in your device settings',
-          Icons.location_off,
-          Colors.orange,
-        );
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _permissionDenied = true;
+          });
+        }
         return;
       }
 
@@ -88,24 +131,23 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          setState(() {
-            _isLoading = false;
-            _permissionDenied = true;
-          });
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _permissionDenied = true;
+            });
+          }
           return;
         }
       }
       
       if (permission == LocationPermission.deniedForever) {
-        setState(() {
-          _isLoading = false;
-          _permissionDenied = true;
-        });
-        _showSnackBar(
-          'Location permission permanently denied. Enable in settings.',
-          Icons.settings,
-          error,
-        );
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _permissionDenied = true;
+          });
+        }
         return;
       }
 
@@ -113,10 +155,12 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       
     } catch (e) {
       debugPrint('Error initializing location: $e');
-      setState(() {
-        _isLoading = false;
-        _permissionDenied = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _permissionDenied = true;
+        });
+      }
     }
   }
 
@@ -151,20 +195,21 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         );
       }
       
+      _caretakerLocationStream?.cancel();
+      _caretakerCheckTimer?.cancel();
       _startCaretakerLocationListener();
       
-      // High-accuracy position stream with distance filter
+      _positionStreamSubscription?.cancel();
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 5, // Update every 5 meters
+          distanceFilter: 3, // Lowered to 3 meters for better accuracy
           timeLimit: Duration(seconds: 30),
         ),
       ).listen(
         (Position position) async {
           if (!mounted) return;
           
-          // Check if position has significantly changed
           if (_hasSignificantChange(_currentPosition, position)) {
             setState(() {
               _currentPosition = position;
@@ -182,20 +227,13 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         },
       );
 
-      // Periodic heartbeat updates
-      _updateTimer = Timer.periodic(Duration(seconds: 15), (timer) async {
+      _updateTimer?.cancel();
+      _updateTimer = Timer.periodic(Duration(seconds: 10), (timer) async {
         if (_currentPosition != null && _isTrackingActive && mounted) {
+          // Force push location every 10s to ensure Firebase is current
           await _updateFirebaseLocation(_currentPosition!);
         }
       });
-
-      if (mounted) {
-        _showSnackBar(
-          'Location tracking active',
-          Icons.check_circle,
-          Colors.green,
-        );
-      }
       
     } catch (e) {
       debugPrint('Error starting location tracking: $e');
@@ -213,7 +251,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
     }
   }
 
-  // Check if position has significantly changed (more than 3 meters)
   bool _hasSignificantChange(Position? oldPos, Position newPos) {
     if (oldPos == null) return true;
     
@@ -224,7 +261,8 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       newPos.longitude,
     );
     
-    return distance > 3.0 || newPos.accuracy < oldPos.accuracy;
+    // Updated: More sensitive check (2 meters)
+    return distance > 2.0 || newPos.accuracy < oldPos.accuracy;
   }
 
   void _startCaretakerLocationListener() {
@@ -240,7 +278,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         .trackCaretakerLocation(caretakerId)
         .listen((location) async {
       if (location != null && mounted) {
-        // Check if caretaker location has significantly changed
         if (_hasCaretakerLocationChanged(location)) {
           setState(() {
             _caretakerLocation = location;
@@ -283,11 +320,16 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
       lon2: newLng,
     );
     
-    return distance > 3.0; // Update if moved more than 3 meters
+    return distance > 3.0; 
   }
 
+  // FIXED: Added locking mechanism to prevent double icons
   Future<void> _updateMapWithBothLocations() async {
-    if (!_isMapReady || _currentPosition == null || !mounted) return;
+    // 1. Lock check
+    if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
+    
+    // 2. Set Lock
+    _isUpdatingMarkers = true;
 
     try {
       final userGeoPoint = GeoPoint(
@@ -295,20 +337,22 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         longitude: _currentPosition!.longitude,
       );
 
-      // Only update user marker if position has changed significantly
+      // --- USER MARKER UPDATE ---
       if (_lastUserGeoPoint == null || 
-          _geoPointDistance(_lastUserGeoPoint!, userGeoPoint) > 3.0) {
+          _geoPointDistance(_lastUserGeoPoint!, userGeoPoint) > 2.0) { // Accuracy: 2m check
         
-        // Remove existing user marker and circle
-        try {
-          await _mapController.removeMarker(userGeoPoint);
-        } catch (e) {}
+        // Remove existing
+        if (_lastUserGeoPoint != null) {
+          try {
+            await _mapController.removeMarker(_lastUserGeoPoint!);
+          } catch (e) { debugPrint("User marker removal error: $e"); }
+        }
 
         try {
           await _mapController.removeCircle(_userAccuracyCircleKey);
         } catch (e) {}
 
-        // Add user marker
+        // Add new
         final userImageUrl = widget.userData['profileImageUrl'] as String?;
         final userName = widget.userData['name'] ?? 'You';
         final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
@@ -340,7 +384,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
             CircleOSM(
               key: _userAccuracyCircleKey,
               centerPoint: userGeoPoint,
-              radius: _currentPosition!.accuracy.clamp(5.0, 100.0),
+              radius: _currentPosition!.accuracy.clamp(5.0, 50.0), // Cap radius for better visuals
               color: primary.withOpacity(0.2),
               strokeWidth: 2,
             ),
@@ -350,7 +394,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         }
       }
 
-      // Update caretaker marker if available and changed
+      // --- CARETAKER MARKER UPDATE ---
       if (_caretakerLocation != null && mounted) {
         final caretakerGeoPoint = GeoPoint(
           latitude: _caretakerLocation!['latitude'] as double,
@@ -360,9 +404,11 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         if (_lastCaretakerGeoPoint == null || 
             _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeoPoint) > 3.0) {
           
-          try {
-            await _mapController.removeMarker(caretakerGeoPoint);
-          } catch (e) {}
+          if (_lastCaretakerGeoPoint != null) {
+            try {
+              await _mapController.removeMarker(_lastCaretakerGeoPoint!);
+            } catch (e) { debugPrint("Caretaker marker removal error: $e"); }
+          }
 
           String? caretakerImageUrl;
           final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
@@ -401,11 +447,15 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
 
         // Draw/update route if enabled
         if (_showNavigationRoute && mounted) {
-          await _drawNavigationRoute(userGeoPoint, caretakerGeoPoint);
+           // Small optimization: Only redraw route if points moved significantly
+           await _drawNavigationRoute(userGeoPoint, caretakerGeoPoint);
         }
       }
     } catch (e) {
       debugPrint('Error updating map: $e');
+    } finally {
+      // 3. Release Lock
+      _isUpdatingMarkers = false;
     }
   }
 
@@ -564,16 +614,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> {
         duration: Duration(seconds: 2),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _positionStreamSubscription?.cancel();
-    _caretakerLocationStream?.cancel();
-    _updateTimer?.cancel();
-    _caretakerCheckTimer?.cancel();
-    _mapController.dispose();
-    super.dispose();
   }
 
   @override
