@@ -30,6 +30,14 @@ class FaceDetectionController {
   DateTime? lastFrameTime;
   double fps = 0.0;
   
+  // Flash/brightness related (ADDED)
+  bool isLowLight = false;
+  bool isFlashOn = false;
+  bool showFlashIndicator = false;
+  Timer? _flashIndicatorTimer;
+  int _darkFrameCount = 0;
+  int _brightFrameCount = 0;
+  
   // Detection tracking
   String lastDetectedFaces = '';
   DateTime? lastSpeakTime;
@@ -61,7 +69,10 @@ class FaceDetectionController {
 
   Future<void> _cleanupResources() async {
     try {
+      _flashIndicatorTimer?.cancel();
+
       await _flutterTts.stop();
+      await turnOffFlash();
       
       if (isStreamRunning && 
           cameraService.controller != null &&
@@ -164,6 +175,11 @@ class FaceDetectionController {
       await cameraService.controller!.startImageStream((image) {
         if (!isDetecting && isModelLoaded && !isDisposing) {
           isDetecting = true;
+          
+          // 1. Check brightness FIRST on every frame (ADDED)
+          _checkBrightnessAndManageFlash(image);
+          
+          // 2. Run Detection
           detectFaces(image);
         }
       });
@@ -298,6 +314,8 @@ class FaceDetectionController {
         metadata: {
           'fps': fps.toStringAsFixed(1),
           'deviceInfo': 'mobile_camera',
+          'flashUsed': isFlashOn,
+          'lowLight': isLowLight,
           'detectedNames': recognitions.map((r) => r['tag'] ?? 'unknown').toList(),
         },
       );
@@ -306,17 +324,122 @@ class FaceDetectionController {
     }
   }
 
-  /// Get color for each caretaker
+  /// Get color for each caretaker - UPDATED TO PURPLE ONLY
   Color getColorForPerson(String name) {
-    switch (name.toLowerCase()) {
-      case 'christian':
-        return Colors.blue;
-      case 'nash':
-        return Colors.purple;
-      case 'third':
-        return Colors.green;
-      default:
-        return Colors.orange;
+    // Returning purple for everyone as requested
+    return Colors.purple; 
+  }
+  
+  /// Calculate pixel brightness and manage flash with Hysteresis
+  void _checkBrightnessAndManageFlash(CameraImage image) {
+    if (isDisposing) return;
+
+    // 1. Calculate average luminance
+    final plane = image.planes[0];
+    final bytes = plane.bytes;
+    int totalBrightness = 0;
+    int sampleCount = 0;
+
+    for (int i = 0; i < bytes.length; i += 500) { 
+      totalBrightness += bytes[i];
+      sampleCount++;
+    }
+
+    double averageBrightness = totalBrightness / sampleCount;
+
+    // 2. Define Thresholds
+    // Dark threshold to turn ON (keep this low, e.g., 40)
+    const int kDarkThreshold = 40; 
+    
+    // Bright threshold to turn OFF (Must be HIGH to prevent flicker when flash is on)
+    // If flash is on, we expect the image to be bright (~100+). 
+    // We only want to turn it off if it's VERY bright (e.g., daylight > 150).
+    const int kBrightThreshold = 150; 
+
+    // 3. Logic with Hysteresis
+    if (!isFlashOn) {
+      // CASE A: Flash is OFF. We look for DARKNESS.
+      if (averageBrightness < kDarkThreshold) {
+        _darkFrameCount++;
+        _brightFrameCount = 0; // Reset bright count
+      } else {
+        _darkFrameCount = 0; // Not dark enough
+      }
+
+      // Trigger ON after 5 consistent dark frames
+      if (_darkFrameCount > 5) {
+        turnOnFlash();
+        _darkFrameCount = 0;
+      }
+
+    } else {
+      // CASE B: Flash is ON. We look for BRIGHT ENVIRONMENTS.
+      // We check against the HIGHER threshold (kBrightThreshold) to ignore the flash's own light.
+      if (averageBrightness > kBrightThreshold) {
+        _brightFrameCount++;
+        _darkFrameCount = 0; 
+      } else {
+        _brightFrameCount = 0; // It's still effectively dark (relying on flash), keep it on.
+      }
+
+      // Trigger OFF after 10 consistent bright frames (slower to turn off for stability)
+      if (_brightFrameCount > 10) {
+        turnOffFlash();
+        _brightFrameCount = 0;
+      }
+    }
+  }
+
+  /// Turn on flash/torch
+  Future<void> turnOnFlash() async {
+    try {
+      final controller = cameraService.controller;
+      if (controller != null && !isFlashOn) {
+        await controller.setFlashMode(FlashMode.torch);
+        isFlashOn = true;
+        isLowLight = true;
+        showFlashIndicator = true;
+        
+        _notifyStateChanged();
+        
+        // Announce light change
+        _flutterTts.speak('Turning on light.');
+        
+        _flashIndicatorTimer?.cancel();
+        _flashIndicatorTimer = Timer(Duration(seconds: 3), () {
+          showFlashIndicator = false;
+          _notifyStateChanged();
+        });
+      }
+    } catch (e) {
+      print('Flash on error: $e');
+    }
+  }
+
+  /// Turn off flash/torch
+  Future<void> turnOffFlash() async {
+    try {
+      final controller = cameraService.controller;
+      if (controller != null && isFlashOn) {
+        await controller.setFlashMode(FlashMode.off);
+        isFlashOn = false;
+        isLowLight = false;
+        showFlashIndicator = false;
+        _flashIndicatorTimer?.cancel();
+        _notifyStateChanged();
+      }
+    } catch (e) {
+      print('Flash off error: $e');
+    }
+  }
+
+  /// Toggle flash manually
+  Future<void> toggleFlashManually() async {
+    if (isFlashOn) {
+      await turnOffFlash();
+      _flutterTts.speak('Flashlight turned off.');
+    } else {
+      await turnOnFlash();
     }
   }
 
@@ -330,6 +453,9 @@ class FaceDetectionController {
         isReading: isReading,
         readingCompleted: readingCompleted,
         fps: fps,
+        isFlashOn: isFlashOn,
+        isLowLight: isLowLight,
+        showFlashIndicator: showFlashIndicator,
         lastDetectedFaces: lastDetectedFaces,
       ));
     }
@@ -347,6 +473,9 @@ class FaceDetectionState {
   final bool isReading;
   final bool readingCompleted;
   final double fps;
+  final bool isFlashOn;
+  final bool isLowLight;
+  final bool showFlashIndicator;
   final String lastDetectedFaces;
 
   FaceDetectionState({
@@ -356,6 +485,9 @@ class FaceDetectionState {
     required this.isReading,
     required this.readingCompleted,
     required this.fps,
+    required this.isFlashOn,
+    required this.isLowLight,
+    required this.showFlashIndicator,
     required this.lastDetectedFaces,
   });
 }
