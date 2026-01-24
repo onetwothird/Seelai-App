@@ -544,6 +544,9 @@ class BoundingBoxes extends StatelessWidget {
 // =============================================================================
 // FIXED Box Painter - Accurate coordinates for ALL mobile devices
 // =============================================================================
+// =============================================================================
+// FIXED Box Painter - Corrects XYXY parsing and Aspect Ratio Scaling
+// =============================================================================
 
 class BoxPainter extends CustomPainter {
   final List<Map<String, dynamic>> recognitions;
@@ -563,63 +566,65 @@ class BoxPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
 
-    // Get the actual camera preview size (reported in landscape orientation)
-    final previewSize = cameraController.value.previewSize!;
+    // 1. Get the actual source image dimensions (usually landscape on Android)
+    // We use the raw preview size from the controller.
+    final Size previewSize = cameraController.value.previewSize!;
     
-    // Camera stream dimensions in portrait (swap width/height)
-    final double cameraWidth = previewSize.height;
-    final double cameraHeight = previewSize.width;
+    // 2. Determine the source dimensions relative to the screen orientation.
+    // If the app is locked to portrait, we need to know if the camera feed is rotated.
+    // Standard logic for scaling 'BoxFit.cover' on a Portrait Screen with Landscape Camera:
+    
+    double sourceWidth = previewSize.height; // Swap for Portrait
+    double sourceHeight = previewSize.width; // Swap for Portrait
 
-    // Calculate how camera preview fits on screen
-    final double screenWidth = size.width;
-    final double screenHeight = size.height;
-    
-    // Calculate the scale to fit camera preview to screen (cover mode)
-    final double scaleX = screenWidth / cameraWidth;
-    final double scaleY = screenHeight / cameraHeight;
+    // 3. Calculate Scale to maintain aspect ratio (BoxFit.cover)
+    final double scaleX = size.width / sourceWidth;
+    final double scaleY = size.height / sourceHeight;
     final double scale = scaleX > scaleY ? scaleX : scaleY;
-    
-    // Calculate the actual displayed camera dimensions
-    final double displayWidth = cameraWidth * scale;
-    final double displayHeight = cameraHeight * scale;
-    
-    // Calculate crop offsets (for BoxFit.cover)
-    final double offsetX = (displayWidth - screenWidth) / 2;
-    final double offsetY = (displayHeight - screenHeight) / 2;
+
+    // 4. Calculate the size of the camera feed on the screen
+    final double displayedWidth = sourceWidth * scale;
+    final double displayedHeight = sourceHeight * scale;
+
+    // 5. Calculate offsets to center the camera feed (cropping)
+    final double offsetX = (displayedWidth - size.width) / 2;
+    final double offsetY = (displayedHeight - size.height) / 2;
 
     for (var recognition in recognitions) {
       final box = recognition['box'];
       
       if (box == null || box.length < 4) continue;
-      // YOLO coordinates are in camera space
-      double x = box[0].toDouble();
-      double y = box[1].toDouble();
-      double w = box[2].toDouble();
-      double h = box[3].toDouble();
 
-      // Scale to display size
-      double scaledX = x * scale;
-      double scaledY = y * scale;
+      // --- CRITICAL FIX: Coordinate Conversion ---
+      // YOLO output is [x1, y1, x2, y2, conf]
+      // NOT [x, y, w, h]
+      double x1 = box[0].toDouble();
+      double y1 = box[1].toDouble();
+      double x2 = box[2].toDouble();
+      double y2 = box[3].toDouble();
+      
+      // Calculate width and height from coordinates
+      double w = x2 - x1;
+      double h = y2 - y1;
+
+      // Apply Scale
+      double scaledX = x1 * scale;
+      double scaledY = y1 * scale;
       double scaledW = w * scale;
       double scaledH = h * scale;
 
-      // Apply crop offset
+      // Apply Crop Offset (subtract because we need to move the box "left/up" 
+      // to match the cropped view the user sees)
       double finalX = scaledX - offsetX;
       double finalY = scaledY - offsetY;
 
-      // Only draw if box is visible on screen
-      if (finalX + scaledW > 0 && finalX < screenWidth &&
-          finalY + scaledH > 0 && finalY < screenHeight) {
-        
-        final rect = Rect.fromLTWH(finalX, finalY, scaledW, scaledH);
-        
-        // Draw bounding box
+      // Draw
+      final rect = Rect.fromLTWH(finalX, finalY, scaledW, scaledH);
+      
+      // Safety check: only draw if partially visible
+      if (rect.overlaps(Offset.zero & size)) {
         canvas.drawRect(rect, paint);
-
-        // Draw label
         _drawLabel(canvas, rect, recognition, box);
-        
-        // Draw corner markers
         _drawCornerMarkers(canvas, rect);
       }
     }
@@ -627,6 +632,7 @@ class BoxPainter extends CustomPainter {
 
   void _drawLabel(Canvas canvas, Rect rect, Map<String, dynamic> recognition, List<dynamic> box) {
     final label = recognition['tag'] ?? '';
+    // Confidence is at index 4
     final confidence = box.length > 4 ? (box[4] ?? 0.0) : 0.0;
     final text = '$label ${(confidence * 100).toStringAsFixed(0)}%';
 
@@ -634,13 +640,6 @@ class BoxPainter extends CustomPainter {
       color: Colors.white,
       fontSize: 14,
       fontWeight: FontWeight.bold,
-      shadows: [
-        Shadow(
-          color: Colors.black.withOpacity(0.8),
-          offset: Offset(1, 1),
-          blurRadius: 2,
-        ),
-      ],
     );
 
     final textSpan = TextSpan(text: text, style: textStyle);
@@ -655,27 +654,15 @@ class BoxPainter extends CustomPainter {
     final labelPadding = 8.0;
     final labelWidth = textPainter.width + labelPadding;
     
-    // Position label above box, or inside if would go off-screen
+    // Adjust label position
     double labelTop = rect.top - labelHeight - 2;
-    if (labelTop < 0) {
-      labelTop = rect.top + 2;
-    }
+    if (labelTop < 0) labelTop = rect.top + 2;
 
     final labelRect = Rect.fromLTWH(
-      rect.left.clamp(0, screenSize.width - labelWidth),
+      rect.left,
       labelTop,
       labelWidth,
       labelHeight,
-    );
-    
-    // Draw label background with shadow
-    final shadowPaint = Paint()
-      ..color = Colors.black.withOpacity(0.5)
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2);
-    
-    canvas.drawRect(
-      labelRect.shift(Offset(0, 1)), 
-      shadowPaint
     );
     
     canvas.drawRect(
@@ -683,7 +670,6 @@ class BoxPainter extends CustomPainter {
       Paint()..color = Colors.green.withOpacity(0.9)
     );
 
-    // Draw text
     textPainter.paint(
       canvas, 
       Offset(labelRect.left + (labelPadding / 2), labelTop + 3)
