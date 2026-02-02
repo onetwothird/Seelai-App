@@ -56,7 +56,10 @@ flutter:
     - assets/face_model/face.tflite
     - assets/object_model/seelai-objects.tflite
     - assets/face_model/final_face.tflite
-
+    - assets/images/eye background.jpg
+    - assets/images/partial.png
+    - assets/images/caretaker.png
+    - assets/images/mswd.png
 flutter_launcher_icons:
   android: true
   ios: true
