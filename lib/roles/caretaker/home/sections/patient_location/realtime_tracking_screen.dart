@@ -61,6 +61,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   GeoPoint? _lastPatientGeoPoint;
   GeoPoint? _lastCaretakerGeoPoint;
 
+  // LOCKING VARIABLE: Prevents overlapping map updates (Fixes doubling icons)
+  bool _isUpdatingMarkers = false;
+
   @override
   void initState() {
     super.initState();
@@ -357,27 +360,34 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     }
   }
 
+  // UPDATED METHOD: Using lock to prevent double icons
   Future<void> _updateMapMarkers() async {
-    if (!_isMapReady) return;
+    // 1. Safety check & Lock
+    if (!_isMapReady || _isUpdatingMarkers) return;
+    _isUpdatingMarkers = true;
 
     try {
-      // Update patient marker
+      // --- Update Patient Marker ---
       if (_currentPatientLocation != null && _selectedPatient != null) {
         final patientGeo = GeoPoint(
           latitude: _currentPatientLocation!['latitude'] as double,
           longitude: _currentPatientLocation!['longitude'] as double,
         );
 
-        // Only update if position changed significantly
-        if (_lastPatientGeoPoint == null || 
-            _geoPointDistance(_lastPatientGeoPoint!, patientGeo) > 3.0) {
-          
-          // Remove old marker
-          try {
-            if (_lastPatientGeoPoint != null) {
+        // Check significant change or force update if pulse changed
+        bool shouldUpdate = _lastPatientGeoPoint == null || 
+            _geoPointDistance(_lastPatientGeoPoint!, patientGeo) > 3.0 ||
+            _isTracking; // Always update if tracking (for pulse animation)
+
+        if (shouldUpdate) {
+          // Remove old marker first
+          if (_lastPatientGeoPoint != null) {
+            try {
               await _mapController.removeMarker(_lastPatientGeoPoint!);
+            } catch (e) {
+              debugPrint("Error removing old patient marker: $e");
             }
-          } catch (e) {}
+          }
 
           final patientImageUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
           final patientMarkerBytes = await _createProfileMarker(
@@ -406,6 +416,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
 
             // Add pulse circle only when tracking
             if (_isTracking) {
+              // Note: Ideally remove old circle if library supports it
               await _mapController.drawCircle(
                 CircleOSM(
                   key: 'patient_circle',
@@ -422,23 +433,23 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         }
       }
 
-      // Update caretaker marker
+      // --- Update Caretaker Marker ---
       if (_currentCaretakerLocation != null) {
         final caretakerGeo = GeoPoint(
           latitude: _currentCaretakerLocation!['latitude'] as double,
           longitude: _currentCaretakerLocation!['longitude'] as double,
         );
 
-        // Only update if position changed significantly
         if (_lastCaretakerGeoPoint == null || 
             _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeo) > 3.0) {
           
-          // Remove old marker
-          try {
-            if (_lastCaretakerGeoPoint != null) {
+          if (_lastCaretakerGeoPoint != null) {
+            try {
               await _mapController.removeMarker(_lastCaretakerGeoPoint!);
+            } catch (e) {
+               debugPrint("Error removing old caretaker marker: $e");
             }
-          } catch (e) {}
+          }
 
           final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
           final caretakerName = widget.userData['name'] ?? 'You';
@@ -473,11 +484,17 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
 
       // Update route if tracking
       if (_isTracking && _lastPatientGeoPoint != null && _lastCaretakerGeoPoint != null) {
-        await _drawRoute();
+        // Prevent frequent route redraws
+        if (!_isLoadingRoute) {
+             await _drawRoute();
+        }
       }
 
     } catch (e) {
       debugPrint('Error updating markers: $e');
+    } finally {
+      // Release lock
+      _isUpdatingMarkers = false;
     }
   }
 
@@ -572,6 +589,10 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       
       if (_isMapReady) {
         await _mapController.clearAllRoads();
+        // Force update to remove pulse
+        setState(() {
+             _isPulseExpanded = false;
+        });
         await _updateMapMarkers();
       }
       
