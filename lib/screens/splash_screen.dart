@@ -66,29 +66,17 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFFFAF5FF),
-              Color(0xFFFFF1F2),
-              Color(0xFFF0FDFA),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Center(
-            child: Lottie.asset(
-              'assets/icons/Seelai.json',
-              width: 400,
-              height: 400,
-              fit: BoxFit.contain,
-              repeat: true,
-              animate: true,
-            ),
+      backgroundColor: Colors.white, // CHANGED: Background is now White Only
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Center(
+          child: Lottie.asset(
+            'assets/icons/Seelai.json',
+            width: 400,
+            height: 400,
+            fit: BoxFit.contain,
+            repeat: true,
+            animate: true,
           ),
         ),
       ),
