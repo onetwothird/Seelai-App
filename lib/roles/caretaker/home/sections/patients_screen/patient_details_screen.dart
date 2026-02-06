@@ -8,6 +8,10 @@ import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:intl/intl.dart';
 
+// Import communication functions
+import 'call_patients.dart';
+import 'message_patients.dart';
+
 class PatientDetailsScreen extends StatefulWidget {
   final PatientModel patient;
   final bool isDarkMode;
@@ -41,15 +45,15 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         widget.patient.id,
         'visually_impaired',
       );
-      setState(() {
-        _fullPatientData = data;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _fullPatientData = data;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint('Error loading patient data: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -59,217 +63,392 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     super.dispose();
   }
 
-  Color get _cardColor => widget.isDarkMode ? Color(0xFF1A1F3A) : white;
-  Color get _bgColor => widget.isDarkMode ? Color(0xFF0A0E27) : backgroundPrimary;
-  Color get _textColor => widget.isDarkMode ? white : black;
-  Color get _subtextColor => widget.isDarkMode ? Color(0xFFB0B8D4) : grey;
+  // ==================== UI BUILDER ====================
 
   @override
   Widget build(BuildContext context) {
+    // Theme Colors
+    final bgColor = widget.isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
+    final cardColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white;
+    final textColor = widget.isDarkMode ? Colors.white : Colors.black87;
+    final subColor = widget.isDarkMode ? const Color(0xFFB0B8D4) : Colors.grey[600];
+
     return Scaffold(
-      backgroundColor: _bgColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: _bgColor,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: _textColor),
-          onPressed: () => Navigator.pop(context),
+        centerTitle: true,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: cardColor,
+            shape: BoxShape.circle,
+            boxShadow: widget.isDarkMode ? [] : [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+            ],
+          ),
+          child: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: textColor, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         title: Text(
-          'Patient Details',
-          style: h3.copyWith(
-            fontSize: 18,
-            color: _textColor,
-            fontWeight: FontWeight.w700,
+          'Patient Profile',
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
           ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, color: _textColor),
-            onPressed: _loadFullPatientData,
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: BoxDecoration(
+              color: cardColor,
+              shape: BoxShape.circle,
+              boxShadow: widget.isDarkMode ? [] : [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+              ],
+            ),
+            child: IconButton(
+              icon: Icon(Icons.refresh_rounded, color: textColor, size: 20),
+              onPressed: _loadFullPatientData,
+            ),
           ),
         ],
       ),
-      body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(primary),
-              ),
-            )
-          : SingleChildScrollView(
-              controller: _scrollController,
-              physics: ClampingScrollPhysics(),
-              padding: EdgeInsets.only(bottom: 100),
-              child: Column(
-                children: [
-                  _buildProfileHeader(),
-                  SizedBox(height: spacingLarge),
-                  Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: MediaQuery.of(context).size.width * 0.05,
+      body: Column(
+        children: [
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: primary))
+                : SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+                    child: Column(
+                      children: [
+                        // 1. Header Profile
+                        _buildProfileHeader(textColor, subColor!),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // 2. Quick Info Row (Age/Gender)
+                        _buildQuickInfoRow(cardColor, textColor),
+
+                        const SizedBox(height: 20),
+
+                        // 3. Medical Information Card
+                        _buildSectionCard(
+                          title: 'Medical Information',
+                          icon: Icons.medical_services_rounded,
+                          color: Colors.redAccent,
+                          children: [
+                            _buildInfoRow('Disability', widget.patient.disabilityType, textColor),
+                            _buildInfoRow('Diagnosis', _fullPatientData?['diagnosis'] ?? 'Not specified', textColor),
+                          ],
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // 4. Contact Information Card
+                        _buildSectionCard(
+                          title: 'Contact Details',
+                          icon: Icons.contact_phone_rounded,
+                          color: Colors.blueAccent,
+                          children: [
+                            _buildInfoRow('Phone', widget.patient.contactNumber ?? 'N/A', textColor),
+                            _buildInfoRow('Address', widget.patient.address ?? 'N/A', textColor, isMultiline: true),
+                            _buildInfoRow('Email', _fullPatientData?['email'] ?? 'N/A', textColor),
+                          ],
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // 5. Account/System Info
+                        _buildSectionCard(
+                          title: 'Account Info',
+                          icon: Icons.shield_rounded,
+                          color: Colors.orangeAccent,
+                          children: [
+                            _buildInfoRow('ID Number', _fullPatientData?['idNumber'] ?? 'N/A', textColor),
+                            _buildInfoRow('Last Active', _formatLastActive(widget.patient.lastActive), textColor),
+                            _buildInfoRow('Member Since', _formatDate(_fullPatientData?['createdAt']), textColor),
+                          ],
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
+                      ],
                     ),
-                    child: _buildProfileContent(),
                   ),
-                ],
-              ),
-            ),
+          ),
+          
+          // 6. Bottom Action Bar
+          if (!_isLoading) _buildBottomActionBar(cardColor, textColor),
+        ],
+      ),
     );
   }
 
-  Widget _buildProfileHeader() {
-    final isActive = _fullPatientData?['isActive'] ?? true;
-    final statusColor = isActive ? Colors.green : Colors.orange;
-    final profileImageUrl = widget.patient.profileImageUrl;
-    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
+  // ==================== WIDGETS ====================
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(vertical: spacingXLarge),
-      decoration: BoxDecoration(
-        color: _cardColor,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(radiusXLarge),
-          bottomRight: Radius.circular(radiusXLarge),
-        ),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: primary.withOpacity(0.1),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
+  Widget _buildProfileHeader(Color textColor, Color subColor) {
+    final profileImageUrl = widget.patient.profileImageUrl;
+    final isActive = _fullPatientData?['isActive'] ?? true;
+
+    return Column(
+      children: [
+        Stack(
+          children: [
+            Hero(
+              tag: 'patient_avatar_${widget.patient.id}',
+              child: Material(
+                color: Colors.transparent,
+                type: MaterialType.transparency,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black, width: 1),
+                    // Match the background color from the list screen
+                    color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                    // Note: Shadows can sometimes cause lag in Hero, but usually fine
+                    boxShadow: [
+                      BoxShadow(
+                        color: primary.withOpacity(0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: profileImageUrl != null && profileImageUrl.isNotEmpty
+                        ? Image.network(
+                            profileImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _buildDefaultAvatar(),
+                          )
+                        : _buildDefaultAvatar(),
+                  ),
                 ),
-              ]
-            : softShadow,
+              ),
+            ),
+            // Status Indicator (Outside Hero so it doesn't fly with the image)
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isActive ? Colors.green : Colors.grey,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white, 
+                    width: 3
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          widget.patient.name,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+            letterSpacing: 0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: (isActive ? Colors.green : Colors.grey).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            isActive ? 'Active Status' : 'Inactive',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isActive ? Colors.green : Colors.grey,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDefaultAvatar() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF9333EA), Color(0xFF7C3AED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          widget.patient.name.isNotEmpty ? widget.patient.name[0].toUpperCase() : '?',
+          style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickInfoRow(Color cardColor, Color textColor) {
+    final sex = _fullPatientData?['sex'] ?? 'N/A';
+    
+    return Row(
+      children: [
+        Expanded(
+          child: _buildQuickInfoTile(
+            label: 'Age',
+            value: '${widget.patient.age} yrs',
+            icon: Icons.cake_rounded,
+            color: Colors.orange,
+            cardColor: cardColor,
+            textColor: textColor,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildQuickInfoTile(
+            label: 'Gender',
+            value: sex,
+            icon: Icons.wc_rounded,
+            color: Colors.blue,
+            cardColor: cardColor,
+            textColor: textColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickInfoTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required Color cardColor,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         children: [
-          // Profile Picture
-          Stack(
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+          ),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: widget.isDarkMode ? Colors.white60 : Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<Widget> children,
+    required Color cardColor,
+    required Color textColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
               Container(
-                width: 120,
-                height: 120,
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color.fromARGB(255, 0, 0, 0),
-                      const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
-                    ],
-                  ),
-                  border: Border.all(
-                    color: Colors.black.withOpacity(0.25),
-                    width: 1.2,
-                  ),
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: ClipOval(
-                  child: hasProfileImage
-                      ? Image.network(
-                          profileImageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [primary, primary.withOpacity(0.7)],
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  widget.patient.name.substring(0, 1).toUpperCase(),
-                                  style: h1.copyWith(
-                                    color: white,
-                                    fontSize: 52,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [primary, primary.withOpacity(0.7)],
-                                ),
-                              ),
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(white),
-                                ),
-                              ),
-                            );
-                          },
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [primary, primary.withOpacity(0.7)],
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              widget.patient.name.substring(0, 1).toUpperCase(),
-                              style: h1.copyWith(
-                                color: white,
-                                fontSize: 52,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
+                child: Icon(icon, size: 18, color: color),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
                 ),
               ),
-              if (widget.patient.isOnline)
-                Positioned(
-                  right: 5,
-                  bottom: 5,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: _cardColor, width: 3),
-                    ),
-                  ),
-                ),
             ],
           ),
-          SizedBox(height: spacingMedium + 4),
-          Text(
-            widget.patient.name,
-            style: h2.copyWith(
-              fontSize: 22,
-              color: _textColor,
-              fontWeight: FontWeight.w800,
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, Color textColor, {bool isMultiline = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: widget.isDarkMode ? Colors.white54 : Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
-          SizedBox(height: spacingSmall),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: spacingMedium,
-              vertical: 6,
-            ),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(radiusMedium),
-            ),
+          Expanded(
             child: Text(
-              isActive ? 'Active' : 'Inactive',
-              style: caption.copyWith(
-                fontSize: 12,
-                color: statusColor,
-                fontWeight: FontWeight.w700,
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
               ),
+              textAlign: TextAlign.right,
+              maxLines: isMultiline ? 3 : 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -277,227 +456,56 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     );
   }
 
-  Widget _buildProfileContent() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildPersonalInfoSection(),
-        SizedBox(height: spacingLarge),
-        _buildContactSection(),
-        SizedBox(height: spacingLarge),
-        _buildMedicalSection(),
-        SizedBox(height: spacingLarge),
-        _buildAccountSection(),
-        SizedBox(height: spacingLarge),
-      ],
-    );
-  }
-
-  Widget _buildPersonalInfoSection() {
-    final birthdateStr = _fullPatientData?['birthdate'] as String?;
-    final idNumber = _fullPatientData?['idNumber'] as String? ?? 'Not provided';
-    final sex = _fullPatientData?['sex'] as String? ?? 'Not specified';
-    final email = _fullPatientData?['email'] as String? ?? 'Not provided';
-    
-    String formattedBirthdate = 'Not provided';
-    if (birthdateStr != null) {
-      try {
-        final date = DateTime.parse(birthdateStr);
-        formattedBirthdate = DateFormat('MMMM dd, yyyy').format(date);
-      } catch (e) {
-        formattedBirthdate = birthdateStr;
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Personal Information',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: _textColor,
-            fontWeight: FontWeight.w700,
+  Widget _buildBottomActionBar(Color cardColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
-        ),
-        SizedBox(height: spacingMedium),
-        _buildInfoCard('Age', '${widget.patient.age} years old', Icons.cake_rounded),
-        _buildInfoCard('Sex', sex, Icons.wc_rounded),
-        _buildInfoCard('Birthdate', formattedBirthdate, Icons.calendar_today_rounded),
-        _buildInfoCard('ID Number', idNumber, Icons.badge_rounded),
-        _buildInfoCard('Email', email, Icons.email_rounded),
-      ],
-    );
-  }
-
-  Widget _buildContactSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Contact Information',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: _textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        _buildInfoCard(
-          'Phone Number',
-          widget.patient.contactNumber ?? 'Not provided',
-          Icons.phone_rounded,
-        ),
-        _buildInfoCard(
-          'Address',
-          widget.patient.address ?? 'Not provided',
-          Icons.home_rounded,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMedicalSection() {
-    final diagnosis = _fullPatientData?['diagnosis'] as String? ?? 'Not provided';
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Medical Information',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: _textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        _buildInfoCard(
-          'Disability Type',
-          widget.patient.disabilityType,
-          Icons.visibility_off_rounded,
-        ),
-        _buildInfoCard(
-          'Diagnosis',
-          diagnosis,
-          Icons.medical_services_rounded,
-        ),
-        _buildInfoCard(
-          'Last Active',
-          widget.patient.lastActive != null
-              ? _formatLastActive(widget.patient.lastActive!)
-              : 'Never',
-          Icons.access_time_rounded,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAccountSection() {
-    final createdAtTimestamp = _fullPatientData?['createdAt'] as int?;
-    final updatedAtTimestamp = _fullPatientData?['updatedAt'] as int?;
-    final isActive = _fullPatientData?['isActive'] as bool? ?? true;
-    
-    String formattedCreatedAt = 'Not available';
-    if (createdAtTimestamp != null) {
-      final date = DateTime.fromMillisecondsSinceEpoch(createdAtTimestamp);
-      formattedCreatedAt = DateFormat('MMM dd, yyyy HH:mm').format(date);
-    }
-    
-    String formattedUpdatedAt = 'Not available';
-    if (updatedAtTimestamp != null) {
-      final date = DateTime.fromMillisecondsSinceEpoch(updatedAtTimestamp);
-      formattedUpdatedAt = DateFormat('MMM dd, yyyy HH:mm').format(date);
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Account Information',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: _textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        _buildInfoCard(
-          'Account Status',
-          isActive ? 'Active' : 'Deactivated',
-          Icons.verified_user_rounded,
-          color: isActive ? Colors.green : Colors.red,
-        ),
-        _buildInfoCard(
-          'Account Created',
-          formattedCreatedAt,
-          Icons.person_add_rounded,
-        ),
-        _buildInfoCard(
-          'Last Updated',
-          formattedUpdatedAt,
-          Icons.update_rounded,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildInfoCard(String label, String value, IconData icon, {Color? color}) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: spacingMedium),
-      child: Container(
-        padding: EdgeInsets.all(spacingMedium),
-        decoration: BoxDecoration(
-          color: _cardColor,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          border: Border.all(
-            color: widget.isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.06),
-          ),
-        ),
+        ],
+      ),
+      child: SafeArea(
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: (color ?? primary).withOpacity(0.1),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: color ?? primary,
+            Expanded(
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: () => callPatient(context, patientName: widget.patient.name),
+                  icon: const Icon(Icons.phone_rounded),
+                  label: const Text("Call"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
-            SizedBox(width: spacingMedium),
+            const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: caption.copyWith(
-                      fontSize: 11,
-                      color: _subtextColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: () => messagePatient(context, patientName: widget.patient.name),
+                  icon: const Icon(Icons.message_rounded),
+                  label: const Text("Message"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: body.copyWith(
-                      fontSize: 13,
-                      color: _textColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -506,17 +514,26 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     );
   }
 
-  String _formatLastActive(DateTime lastActive) {
-    final difference = DateTime.now().difference(lastActive);
+  // ==================== HELPERS ====================
 
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} min ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} hour${difference.inHours > 1 ? 's' : ''} ago';
-    } else {
-      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+  String _formatLastActive(DateTime? lastActive) {
+    if (lastActive == null) return 'Never';
+    final diff = DateTime.now().difference(lastActive);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return 'Unknown';
+    try {
+      final dt = date is int 
+          ? DateTime.fromMillisecondsSinceEpoch(date)
+          : DateTime.parse(date.toString());
+      return DateFormat('MMM dd, yyyy').format(dt);
+    } catch (e) {
+      return 'Unknown';
     }
   }
 }
