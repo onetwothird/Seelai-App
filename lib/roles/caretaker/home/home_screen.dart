@@ -1,5 +1,10 @@
 // File: lib/roles/caretaker/home/home_screen.dart
+// ignore_for_file: deprecated_member_use
+
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; 
+import 'package:geolocator/geolocator.dart'; 
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/home_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -8,8 +13,10 @@ import 'package:seelai_app/roles/caretaker/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patients_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/requests_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/profile_content.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
-import 'package:seelai_app/roles/caretaker/services/location_service.dart';
+import 'package:seelai_app/roles/caretaker/services/location_service.dart'; 
+import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 
 class CaretakerHomeScreen extends StatefulWidget {
@@ -36,11 +43,15 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   int _selectedIndex = 0;
   int _pendingRequestsCount = 0;
   
+  // Logic State
+  StreamSubscription<List<RequestModel>>? _requestsSubscription;
+  int? _lastPendingCount; 
+
   // Animation
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  // Scroll detection for bottom nav
+  // Scroll detection
   final ScrollController _scrollController = ScrollController();
   bool _isNavVisible = true;
   double _lastScrollPosition = 0;
@@ -51,16 +62,117 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     _initializeServices();
     _initializeAnimations();
     _initializeScrollListener();
-    _loadPendingRequests();
+    _startLocationTracking();
+    _setupGlobalRequestStream();
   }
 
   void _initializeServices() {
     _notificationService = NotificationService();
     _locationService = LocationService();
     _requestService = RequestService();
-    
-    // Listen for new requests
-    _requestService.addListener(_onNewRequest);
+  }
+
+  // ==================== FIX: ROBUST ID HANDLING ====================
+  void _setupGlobalRequestStream() {
+    // 1. Get Nullable ID
+    String? rawId = FirebaseAuth.instance.currentUser?.uid;
+    rawId ??= widget.userData['userId'] ?? widget.userData['uid'];
+
+    // 2. Check and Return
+    if (rawId == null || rawId.isEmpty) {
+      debugPrint("Error: No User ID found for Request Stream.");
+      return;
+    }
+
+    // 3. Create Non-Nullable 'Safe' ID
+    final String userId = rawId;
+
+    debugPrint("Home Screen: Monitoring requests for $userId");
+
+    _requestsSubscription = _requestService.streamRequests(userId).listen((requests) {
+      if (mounted) {
+        final pendingCount = requests
+            .where((req) => req.status == RequestStatus.pending)
+            .length;
+
+        setState(() {
+          _pendingRequestsCount = pendingCount;
+        });
+
+        if (_lastPendingCount != null && pendingCount > _lastPendingCount!) {
+          _notificationService.showNotification(
+            'New Request',
+            'A patient needs your assistance',
+          );
+        }
+
+        _lastPendingCount = pendingCount;
+      }
+    });
+  }
+  // ================================================================
+
+  Future<void> _startLocationTracking() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      
+      if (permission == LocationPermission.deniedForever) return;
+
+      // 1. Get Nullable ID
+      String? rawId = FirebaseAuth.instance.currentUser?.uid;
+      rawId ??= widget.userData['userId'] ?? widget.userData['uid'];
+      
+      // 2. Check
+      if (rawId == null) return;
+
+      // 3. Create Non-Nullable 'Safe' ID
+      // This fixes the "String? can't be assigned to String" error
+      final String userId = rawId;
+
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          // ignore: duplicate_ignore
+          // ignore: deprecated_member_use
+          desiredAccuracy: LocationAccuracy.high
+        );
+        
+        await locationTrackingService.updateCaretakerLocation(
+          caretakerId: userId, // Now safe to use
+          latitude: position.latitude,
+          longitude: position.longitude,
+          accuracy: position.accuracy,
+          speed: position.speed,
+          heading: position.heading,
+          altitude: position.altitude,
+        );
+      } catch (e) {
+        debugPrint("Error sending initial location: $e");
+      }
+
+      Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 10, 
+        ),
+      ).listen((Position position) {
+        locationTrackingService.updateCaretakerLocation(
+          caretakerId: userId, // Now safe to use inside closure
+          latitude: position.latitude,
+          longitude: position.longitude,
+          accuracy: position.accuracy,
+          speed: position.speed,
+          heading: position.heading,
+          altitude: position.altitude,
+        );
+      });
+      
+    } catch (e) {
+      debugPrint("Location tracking error: $e");
+    }
   }
 
   void _initializeAnimations() {
@@ -105,26 +217,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     }
   }
 
-  Future<void> _loadPendingRequests() async {
-    final requests = await _requestService.getPendingRequests(widget.userData['uid'] ?? '');
-    setState(() {
-      _pendingRequestsCount = requests.length;
-      if (_pendingRequestsCount > 0) {
-      }
-    });
-  }
-
-  void _onNewRequest(dynamic request) {
-    setState(() {
-      _pendingRequestsCount++;
-    });
-    
-    _notificationService.showNotification(
-      'New Request',
-      'A patient needs your assistance',
-    );
-  }
-
   void _toggleDarkMode() {
     setState(() {
       _isDarkMode = !_isDarkMode;
@@ -132,6 +224,8 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   }
 
   void _onNavItemTapped(int index) {
+    if (index == _selectedIndex) return;
+    
     _animationController.reset();
     setState(() {
       _selectedIndex = index;
@@ -140,16 +234,65 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   }
 
   void _updateNotification(String message) {
-    setState(() {
-    });
+    setState(() {});
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     _scrollController.dispose();
-    _requestService.removeListener(_onNewRequest);
+    _requestsSubscription?.cancel();
     super.dispose();
+  }
+
+  // --- NEW: Handle Back Button Press ---
+  Future<bool> _onWillPop() async {
+    // If not on Home tab (index 0), go back to Home tab first
+    if (_selectedIndex != 0) {
+      setState(() {
+        _selectedIndex = 0;
+        _animationController.reset();
+        _animationController.forward();
+      });
+      return false; // Prevent exit
+    }
+
+    // If on Home tab, show Exit Confirmation Dialog
+    return (await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            // Use PURPLE Theme color
+            Icon(Icons.logout_rounded, color: const Color(0xFF8B5CF6)), 
+            SizedBox(width: 10),
+            Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to exit and log out?',
+          style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop(true);
+              // Optional: Add logic here if you want to explicitly sign out before closing
+              // await authService.signOut(); 
+            },
+            // Use PURPLE Theme color
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+            child: Text('Exit', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    )) ?? false;
   }
 
   @override
@@ -162,64 +305,66 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    return Scaffold(
-      extendBody: true,
-      body: Container(
-        decoration: BoxDecoration(gradient: theme.backgroundGradient),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              HeaderSection(
-                caretakerName: caretakerName,
-                profileImageUrl: widget.userData['profileImageUrl'] as String?, // ← FETCH PROFILE PICTURE
-                isDarkMode: _isDarkMode,
-                pendingRequestsCount: _pendingRequestsCount,
-                onToggleDarkMode: _toggleDarkMode,
-                onProfileTap: () {
-                  // Navigate to profile tab when tapped
-                  setState(() {
-                    _selectedIndex = 3; // Profile is at index 3
-                  });
-                },
-                onNotificationTap: () {
-                  // Navigate to requests tab when tapped
-                  setState(() {
-                    _selectedIndex = 2; // Requests is at index 2
-                  });
-                },
-                textColor: theme.textColor,
-                subtextColor: theme.subtextColor,
-              ),
-              
-              Expanded(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: _buildMainContent(
-                    screenWidth,
-                    screenHeight,
-                    theme,
+    // WRAP SCAFFOLD IN WILLPOPSCOPE
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        extendBody: true,
+        body: Container(
+          decoration: BoxDecoration(gradient: theme.backgroundGradient),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                HeaderSection(
+                  caretakerName: caretakerName,
+                  profileImageUrl: widget.userData['profileImageUrl'] as String?, 
+                  isDarkMode: _isDarkMode,
+                  pendingRequestsCount: _pendingRequestsCount,
+                  onToggleDarkMode: _toggleDarkMode,
+                  onProfileTap: () {
+                    setState(() {
+                      _selectedIndex = 3; 
+                    });
+                  },
+                  onNotificationTap: () {
+                    setState(() {
+                      _selectedIndex = 2; 
+                    });
+                  },
+                  textColor: theme.textColor,
+                  subtextColor: theme.subtextColor,
+                ),
+                
+                Expanded(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: _buildMainContent(
+                      screenWidth,
+                      screenHeight,
+                      theme,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: AnimatedSlide(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOutCubic,
-        offset: _isNavVisible ? Offset.zero : Offset(0, 1),
-        child: AnimatedOpacity(
+        bottomNavigationBar: AnimatedSlide(
           duration: Duration(milliseconds: 300),
-          opacity: _isNavVisible ? 1.0 : 0.0,
-          child: CustomBottomNavigation(
-            selectedIndex: _selectedIndex,
-            isDarkMode: _isDarkMode,
-            onItemTapped: _onNavItemTapped,
-            textColor: theme.textColor,
-            subtextColor: theme.subtextColor,
-            pendingRequestsCount: _pendingRequestsCount,
+          curve: Curves.easeInOutCubic,
+          offset: _isNavVisible ? Offset.zero : Offset(0, 1),
+          child: AnimatedOpacity(
+            duration: Duration(milliseconds: 300),
+            opacity: _isNavVisible ? 1.0 : 0.0,
+            child: CustomBottomNavigation(
+              selectedIndex: _selectedIndex,
+              isDarkMode: _isDarkMode,
+              onItemTapped: _onNavItemTapped,
+              textColor: theme.textColor,
+              subtextColor: theme.subtextColor,
+              pendingRequestsCount: _pendingRequestsCount,
+            ),
           ),
         ),
       ),
@@ -243,7 +388,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         );
       
       case 1:
-        // PatientsContent has its own RefreshIndicator and scrolling
         return PatientsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
@@ -253,17 +397,18 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         );
       
       case 2:
-        // RequestsContent has its own RefreshIndicator and scrolling
         return RequestsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           requestService: _requestService,
-          scrollController: _scrollController, // ADD THIS LINE
+          scrollController: _scrollController,
           onRequestCountChange: (count) {
-            setState(() {
-              _pendingRequestsCount = count;
-            });
+            if (_pendingRequestsCount != count) {
+              setState(() {
+                _pendingRequestsCount = count;
+              });
+            }
           },
         );
       
@@ -279,7 +424,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         );
       
       case 4:
-        // Real-time Tracking Screen
         return RealtimeTrackingScreen(
           isDarkMode: _isDarkMode,
           theme: theme,
@@ -322,9 +466,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       backgroundGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        // ignore: deprecated_member_use
-        colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
-        stops: [0.0, 0.5, 1.0],
+        colors: [Colors.white, Colors.white], 
       ),
       textColor: black,
       subtextColor: grey,
