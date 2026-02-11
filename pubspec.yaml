@@ -60,6 +60,10 @@ flutter:
     - assets/images/partial.png
     - assets/images/caretaker.png
     - assets/images/mswd.png
+    - assets/emergency_images/
+    - assets/icons/
+    - assets/icons/light-dark.json
+
 flutter_launcher_icons:
   android: true
   ios: true
