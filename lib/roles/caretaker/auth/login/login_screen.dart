@@ -1,8 +1,9 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+// File: lib/roles/caretaker/auth/login/login_screen.dart
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/caretaker/home/home_screen.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
@@ -19,8 +20,7 @@ class CaretakerLoginScreen extends StatefulWidget {
 }
 
 class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _floatController;
+  late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
@@ -33,31 +33,26 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      duration: Duration(milliseconds: 800),
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
-    _floatController = AnimationController(
-      duration: Duration(milliseconds: 2500),
-      vsync: this,
-    )..repeat(reverse: true);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 0.15),
+      begin: const Offset(0, 0.1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic));
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
 
-    _fadeController.forward();
+    _entryController.forward();
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _floatController.dispose();
+    _entryController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -65,514 +60,279 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final size = MediaQuery.of(context).size;
+    final Color brandColor = primary;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // Background gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFAF5FF),
-                  Color(0xFFFFF1F2),
-                  Color(0xFFF0FDFA),
-                ],
-                stops: [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-
-          // Background decorative images
+          // 1. Top Section: Hero Animation
           Positioned(
-            top: -90,
-            left: -30,
-            child: Opacity(
-              opacity: 0.8,
-              child: Image.asset(
-                'assets/images/bg_shape_3.png',
-                width: 200,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          Positioned(
-            bottom: -60,
-            right: -60,
-            child: Opacity(
-              opacity: 0.8,
-              child: Image.asset(
-                'assets/images/bg_shape_1.png',
-                width: 200,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          // Main content
-          SafeArea(
-            child: SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(height: screenHeight * 0.05),
-
-                        // Back button
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(Icons.arrow_back_ios_rounded),
-                            color: primary,
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        // Header
-                        ShaderMask(
-                          shaderCallback: (bounds) => primaryGradient.createShader(bounds),
-                          child: Text(
-                            "Welcome Back",
-                            style: h1.copyWith(
-                              fontSize: screenWidth * 0.095,
-                              color: white,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1.0,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          "Caretaker Login",
-                          style: bodyBold.copyWith(
-                            fontSize: screenWidth * 0.05,
-                            color: primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: screenHeight * 0.01),
-                        Text(
-                          "Sign in to manage care",
-                          style: body.copyWith(
-                            fontSize: screenWidth * 0.044,
-                            color: grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.05),
-
-                        // Email Field
-                        Container(
-                          decoration: BoxDecoration(
-                            boxShadow: softShadow,
-                            borderRadius: BorderRadius.circular(radiusLarge),
-                          ),
-                          child: TextField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            enabled: !_isLoading,
-                            style: body.copyWith(
-                              fontSize: 16,
-                              color: black,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: InputDecoration(
-                              fillColor: white,
-                              filled: true,
-                              hintText: 'Email address',
-                              hintStyle: body.copyWith(
-                                color: greyLight.withOpacity(0.7),
-                                fontWeight: FontWeight.w400,
-                              ),
-                              prefixIcon: Container(
-                                padding: EdgeInsets.all(14),
-                                child: Icon(
-                                  Icons.email_rounded,
-                                  color: primary,
-                                  size: 24,
-                                ),
-                              ),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 22),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(radiusLarge),
-                                borderSide: BorderSide(color: greyLighter, width: 1.5),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(radiusLarge),
-                                borderSide: BorderSide(color: greyLighter, width: 1.5),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(radiusLarge),
-                                borderSide: BorderSide(color: primary, width: 2.5),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.025),
-
-                        // Password Field
-                        Container(
-                          decoration: BoxDecoration(
-                            boxShadow: softShadow,
-                            borderRadius: BorderRadius.circular(radiusLarge),
-                          ),
-                          child: TextField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            enabled: !_isLoading,
-                            style: body.copyWith(
-                              fontSize: 16,
-                              color: black,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: InputDecoration(
-                              fillColor: white,
-                              filled: true,
-                              hintText: 'Password',
-                              hintStyle: body.copyWith(
-                                color: greyLight.withOpacity(0.7),
-                                fontWeight: FontWeight.w400,
-                              ),
-                              prefixIcon: Container(
-                                padding: EdgeInsets.all(14),
-                                child: Icon(
-                                  Icons.lock_rounded,
-                                  color: primary,
-                                  size: 24,
-                                ),
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_rounded
-                                      : Icons.visibility_rounded,
-                                  color: greyLight,
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 22),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(radiusLarge),
-                                borderSide: BorderSide(color: greyLighter, width: 1.5),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(radiusLarge),
-                                borderSide: BorderSide(color: greyLighter, width: 1.5),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(radiusLarge),
-                                borderSide: BorderSide(color: primary, width: 2.5),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        // Forgot Password
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: _isLoading ? null : () {
-                              _showForgotPasswordDialog();
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            ),
-                            child: Text(
-                              "Forgot password?",
-                              style: bodyBold.copyWith(
-                                fontSize: screenWidth * 0.04,
-                                color: primary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.035),
-
-                        // Login Button
-                        CustomButton(
-                          text: "Sign In",
-                          onPressed: _isLoading ? null : _handleLogin,
-                          isLarge: true,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.035),
-
-                        // Create account text
-                        Center(
-                          child: TextButton(
-                            onPressed: _isLoading ? null : () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => CaretakerSignupScreen(),
-                                ),
-                              );
-                            },
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            child: RichText(
-                              text: TextSpan(
-                                style: body.copyWith(fontSize: screenWidth * 0.042),
-                                children: [
-                                  TextSpan(text: "Don't have an account? "),
-                                  TextSpan(
-                                    text: "Sign Up",
-                                    style: bodyBold.copyWith(
-                                      fontSize: screenWidth * 0.042,
-                                      color: primary,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.06),
-                      ],
-                    ),
-                  ),
+            top: 0, left: 0, right: 0,
+            height: size.height * 0.45,
+            child: SafeArea(
+              child: Center(
+                child: Container(
+                  width: size.width * 0.9,
+                  padding: const EdgeInsets.all(10),
+                  child: Lottie.asset('assets/icons/Seelai.json', fit: BoxFit.contain),
                 ),
               ),
             ),
           ),
 
-          // Loading Overlay
-          if (_isLoading)
-            LoadingOverlay(
-              message: 'Signing In',
-              isVisible: _isLoading,
+          // 2. Back Button
+          Positioned(
+            top: 50, left: 20,
+            child: IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded),
+              color: const Color(0xFF1E293B),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white,
+                padding: const EdgeInsets.all(12),
+                elevation: 0,
+                side: BorderSide(color: Colors.grey.shade200),
+              ),
             ),
+          ),
+
+          // 3. Bottom Section: White Card
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Container(
+                  height: size.height * 0.60,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(40), topRight: Radius.circular(40)),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, offset: const Offset(0, -10))],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Background Texture
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(40), topRight: Radius.circular(40)),
+                          child: Opacity(opacity: 0.08, child: Image.asset('assets/images/eye background.jpg', fit: BoxFit.cover)),
+                        ),
+                      ),
+                      // Content
+                      SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Caretaker Login", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF1E293B), letterSpacing: -0.5)),
+                            const SizedBox(height: 8),
+                            const Text("Sign in to manage and support your patients.", style: TextStyle(fontSize: 16, color: Color(0xFF64748B), fontWeight: FontWeight.w400)),
+                            const SizedBox(height: 32),
+                            _buildTextField(controller: _emailController, hint: "Email address", icon: Icons.email_outlined),
+                            const SizedBox(height: 20),
+                            _buildTextField(controller: _passwordController, hint: "Password", icon: Icons.lock_outline_rounded, isPassword: true),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _isLoading ? null : _showForgotPasswordDialog,
+                                child: Text("Forgot password?", style: TextStyle(color: brandColor, fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _handleLogin,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: brandColor,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                ),
+                                child: const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Center(
+                              child: TextButton(
+                                onPressed: _isLoading ? null : () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CaretakerSignupScreen())),
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
+                                    children: [
+                                      const TextSpan(text: "Don't have an account? "),
+                                      TextSpan(text: "Sign Up", style: TextStyle(color: brandColor, fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_isLoading) LoadingOverlay(message: 'Signing In', isVisible: _isLoading),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon, bool isPassword = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword && _obscurePassword,
+        style: const TextStyle(fontSize: 16, color: Color(0xFF1E293B)),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
       ),
     );
   }
 
   void _showForgotPasswordDialog() {
     final TextEditingController emailController = TextEditingController();
-    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Reset Password'),
+        title: const Text('Reset Password'),
         content: TextField(
           controller: emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            hintText: 'Enter your email',
-            prefixIcon: Icon(Icons.email_outlined),
-          ),
+          decoration: const InputDecoration(hintText: 'Enter your email', prefixIcon: Icon(Icons.email_outlined)),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              if (emailController.text.isEmpty) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Please enter your email'),
-                    backgroundColor: error,
-                  ),
-                );
-                return;
-              }
-              
+              if (emailController.text.isEmpty) { Navigator.pop(context); return; }
               try {
-                await authService.value.sendPasswordResetEmail(
-                  email: emailController.text.trim(),
-                );
+                await authService.value.sendPasswordResetEmail(email: emailController.text.trim());
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Password reset email sent!'),
-                    backgroundColor: success,
-                  ),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password reset email sent!'), backgroundColor: success));
               } catch (e) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: ${e.toString()}'),
-                    backgroundColor: error,
-                  ),
-                );
               }
             },
-            child: Text('Send'),
+            child: const Text('Send'),
           ),
         ],
       ),
     );
   }
 
+  // ==================== UPDATED LOGIN LOGIC ====================
   Future<void> _handleLogin() async {
-    // Validate fields
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please fill in all fields'),
-          backgroundColor: error,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error));
       return;
     }
 
-    // Basic email validation
-    if (!_emailController.text.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a valid email address'),
-          backgroundColor: error,
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Sign in with Firebase
+      // 1. Authenticate with Firebase Auth
       UserCredential userCredential = await authService.value.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      // Verify user exists in database
+      // 2. Fetch User Data
       Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
       
-      if (userData != null) {
-        // Verify role is caretaker
-        String userRole = userData['role'] ?? '';
+      if (userData != null && userData['role'] == 'caretaker') {
         
-        if (userRole != 'caretaker') {
-          // Wrong role - sign out and show error
+        // 3. CHECK FOR APPROVAL (Verification)
+        bool isApproved = userData['approved'] == true;
+
+        if (!isApproved) {
+          // If not approved, Sign Out immediately and show warning
           await authService.value.signOut();
+          
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('This account is not registered as a Caretaker'),
-                backgroundColor: error,
-              ),
-            );
+            _showPendingVerificationDialog();
+            setState(() => _isLoading = false);
           }
-          return;
+          return; // Stop execution here
         }
-        
-        // Log login activity using ActivityLogsService
+
+        // 4. Log Activity if Approved
         await activityLogsService.logActivity(
           userId: userCredential.user!.uid,
           action: 'login',
-          details: 'Caretaker logged in as $userRole',
+          details: 'Caretaker logged in',
         );
         
         if (mounted) {
-          // Navigate to home screen
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
-              builder: (context) => CaretakerHomeScreen(
-                userData: userData,
-              ),
-            ),
+            MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
           );
-          
-          // Show welcome message after navigation
-          Future.delayed(Duration(milliseconds: 500), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Welcome back!'),
-                  backgroundColor: success,
-                ),
-              );
-            }
-          });
+        }
+      } else {
+        // Not a caretaker or user data missing
+        await authService.value.signOut();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error));
         }
       }
-      
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'An error occurred';
-      
-      switch (e.code) {
-        case 'user-not-found':
-          errorMessage = 'No user found with this email';
-          break;
-        case 'wrong-password':
-          errorMessage = 'Wrong password';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email address';
-          break;
-        case 'user-disabled':
-          errorMessage = 'This account has been disabled';
-          break;
-        case 'too-many-requests':
-          errorMessage = 'Too many attempts. Please try again later';
-          break;
-        default:
-          errorMessage = e.message ?? 'Login failed';
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: error,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: error,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed'), backgroundColor: error));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showPendingVerificationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.verified_user_outlined, color: Colors.orange, size: 28),
+            SizedBox(width: 10),
+            Text('Pending Verification'),
+          ],
+        ),
+        content: const Text(
+          'Your account is currently under review by MSWD.\n\nYou cannot access the system until your account has been verified and approved.',
+          style: TextStyle(fontSize: 15, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 }
