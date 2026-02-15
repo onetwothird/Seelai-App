@@ -1,5 +1,12 @@
-book
-bottle
-chips
-glasses
-stapler
+Kalan
+Kutsara
+Lamesa
+Plato
+Refrigerator
+Remote
+Rice Cooker
+Takure
+Television
+Thermos
+Upuan
+Water Container
