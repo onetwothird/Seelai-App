@@ -1,28 +1,25 @@
-// File: lib/roles/mswd/home/sections/user_profile_screen.dart
-// ignore_for_file: deprecated_member_use
+// File: lib/roles/mswd/home/sections/users/user_profile_screen.dart
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:seelai_app/firebase/mswd/mswd_call_service.dart';
+import 'package:intl/intl.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final Map<String, dynamic> selectedUser;
-  final ScrollController? scrollController;
-  final VoidCallback onBackPressed;
-  final VoidCallback? onDataChanged; 
-  final VoidCallback? onViewLocation; 
+  final VoidCallback? onDataChanged;
+  final VoidCallback? onViewLocation;
+
   const UserProfileScreen({
     super.key,
     required this.isDarkMode,
     required this.theme,
     required this.selectedUser,
-    required this.onBackPressed,
-    this.scrollController,
     this.onDataChanged,
-    this.onViewLocation, 
+    this.onViewLocation,
   });
 
   @override
@@ -30,9 +27,10 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  late Map<String, dynamic> _fullUserData;
+  Map<String, dynamic>? _fullUserData;
   bool _isLoading = true;
-  String? _error;
+  bool _isProcessingAction = false; // For approve/reject loading state
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -42,746 +40,545 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadFullUserData() async {
     try {
-      final userId = widget.selectedUser['userId'];
+      final userId = widget.selectedUser['userId'] ?? widget.selectedUser['uid'];
       final role = widget.selectedUser['role'];
 
+      // If we don't have enough info to load detailed data, just use what we have
       if (userId == null || role == null) {
         setState(() {
-          _error = 'Missing user ID or role';
+          _fullUserData = widget.selectedUser;
           _isLoading = false;
         });
         return;
       }
 
-      // Fetch complete user data from database
-      final userData = await databaseService.getUserDataByRole(userId, role);
-
-      if (userData != null) {
+      final data = await databaseService.getUserDataByRole(userId, role);
+      if (mounted) {
         setState(() {
-          _fullUserData = userData;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _error = 'User not found';
+          _fullUserData = data;
+          // Ensure ID is preserved if missing in fetched data but present in selectedUser
+          _fullUserData?['userId'] = userId; 
           _isLoading = false;
         });
       }
     } catch (e) {
-      setState(() {
-        _error = 'Error loading user data: $e';
-        _isLoading = false;
-      });
+      debugPrint('Error loading user data: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   Future<void> _handleCallUser() async {
+    if (_fullUserData == null) return;
+    
     await MswdCallService.call(
       context: context,
-      user: _fullUserData,
+      user: _fullUserData!,
       isDarkMode: widget.isDarkMode,
       theme: widget.theme,
     );
   }
 
+  // ==================== VERIFICATION HANDLERS ====================
+
+  Future<void> _handleApproveCaretaker() async {
+    final userId = _fullUserData?['userId'];
+    if (userId == null) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await adminService.approveCaretaker(userId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Caretaker approved successfully'), backgroundColor: Colors.green),
+        );
+        // Refresh local data to show updated status
+        await _loadFullUserData();
+        if (widget.onDataChanged != null) widget.onDataChanged!();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
+  Future<void> _handleRejectCaretaker() async {
+    final userId = _fullUserData?['userId'];
+    if (userId == null) return;
+
+    // Show confirmation dialog for rejection
+    final shouldReject = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reject Application'),
+        content: const Text('Are you sure you want to reject this caretaker? This action cannot be undone immediately.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true), 
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Reject'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldReject != true) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await adminService.rejectCaretaker(userId);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Caretaker application rejected'), backgroundColor: Colors.orange),
+        );
+        Navigator.pop(context); // Close profile screen
+        if (widget.onDataChanged != null) widget.onDataChanged!();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+        setState(() => _isProcessingAction = false);
+      }
+    }
+  }
+
+  // ==================== UI BUILDER ====================
+
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(),
-      );
-    }
+    // Theme Colors matching PatientDetailsScreen logic
+    final bgColor = widget.isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
+    final cardColor = widget.theme.cardColor;
+    final textColor = widget.theme.textColor;
+    
+    // Determine Role for UI logic
+    final role = widget.selectedUser['role'];
+    final isCaretaker = role == 'caretaker';
+    
+    // Check if Pending (Caretaker AND approved is explicitly false)
+    final isPending = isCaretaker && (_fullUserData?['approved'] == false);
 
-    if (_error != null) {
-      return Center(
-        child: Text(
-          _error!,
-          style: body.copyWith(color: Colors.red),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      controller: widget.scrollController,
-      physics: ClampingScrollPhysics(),
-      padding: EdgeInsets.only(bottom: 100),
-      child: Column(
-        children: [
-          _buildProfileHeader(),
-          SizedBox(height: spacingLarge),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.05),
-            child: _buildProfileContent(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader() {
-    final name = _fullUserData['name'] ?? 'Unknown';
-    final isActive = _fullUserData['isActive'] ?? true;
-    final statusColor = isActive ? Colors.green : Colors.orange;
-    final profileImageUrl = _fullUserData['profileImageUrl'] as String?;
-    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
-
-    return Container(
-      padding: EdgeInsets.all(spacingLarge),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(radiusXLarge),
-          bottomRight: Radius.circular(radiusXLarge),
-        ),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: primary.withOpacity(0.1),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : softShadow,
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              GestureDetector(
-                onTap: widget.onBackPressed,
-                child: Icon(
-                  Icons.arrow_back_rounded,
-                  color: widget.theme.textColor,
-                  size: 24,
-                ),
-              ),
-              SizedBox(width: spacingMedium),
-              Expanded(
-                child: Text(
-                  'Profile',
-                  style: h2.copyWith(
-                    fontSize: 20,
-                    color: widget.theme.textColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: cardColor,
+            shape: BoxShape.circle,
+            boxShadow: widget.isDarkMode ? [] : [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
             ],
           ),
-          SizedBox(height: spacingLarge),
+          child: IconButton(
+            icon: Icon(Icons.arrow_back_rounded, color: textColor, size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        title: Text(
+          isPending ? 'Verification Request' : (isCaretaker ? 'Caretaker Profile' : 'Patient Profile'),
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        actions: [
           Container(
-            width: 100,
-            height: 100,
+            margin: const EdgeInsets.only(right: 16),
             decoration: BoxDecoration(
+              color: cardColor,
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  const Color.fromARGB(255, 0, 0, 0),
-                  const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
-                ],
-              ),
-              border: Border.all(
-                color: Colors.black.withOpacity(0.25),
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: primary.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
+              boxShadow: widget.isDarkMode ? [] : [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
               ],
             ),
-            child: ClipOval(
-              child: hasProfileImage
-                  ? Image.network(
-                      profileImageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [primary, primary.withOpacity(0.7)],
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              name.substring(0, 1).toUpperCase(),
-                              style: h2.copyWith(
-                                color: white,
-                                fontSize: 48,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [primary, primary.withOpacity(0.7)],
-                            ),
-                          ),
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(white),
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [primary, primary.withOpacity(0.7)],
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          name.substring(0, 1).toUpperCase(),
-                          style: h2.copyWith(
-                            color: white,
-                            fontSize: 48,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-            ),
-          ),
-          SizedBox(height: spacingMedium),
-          Text(
-            name,
-            style: h2.copyWith(
-              fontSize: 22,
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          SizedBox(height: 8),
-          Container(
-            padding:
-                EdgeInsets.symmetric(horizontal: spacingMedium, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(radiusMedium),
-            ),
-            child: Text(
-              isActive ? 'Active' : 'Inactive',
-              style: caption.copyWith(
-                fontSize: 12,
-                color: statusColor,
-                fontWeight: FontWeight.w700,
-              ),
+            child: IconButton(
+              icon: Icon(Icons.refresh_rounded, color: textColor, size: 20),
+              onPressed: _loadFullUserData,
             ),
           ),
         ],
       ),
-    );
-  }
-  
-  Widget _buildProfileContent() {
-    final role = _fullUserData['role'];
-    final isCaretaker = role == 'caretaker';
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (!isCaretaker)
-          _buildPersonalInfoSection()
-        else
-          _buildCaretakerPersonalInfo(),
-        SizedBox(height: spacingLarge),
-        if (!isCaretaker) _buildMedicalInfoSection(),
-        if (!isCaretaker) _buildEmergencyContactSection(),
-        if (!isCaretaker)
-          _buildAssignedCaretakersSection()
-        else
-          _buildAssignedPatientsSection(),
-        if (isCaretaker) _buildRequestStatisticsSection(),
-        SizedBox(height: spacingLarge),
-        _buildActionButtons(isCaretaker),
-        SizedBox(height: spacingLarge),
-      ],
-    );
-  }
-
-  Widget _buildPersonalInfoSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Personal Information',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        _buildInfoCard('Age', '${_fullUserData['age'] ?? 'N/A'} years old', Icons.cake_rounded),
-        _buildInfoCard('Sex', _fullUserData['sex'] ?? 'N/A', Icons.wc_rounded),
-        _buildInfoCard('Address', _fullUserData['address'] ?? 'N/A', Icons.home_rounded),
-        _buildInfoCard('Contact Number', _fullUserData['contactNumber'] ?? 'N/A', Icons.phone_rounded),
-        if (_fullUserData['idNumber'] != null)
-          _buildInfoCard('ID Number', _fullUserData['idNumber'], Icons.badge_rounded),
-      ],
-    );
-  }
-
-  Widget _buildCaretakerPersonalInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Personal Information',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        _buildInfoCard('Age', '${_fullUserData['age'] ?? 'N/A'} years old', Icons.cake_rounded),
-        _buildInfoCard('Relationship', _fullUserData['relationship'] ?? 'N/A', Icons.badge_rounded),
-        _buildInfoCard('Contact Number', _fullUserData['contactNumber'] ?? 'N/A', Icons.phone_rounded),
-        _buildInfoCard('Sex', _fullUserData['sex'] ?? 'N/A', Icons.wc_rounded),
-        _buildInfoCard('Address', _fullUserData['address'] ?? 'N/A', Icons.home_rounded),
-      ],
-    );
-  }
-
-  Widget _buildMedicalInfoSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Medical Information',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        _buildInfoCard(
-          'Disability Type',
-          _fullUserData['disabilityType'] ?? 'N/A',
-          Icons.visibility_off_rounded,
-        ),
-        _buildInfoCard(
-          'Diagnosis',
-          _fullUserData['diagnosis'] ?? 'N/A',
-          Icons.medical_services_rounded,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmergencyContactSection() {
-    final emergencyContacts = _fullUserData['emergencyContacts'] as Map? ?? {};
-
-    if (emergencyContacts.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
-          Text(
-            'Emergency Contact',
-            style: bodyBold.copyWith(
-              fontSize: 16,
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          SizedBox(height: spacingMedium),
-          Text(
-            'No emergency contacts added',
-            style: body.copyWith(
-              fontSize: 13,
-              color: widget.theme.subtextColor,
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Emergency Contacts',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        Column(
-          children: List.generate(
-            emergencyContacts.length,
-            (index) {
-              final contact = emergencyContacts.values.elementAt(index) as Map;
-              return Padding(
-                padding: EdgeInsets.only(bottom: spacingMedium),
-                child: Container(
-                  padding: EdgeInsets.all(spacingMedium),
-                  decoration: BoxDecoration(
-                    color: widget.theme.cardColor,
-                    borderRadius: BorderRadius.circular(radiusLarge),
-                    border: Border.all(
-                      color: widget.isDarkMode
-                          ? Colors.white.withOpacity(0.1)
-                          : Colors.black.withOpacity(0.06),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        contact['name'] ?? 'N/A',
-                        style: bodyBold.copyWith(
-                          fontSize: 14,
-                          color: widget.theme.textColor,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.phone_rounded,
-                            size: 16,
-                            color: primary,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            contact['phoneNumber'] ?? 'N/A',
-                            style: body.copyWith(
-                              fontSize: 13,
-                              color: widget.theme.subtextColor,
+          Expanded(
+            child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: primary))
+                : SingleChildScrollView(
+                    controller: _scrollController,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+                    child: Column(
+                      children: [
+                        // PENDING BANNER
+                        if (isPending) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        "Pending Approval",
+                                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+                                      ),
+                                      Text(
+                                        "This user is waiting for verification.",
+                                        style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.7)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const SizedBox(height: 24),
                         ],
-                      ),
-                      if (contact['relationship'] != null) ...[
-                        SizedBox(height: 4),
-                        Text(
-                          'Relationship: ${contact['relationship']}',
-                          style: body.copyWith(
-                            fontSize: 12,
-                            color: widget.theme.subtextColor,
+
+                        // 1. Header Profile
+                        _buildProfileHeader(textColor),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // 2. Quick Info Row (Age/Gender)
+                        _buildQuickInfoRow(cardColor, textColor),
+
+                        const SizedBox(height: 20),
+
+                        // 3. Medical Information Card (Only for Patients)
+                        if (!isCaretaker) ...[
+                          _buildSectionCard(
+                            title: 'Medical Information',
+                            icon: Icons.medical_services_rounded,
+                            color: Colors.redAccent,
+                            children: [
+                              _buildInfoRow('Disability', _fullUserData?['disabilityType'] ?? 'N/A', textColor),
+                              _buildInfoRow('Diagnosis', _fullUserData?['diagnosis'] ?? 'Not specified', textColor),
+                            ],
+                            cardColor: cardColor,
+                            textColor: textColor,
                           ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // 4. Contact Information Card
+                        _buildSectionCard(
+                          title: 'Contact Details',
+                          icon: Icons.contact_phone_rounded,
+                          color: Colors.blueAccent,
+                          children: [
+                            _buildInfoRow('Phone', _fullUserData?['contactNumber'] ?? 'N/A', textColor),
+                            _buildInfoRow('Address', _fullUserData?['address'] ?? 'N/A', textColor, isMultiline: true),
+                            if (isCaretaker)
+                              _buildInfoRow('Relationship', _fullUserData?['relationship'] ?? 'N/A', textColor),
+                          ],
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // 5. Account/System Info
+                        _buildSectionCard(
+                          title: 'Account Info',
+                          icon: Icons.shield_rounded,
+                          color: Colors.orangeAccent,
+                          children: [
+                            _buildInfoRow('Status', (_fullUserData?['isActive'] ?? true) ? 'Active' : 'Inactive', textColor),
+                             if (isCaretaker)
+                              _buildInfoRow('Approval', (_fullUserData?['approved'] == true) ? 'Approved' : 'Pending', textColor),
+                            _buildInfoRow('Member Since', _formatDate(_fullUserData?['createdAt']), textColor),
+                            if (isCaretaker)
+                              _buildInfoRow('Patients', '${(_fullUserData?['assignedPatients'] as Map?)?.length ?? 0} assigned', textColor),
+                          ],
+                          cardColor: cardColor,
+                          textColor: textColor,
                         ),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              );
-            },
           ),
-        ),
-      ],
+          
+          // 6. Bottom Action Bar (Conditional)
+          if (!_isLoading) 
+             isPending 
+                ? _buildVerificationBar(cardColor) // Show Approve/Reject
+                : _buildBottomActionBar(cardColor, textColor), // Standard Call/Location
+        ],
+      ),
     );
   }
 
-  Widget _buildAssignedCaretakersSection() {
-    final assignedCaretakers = _fullUserData['assignedCaretakers'] as Map? ?? {};
+  // ==================== WIDGETS ====================
+
+  Widget _buildProfileHeader(Color textColor) {
+    final profileImageUrl = _fullUserData?['profileImageUrl'];
+    final isActive = _fullUserData?['isActive'] ?? true;
+    final name = _fullUserData?['name'] ?? 'Unknown';
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Assigned Caretakers (${assignedCaretakers.length})',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        if (assignedCaretakers.isEmpty)
-          Text(
-            'No caretakers assigned',
-            style: body.copyWith(
-              fontSize: 13,
-              color: widget.theme.subtextColor,
-            ),
-          )
-        else
-          Column(
-            children: List.generate(
-              assignedCaretakers.length,
-              (index) {
-                final caretakerId = assignedCaretakers.keys.elementAt(index);
-                return Padding(
-                  padding: EdgeInsets.only(bottom: spacingMedium),
-                  child: FutureBuilder<Map<String, dynamic>?>(
-                    future: databaseService.getUserDataByRole(caretakerId, 'caretaker'),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return SizedBox.shrink();
-                      
-                      final caretaker = snapshot.data ?? {};
-                      final caretakerName = caretaker['name'] ?? 'Unknown';
-                      final profileImageUrl = caretaker['profileImageUrl'] as String?;
-                      final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
-
-                      return Container(
-                        padding: EdgeInsets.all(spacingMedium),
-                        decoration: BoxDecoration(
-                          color: widget.theme.cardColor,
-                          borderRadius: BorderRadius.circular(radiusLarge),
-                          border: Border.all(
-                            color: widget.isDarkMode
-                                ? Colors.white.withOpacity(0.1)
-                                : Colors.black.withOpacity(0.06),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: hasProfileImage
-                                    ? null
-                                    : LinearGradient(
-                                        colors: [accent, accent.withOpacity(0.7)],
-                                      ),
-                                image: hasProfileImage
-                                    ? DecorationImage(
-                                        image: NetworkImage(profileImageUrl),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: !hasProfileImage
-                                  ? Center(
-                                      child: Icon(
-                                        Icons.favorite_rounded,
-                                        color: white,
-                                        size: 20,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            SizedBox(width: spacingMedium),
-                            Expanded(
-                              child: Text(
-                                caretakerName,
-                                style: body.copyWith(
-                                  fontSize: 13,
-                                  color: widget.theme.textColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildAssignedPatientsSection() {
-    final assignedPatients = _fullUserData['assignedPatients'] as Map? ?? {};
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Assigned Patients (${assignedPatients.length})',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        if (assignedPatients.isEmpty)
-          Text(
-            'No patients assigned',
-            style: body.copyWith(
-              fontSize: 13,
-              color: widget.theme.subtextColor,
-            ),
-          )
-        else
-          Column(
-            children: List.generate(
-              assignedPatients.length,
-              (index) {
-                final patientId = assignedPatients.keys.elementAt(index);
-                return Padding(
-                  padding: EdgeInsets.only(bottom: spacingMedium),
-                  child: FutureBuilder<Map<String, dynamic>?>(
-                    future: databaseService.getUserDataByRole(patientId, 'visually_impaired'),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return SizedBox.shrink();
-                      
-                      final patient = snapshot.data ?? {};
-                      final patientName = patient['name'] ?? 'Unknown';
-                      final profileImageUrl = patient['profileImageUrl'] as String?;
-                      final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
-
-                      return Container(
-                        padding: EdgeInsets.all(spacingMedium),
-                        decoration: BoxDecoration(
-                          color: widget.theme.cardColor,
-                          borderRadius: BorderRadius.circular(radiusLarge),
-                          border: Border.all(
-                            color: widget.isDarkMode
-                                ? Colors.white.withOpacity(0.1)
-                                : Colors.black.withOpacity(0.06),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: hasProfileImage
-                                    ? null
-                                    : LinearGradient(
-                                        colors: [primary, primary.withOpacity(0.7)],
-                                      ),
-                                image: hasProfileImage
-                                    ? DecorationImage(
-                                        image: NetworkImage(profileImageUrl),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: !hasProfileImage
-                                  ? Center(
-                                      child: Text(
-                                        patientName.substring(0, 1).toUpperCase(),
-                                        style: TextStyle(
-                                          color: white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            SizedBox(width: spacingMedium),
-                            Expanded(
-                              child: Text(
-                                patientName,
-                                style: body.copyWith(
-                                  fontSize: 13,
-                                  color: widget.theme.textColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildRequestStatisticsSection() {
-    // For caretakers, you can calculate stats from their assigned patients
-    final assignedPatients = _fullUserData['assignedPatients'] as Map? ?? {};
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Statistics',
-          style: bodyBold.copyWith(
-            fontSize: 16,
-            color: widget.theme.textColor,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        SizedBox(height: spacingMedium),
-        Row(
+        Stack(
           children: [
-            Expanded(
-              child: _buildStatCard(
-                'Assigned Patients',
-                '${assignedPatients.length}',
-                Icons.people_rounded,
-                primary,
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: primary.withOpacity(0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: ClipOval(
+                child: profileImageUrl != null && profileImageUrl.isNotEmpty
+                    ? Image.network(
+                        profileImageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => _buildDefaultAvatar(name),
+                      )
+                    : _buildDefaultAvatar(name),
+              ),
+            ),
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: isActive ? Colors.green : Colors.grey,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white, width: 3),
+                ),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 16),
+        Text(
+          name,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: textColor,
+            letterSpacing: 0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: (isActive ? Colors.green : Colors.grey).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            isActive ? 'Active Status' : 'Inactive',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isActive ? Colors.green : Colors.grey,
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildDefaultAvatar(String name) {
     return Container(
-      padding: EdgeInsets.all(spacingMedium),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(
-          color: widget.isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.06),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF9333EA), Color(0xFF7C3AED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+      ),
+      child: Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickInfoRow(Color cardColor, Color textColor) {
+    final sex = _fullUserData?['sex'] ?? 'N/A';
+    
+    return Row(
+      children: [
+        Expanded(
+          child: _buildQuickInfoTile(
+            label: 'Age',
+            value: '${_fullUserData?['age'] ?? 'N/A'} yrs',
+            icon: Icons.cake_rounded,
+            color: Colors.orange,
+            cardColor: cardColor,
+            textColor: textColor,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildQuickInfoTile(
+            label: 'Gender',
+            value: sex,
+            icon: Icons.wc_rounded,
+            color: Colors.blue,
+            cardColor: cardColor,
+            textColor: textColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuickInfoTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required Color cardColor,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+          ),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: widget.isDarkMode ? Colors.white60 : Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<Widget> children,
+    required Color cardColor,
+    required Color textColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                size: 16,
-                color: color,
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 18, color: color),
               ),
-              SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  style: caption.copyWith(
-                    fontSize: 11,
-                    color: widget.theme.subtextColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 8),
-          Text(
-            value,
-            style: h2.copyWith(
-              fontSize: 18,
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.w700,
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, Color textColor, {bool isMultiline = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: widget.isDarkMode ? Colors.white54 : Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+              textAlign: TextAlign.right,
+              maxLines: isMultiline ? 3 : 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -789,63 +586,62 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildInfoCard(String label, String value, IconData icon,
-      {Color? color}) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: spacingMedium),
-      child: Container(
-        padding: EdgeInsets.all(spacingMedium),
-        decoration: BoxDecoration(
-          color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          border: Border.all(
-            color: widget.isDarkMode
-                ? Colors.white.withOpacity(0.1)
-                : Colors.black.withOpacity(0.06),
+  Widget _buildBottomActionBar(Color cardColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
-        ),
+        ],
+      ),
+      child: SafeArea(
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: (color ?? primary).withOpacity(0.1),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: color ?? primary,
+            Expanded(
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: _handleCallUser,
+                  icon: const Icon(Icons.phone_rounded),
+                  label: const Text("Call"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
-            SizedBox(width: spacingMedium),
+            const SizedBox(width: 16),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: caption.copyWith(
-                      fontSize: 11,
-                      color: widget.theme.subtextColor,
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Navigate to location if callback is provided
+                    if (widget.onViewLocation != null) {
+                      Navigator.pop(context); // Close profile first
+                      widget.onViewLocation!(); // Then navigate
+                    }
+                  },
+                  icon: const Icon(Icons.location_on_rounded),
+                  label: const Text("Location"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: body.copyWith(
-                      fontSize: 13,
-                      color: widget.theme.textColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
-                  ),
-                ],
+                ),
               ),
             ),
           ],
@@ -854,100 +650,86 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildActionButtons(bool isCaretaker) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!isCaretaker) ...[
-          _buildActionButton(
-            'Call User',
-            Icons.call_rounded,
-            primary,
-            _handleCallUser,
-          ),
-         SizedBox(height: spacingMedium),
-        _buildActionButton(
-          'View Location',
-          Icons.location_on_rounded,
-          accent,
-          () {
-            // REPLACE THE EMPTY FUNCTION WITH THIS:
-            if (widget.onViewLocation != null) {
-              widget.onViewLocation!();
-            }
-          },
+  // NEW: Bar for approving/rejecting caretakers
+  Widget _buildVerificationBar(Color cardColor) {
+    if (_isProcessingAction) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        ] else ...[
-          _buildActionButton(
-            'Call Caretaker',
-            Icons.call_rounded,
-            primary,
-            _handleCallUser,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
           ),
-           SizedBox(height: spacingMedium),
-        _buildActionButton(
-          'View Location',
-          Icons.location_on_rounded,
-          accent,
-          () {
-            // REPLACE THE EMPTY FUNCTION WITH THIS:
-            if (widget.onViewLocation != null) {
-              widget.onViewLocation!();
-            }
-          },
-        ),
         ],
-      ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 54,
+                child: OutlinedButton.icon(
+                  onPressed: _handleRejectCaretaker,
+                  icon: const Icon(Icons.close_rounded),
+                  label: const Text("Decline"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red, width: 2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: SizedBox(
+                height: 54,
+                child: ElevatedButton.icon(
+                  onPressed: _handleApproveCaretaker,
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text("Approve"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildActionButton(
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap, {
-    bool outlined = false,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: outlined ? Colors.transparent : color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: outlined
-            ? Border.all(color: color.withOpacity(0.3))
-            : Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: spacingMedium,
-              vertical: spacingMedium,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icon,
-                  size: 18,
-                  color: color,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  label,
-                  style: bodyBold.copyWith(
-                    fontSize: 14,
-                    color: color,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  // ==================== HELPERS ====================
+
+  String _formatDate(dynamic date) {
+    if (date == null) return 'Unknown';
+    try {
+      final dt = date is int 
+          ? DateTime.fromMillisecondsSinceEpoch(date)
+          : DateTime.parse(date.toString());
+      return DateFormat('MMM dd, yyyy').format(dt);
+    } catch (e) {
+      return 'Unknown';
+    }
   }
 }

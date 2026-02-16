@@ -3,9 +3,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
 import 'package:seelai_app/themes/constants.dart';
 
-class HeaderSection extends StatelessWidget {
+class HeaderSection extends StatefulWidget {
   final String adminName;
   final String? profileImageUrl;
   final bool isDarkMode;
@@ -26,6 +27,52 @@ class HeaderSection extends StatelessWidget {
   });
 
   @override
+  State<HeaderSection> createState() => _HeaderSectionState();
+}
+
+class _HeaderSectionState extends State<HeaderSection> with SingleTickerProviderStateMixin {
+  late final AnimationController _themeController;
+
+  @override
+  void initState() {
+    super.initState();
+    // The provided Lottie file is 180 frames.
+    // Frame 0 is Day. Frame 90 (0.5 progress) is Night.
+    _themeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+      value: widget.isDarkMode ? 0.5 : 0.0,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant HeaderSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isDarkMode != widget.isDarkMode) {
+      if (widget.isDarkMode) {
+        // Animate to Night (Frame 90 / 50%)
+        _themeController.animateTo(0.5);
+      } else {
+        // Animate back to Day (Frame 0 / 0%)
+        _themeController.animateBack(0.0);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _themeController.dispose();
+    super.dispose();
+  }
+
+  // Helper to safely extract the first name
+  String _getFirstName() {
+    if (widget.adminName.isEmpty) return '';
+    final parts = widget.adminName.trim().split(RegExp(r'\s+'));
+    return parts.isNotEmpty ? parts.first : '';
+  }
+
+  @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
@@ -33,19 +80,19 @@ class HeaderSection extends StatelessWidget {
     final formattedDate = DateFormat('EEEE, MMMM d').format(now);
 
     final profileSize = 56.0;
-    final iconSize = 24.0;
+    final double themeToggleSize = 60.0;
 
     return Semantics(
-      label: 'Header section. Hi $adminName. Today is $formattedDate',
+      label: 'Header section. Hi ${widget.adminName}. Today is $formattedDate',
       child: Container(
         padding: EdgeInsets.fromLTRB(
-          width * 0.05,
-          height * 0.015,
-          width * 0.05,
-          height * 0.015,
+          width * 0.05,      // Left padding
+          height * 0.015,    // Top padding
+          width * 0.02,      // Right padding (Reduced to 0.02 to match other headers)
+          height * 0.015,    // Bottom padding
         ),
         decoration: BoxDecoration(
-          gradient: isDarkMode
+          gradient: widget.isDarkMode
               ? LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -65,13 +112,13 @@ class HeaderSection extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Profile Picture - Clickable with Role Badge
+            // --- Profile Picture ---
             Semantics(
               label: 'Profile picture, MSWD role',
               hint: 'Double tap to view profile',
               button: true,
               child: GestureDetector(
-                onTap: onProfileTap ?? () {},
+                onTap: widget.onProfileTap,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -91,71 +138,55 @@ class HeaderSection extends StatelessWidget {
                             ],
                           ),
                           border: Border.all(
-                          color: Colors.black.withOpacity(0.25),
-                          width: 1.2,
+                            color: Colors.black.withOpacity(0.25),
+                            width: 1.2,
                           ),
                         ),
                         child: ClipOval(
-                          child: profileImageUrl != null &&
-                                  profileImageUrl!.isNotEmpty
+                          child: widget.profileImageUrl != null &&
+                                  widget.profileImageUrl!.isNotEmpty
                               ? Image.network(
-                                  profileImageUrl!,
+                                  widget.profileImageUrl!,
                                   fit: BoxFit.cover,
-                                  errorBuilder:
-                                      (context, error, stackTrace) {
-                                    return _buildDefaultAvatar(profileSize);
-                                  },
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                          Colors.white,
-                                        ),
-                                      ),
-                                    );
-                                  },
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildDefaultAvatar(profileSize),
                                 )
                               : _buildDefaultAvatar(profileSize),
                         ),
                       ),
                     ),
-                  // Role Badge
                     Positioned(
                       bottom: -4,
                       left: 0,
                       right: 0,
                       child: Center(
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
-                                Color(0xFF7C3AED),
-                                Color(0xFF7C3AED).withOpacity(0.7),
+                                const Color(0xFF7C3AED),
+                                const Color(0xFF7C3AED).withOpacity(0.7),
                               ],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                             ),
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: isDarkMode
+                              color: widget.isDarkMode
                                   ? Colors.white.withOpacity(0.12)
                                   : Colors.black.withOpacity(0.1),
                               width: 1.2,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Color(0xFF7C3AED).withOpacity(0.35),
+                                color: const Color(0xFF7C3AED).withOpacity(0.35),
                                 blurRadius: 5,
-                                offset: Offset(0, 2),
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                          child: Text(
+                          child: const Text(
                             'MSWD',
                             style: TextStyle(
                               color: Colors.white,
@@ -173,9 +204,9 @@ class HeaderSection extends StatelessWidget {
               ),
             ),
 
-            SizedBox(width: 14),
+            const SizedBox(width: 14),
 
-            // Greeting + Date
+            // --- Greeting and Date ---
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,17 +223,17 @@ class HeaderSection extends StatelessWidget {
                             text: 'Hello there, ',
                             style: body.copyWith(
                               fontSize: 18,
-                              color: subtextColor,
+                              color: widget.subtextColor,
                               fontWeight: FontWeight.w400,
                               height: 1.3,
                             ),
                           ),
                           TextSpan(
-                            text: adminName.split(' ')[0],
+                            text: _getFirstName(),
                             style: h2.copyWith(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
-                              color: textColor,
+                              color: widget.textColor,
                               letterSpacing: -0.3,
                               height: 1.3,
                             ),
@@ -211,16 +242,14 @@ class HeaderSection extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  SizedBox(height: 2),
-
+                  const SizedBox(height: 2),
                   Semantics(
                     label: 'Today\'s date',
                     child: Text(
                       formattedDate,
                       style: caption.copyWith(
                         fontSize: 12,
-                        color: subtextColor.withOpacity(0.8),
+                        color: widget.subtextColor.withOpacity(0.8),
                         fontWeight: FontWeight.w500,
                         height: 1.2,
                       ),
@@ -232,20 +261,36 @@ class HeaderSection extends StatelessWidget {
               ),
             ),
 
-            // Dark Mode Toggle (same as caretaker)
-            Semantics(
-              label: isDarkMode
-                  ? 'Dark mode is on'
-                  : 'Light mode is on',
-              hint: 'Double tap to toggle theme mode',
-              button: true,
-              child: _buildActionButton(
-                icon: isDarkMode
-                    ? Icons.dark_mode_rounded
-                    : Icons.light_mode_rounded,
-                onPressed: onToggleDarkMode,
-                size: iconSize,
-              ),
+            // --- Action Buttons Row ---
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // --- CUSTOM DAY/NIGHT TOGGLE (Lottie) ---
+                Semantics(
+                  label: widget.isDarkMode ? 'Dark mode is on' : 'Light mode is on',
+                  hint: 'Double tap to toggle theme mode',
+                  button: true,
+                  child: InkWell(
+                    onTap: widget.onToggleDarkMode,
+                    borderRadius: BorderRadius.circular(50),
+                    child: Container(
+                      width: themeToggleSize,
+                      height: themeToggleSize,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.transparent,
+                      ),
+                      child: Lottie.asset(
+                        'assets/icons/light-dark.json',
+                        controller: _themeController,
+                        fit: BoxFit.contain,
+                        animate: false,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -253,57 +298,24 @@ class HeaderSection extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButton({
-    required IconData icon,
-    required VoidCallback onPressed,
-    required double size,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: isDarkMode
-            ? Colors.white.withOpacity(0.08)
-            : Colors.black.withOpacity(0.04),
-        border: Border.all(
-          color: isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.06),
-          width: 1,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(100),
-          splashColor: primary.withOpacity(0.2),
-          child: Padding(
-            padding: EdgeInsets.all(10),
-            child: Icon(
-              icon,
-              size: size,
-              color: isDarkMode
-                  ? Colors.white.withOpacity(0.9)
-                  : Colors.black.withOpacity(0.7),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildDefaultAvatar(double size) {
     String initials = '';
+    final trimmedName = widget.adminName.trim();
 
-    if (adminName.isNotEmpty) {
-      List<String> parts = adminName.trim().split(' ');
-      if (parts.length >= 2) {
-        initials =
-            parts[0][0].toUpperCase() + parts[1][0].toUpperCase();
-      } else {
-        initials = parts[0]
-            .substring(0, parts[0].length >= 2 ? 2 : 1)
-            .toUpperCase();
+    if (trimmedName.isNotEmpty) {
+      List<String> nameParts = trimmedName.split(RegExp(r'\s+'));
+
+      if (nameParts.length >= 2) {
+        String first = nameParts[0].isNotEmpty ? nameParts[0][0] : '';
+        String second = nameParts[1].isNotEmpty ? nameParts[1][0] : '';
+        initials = (first + second).toUpperCase();
+      } else if (nameParts.isNotEmpty) {
+        String name = nameParts[0];
+        if (name.length >= 2) {
+          initials = name.substring(0, 2).toUpperCase();
+        } else {
+          initials = name.toUpperCase();
+        }
       }
     }
 

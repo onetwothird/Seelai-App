@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';
 import 'package:seelai_app/firebase/caretaker/request_transaction_service.dart';
@@ -22,7 +21,6 @@ class RequestService {
     try {
       return await _assistanceRequestService.getPendingRequests(caretakerId);
     } catch (e) {
-      debugPrint('Error getting pending requests: $e');
       return [];
     }
   }
@@ -38,7 +36,6 @@ class RequestService {
       }
       return await _assistanceRequestService.getCaretakerRequests(caretakerId);
     } catch (e) {
-      debugPrint('Error getting requests: $e');
       return [];
     }
   }
@@ -67,7 +64,6 @@ class RequestService {
       
       return success;
     } catch (e) {
-      debugPrint('Error accepting request: $e');
       return false;
     }
   }
@@ -95,7 +91,6 @@ class RequestService {
       
       return success;
     } catch (e) {
-      debugPrint('Error declining request: $e');
       return false;
     }
   }
@@ -118,7 +113,6 @@ class RequestService {
       
       return success;
     } catch (e) {
-      debugPrint('Error marking request in progress: $e');
       return false;
     }
   }
@@ -146,7 +140,6 @@ class RequestService {
       
       return success;
     } catch (e) {
-      debugPrint('Error completing request: $e');
       return false;
     }
   }
@@ -159,10 +152,8 @@ class RequestService {
   ) async {
     try {
       await Future.delayed(Duration(milliseconds: 300));
-      debugPrint('Message sent to patient $patientId');
       return true;
     } catch (e) {
-      debugPrint('Error sending message: $e');
       return false;
     }
   }
@@ -172,7 +163,6 @@ class RequestService {
     try {
       return await _transactionService.getRequestTransactions(requestId);
     } catch (e) {
-      debugPrint('Error getting transaction history: $e');
       return [];
     }
   }

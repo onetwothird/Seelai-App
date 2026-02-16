@@ -18,6 +18,8 @@ import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
+// Add the new import for the bottom sheet
+import 'package:seelai_app/roles/caretaker/home/widgets/notifications_bottom_sheet.dart';
 
 class CaretakerHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -328,9 +330,27 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                     });
                   },
                   onNotificationTap: () {
-                    setState(() {
-                      _selectedIndex = 2; 
-                    });
+                    // 1. Safely grab the Caretaker's ID
+                    String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
+                                            widget.userData['userId'] ?? 
+                                            widget.userData['uid'];
+                                            
+                    if (currentUserId == null) return;
+
+                    // 2. Trigger the Facebook-style bottom sheet
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true, 
+                      backgroundColor: Colors.transparent, 
+                      builder: (context) => SizedBox(
+                        height: screenHeight * 0.85, 
+                        child: NotificationsBottomSheet(
+                          caretakerId: currentUserId,
+                          isDarkMode: _isDarkMode,
+                          requestService: _requestService, 
+                        ),
+                      ),
+                    );
                   },
                   textColor: theme.textColor,
                   subtextColor: theme.subtextColor,

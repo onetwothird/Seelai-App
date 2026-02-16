@@ -1,11 +1,11 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:io';
+import 'dart:ui'; // <--- REQUIRED for Glassmorphism
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:seelai_app/services/cloudinary_service.dart'; 
+import 'package:seelai_app/services/cloudinary_service.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/firebase/activity_logs_service.dart';
@@ -20,8 +20,7 @@ class MSWDSignupScreen extends StatefulWidget {
 }
 
 class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _floatController;
+  late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
@@ -32,6 +31,7 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   final ImagePicker _picker = ImagePicker();
 
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _idNumberController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _departmentController = TextEditingController();
@@ -41,32 +41,28 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _floatController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    )..repeat(reverse: true);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
+      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
     );
 
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
 
-    _fadeController.forward();
+    _entryController.forward();
   }
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _floatController.dispose();
+    _entryController.dispose();
     _nameController.dispose();
+    _idNumberController.dispose();
     _ageController.dispose();
     _emailController.dispose();
     _departmentController.dispose();
@@ -74,76 +70,29 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     _confirmPasswordController.dispose();
     super.dispose();
   }
-
+  
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        maxWidth: 1024,
-        maxHeight: 1024,
-        imageQuality: 85,
-      );
-
-      if (pickedFile != null) {
-        setState(() {
-          _profileImage = File(pickedFile.path);
-        });
-      }
+      final XFile? pickedFile = await _picker.pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 85);
+      if (pickedFile != null) setState(() => _profileImage = File(pickedFile.path));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking image: ${e.toString()}'),
-            backgroundColor: error,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: error));
     }
   }
 
   void _showImageSourceDialog() {
-    showModalBottomSheet(
+     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Choose Profile Picture',
-              style: h2.copyWith(fontSize: 20),
-            ),
-            SizedBox(height: 20),
-            ListTile(
-              leading: Icon(Icons.camera_alt, color: primary),
-              title: Text('Take Photo', style: body),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_library, color: primary),
-              title: Text('Choose from Gallery', style: body),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            if (_profileImage != null)
-              ListTile(
-                leading: Icon(Icons.delete, color: error),
-                title: Text('Remove Photo', style: body),
-                onTap: () {
-                  Navigator.pop(context);
-                  setState(() {
-                    _profileImage = null;
-                  });
-                },
-              ),
+            const Text('Choose Profile Picture', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            ListTile(leading: Icon(Icons.camera_alt, color: primary), title: const Text('Take Photo'), onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); }),
+            ListTile(leading: Icon(Icons.photo_library, color: primary), title: const Text('Gallery'), onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); }),
           ],
         ),
       ),
@@ -152,623 +101,215 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
 
   Future<String?> _uploadProfileImage(String userId) async {
     if (_profileImage == null) return null;
-    try {
-      return await cloudinaryService.uploadProfileImage(
-        _profileImage!,
-        userId,
-        'mswd',
-      );
-    } catch (e) {
-      throw Exception('Failed to upload profile image: $e');
-    }
+    return await cloudinaryService.uploadProfileImage(_profileImage!, userId, 'admin');
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      
+      // 1. EXTEND BODY BEHIND APP BAR (Crucial for glass effect)
+      extendBodyBehindAppBar: true, 
+      
+      appBar: AppBar(
+        // 2. MAKE BASE TRANSPARENT
+        backgroundColor: Colors.transparent, 
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+        
+        // 3. ADD THE GLASS EFFECT
+        flexibleSpace: ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
+            child: Container(
+              color: Colors.white.withOpacity(0.2), // Low Opacity Tint
+            ),
+          ),
+        ),
+
+        leading: IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_ios_new_rounded), color: const Color(0xFF1E293B)),
+        title: const Text("Register Staff", style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w700, fontSize: 20)),
+        centerTitle: true,
+      ),
       body: Stack(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFAF5FF),
-                  Color(0xFFFFF1F2),
-                  Color(0xFFF0FDFA),
-                ],
-                stops: [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-
-          Positioned(
-            top: -90,
-            left: -30,
+          // 1. BACKGROUND IMAGE (Fixed Position)
+          Positioned.fill(
             child: Opacity(
-              opacity: 0.8,
+              opacity: 0.08,
               child: Image.asset(
-                'assets/images/bg_shape_3.png',
-                width: 200,
-                height: 200,
+                'assets/images/eye background.jpg',
                 fit: BoxFit.cover,
               ),
             ),
           ),
 
-          Positioned(
-            bottom: -60,
-            right: -60,
-            child: Opacity(
-              opacity: 0.8,
-              child: Image.asset(
-                'assets/images/bg_shape_1.png',
-                width: 200,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
+          // 2. Content
           SafeArea(
             child: SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(height: screenHeight * 0.05),
-
-                        // Back button
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(Icons.arrow_back_ios_rounded),
-                            color: primary,
-                          ),
-                        ),
-
-                        ShaderMask(
-                          shaderCallback: (bounds) => primaryGradient.createShader(bounds),
-                          child: Text(
-                            "Create Account",
-                            style: h1.copyWith(
-                              fontSize: screenWidth * 0.09,
-                              color: white,
+              physics: const BouncingScrollPhysics(),
+              // FIX 2: Dynamic Padding for Keyboard
+              padding: EdgeInsets.only(
+                left: 24, 
+                right: 24, 
+                top: 20, 
+                bottom: 20 + MediaQuery.of(context).viewInsets.bottom
+              ),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Column(
+                    children: [
+                      // Profile Picture
+                      GestureDetector(
+                        onTap: _isLoading ? null : _showImageSourceDialog,
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            Container(
+                              width: 120, height: 120,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle, color: const Color(0xFFF1F5F9),
+                                border: Border.all(color: Colors.black, width: 2.0), 
+                                image: _profileImage != null ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover) : null,
+                              ),
+                              child: _profileImage == null ? const Icon(Icons.person_rounded, size: 60, color: Color(0xFFCBD5E1)) : null,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        
-                        SizedBox(height: screenHeight * 0.03),
-
-                        // Profile Picture Section - Redesigned
-                        GestureDetector(
-                          onTap: _isLoading ? null : _showImageSourceDialog,
-                          child: Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  primary.withOpacity(0.08),
-                                  primary.withOpacity(0.04),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: primary.withOpacity(0.2),
-                                width: 2,
-                              ),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: primary, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
                             ),
-                            child: Column(
-                              children: [
-                                if (_profileImage != null)
-                                  Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      CircleAvatar(
-                                        radius: 50,
-                                        backgroundImage: FileImage(_profileImage!),
-                                      ),
-                                      Positioned(
-                                        bottom: 0,
-                                        right: 0,
-                                        child: Container(
-                                          padding: EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            gradient: primaryGradient,
-                                            shape: BoxShape.circle,
-                                            border: Border.all(color: white, width: 2),
-                                          ),
-                                          child: Icon(
-                                            Icons.edit,
-                                            size: 16,
-                                            color: white,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                else
-                                  Container(
-                                    padding: EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: primary.withOpacity(0.1),
-                                    ),
-                                    child: Icon(
-                                      Icons.camera_alt_outlined,
-                                      size: 40,
-                                      color: primary,
-                                    ),
-                                  ),
-                                SizedBox(height: 12),
-                                Text(
-                                  _profileImage != null ? 'Tap to change photo' : 'Add Profile Picture',
-                                  style: bodyBold.copyWith(
-                                    fontSize: screenWidth * 0.04,
-                                    color: primary,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'JPG, PNG (Max 2MB)',
-                                  style: body.copyWith(
-                                    fontSize: screenWidth * 0.032,
-                                    color: grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          ],
                         ),
+                      ),
+                      
+                      const SizedBox(height: 32),
 
-                        SizedBox(height: screenHeight * 0.03),
+                      _buildTextField(_nameController, 'Full Name', Icons.person_outline),
+                      const SizedBox(height: 16),
+                      _buildTextField(_idNumberController, 'Staff ID Number', Icons.badge_outlined),
+                      const SizedBox(height: 16),
+                      _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                      const SizedBox(height: 16),
+                      _buildTextField(_emailController, 'Work Email', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+                      const SizedBox(height: 16),
+                      _buildTextField(_departmentController, 'Department', Icons.business_outlined),
+                      const SizedBox(height: 16),
+                      _buildTextField(_passwordController, 'Password', Icons.lock_outline, isPassword: true),
+                      const SizedBox(height: 16),
+                      _buildTextField(_confirmPasswordController, 'Confirm Password', Icons.lock_outline, isPassword: true, isConfirm: true),
+                      
+                      const SizedBox(height: 40),
 
-                        _buildTextField(
-                          controller: _nameController,
-                          hint: 'Full Name',
-                          icon: Icons.person_outline,
-                          screenHeight: screenHeight,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        _buildTextField(
-                          controller: _ageController,
-                          hint: 'Age',
-                          icon: Icons.cake_outlined,
-                          keyboardType: TextInputType.number,
-                          screenHeight: screenHeight,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        _buildTextField(
-                          controller: _emailController,
-                          hint: 'Email address',
-                          icon: Icons.email_outlined,
-                          keyboardType: TextInputType.emailAddress,
-                          screenHeight: screenHeight,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        _buildTextField(
-                          controller: _departmentController,
-                          hint: 'Department',
-                          icon: Icons.business_outlined,
-                          screenHeight: screenHeight,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        Container(
-                          decoration: BoxDecoration(
-                            boxShadow: softShadow,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: TextField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            enabled: !_isLoading,
-                            style: body.copyWith(
-                              fontSize: 16,
-                              color: black,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            decoration: InputDecoration(
-                              fillColor: white,
-                              filled: true,
-                              hintText: 'Password',
-                              hintStyle: body.copyWith(
-                                color: grey.withOpacity(0.5),
-                                fontWeight: FontWeight.w400,
-                              ),
-                              prefixIcon: Container(
-                                padding: const EdgeInsets.all(12),
-                                child: const Icon(
-                                  Icons.lock_outline,
-                                  color: primary,
-                                  size: 24,
-                                ),
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  color: grey,
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: lightBlue, width: 1.5),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: lightBlue, width: 1.5),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: primary, width: 2),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.02),
-
-                        Container(
-                          decoration: BoxDecoration(
-                            boxShadow: softShadow,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: TextField(
-                            controller: _confirmPasswordController,
-                            obscureText: _obscureConfirmPassword,
-                            enabled: !_isLoading,
-                            style: body.copyWith(
-                              fontSize: 16,
-                              color: black,
-                              fontWeight: FontWeight.w400,
-                            ),
-                            decoration: InputDecoration(
-                              fillColor: white,
-                              filled: true,
-                              hintText: 'Confirm Password',
-                              hintStyle: body.copyWith(
-                                color: grey.withOpacity(0.5),
-                                fontWeight: FontWeight.w400,
-                              ),
-                              prefixIcon: Container(
-                                padding: const EdgeInsets.all(12),
-                                child: const Icon(
-                                  Icons.lock_outline,
-                                  color: primary,
-                                  size: 24,
-                                ),
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureConfirmPassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
-                                  color: grey,
-                                  size: 22,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                                  });
-                                },
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: lightBlue, width: 1.5),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: lightBlue, width: 1.5),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(color: primary, width: 2),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        SizedBox(height: screenHeight * 0.035),
-
-                        CustomButton(
-                          text: "Sign Up",
+                      SizedBox(
+                        width: double.infinity, height: 56,
+                        child: ElevatedButton(
                           onPressed: _isLoading ? null : _handleSignup,
-                          isLarge: true,
-                        ),
-
-                        SizedBox(height: screenHeight * 0.025),
-
-                        Center(
-                          child: TextButton(
-                            onPressed: _isLoading ? null : () {
-                              Navigator.pop(context);
-                            },
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            child: RichText(
-                              text: TextSpan(
-                                style: body.copyWith(fontSize: screenWidth * 0.04),
-                                children: [
-                                  const TextSpan(text: "Already have an account? "),
-                                  TextSpan(
-                                    text: "Sign In",
-                                    style: bodyBold.copyWith(
-                                      fontSize: screenWidth * 0.04,
-                                      color: primary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary, foregroundColor: Colors.white, elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
+                          child: const Text("Create Staff Account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                         ),
-
-                        SizedBox(height: screenHeight * 0.05),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-
-          // Loading Overlay
-          if (_isLoading)
-            LoadingOverlay(
-              message: 'Creating Account',
-              isVisible: _isLoading,
-            ),
+          if (_isLoading) LoadingOverlay(message: 'Registering...', isVisible: _isLoading),
         ],
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    required double screenHeight,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
+  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false}) {
     return Container(
       decoration: BoxDecoration(
-        boxShadow: softShadow,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFF8FAFC), 
+        borderRadius: BorderRadius.circular(16), 
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        enabled: !_isLoading,
-        style: body.copyWith(
-          fontSize: 16,
-          color: black,
-          fontWeight: FontWeight.w400,
-        ),
+        controller: ctrl, keyboardType: keyboardType,
+        // Correct logic to toggle password visibility independently
+        obscureText: isPassword ? (isConfirm ? _obscureConfirmPassword : _obscurePassword) : false,
+        style: const TextStyle(color: Color(0xFF1E293B)),
         decoration: InputDecoration(
-          fillColor: white,
-          filled: true,
-          hintText: hint,
-          hintStyle: body.copyWith(
-            color: grey.withOpacity(0.5),
-            fontWeight: FontWeight.w400,
-          ),
-          prefixIcon: Container(
-            padding: const EdgeInsets.all(12),
-            child: Icon(
-              icon,
-              color: primary,
-              size: 24,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: lightBlue, width: 1.5),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: lightBlue, width: 1.5),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: primary, width: 2),
-          ),
+          hintText: hint, hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
+          suffixIcon: isPassword 
+            ? IconButton(
+                icon: Icon(
+                  (isConfirm ? _obscureConfirmPassword : _obscurePassword) ? Icons.visibility_off_outlined : Icons.visibility_outlined, 
+                  color: const Color(0xFF94A3B8)
+                ), 
+                onPressed: () => setState(() {
+                  if (isConfirm) {
+                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                  } else {
+                    _obscurePassword = !_obscurePassword;
+                  }
+                })) 
+            : null,
+          border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
       ),
     );
   }
 
   Future<void> _handleSignup() async {
-    // Validation checks
-    if (_nameController.text.trim().isEmpty ||
-        _ageController.text.trim().isEmpty ||
-        _emailController.text.trim().isEmpty ||
-        _departmentController.text.trim().isEmpty ||
-        _passwordController.text.isEmpty ||
-        _confirmPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please fill in all required fields'),
-          backgroundColor: error,
-          duration: Duration(seconds: 2),
-        ),
-      );
+     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error));
       return;
     }
-
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Passwords do not match'),
-          backgroundColor: error,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
       return;
     }
-
-    if (_passwordController.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Password must be at least 6 characters'),
-          backgroundColor: error,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    int? age = int.tryParse(_ageController.text.trim());
-    if (age == null || age < 1 || age > 150) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a valid age'),
-          backgroundColor: error,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Step 1: Create Firebase Auth account
-      UserCredential userCredential = await authService.value.createAccount(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      int? age = int.tryParse(_ageController.text.trim());
 
-      // Step 2: Update display name in Firebase Auth
-      await authService.value.updateUsername(
-        userName: _nameController.text.trim(),
-      );
-
-      // Step 3: Upload profile image if selected
+      UserCredential userCredential = await authService.value.createAccount(email: _emailController.text.trim(), password: _passwordController.text);
+      await authService.value.updateUsername(userName: _nameController.text.trim());
+      
       String? profileImageUrl;
       if (_profileImage != null) {
         profileImageUrl = await _uploadProfileImage(userCredential.user!.uid);
       }
 
-      // Step 4: Create user document in Realtime Database
       await databaseService.createUserDocument(
         userId: userCredential.user!.uid,
         name: _nameController.text.trim(),
-        age: age,
+        idNumber: _idNumberController.text.trim(), 
+        age: age ?? 0, 
         email: _emailController.text.trim(),
-        role: 'admin',
         department: _departmentController.text.trim(),
+        role: 'admin', 
       );
 
-      // Step 5: Update profile image URL if uploaded
-      if (profileImageUrl != null) {
-        await databaseService.updateUserProfile(
-          userId: userCredential.user!.uid,
-          role: 'admin',
-          profileImageUrl: profileImageUrl,
-        );
+       if (profileImageUrl != null) {
+        await databaseService.updateUserProfile(userId: userCredential.user!.uid, role: 'admin', profileImageUrl: profileImageUrl);
       }
 
-      // Step 6: Log the signup activity using ActivityLogsService
-      await activityLogsService.logActivity(
-        userId: userCredential.user!.uid,
-        action: 'account_created',
-        details: 'User signed up as admin',
-      );
-
-      // Success!
+      await activityLogsService.logActivity(userId: userCredential.user!.uid, action: 'account_created', details: 'MSWD Staff registered');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Account created successfully!'),
-            backgroundColor: success,
-            duration: Duration(seconds: 2),
-          ),
-        );
-        
-        // Navigate back to login screen
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Staff account created!'), backgroundColor: primary));
         Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'An error occurred';
-      
-      switch (e.code) {
-        case 'weak-password':
-          errorMessage = 'The password is too weak';
-          break;
-        case 'email-already-in-use':
-          errorMessage = 'An account already exists for this email';
-          break;
-        case 'invalid-email':
-          errorMessage = 'Invalid email address';
-          break;
-        case 'operation-not-allowed':
-          errorMessage = 'Email/password accounts are not enabled';
-          break;
-        default:
-          errorMessage = e.message ?? 'Signup failed';
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: error,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: error,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Signup failed'), backgroundColor: error));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

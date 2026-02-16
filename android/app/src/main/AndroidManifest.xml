@@ -28,10 +28,20 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
 
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    
     <application
         android:label="Seelai"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+
+
+            <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="high_importance_channel" />
+
 
         <activity
             android:name=".MainActivity"

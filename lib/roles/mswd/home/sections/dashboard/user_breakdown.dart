@@ -1,7 +1,7 @@
 // File: lib/roles/mswd/home/sections/dashboard/user_breakdown.dart
-
 // ignore_for_file: deprecated_member_use
 
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -34,104 +34,53 @@ class _UserBreakdownSectionState extends State<UserBreakdownSection> {
     _fetchUserBreakdown();
   }
 
-  /// Fetch user breakdown data
   Future<void> _fetchUserBreakdown() async {
     setState(() => _isLoading = true);
-    
     try {
       await _fetchAllUsers();
     } catch (e) {
       debugPrint('Error fetching user breakdown: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  /// Fetch all users categorized by role
   Future<void> _fetchAllUsers() async {
-    try {
-      debugPrint('🔍 Fetching all users from Firebase...');
-      
-      // Fetch all user counts in parallel
-      final viCountFuture = _countUsersInPath('user_info/visually_impaired');
-      final ctCountFuture = _countUsersInPath('user_info/caretaker');
-      final mswdCountFuture = _countUsersInPath('user_info/mswd');
-      
-      final viCount = await viCountFuture;
-      final ctCount = await ctCountFuture;
-      final mswdCount = await mswdCountFuture;
-      final totalCount = viCount + ctCount + mswdCount;
-      
-      if (mounted) {
-        setState(() {
-          _visuallyImpairedUsers = viCount;
-          _caretakerUsers = ctCount;
-          _mswdUsers = mswdCount;
-          _totalUsers = totalCount;
-        });
-      }
-      
-      debugPrint('✅ Total System Users: $totalCount');
-      debugPrint('   └─ Visually Impaired: $viCount');
-      debugPrint('   └─ Caretakers: $ctCount');
-      debugPrint('   └─ MSWD Staff: $mswdCount');
-      
-    } catch (e) {
-      debugPrint('❌ Error fetching users: $e');
-      debugPrint('Stack trace: ${StackTrace.current}');
-      
-      if (mounted) {
-        setState(() {
-          _totalUsers = 0;
-          _visuallyImpairedUsers = 0;
-          _caretakerUsers = 0;
-          _mswdUsers = 0;
-        });
-      }
+    final viCount = await _countUsersInPath('user_info/visually_impaired');
+    final ctCount = await _countUsersInPath('user_info/caretaker');
+    final mswdCount = await _countUsersInPath('user_info/mswd');
+    
+    if (mounted) {
+      setState(() {
+        _visuallyImpairedUsers = viCount;
+        _caretakerUsers = ctCount;
+        _mswdUsers = mswdCount;
+        _totalUsers = viCount + ctCount + mswdCount;
+      });
     }
   }
 
-  /// Helper method to count users in a specific path
   Future<int> _countUsersInPath(String path) async {
     try {
-      debugPrint('   🔎 Querying path: $path');
-      
-      final snapshot = await FirebaseDatabase.instance
-          .ref(path)
-          .once();
-      
-      if (!snapshot.snapshot.exists) {
-        debugPrint('   🔭 $path: 0 users (path empty)');
-        return 0;
-      }
-      
+      final snapshot = await FirebaseDatabase.instance.ref(path).once();
+      if (!snapshot.snapshot.exists) return 0;
       final data = snapshot.snapshot.value;
-      
-      // Handle different data types
-      if (data is Map) {
-        final count = data.length;
-        debugPrint('   ✔️ $path: $count users found');
-        return count;
-      } else if (data is List) {
-        final count = data.length;
-        debugPrint('   ✔️ $path: $count users found (list format)');
-        return count;
-      } else {
-        debugPrint('   ⚠️ $path: Unexpected data type: ${data.runtimeType}');
-        return 0;
-      }
-      
+      if (data is Map) return data.length;
+      if (data is List) return data.length;
+      return 0;
     } catch (e) {
-      debugPrint('   ❌ Error counting users in $path: $e');
-      debugPrint('   Stack trace: ${StackTrace.current}');
       return 0;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Colors for the chart segments
+    final Color colVisual = Colors.purple;
+    final Color colCaretaker = Colors.green;
+    final Color colMSWD = Colors.teal;
+    final Color colEmpty = widget.isDarkMode ? Colors.white10 : Colors.grey.shade200;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -144,108 +93,212 @@ class _UserBreakdownSectionState extends State<UserBreakdownSection> {
           ),
         ),
         SizedBox(height: spacingMedium),
-        _buildUserTypeCard(
-          icon: Icons.visibility_off_rounded,
-          label: 'Visually Impaired',
-          value: _isLoading ? '...' : _visuallyImpairedUsers.toString(),
-          color: Colors.purple,
-          percentage: _totalUsers > 0 
-              ? ((_visuallyImpairedUsers / _totalUsers) * 100).toStringAsFixed(1) 
-              : '0.0',
-        ),
-        SizedBox(height: spacingMedium),
-        _buildUserTypeCard(
-          icon: Icons.volunteer_activism_rounded,
-          label: 'Caretakers',
-          value: _isLoading ? '...' : _caretakerUsers.toString(),
-          color: Colors.green,
-          percentage: _totalUsers > 0 
-              ? ((_caretakerUsers / _totalUsers) * 100).toStringAsFixed(1) 
-              : '0.0',
-        ),
-        SizedBox(height: spacingMedium),
-        _buildUserTypeCard(
-          icon: Icons.admin_panel_settings_rounded,
-          label: 'MSWD Staff',
-          value: _isLoading ? '...' : _mswdUsers.toString(),
-          color: Colors.teal,
-          percentage: _totalUsers > 0 
-              ? ((_mswdUsers / _totalUsers) * 100).toStringAsFixed(1) 
-              : '0.0',
+
+        Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: widget.theme.cardColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: widget.isDarkMode ? [] : softShadow,
+            border: widget.isDarkMode
+                ? Border.all(color: Colors.white.withOpacity(0.05))
+                : null,
+          ),
+          child: Row(
+            children: [
+              // --- LEFT: DONUT CHART ---
+              SizedBox(
+                height: 140,
+                width: 140,
+                child: _isLoading
+                    ? CircularProgressIndicator(color: widget.theme.subtextColor)
+                    : CustomPaint(
+                        painter: _UserDonutChartPainter(
+                          segments: [
+                            ChartSegment(_visuallyImpairedUsers.toDouble(), colVisual),
+                            ChartSegment(_caretakerUsers.toDouble(), colCaretaker),
+                            ChartSegment(_mswdUsers.toDouble(), colMSWD),
+                          ],
+                          emptyColor: colEmpty,
+                        ),
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _totalUsers.toString(),
+                                style: h1.copyWith(
+                                  fontSize: 28,
+                                  color: widget.theme.textColor,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                'Total',
+                                style: caption.copyWith(
+                                  fontSize: 12,
+                                  color: widget.theme.subtextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+              ),
+              
+              SizedBox(width: 24),
+
+              // --- RIGHT: LEGEND ---
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLegendItem(
+                      label: 'Visually Impaired',
+                      count: _visuallyImpairedUsers,
+                      color: colVisual,
+                      icon: Icons.visibility_off_rounded,
+                    ),
+                    SizedBox(height: 16),
+                    _buildLegendItem(
+                      label: 'Caretakers',
+                      count: _caretakerUsers,
+                      color: colCaretaker,
+                      icon: Icons.volunteer_activism_rounded,
+                    ),
+                    SizedBox(height: 16),
+                    _buildLegendItem(
+                      label: 'MSWD Staff',
+                      count: _mswdUsers,
+                      color: colMSWD,
+                      icon: Icons.admin_panel_settings_rounded,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildUserTypeCard({
-    required IconData icon,
+  Widget _buildLegendItem({
     required String label,
-    required String value,
+    required int count,
     required Color color,
-    required String percentage,
+    required IconData icon,
   }) {
-    return Container(
-      padding: EdgeInsets.all(spacingMedium),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: color.withOpacity(0.1),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : softShadow,
-        border: widget.isDarkMode
-            ? Border.all(color: color.withOpacity(0.2), width: 1)
-            : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(spacingSmall),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(radiusMedium),
-            ),
-            child: Icon(icon, color: color, size: 28),
+    final percentage = _totalUsers > 0 
+        ? ((count / _totalUsers) * 100).toStringAsFixed(1) 
+        : '0.0';
+
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(8),
           ),
-          SizedBox(width: spacingMedium),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: bodyBold.copyWith(
-                    fontSize: 15,
-                    color: widget.theme.textColor,
-                    fontWeight: FontWeight.w700,
+          child: Icon(icon, size: 14, color: color),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: caption.copyWith(
+                  fontSize: 12,
+                  color: widget.theme.subtextColor,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Row(
+                children: [
+                  Text(
+                    count.toString(),
+                    style: bodyBold.copyWith(
+                      fontSize: 14,
+                      color: widget.theme.textColor,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '$percentage% of total users',
-                  style: caption.copyWith(
-                    fontSize: 12,
-                    color: widget.theme.subtextColor,
+                  SizedBox(width: 6),
+                  Text(
+                    '($percentage%)',
+                    style: caption.copyWith(
+                      fontSize: 11,
+                      color: widget.theme.subtextColor.withOpacity(0.5),
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
-          Text(
-            value,
-            style: h2.copyWith(
-              fontSize: 28,
-              color: color,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+}
+
+// --- CUSTOM PAINTER CLASSES ---
+class ChartSegment {
+  final double value;
+  final Color color;
+  ChartSegment(this.value, this.color);
+}
+
+class _UserDonutChartPainter extends CustomPainter {
+  final List<ChartSegment> segments;
+  final Color emptyColor;
+
+  _UserDonutChartPainter({required this.segments, required this.emptyColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = min(size.width / 2, size.height / 2);
+    final strokeWidth = 12.0;
+    
+    final Paint paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    final double total = segments.fold(0, (sum, item) => sum + item.value);
+
+    // Draw background circle if empty
+    if (total == 0) {
+      paint.color = emptyColor;
+      canvas.drawCircle(center, radius - strokeWidth / 2, paint);
+      return;
+    }
+
+    double startAngle = -pi / 2;
+
+    for (var segment in segments) {
+      if (segment.value <= 0) continue;
+      final sweepAngle = (segment.value / total) * 2 * pi;
+      // Add gap only if there is more than 1 segment type present
+      final gap = total > segment.value ? 0.08 : 0.0; 
+      
+      paint.color = segment.color;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
+        startAngle + (gap / 2),
+        sweepAngle - gap,
+        false,
+        paint,
+      );
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

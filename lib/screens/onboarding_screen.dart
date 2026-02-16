@@ -1,9 +1,6 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
-import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/themes/widgets.dart';
 import 'package:seelai_app/screens/role_selection_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -13,309 +10,262 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> with TickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late AnimationController _scaleController;
-  late AnimationController _floatController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _floatAnimation;
+class _OnboardingScreenState extends State<OnboardingScreen> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-      duration: Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    _scaleController = AnimationController(
-      duration: Duration(milliseconds: 1400),
-      vsync: this,
-    );
-    _floatController = AnimationController(
-      duration: Duration(milliseconds: 3000),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
-    );
-    _scaleAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
-    );
-    _floatAnimation = Tween<double>(begin: -12, end: 12).animate(
-      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
-    );
-
-    _fadeController.forward();
-    _scaleController.forward();
-  }
+  final List<Map<String, String>> _onboardingData = [
+    {
+      "image": "assets/images/partial.png",
+      "title": "Empowering\nIndependence",
+      "desc": "Designed for the partially sighted. Navigate the world safely with real-time object detection and smart text reading."
+    },
+    {
+      "image": "assets/images/caretaker.png",
+      "title": "Peace of Mind\nfor Caretakers",
+      "desc": "Stay connected to your loved ones. Monitor their safety and receive real-time updates from anywhere."
+    },
+    {
+      "image": "assets/images/mswd.png",
+      "title": "Verified\nMSWD Oversight",
+      "desc": "Trusted administration. MSWD admins ensure data integrity and secure account management for the entire community."
+    },
+  ];
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _scaleController.dispose();
-    _floatController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage < _onboardingData.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutQuart,
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isSmallScreen = screenHeight < 700;
-    final isLargeScreen = screenHeight > 900;
+    final size = MediaQuery.of(context).size;
+    
+    final primaryColor = Theme.of(context).primaryColor != Colors.blue
+        ? Theme.of(context).primaryColor
+        : const Color(0xFF8B5CF6);
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // Enhanced gradient background
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFFAF5FF),
-                  Color(0xFFFFF1F2),
-                  Color(0xFFF0FDFA),
-                ],
-                stops: [0.0, 0.5, 1.0],
-              ),
-            ),
-          ),
-
-          Positioned(
-            top: -90,
-            left: -30,
-            child: Opacity(
-              opacity: 0.8,
-              child: Image.asset(
-                'assets/images/bg_shape_3.png',
-                width: 200,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          Positioned(
-            bottom: -60,
-            right: -60,
-            child: Opacity(
-              opacity: 0.8,
-              child: Image.asset(
-                'assets/images/bg_shape_1.png',
-                width: 200,
-                height: 200,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          // Main content
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: BouncingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: constraints.maxHeight,
-                    ),
-                    child: IntrinsicHeight(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.08,
-                          vertical: isSmallScreen ? 20 : 0,
-                        ),
-                        child: Column(
-                          children: [
-                            SizedBox(height: isSmallScreen ? 20 : (isLargeScreen ? screenHeight * 0.08 : screenHeight * 0.07)),
-
-                            // Logo with enhanced animations
-                            ScaleTransition(
-                              scale: _scaleAnimation,
-                              child: FadeTransition(
-                                opacity: _fadeAnimation,
-                                child: AnimatedBuilder(
-                                  animation: _floatAnimation,
-                                  builder: (context, child) {
-                                    return Transform.translate(
-                                      offset: Offset(0, _floatAnimation.value * 0.6),
-                                      child: Container(
-                                        height: isSmallScreen 
-                                          ? screenHeight * 0.20 
-                                          : (isLargeScreen 
-                                            ? screenHeight * 0.25 
-                                            : screenHeight * 0.28),
-                                        padding: EdgeInsets.all(spacingLarge),
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          gradient: RadialGradient(
-                                            colors: [
-                                              primary.withOpacity(0.08),
-                                              Colors.transparent,
-                                            ],
-                                            stops: [0.5, 1.0],
-                                          ),
-                                        ),
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Lottie.asset(
-                                            'assets/icons/eye.json',
-                                            fit: BoxFit.contain,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(height: isSmallScreen ? screenHeight * 0.02 : screenHeight * 0.04),
-
-                            // Welcome text with enhanced gradient
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: ShaderMask(
-                                shaderCallback: (bounds) => primaryGradient.createShader(bounds),
-                                child: Text(
-                                  'Welcome to Seelai',
-                                  style: h1.copyWith(
-                                    fontSize: _getResponsiveFontSize(screenWidth, screenHeight, isSmallScreen, isLargeScreen, 0.095, 0.085, 0.105),
-                                    color: white,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -1.0,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-
-                            SizedBox(height: isSmallScreen ? screenHeight * 0.015 : screenHeight * 0.02),
-
-                            // Description with better styling
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: spacingMedium),
-                                child: Text(
-                                  "Your vision, our mission.\nExperience care that truly sees you.",
-                                  style: body.copyWith(
-                                    fontSize: _getResponsiveFontSize(screenWidth, screenHeight, isSmallScreen, isLargeScreen, 0.044, 0.040, 0.048),
-                                    height: 1.7,
-                                    color: grey,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ),
-                            ),
-
-                            Spacer(),
-
-                            // Feature highlights
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: Wrap(
-                                alignment: WrapAlignment.center,
-                                spacing: 12,
-                                runSpacing: 12,
-                                children: [
-                                  _buildFeaturePill(Icons.accessibility_new_rounded, "Accessible", isSmallScreen),
-                                  _buildFeaturePill(Icons.security_rounded, "Secure", isSmallScreen),
-                                  _buildFeaturePill(Icons.favorite_rounded, "Caring", isSmallScreen),
-                                ],
-                              ),
-                            ),
-
-                            SizedBox(height: isSmallScreen ? screenHeight * 0.03 : screenHeight * 0.04),
-
-                            // Single Get Started button
-                            FadeTransition(
-                              opacity: _fadeAnimation,
-                              child: CustomButton(
-                                text: 'Get Started',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => RoleSelectionScreen(),
-                                    ),
-                                  );
-                                },
-                                isLarge: true,
-                              ),
-                            ),
-
-                            SizedBox(height: isSmallScreen ? screenHeight * 0.04 : screenHeight * 0.06),
-                          ],
+      backgroundColor: Colors.white, 
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            
+            // 1. TOP SECTION: SKIP & IMAGES
+            Expanded(
+              flex: 3,
+              child: Column(
+                children: [
+                  // Skip Button (Top Right)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 24),
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const RoleSelectionScreen()),
+                          );
+                        },
+                        child: Text(
+                          "Skip",
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                );
-              },
+
+                  const Spacer(),
+
+                  // Image Carousel area
+                  SizedBox(
+                    height: size.height * 0.35, 
+                    child: PageView.builder(
+                      controller: _pageController,
+                      onPageChanged: (value) => setState(() => _currentPage = value),
+                      itemCount: _onboardingData.length,
+                      itemBuilder: (context, index) {
+                        return _buildImageCard(
+                          imagePath: _onboardingData[index]["image"]!,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            // 2. BOTTOM SECTION: TEXT & CONTROLS
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 30),
+                    
+                    // Animated Text Section
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            transitionBuilder: (Widget child, Animation<double> animation) {
+                              return FadeTransition(opacity: animation, child: child);
+                            },
+                            child: Text(
+                              _onboardingData[_currentPage]["title"]!,
+                              key: ValueKey<String>("title_$_currentPage"),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E293B),
+                                height: 1.2,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            child: Text(
+                              _onboardingData[_currentPage]["desc"]!,
+                              key: ValueKey<String>("desc_$_currentPage"),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF64748B),
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Bottom Controls (Dots & Button)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 40),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Indicator Dots
+                          Row(
+                            children: List.generate(
+                              _onboardingData.length,
+                              (index) => _buildDot(index, primaryColor),
+                            ),
+                          ),
+
+                          // Next Button
+                          ElevatedButton(
+                            onPressed: _nextPage,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 4,
+                              shadowColor: primaryColor.withOpacity(0.4),
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  _currentPage == _onboardingData.length - 1
+                                      ? "Get Started"
+                                      : "Next",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (_currentPage != _onboardingData.length - 1) ...[
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.arrow_forward_rounded, size: 20),
+                                ]
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  double _getResponsiveFontSize(
-    double screenWidth,
-    double screenHeight,
-    bool isSmallScreen,
-    bool isLargeScreen,
-    double normalSize,
-    double smallSize,
-    double largeSize,
-  ) {
-    if (isSmallScreen) {
-      return screenWidth * smallSize;
-    } else if (isLargeScreen) {
-      return screenWidth * largeSize;
-    }
-    return screenWidth * normalSize;
+  // UPDATED: Removed the purple circle Stack and padding.
+  // The image now takes up the full available space provided by the parent SizedBox.
+  Widget _buildImageCard({required String imagePath}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10), // Minimal side padding
+      child: Image.asset(
+        imagePath,
+        fit: BoxFit.contain, // Ensures it scales to the max height available
+        errorBuilder: (context, error, stackTrace) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image, size: 50, color: Colors.grey[300]),
+              const SizedBox(height: 8),
+              Text(
+                "Image not found:\n$imagePath",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
-  Widget _buildFeaturePill(IconData icon, String label, bool isSmallScreen) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 12 : 14,
-        vertical: isSmallScreen ? 7 : 8,
-      ),
+  Widget _buildDot(int index, Color primaryColor) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.only(right: 6),
+      height: 8,
+      width: _currentPage == index ? 28 : 8, 
       decoration: BoxDecoration(
-        color: white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(radiusMedium),
-        border: Border.all(color: greyLighter, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: primary.withOpacity(0.08),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: isSmallScreen ? 14 : 16, color: primary),
-          SizedBox(width: 6),
-          Text(
-            label,
-            style: small.copyWith(
-              color: grey,
-              fontWeight: FontWeight.w600,
-              fontSize: isSmallScreen ? 11 : 12,
-            ),
-          ),
-        ],
+        color: _currentPage == index
+            ? primaryColor
+            : const Color(0xFFE2E8F0),
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }

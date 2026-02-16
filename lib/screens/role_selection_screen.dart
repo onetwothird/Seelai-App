@@ -1,8 +1,8 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
-import 'package:seelai_app/roles/visually_impaired/auth/login/login_screen.dart';
-import 'package:seelai_app/roles/visually_impaired/auth/signup/signup_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/auth/login/login_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/caretaker/auth/login/login_screen.dart';
 import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/mswd/auth/login/login_screen.dart';

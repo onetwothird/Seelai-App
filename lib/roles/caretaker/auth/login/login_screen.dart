@@ -129,7 +129,7 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("Caretaker Login", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF1E293B), letterSpacing: -0.5)),
+                            const Text("Welcome, Caretaker!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF1E293B), letterSpacing: -0.5)),
                             const SizedBox(height: 8),
                             const Text("Sign in to manage and support your patients.", style: TextStyle(fontSize: 16, color: Color(0xFF64748B), fontWeight: FontWeight.w400)),
                             const SizedBox(height: 32),
