@@ -2,7 +2,7 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:seelai_app/roles/visually_impaired/models/emergency_hotline_model.dart';
+import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class EmergencyHotlineService {

@@ -28,13 +28,23 @@ class MoreContent extends StatefulWidget {
 
 class _MoreContentState extends State<MoreContent> {
   int _pendingVerifications = 12;
-  
+
+  // --- Color Palette for Sections ---
+  final Color _colVerifications = const Color(0xFF3B82F6); // Blue
+  final Color _colTracking = const Color(0xFF8B5CF6);      // Purple (kept for tech/data)
+  final Color _colComms = const Color(0xFFF59E0B);         // Amber/Orange
+  final Color _colSafety = const Color(0xFFEF4444);        // Red
+  final Color _colAdmin = const Color(0xFF64748B);         // Slate/Blue-Grey
+  final Color _colSupport = const Color(0xFF06B6D4);       // Cyan
+  final Color _colSecurity = const Color(0xFF10B981);      // Emerald Green
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
     return SingleChildScrollView(
       controller: widget.scrollController,
+      physics: const BouncingScrollPhysics(),
       child: Padding(
         padding: EdgeInsets.only(
           left: width * 0.05,
@@ -48,142 +58,142 @@ class _MoreContentState extends State<MoreContent> {
             _buildHeader(),
             SizedBox(height: spacingLarge),
             
-            // Verifications Section
-            _buildSectionTitle('Approvals & Verifications', Icons.verified_user_rounded),
+            // --- Verifications Section (Blue) ---
+            _buildSectionTitle('Approvals & Verifications', Icons.verified_user_rounded, _colVerifications),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Verifications',
               'Pending approvals and documents',
               Icons.verified_user_rounded,
-              Colors.orange,
+              _colVerifications, 
               badge: _pendingVerifications,
               onTap: () => _showSnackbar('Opening Verifications...'),
             ),
             
             SizedBox(height: spacingLarge),
             
-            // Tracking & Monitoring Section
-            _buildSectionTitle('Tracking & Monitoring', Icons.map_rounded),
+            // --- Tracking & Monitoring Section (Purple) ---
+            _buildSectionTitle('Tracking & Monitoring', Icons.map_rounded, _colTracking),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Location Tracking',
               'Real-time map view of all users',
               Icons.map_rounded,
-              Colors.green,
+              _colTracking,
               onTap: () => _showSnackbar('Opening Location Tracking...'),
             ),
             _buildMenuItem(
               'Analytics & Reports',
               'Usage statistics and demographics',
               Icons.analytics_rounded,
-              Colors.blue,
+              _colTracking,
               onTap: () => _showSnackbar('Opening Analytics...'),
             ),
             
             SizedBox(height: spacingLarge),
             
-            // Communications Section
-            _buildSectionTitle('Communications', Icons.campaign_rounded),
+            // --- Communications Section (Amber/Orange) ---
+            _buildSectionTitle('Communications', Icons.campaign_rounded, _colComms),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Send Announcement',
               'Broadcast messages to users',
               Icons.campaign_rounded,
-              Colors.purple,
+              _colComms,
               onTap: () => _showSnackbar('Opening Communications...'),
             ),
             _buildMenuItem(
               'Message Templates',
               'Manage announcement templates',
               Icons.message_rounded,
-              accent,
+              _colComms,
               onTap: () => _showSnackbar('Opening Templates...'),
             ),
             
             SizedBox(height: spacingLarge),
             
-            // Emergency & Safety Section
-            _buildSectionTitle('Emergency & Safety', Icons.phone_in_talk_rounded),
+            // --- Emergency & Safety Section (Red) ---
+            _buildSectionTitle('Emergency & Safety', Icons.phone_in_talk_rounded, _colSafety),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Emergency Hotlines',
               'Manage emergency contact directory',
               Icons.phone_in_talk_rounded,
-              error,
+              _colSafety, 
               onTap: () => _showSnackbar('Opening Hotlines...'),
             ),
             _buildMenuItem(
               'Audit Logs',
               'System activity and security events',
               Icons.history_rounded,
-              Colors.indigo,
+              _colSafety,
               onTap: () => _showSnackbar('Opening Audit Logs...'),
             ),
             
             SizedBox(height: spacingLarge),
             
-            // Administration Section
-            _buildSectionTitle('Administration', Icons.admin_panel_settings_rounded),
+            // --- Administration Section (Grey/Slate) ---
+            _buildSectionTitle('Administration', Icons.admin_panel_settings_rounded, _colAdmin),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Admin Management',
               'Manage admin users and permissions',
               Icons.admin_panel_settings_rounded,
-              Colors.deepPurple,
+              _colAdmin,
               onTap: () => _showSnackbar('Opening Admin Management...'),
             ),
             _buildMenuItem(
               'System Settings',
               'App configuration and maintenance',
               Icons.settings_rounded,
-              Colors.grey,
+              _colAdmin,
               onTap: () => _showSnackbar('Opening System Settings...'),
             ),
             
             SizedBox(height: spacingLarge),
             
-            // Support Section
-            _buildSectionTitle('Help & Support', Icons.help_rounded),
+            // --- Support Section (Cyan) ---
+            _buildSectionTitle('Help & Support', Icons.help_rounded, _colSupport),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Help Center',
               'FAQ, user manual, and support',
               Icons.help_rounded,
-              Colors.teal,
+              _colSupport,
               onTap: () => _showSnackbar('Opening Help Center...'),
             ),
             _buildMenuItem(
               'Report a Bug',
               'Submit technical issues',
               Icons.bug_report_rounded,
-              Colors.red,
+              _colSupport,
               onTap: () => _showSnackbar('Opening Bug Report...'),
             ),
             
             SizedBox(height: spacingLarge),
             
-            // Account Actions
-            _buildSectionTitle('Account', Icons.security_rounded),
+            // --- Account Actions (Green for Security, Red for Logout) ---
+            _buildSectionTitle('Account', Icons.security_rounded, _colSecurity),
             SizedBox(height: spacingMedium),
             _buildMenuItem(
               'Security Settings',
               'Password, 2FA, and active sessions',
               Icons.security_rounded,
-              Colors.cyan,
+              _colSecurity,
               onTap: () => _showSnackbar('Opening Security Settings...'),
             ),
             _buildMenuItem(
               'Logout',
               'Sign out of your account',
               Icons.logout_rounded,
-              Colors.red,
+              error, // Keep Red for destructive
               isDestructive: true,
               onTap: () => _showLogoutDialog(),
             ),
             
             SizedBox(height: spacingLarge),
             
-         ],
+          ],
         ),
       ),
     );
@@ -192,7 +202,7 @@ class _MoreContentState extends State<MoreContent> {
   Widget _buildHeader() {
     return Row(
       children: [
-          Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -219,7 +229,8 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon) {
+  // UPDATED: Added `color` parameter to section title
+  Widget _buildSectionTitle(String title, IconData icon, Color color) {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Row(
@@ -227,10 +238,10 @@ class _MoreContentState extends State<MoreContent> {
           Container(
             padding: EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: primary.withOpacity(0.15),
+              color: color.withOpacity(0.15), // Uses the section color
               borderRadius: BorderRadius.circular(radiusSmall),
             ),
-            child: Icon(icon, color: primary, size: 16),
+            child: Icon(icon, color: color, size: 16), // Uses the section color
           ),
           SizedBox(width: spacingSmall),
           Text(
@@ -265,19 +276,20 @@ class _MoreContentState extends State<MoreContent> {
           border: Border.all(
             color: widget.isDarkMode
                 ? (isDestructive 
-                    ? Colors.red.withOpacity(0.3)
-                    : Colors.white.withOpacity(0.1))
+                    ? Colors.red.withOpacity(0.3) 
+                    : color.withOpacity(0.3)) // Increased opacity slightly for visibility
                 : (isDestructive
-                    ? Colors.red.withOpacity(0.2)
-                    : Colors.black.withOpacity(0.06)),
+                    ? Colors.red.withOpacity(0.15)
+                    : Colors.black.withOpacity(0.05)),
+            width: 1,
           ),
           boxShadow: widget.isDarkMode
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
                 ],
         ),
@@ -294,6 +306,7 @@ class _MoreContentState extends State<MoreContent> {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
+                      // Uses the specific section color
                       color: isDestructive
                           ? Colors.red.withOpacity(0.1)
                           : color.withOpacity(0.1),
@@ -350,7 +363,7 @@ class _MoreContentState extends State<MoreContent> {
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: white,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),
@@ -392,7 +405,8 @@ class _MoreContentState extends State<MoreContent> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
-        backgroundColor: primary,
+        // Default to purple for general snackbars or you can make this dynamic
+        backgroundColor: const Color(0xFF8B5CF6), 
       ),
     );
   }
@@ -461,13 +475,13 @@ class _MoreContentState extends State<MoreContent> {
                 SnackBar(
                   content: Row(
                     children: [
-                      Icon(Icons.check_circle_rounded, color: white, size: 20),
+                      Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
                       SizedBox(width: spacingSmall),
                       Expanded(
                         child: Text(
                           'Successfully logged out',
                           style: TextStyle(
-                            color: white,
+                            color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -486,7 +500,7 @@ class _MoreContentState extends State<MoreContent> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              foregroundColor: white,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(radiusMedium),
               ),

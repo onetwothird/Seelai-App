@@ -112,6 +112,56 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
     super.dispose();
   }
 
+  // --- NEW: Handle Back Button Press ---
+  Future<bool> _onWillPop() async {
+    // If not on Home tab (index 0), go back to Home tab first
+    if (_selectedIndex != 0) {
+      setState(() {
+        _selectedIndex = 0;
+        _animationController.reset();
+        _animationController.forward();
+      });
+      return false; // Prevent exit
+    }
+
+    // If on Home tab, show Exit Confirmation Dialog
+    return (await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            // Use PURPLE Theme color
+            Icon(Icons.logout_rounded, color: const Color(0xFF8B5CF6)), 
+            SizedBox(width: 10),
+            Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to exit and log out?',
+          style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop(true);
+              // Optional: Add logic here if you want to explicitly sign out before closing
+              // await authService.signOut(); 
+            },
+            // Use PURPLE Theme color
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+            child: Text('Exit', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    )) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
@@ -122,55 +172,59 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    return Scaffold(
-      extendBody: true,
-      body: Container(
-        decoration: BoxDecoration(gradient: theme.backgroundGradient),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              HeaderSection(
-                adminName: adminName,
-                profileImageUrl: widget.userData['profileImageUrl'] as String?,
-                isDarkMode: _isDarkMode,
-                onToggleDarkMode: _toggleDarkMode,
-                onProfileTap: () {
-                  setState(() {
-                    _selectedIndex = 4;
-                  });
-                },
-                textColor: theme.textColor,
-                subtextColor: theme.subtextColor,
-              ),
-              
-              Expanded(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: _buildMainContent(
-                    screenWidth,
-                    screenHeight,
-                    theme,
+    // WRAP SCAFFOLD IN WILLPOPSCOPE
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        extendBody: true,
+        body: Container(
+          decoration: BoxDecoration(gradient: theme.backgroundGradient),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                HeaderSection(
+                  adminName: adminName,
+                  profileImageUrl: widget.userData['profileImageUrl'] as String?,
+                  isDarkMode: _isDarkMode,
+                  onToggleDarkMode: _toggleDarkMode,
+                  onProfileTap: () {
+                    setState(() {
+                      _selectedIndex = 4;
+                    });
+                  },
+                  textColor: theme.textColor,
+                  subtextColor: theme.subtextColor,
+                ),
+                
+                Expanded(
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: _buildMainContent(
+                      screenWidth,
+                      screenHeight,
+                      theme,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-      bottomNavigationBar: AnimatedSlide(
-        duration: Duration(milliseconds: 300),
-        curve: Curves.easeInOutCubic,
-        offset: _isNavVisible ? Offset.zero : Offset(0, 1),
-        child: AnimatedOpacity(
+        bottomNavigationBar: AnimatedSlide(
           duration: Duration(milliseconds: 300),
-          opacity: _isNavVisible ? 1.0 : 0.0,
-          child: MSWDBottomNavigation(
-            selectedIndex: _selectedIndex,
-            isDarkMode: _isDarkMode,
-            onItemTapped: _onNavItemTapped,
-            textColor: theme.textColor,
-            subtextColor: theme.subtextColor,
+          curve: Curves.easeInOutCubic,
+          offset: _isNavVisible ? Offset.zero : Offset(0, 1),
+          child: AnimatedOpacity(
+            duration: Duration(milliseconds: 300),
+            opacity: _isNavVisible ? 1.0 : 0.0,
+            child: MSWDBottomNavigation(
+              selectedIndex: _selectedIndex,
+              isDarkMode: _isDarkMode,
+              onItemTapped: _onNavItemTapped,
+              textColor: theme.textColor,
+              subtextColor: theme.subtextColor,
+            ),
           ),
         ),
       ),
@@ -190,19 +244,19 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-        onNavigateToLocation: () { // ADD THIS CALLBACK
-      // Switch to location tracking tab
-          _onNavItemTapped(3);
-        },
-      );
-      break;
+          onNavigateToLocation: () => _onNavItemTapped(3),
+        );
+        break;
+        
       case 3:
-      content = MswdLocationTrackingScreen(
-        isDarkMode: _isDarkMode,
-        theme: theme,
-        userData: widget.userData,
-      );
-      break;
+        // LOCATION SCREEN
+        content = MswdLocationTrackingScreen(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+        );
+        break;
+
       case 2:
         content = RequestsContent(
           isDarkMode: _isDarkMode,
@@ -210,7 +264,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           userData: widget.userData,
         );
         break;
-      
       
       case 4:
         content = MoreContent(
@@ -223,6 +276,11 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       
       default:
         content = _buildDashboardContent(width, theme);
+    }
+    
+    // Ensure map (index 3) isn't wrapped in scroll view
+    if (_selectedIndex == 3) {
+      return content;
     }
     
     return SingleChildScrollView(
@@ -244,7 +302,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Overview Section (Quick Stats)
+          // 1. Overview Section (Quick Stats)
           OverviewSection(
             isDarkMode: _isDarkMode,
             theme: theme,
@@ -252,16 +310,18 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           
           SizedBox(height: spacingXLarge),
           
-          // Announcement Section
-          AnnouncementSection(
+          // 2. User Breakdown Section (Detailed Stats Graph)
+          // MOVED UP: Grouping statistical data with Overview
+          UserBreakdownSection(
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
           
           SizedBox(height: spacingXLarge),
           
-          // User Breakdown Section
-          UserBreakdownSection(
+          // 3. Announcement Section
+          // MOVED DOWN: Secondary information
+          AnnouncementSection(
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
@@ -289,11 +349,11 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
 
   _AppTheme _getLightTheme() {
     return _AppTheme(
+      // White Background as requested previously
       backgroundGradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [backgroundPrimary, backgroundSecondary, lightBlue.withOpacity(0.3)],
-        stops: [0.0, 0.5, 1.0],
+        colors: [Colors.white, Colors.white],
       ),
       textColor: black,
       subtextColor: grey,

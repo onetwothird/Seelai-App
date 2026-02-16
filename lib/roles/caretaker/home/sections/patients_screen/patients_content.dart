@@ -94,7 +94,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 disabilityType: patientData['disabilityType'] ?? 'Not specified',
                 contactNumber: patientData['contactNumber'] ?? patientData['phone'] ?? 'N/A',
                 address: patientData['address'] ?? 'No address',
-                isOnline: false,
+                isOnline: false, // You might want to hook this up to real presence data
                 lastActive: DateTime.now(),
                 profileImageUrl: patientData['profileImageUrl'] as String?,
               );
@@ -145,9 +145,6 @@ class _PatientsContentState extends State<PatientsContent> {
              patient.disabilityType.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
   }
-
-  // REMOVED the old _handleCall and _handleMessage methods
-  // They are now handled by the separate files
 
   @override
   Widget build(BuildContext context) {
@@ -522,6 +519,7 @@ class _PatientsContentState extends State<PatientsContent> {
             child: Column(
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Profile Avatar
                     Stack(
@@ -547,10 +545,13 @@ class _PatientsContentState extends State<PatientsContent> {
                       ],
                     ),
                     SizedBox(width: spacingMedium),
+                    
+                    // Main Info Column
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // FIXED: Add text overflow handling to Name
                           Text(
                             patient.name,
                             style: bodyBold.copyWith(
@@ -558,10 +559,15 @@ class _PatientsContentState extends State<PatientsContent> {
                               color: widget.theme.textColor,
                               fontWeight: FontWeight.w700,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           SizedBox(height: 6),
+                          
+                          // Tags Row
                           Row(
                             children: [
+                              // Age Tag
                               Container(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: spacingSmall,
@@ -592,40 +598,47 @@ class _PatientsContentState extends State<PatientsContent> {
                                 ),
                               ),
                               SizedBox(width: spacingSmall),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: spacingSmall,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: accent.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(radiusSmall),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.visibility_off_rounded,
-                                      size: 12,
-                                      color: accent,
-                                    ),
-                                    SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        patient.disabilityType,
-                                        style: caption.copyWith(
-                                          fontSize: 12,
-                                          color: accent,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                              
+                              // FIXED: Wrapped Disability Tag in Flexible to prevent overflow
+                              Flexible(
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: spacingSmall,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: accent.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(radiusSmall),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.visibility_off_rounded,
+                                        size: 12,
+                                        color: accent,
                                       ),
-                                    ),
-                                  ],
+                                      SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          patient.disabilityType,
+                                          style: caption.copyWith(
+                                            fontSize: 12,
+                                            color: accent,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+                          
+                          // Address Row
                           if (patient.address != null && patient.address != 'No address') ...[
                             SizedBox(height: 6),
                             Row(
@@ -654,6 +667,8 @@ class _PatientsContentState extends State<PatientsContent> {
                         ],
                       ),
                     ),
+                    
+                    // Arrow Icon
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: widget.theme.subtextColor.withOpacity(0.5),
@@ -666,7 +681,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
                 SizedBox(height: spacingMedium),
                 
-                // Quick Actions - UPDATED to use the new functions
+                // Quick Actions
                 Row(
                   children: [
                     Expanded(
@@ -674,7 +689,7 @@ class _PatientsContentState extends State<PatientsContent> {
                         icon: Icons.phone_rounded,
                         label: 'Call',
                         color: Colors.green,
-                        onTap: () => callPatient(context, patientName: patient.name), // Using the new call function
+                        onTap: () => callPatient(context, patientName: patient.name),
                       ),
                     ),
                     SizedBox(width: spacingSmall),
@@ -684,7 +699,7 @@ class _PatientsContentState extends State<PatientsContent> {
                         label: 'Message',
                         color: primary,
                         isOutlined: true,
-                        onTap: () => messagePatient(context, patientName: patient.name), // Using the new message function
+                        onTap: () => messagePatient(context, patientName: patient.name),
                       ),
                     ),
                   ],
@@ -739,87 +754,69 @@ class _PatientsContentState extends State<PatientsContent> {
     );
   }
 
+  // In patients_content.dart
+
   Widget _buildProfileAvatar(PatientModel patient) {
     final hasProfileImage = patient.profileImageUrl != null && 
                             patient.profileImageUrl!.isNotEmpty;
 
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.black,
-          width: 1,
+    return Hero(
+      // Ensure IDs are unique! If multiple patients have ID "1", this animation breaks.
+      tag: 'patient_avatar_${patient.id}',
+      child: Material(
+        color: Colors.transparent,
+        type: MaterialType.transparency,
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.black,
+              width: 1,
+            ),
+            // Important: Background color ensures no transparency issues during flight
+            color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[200],
+          ),
+          child: ClipOval(
+            child: hasProfileImage
+                ? Image.network(
+                    patient.profileImageUrl!,
+                    fit: BoxFit.cover,
+                    // Use standard error/loading builders
+                    errorBuilder: (context, error, stackTrace) => _buildAvatarPlaceholder(),
+                    loadingBuilder: (context, child, loadingProgress) {
+                       if (loadingProgress == null) return child;
+                       return _buildAvatarPlaceholder(isLoading: true);
+                    },
+                  )
+                : _buildAvatarPlaceholder(),
+          ),
         ),
       ),
-      child: ClipOval(
-        child: hasProfileImage
-            ? Image.network(
-                patient.profileImageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF9333EA), // Purple
-                          Color(0xFF7C3AED), // Darker purple
-                        ],
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.person_rounded,
-                      color: white,
-                      size: 32,
-                    ),
-                  );
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF9333EA), // Purple
-                          Color(0xFF7C3AED), // Darker purple
-                        ],
-                      ),
-                    ),
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(white),
-                      ),
-                    ),
-                  );
-                },
-              )
-            : Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF9333EA), // Purple
-                      Color(0xFF7C3AED), // Darker purple
-                    ],
-                  ),
-                ),
-                child: Icon(
-                  Icons.person_rounded,
-                  color: white,
-                  size: 32,
-                ),
-              ),
+    );
+  }
+
+  // Helper for cleaner code and consistent placeholder
+  Widget _buildAvatarPlaceholder({bool isLoading = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF9333EA), // Purple
+            Color(0xFF7C3AED), // Darker purple
+          ],
+        ),
+      ),
+      child: Center(
+        child: isLoading 
+          ? Padding(
+              padding: EdgeInsets.all(12),
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            )
+          : Icon(Icons.person_rounded, color: Colors.white, size: 32),
       ),
     );
   }

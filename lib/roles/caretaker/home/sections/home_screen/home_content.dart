@@ -1,3 +1,4 @@
+// File: lib/roles/caretaker/home/sections/home_screen/home_content.dart
 // ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use
 
 import 'package:flutter/material.dart';
@@ -197,26 +198,7 @@ class _HomeContentState extends State<HomeContent> {
           .once();
       
       if (snapshot.snapshot.exists) {
-        final data = snapshot.snapshot.value as Map<dynamic, dynamic>;
-        final announcementsList = <Map<String, dynamic>>[];
-        
-        data.forEach((key, value) {
-          final announcement = Map<String, dynamic>.from(value as Map);
-          announcement['id'] = key;
-          announcementsList.add(announcement);
-        });
-        
-        announcementsList.sort((a, b) => 
-          (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0)
-        );
-        
-        if (mounted) {
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-          });
-        }
+        // Logic handled inside AnnouncementSection mostly
       }
     } catch (e) {
       debugPrint('❌ HOME: Error fetching announcements: $e');
@@ -227,6 +209,7 @@ class _HomeContentState extends State<HomeContent> {
   Future<void> _refreshDashboardData() async {
     setState(() => _isLoading = true);
     await _fetchAnnouncements();
+    // Re-trigger streams if necessary, or just wait for UI reset
     await Future.delayed(Duration(milliseconds: 500));
     if (mounted) {
       setState(() => _isLoading = false);
@@ -247,7 +230,7 @@ class _HomeContentState extends State<HomeContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Overview Section
+          // 1. Overview Section (Top Priority Stats)
           OverviewSection(
             isDarkMode: widget.isDarkMode,
             theme: widget.theme,
@@ -260,14 +243,8 @@ class _HomeContentState extends State<HomeContent> {
           ),
           SizedBox(height: spacingXLarge),
           
-            AnnouncementSection(
-            isDarkMode: widget.isDarkMode,
-            theme: widget.theme,
-            caretakerId: _caretakerId!, 
-          ),
-          SizedBox(height: spacingXLarge),
-          
-          // Request Breakdown Section
+          // 2. Request Breakdown Section (Detailed Stats)
+          // MOVED UP: Groups statistical data together for a cleaner dashboard flow
           RequestBreakdownSection(
             isDarkMode: widget.isDarkMode,
             theme: widget.theme,
@@ -276,6 +253,17 @@ class _HomeContentState extends State<HomeContent> {
             activeRequests: _activeRequests,
             completedRequests: _completedRequests,
           ),
+          SizedBox(height: spacingXLarge),
+
+          // 3. Announcement Section (Information/Updates)
+          // MOVED DOWN: Separates "Work/Monitoring" from "News"
+          if (_caretakerId != null) 
+            AnnouncementSection(
+              isDarkMode: widget.isDarkMode,
+              theme: widget.theme,
+              caretakerId: _caretakerId!, 
+            ),
+            
           SizedBox(height: spacingXLarge),
         ],
       ),
