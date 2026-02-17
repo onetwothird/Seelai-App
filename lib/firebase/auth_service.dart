@@ -20,7 +20,9 @@ class AuthService {
   // Helper to ensure Google Sign-In is initialized exactly once
   Future<void> _ensureGoogleSignInInitialized() async {
     if (!_isGoogleSignInInitialized) {
-      await _googleSignIn.initialize();
+      await _googleSignIn.initialize(
+        serverClientId: '697931553557-pe9aqe3ppif5a6t9gjs5s0qgl4n9kba6.apps.googleusercontent.com', 
+      );
       _isGoogleSignInInitialized = true;
     }
   }
