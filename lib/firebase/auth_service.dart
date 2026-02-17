@@ -35,7 +35,7 @@ class AuthService {
       // Note: This method throws an exception if the user cancels, it does not return null.
       final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
       
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
 
       // FIX 4: Retrieve tokens correctly. 
       // 'accessToken' is removed from googleAuth. We can usually rely on idToken for Firebase.
