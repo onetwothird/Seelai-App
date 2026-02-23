@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
+import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
 /// Controller that handles all object detection logic

@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
+import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/roles/partially_sighted/services/permission_service.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/location.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/announcement.dart';

@@ -63,7 +63,6 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
     final Color brandColor = primary;
 
     return Scaffold(
-      // UPDATED: Changed background to pure white
       backgroundColor: Colors.white,
       body: Stack(
         children: [
@@ -130,7 +129,6 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                   ),
                   child: Stack(
                     children: [
-                      // Background Texture (Clipped)
                       Positioned.fill(
                         child: ClipRRect(
                           borderRadius: const BorderRadius.only(
@@ -228,6 +226,58 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                                 ),
                               ),
                             ),
+
+                            const SizedBox(height: 24),
+
+                            // --- GOOGLE SECTION ---
+                            Row(
+                              children: [
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: const Text("OR", style: TextStyle(color: Color(0xFF94A3B8))),
+                                ),
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 24),
+
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                onPressed: _isLoading ? null : _handleGoogleLogin,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF1E293B),
+                                  elevation: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      'assets/icons/google.png',
+                                      height: 24,
+                                      width: 24,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      "Continue with Google",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF1E293B),
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // --- END GOOGLE SECTION ---
 
                             const SizedBox(height: 24),
 
@@ -356,6 +406,57 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
     );
   }
 
+  // ==================== GOOGLE LOGIN LOGIC ====================
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+
+    try {
+      UserCredential? userCredential = await authService.value.signInWithGoogle();
+      
+      if (userCredential == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
+      
+      if (userData != null) {
+        if (userData['role'] == 'admin' || userData['role'] == 'mswd') {
+          await activityLogsService.logActivity(userId: userCredential.user!.uid, action: 'login', details: 'MSWD logged in via Google');
+          if (mounted) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MSWDHomeScreen(userData: userData)));
+          }
+        } else {
+          await authService.value.signOut();
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access Denied: Not an MSWD account'), backgroundColor: error));
+        }
+      } else {
+        // User not in DB, route to Signup
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MSWDSignupScreen(googleUser: userCredential.user),
+            ),
+          );
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Almost there! Please complete your staff profile.'), 
+              backgroundColor: primary,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ==================== STANDARD LOGIN LOGIC ====================
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields'), backgroundColor: error));

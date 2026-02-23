@@ -132,10 +132,13 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                             const Text("Welcome, Caretaker!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF1E293B), letterSpacing: -0.5)),
                             const SizedBox(height: 8),
                             const Text("Sign in to manage and support your patients.", style: TextStyle(fontSize: 16, color: Color(0xFF64748B), fontWeight: FontWeight.w400)),
+                            
                             const SizedBox(height: 32),
+                            
                             _buildTextField(controller: _emailController, hint: "Email address", icon: Icons.email_outlined),
                             const SizedBox(height: 20),
                             _buildTextField(controller: _passwordController, hint: "Password", icon: Icons.lock_outline_rounded, isPassword: true),
+                            
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
@@ -143,7 +146,9 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                                 child: Text("Forgot password?", style: TextStyle(color: brandColor, fontWeight: FontWeight.w600)),
                               ),
                             ),
+                            
                             const SizedBox(height: 24),
+                            
                             SizedBox(
                               width: double.infinity,
                               height: 56,
@@ -158,7 +163,61 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                                 child: const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                               ),
                             ),
+                            
                             const SizedBox(height: 24),
+
+                            // --- GOOGLE SECTION ---
+                            Row(
+                              children: [
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: const Text("OR", style: TextStyle(color: Color(0xFF94A3B8))),
+                                ),
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 24),
+
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                onPressed: _isLoading ? null : _handleGoogleLogin,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF1E293B),
+                                  elevation: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      'assets/icons/google.png',
+                                      height: 24,
+                                      width: 24,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      "Continue with Google",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF1E293B),
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // --- END GOOGLE SECTION ---
+                            
+                            const SizedBox(height: 24),
+                            
                             Center(
                               child: TextButton(
                                 onPressed: _isLoading ? null : () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CaretakerSignupScreen())),
@@ -247,7 +306,79 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
     );
   }
 
-  // ==================== UPDATED LOGIN LOGIC ====================
+  // ==================== GOOGLE LOGIN LOGIC ====================
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+
+    try {
+      UserCredential? userCredential = await authService.value.signInWithGoogle();
+      
+      if (userCredential == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
+      
+      if (userData != null) {
+        if (userData['role'] != 'caretaker') {
+          await authService.value.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error));
+          }
+          return;
+        }
+
+        bool isApproved = userData['approved'] == true;
+
+        if (!isApproved) {
+          await authService.value.signOut();
+          if (mounted) {
+            _showPendingVerificationDialog();
+            setState(() => _isLoading = false);
+          }
+          return;
+        }
+
+        await activityLogsService.logActivity(
+          userId: userCredential.user!.uid,
+          action: 'login',
+          details: 'Caretaker logged in via Google',
+        );
+        
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
+          );
+        }
+      } else {
+        // User not in DB, route to Signup
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CaretakerSignupScreen(googleUser: userCredential.user),
+            ),
+          );
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Almost there! Please complete your profile.'), 
+              backgroundColor: primary,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ==================== STANDARD LOGIN LOGIC ====================
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error));
@@ -257,32 +388,26 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
     setState(() => _isLoading = true);
 
     try {
-      // 1. Authenticate with Firebase Auth
       UserCredential userCredential = await authService.value.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      // 2. Fetch User Data
       Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
       
       if (userData != null && userData['role'] == 'caretaker') {
         
-        // 3. CHECK FOR APPROVAL (Verification)
         bool isApproved = userData['approved'] == true;
 
         if (!isApproved) {
-          // If not approved, Sign Out immediately and show warning
           await authService.value.signOut();
-          
           if (mounted) {
             _showPendingVerificationDialog();
             setState(() => _isLoading = false);
           }
-          return; // Stop execution here
+          return;
         }
 
-        // 4. Log Activity if Approved
         await activityLogsService.logActivity(
           userId: userCredential.user!.uid,
           action: 'login',
@@ -296,7 +421,6 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
           );
         }
       } else {
-        // Not a caretaker or user data missing
         await authService.value.signOut();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error));

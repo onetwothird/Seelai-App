@@ -11,7 +11,7 @@ import 'package:seelai_app/roles/partially_sighted/home/widgets/bottom_navigatio
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/home_content.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/contacts_screen/contacts_content.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/profile_content/profile_content.dart';
-import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
+import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/roles/partially_sighted/services/permission_service.dart';
 import 'package:seelai_app/roles/partially_sighted/services/accessibility_service.dart';
 import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';

@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
+import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'object_detection_controller.dart';
 
 class ObjectDetectionScreen extends StatefulWidget {

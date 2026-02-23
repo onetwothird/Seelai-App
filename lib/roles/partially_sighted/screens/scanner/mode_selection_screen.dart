@@ -5,7 +5,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/visually_impaired/camera_service.dart';
+import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/roles/partially_sighted/screens/scanner/object_detection/object_detection_screen.dart';
 import 'package:seelai_app/roles/partially_sighted/screens/scanner/face_detection/face_detection_screen.dart';
 import 'package:seelai_app/roles/partially_sighted/screens/scanner/text_document/text_reader_screen.dart';

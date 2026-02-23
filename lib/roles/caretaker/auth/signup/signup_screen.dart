@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:io';
-import 'dart:ui'; // <--- REQUIRED for Glassmorphism
+import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:seelai_app/services/cloudinary_service.dart';
@@ -13,7 +13,9 @@ import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class CaretakerSignupScreen extends StatefulWidget {
-  const CaretakerSignupScreen({super.key});
+  final User? googleUser; 
+
+  const CaretakerSignupScreen({super.key, this.googleUser});
 
   @override
   State<CaretakerSignupScreen> createState() => _CaretakerSignupScreenState();
@@ -56,6 +58,12 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
     ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
 
     _entryController.forward();
+
+    // --- PRE-FILL GOOGLE DATA (Name is editable, Email is locked) ---
+    if (widget.googleUser != null) {
+      _emailController.text = widget.googleUser!.email ?? '';
+      _nameController.text = widget.googleUser!.displayName ?? '';
+    }
   }
 
   @override
@@ -119,31 +127,24 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
 
   @override
   Widget build(BuildContext context) {
-    // Get the current keyboard height
     final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      
-      // 1. PREVENT BACKGROUND MOVEMENT: Disable auto-resize when keyboard opens
       resizeToAvoidBottomInset: false,
-
-      // Extend Body Behind AppBar for Glass Effect
       extendBodyBehindAppBar: true, 
 
       appBar: AppBar(
-        // Make base transparent
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         
-        // Add Glassmorphism Layer
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
             child: Container(
-              color: Colors.white.withOpacity(0.2), // Low Opacity Tint
+              color: Colors.white.withOpacity(0.2), 
             ),
           ),
         ),
@@ -155,38 +156,27 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
         ),
         title: const Text(
           "Create Account",
-          style: TextStyle(
-            color: Color(0xFF1E293B),
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-          ),
+          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w700, fontSize: 20),
         ),
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          // 2. BACKGROUND IMAGE (Fixed Size)
-          // Since resizing is disabled, this Positioned.fill will ignore the keyboard
           Positioned.fill(
             child: Opacity(
               opacity: 0.08,
-              child: Image.asset(
-                'assets/images/eye background.jpg',
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset('assets/images/eye background.jpg', fit: BoxFit.cover),
             ),
           ),
 
-          // 3. Main Content
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              // 4. MANUAL PADDING: Add keyboard height to bottom padding so we can scroll
               padding: EdgeInsets.only(
                 left: 24, 
                 right: 24, 
                 top: 20, 
-                bottom: 20 + keyboardHeight // Dynamic padding
+                bottom: 20 + keyboardHeight 
               ),
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -194,7 +184,6 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                   position: _slideAnimation,
                   child: Column(
                     children: [
-                      // Profile Picture
                       GestureDetector(
                         onTap: _isLoading ? null : _showImageSourceDialog,
                         child: Stack(
@@ -206,7 +195,6 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: const Color(0xFFF1F5F9),
-                                // Black outline, width 2.0
                                 border: Border.all(color: Colors.black, width: 2.0),
                                 image: _profileImage != null
                                     ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover)
@@ -235,17 +223,19 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                       const SizedBox(height: 16),
                       _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
                       const SizedBox(height: 16),
-                      _buildTextField(_emailController, 'Email', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+                      _buildTextField(
+                        _emailController, 
+                        'Email', 
+                        Icons.email_outlined, 
+                        keyboardType: TextInputType.emailAddress,
+                        readOnly: widget.googleUser != null, // Lock email if Google user
+                      ),
                       const SizedBox(height: 16),
                       _buildTextField(_phoneController, 'Phone Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
                       const SizedBox(height: 16),
                       _buildTextField(_relationshipController, 'Relationship to Patient', Icons.people_outline),
-                      const SizedBox(height: 16),
-                      _buildTextField(_passwordController, 'Password', Icons.lock_outline, isPassword: true),
-                      const SizedBox(height: 16),
-                      _buildTextField(_confirmPasswordController, 'Confirm Password', Icons.lock_outline, isPassword: true, isConfirm: true),
-
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 20),
+                    
 
                       SizedBox(
                         width: double.infinity,
@@ -258,7 +248,10 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                             elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text("Create Account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: Text(
+                            widget.googleUser != null ? "Save & Continue" : "Create Account", 
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -274,18 +267,19 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false}) {
+  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
+        color: readOnly ? const Color(0xFFE2E8F0) : const Color(0xFFF8FAFC), // Grey out if read only
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)), // Standard Grey Border
+        border: Border.all(color: const Color(0xFFE2E8F0)), 
       ),
       child: TextField(
         controller: ctrl,
+        readOnly: readOnly,
         keyboardType: keyboardType,
         obscureText: isPassword ? (isConfirm ? _obscureConfirmPassword : _obscurePassword) : false,
-        style: const TextStyle(color: Color(0xFF1E293B)),
+        style: TextStyle(color: readOnly ? const Color(0xFF64748B) : const Color(0xFF1E293B)),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
@@ -313,58 +307,88 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
   }
 
   Future<void> _handleSignup() async {
-    if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error));
+    // 1. STRICT VALIDATION: All fields except password must be filled out
+    if (_nameController.text.trim().isEmpty || 
+        _ageController.text.trim().isEmpty || 
+        _emailController.text.trim().isEmpty || 
+        _phoneController.text.trim().isEmpty || 
+        _relationshipController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
       return;
     }
     
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
+    // 2. Validate passwords ONLY if they are NOT a Google User
+    if (widget.googleUser == null) {
+      if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a password'), backgroundColor: error));
+        return;
+      }
+      if (_passwordController.text != _confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
+        return;
+      }
+    }
+
+    int? age = int.tryParse(_ageController.text.trim());
+    if (age == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid age'), backgroundColor: error));
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      int? age = int.tryParse(_ageController.text.trim());
-      
-      UserCredential userCredential = await authService.value.createAccount(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      User? finalUser;
 
-      await authService.value.updateUsername(userName: _nameController.text.trim());
-
-      String? profileImageUrl;
-      if (_profileImage != null) {
-        profileImageUrl = await _uploadProfileImage(userCredential.user!.uid);
+      // 3. Determine Auth Flow
+      if (widget.googleUser != null) {
+        finalUser = widget.googleUser;
+      } else {
+        UserCredential userCredential = await authService.value.createAccount(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        finalUser = userCredential.user;
+        await authService.value.updateUsername(userName: _nameController.text.trim());
       }
 
+      if (finalUser == null) throw Exception("Failed to get user information.");
+
+      // 4. Upload Profile Image
+      String? profileImageUrl;
+      if (_profileImage != null) {
+        profileImageUrl = await _uploadProfileImage(finalUser.uid);
+      }
+
+      // 5. Create DB Entry
       await databaseService.createUserDocument(
-        userId: userCredential.user!.uid,
+        userId: finalUser.uid,
         name: _nameController.text.trim(),
-        age: age ?? 0,
+        age: age,
         email: _emailController.text.trim(),
         role: 'caretaker',
         phone: _phoneController.text.trim(),
         relationship: _relationshipController.text.trim(),
-        approved: false, // Pending verification
+        approved: false, // Pending MSWD verification
       );
 
+      // 6. Update Database Image URL
       if (profileImageUrl != null) {
         await databaseService.updateUserProfile(
-          userId: userCredential.user!.uid,
+          userId: finalUser.uid,
           role: 'caretaker',
           profileImageUrl: profileImageUrl,
         );
       }
 
+      // 7. Log creation
       await activityLogsService.logActivity(
-        userId: userCredential.user!.uid,
+        userId: finalUser.uid,
         action: 'account_created',
         details: 'User signed up as caretaker',
       );
 
+      // 8. Completion & MSWD Notice
       if (mounted) {
         setState(() => _isLoading = false);
         await showDialog(
@@ -391,6 +415,9 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Signup failed'), backgroundColor: error));
+      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: error));
       if (mounted) setState(() => _isLoading = false);
     }
   }
