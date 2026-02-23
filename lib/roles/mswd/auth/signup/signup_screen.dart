@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:io';
-import 'dart:ui'; // <--- REQUIRED for Glassmorphism
+import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:seelai_app/services/cloudinary_service.dart';
@@ -13,7 +13,9 @@ import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class MSWDSignupScreen extends StatefulWidget {
-  const MSWDSignupScreen({super.key});
+  final User? googleUser; // Added to capture Google Account
+
+  const MSWDSignupScreen({super.key, this.googleUser});
 
   @override
   State<MSWDSignupScreen> createState() => _MSWDSignupScreenState();
@@ -56,6 +58,12 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
 
     _entryController.forward();
+
+    // --- PRE-FILL GOOGLE DATA (Name editable, Email locked) ---
+    if (widget.googleUser != null) {
+      _emailController.text = widget.googleUser!.email ?? '';
+      _nameController.text = widget.googleUser!.displayName ?? '';
+    }
   }
 
   @override
@@ -109,23 +117,19 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
-      
-      // 1. EXTEND BODY BEHIND APP BAR (Crucial for glass effect)
       extendBodyBehindAppBar: true, 
       
       appBar: AppBar(
-        // 2. MAKE BASE TRANSPARENT
         backgroundColor: Colors.transparent, 
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
         
-        // 3. ADD THE GLASS EFFECT
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
             child: Container(
-              color: Colors.white.withOpacity(0.2), // Low Opacity Tint
+              color: Colors.white.withOpacity(0.2), 
             ),
           ),
         ),
@@ -136,7 +140,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
       ),
       body: Stack(
         children: [
-          // 1. BACKGROUND IMAGE (Fixed Position)
           Positioned.fill(
             child: Opacity(
               opacity: 0.08,
@@ -147,11 +150,9 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
             ),
           ),
 
-          // 2. Content
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              // FIX 2: Dynamic Padding for Keyboard
               padding: EdgeInsets.only(
                 left: 24, 
                 right: 24, 
@@ -196,15 +197,16 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                       const SizedBox(height: 16),
                       _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
                       const SizedBox(height: 16),
-                      _buildTextField(_emailController, 'Work Email', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+                      _buildTextField(
+                        _emailController, 
+                        'Work Email', 
+                        Icons.email_outlined, 
+                        keyboardType: TextInputType.emailAddress,
+                        readOnly: widget.googleUser != null, // Lock email if Google user
+                      ),
                       const SizedBox(height: 16),
                       _buildTextField(_departmentController, 'Department', Icons.business_outlined),
-                      const SizedBox(height: 16),
-                      _buildTextField(_passwordController, 'Password', Icons.lock_outline, isPassword: true),
-                      const SizedBox(height: 16),
-                      _buildTextField(_confirmPasswordController, 'Confirm Password', Icons.lock_outline, isPassword: true, isConfirm: true),
-                      
-                      const SizedBox(height: 40),
+                      const SizedBox(height: 20),
 
                       SizedBox(
                         width: double.infinity, height: 56,
@@ -214,7 +216,10 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                             backgroundColor: primary, foregroundColor: Colors.white, elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
-                          child: const Text("Create Staff Account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          child: Text(
+                            widget.googleUser != null ? "Save & Continue" : "Create Staff Account", 
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -230,18 +235,19 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false}) {
+  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC), 
+        color: readOnly ? const Color(0xFFE2E8F0) : const Color(0xFFF8FAFC), 
         borderRadius: BorderRadius.circular(16), 
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: TextField(
-        controller: ctrl, keyboardType: keyboardType,
-        // Correct logic to toggle password visibility independently
+        controller: ctrl, 
+        keyboardType: keyboardType,
+        readOnly: readOnly,
         obscureText: isPassword ? (isConfirm ? _obscureConfirmPassword : _obscurePassword) : false,
-        style: const TextStyle(color: Color(0xFF1E293B)),
+        style: TextStyle(color: readOnly ? const Color(0xFF64748B) : const Color(0xFF1E293B)),
         decoration: InputDecoration(
           hintText: hint, hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
           prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
@@ -266,48 +272,94 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   }
 
   Future<void> _handleSignup() async {
-     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error));
+    // 1. STRICT VALIDATION: All fields except password must be filled out
+    if (_nameController.text.trim().isEmpty || 
+        _idNumberController.text.trim().isEmpty ||
+        _ageController.text.trim().isEmpty || 
+        _emailController.text.trim().isEmpty || 
+        _departmentController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
       return;
     }
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
+    
+    // 2. Validate passwords ONLY if they are NOT a Google User
+    if (widget.googleUser == null) {
+      if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a password'), backgroundColor: error));
+        return;
+      }
+      if (_passwordController.text != _confirmPasswordController.text) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
+        return;
+      }
+    }
+
+    int? age = int.tryParse(_ageController.text.trim());
+    if (age == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid age'), backgroundColor: error));
       return;
     }
+    
     setState(() => _isLoading = true);
 
     try {
-      int? age = int.tryParse(_ageController.text.trim());
+      User? finalUser;
 
-      UserCredential userCredential = await authService.value.createAccount(email: _emailController.text.trim(), password: _passwordController.text);
-      await authService.value.updateUsername(userName: _nameController.text.trim());
-      
-      String? profileImageUrl;
-      if (_profileImage != null) {
-        profileImageUrl = await _uploadProfileImage(userCredential.user!.uid);
+      // 3. Determine Auth Flow
+      if (widget.googleUser != null) {
+        finalUser = widget.googleUser;
+      } else {
+        UserCredential userCredential = await authService.value.createAccount(
+          email: _emailController.text.trim(), 
+          password: _passwordController.text
+        );
+        finalUser = userCredential.user;
+        await authService.value.updateUsername(userName: _nameController.text.trim());
       }
 
+      if (finalUser == null) throw Exception("Failed to get user information.");
+
+      // 4. Upload Image
+      String? profileImageUrl;
+      if (_profileImage != null) {
+        profileImageUrl = await _uploadProfileImage(finalUser.uid);
+      }
+
+      // 5. Create DB Entry
       await databaseService.createUserDocument(
-        userId: userCredential.user!.uid,
+        userId: finalUser.uid,
         name: _nameController.text.trim(),
         idNumber: _idNumberController.text.trim(), 
-        age: age ?? 0, 
+        age: age, 
         email: _emailController.text.trim(),
         department: _departmentController.text.trim(),
         role: 'admin', 
       );
 
-       if (profileImageUrl != null) {
-        await databaseService.updateUserProfile(userId: userCredential.user!.uid, role: 'admin', profileImageUrl: profileImageUrl);
+      // 6. Update Database Image URL
+      if (profileImageUrl != null) {
+        await databaseService.updateUserProfile(
+          userId: finalUser.uid, 
+          role: 'admin', 
+          profileImageUrl: profileImageUrl
+        );
       }
 
-      await activityLogsService.logActivity(userId: userCredential.user!.uid, action: 'account_created', details: 'MSWD Staff registered');
+      // 7. Log Activity
+      await activityLogsService.logActivity(
+        userId: finalUser.uid, 
+        action: 'account_created', 
+        details: 'MSWD Staff registered'
+      );
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Staff account created!'), backgroundColor: primary));
         Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Signup failed'), backgroundColor: error));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: error));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

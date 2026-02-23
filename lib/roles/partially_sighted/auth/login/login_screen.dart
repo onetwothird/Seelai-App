@@ -230,7 +230,7 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
 
                             SizedBox(height: 24),
 
-                            // --- ADDED GOOGLE SECTION ---
+                            // --- GOOGLE SECTION ---
                             Row(
                               children: [
                                 Expanded(child: Divider(color: Color(0xFFE2E8F0))),
@@ -250,21 +250,28 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
                               child: OutlinedButton(
                                 onPressed: _isLoading ? null : _handleGoogleLogin,
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Color(0xFFE2E8F0)),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  side: BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   backgroundColor: Colors.white,
+                                  foregroundColor: Color(0xFF1E293B),
+                                  elevation: 0,
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.g_mobiledata_rounded, size: 40, color: brandColor), 
-                                    SizedBox(width: 8),
+                                    Image.asset(
+                                      'assets/icons/google.png',
+                                      height: 24,
+                                      width: 24,
+                                    ),
+                                    SizedBox(width: 12),
                                     Text(
                                       "Continue with Google",
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w600,
                                         color: Color(0xFF1E293B),
+                                        letterSpacing: 0.2,
                                       ),
                                     ),
                                   ],

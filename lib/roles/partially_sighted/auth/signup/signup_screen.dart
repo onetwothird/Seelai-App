@@ -13,7 +13,7 @@ import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class VisuallyImpairedSignupScreen extends StatefulWidget {
-  final User? googleUser; // Added to capture Google Account
+  final User? googleUser; // Captures the Google Account
 
   const VisuallyImpairedSignupScreen({super.key, this.googleUser});
 
@@ -74,7 +74,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
     _entryController.forward();
 
-    // --- NEW: Pre-fill Google Data ---
+    // PRE-FILL DATA FROM GOOGLE (Name is editable, Email is locked)
     if (widget.googleUser != null) {
       _emailController.text = widget.googleUser!.email ?? '';
       _nameController.text = widget.googleUser!.displayName ?? '';
@@ -289,40 +289,18 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
                       _buildSectionHeader("Account Security"),
                       SizedBox(height: 16),
-                      // Notice the readOnly flag added here
+                      
+                      // EMAIL IS LOCKED IF LOGGED IN VIA GOOGLE
                       _buildTextField(
                         _emailController, 
                         'Email', 
                         Icons.email_outlined, 
                         keyboardType: TextInputType.emailAddress,
-                        readOnly: widget.googleUser != null, // Make read-only if came from Google
+                        readOnly: widget.googleUser != null, 
                       ),
                       
-                      SizedBox(height: 16),
-                      
-                      // --- ONLY SHOW PASSWORD FIELDS IF NOT GOOGLE USER ---
-                      if (widget.googleUser == null) ...[
-                        _buildTextField(_passwordController, 'Password', Icons.lock_outline, isPassword: true),
-                        SizedBox(height: 16),
-                        _buildTextField(_confirmPasswordController, 'Confirm Password', Icons.lock_outline, isPassword: true, isConfirm: true),
-                      ] else ...[
-                        // Let the user know they are securing their account via Google
-                        Container(
-                          padding: EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(12)),
-                          child: Row(
-                            children: [
-                              Icon(Icons.g_mobiledata_rounded, color: Color(0xFF64748B)),
-                              SizedBox(width: 8),
-                              Expanded(
-                                child: Text("Your account is secured by Google.", style: TextStyle(color: Color(0xFF64748B), fontSize: 13)),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-
-                      SizedBox(height: 40),
+                      SizedBox(height: 20),
+      
 
                       SizedBox(
                         width: double.infinity,
@@ -366,11 +344,10 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
     );
   }
 
-  // Added readOnly parameter to the text field builder
   Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: readOnly ? Color(0xFFE2E8F0) : Color(0xFFF8FAFC), // Grey out if read only
+        color: readOnly ? Color(0xFFE2E8F0) : Color(0xFFF8FAFC), 
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Color(0xFFE2E8F0)), 
       ),
@@ -452,7 +429,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   }
 
   Future<void> _handleSignup() async {
-    // 1. Validation checks
+    // 1. STRICT VALIDATION: All fields except password must be filled out
     if (_idNumberController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||
         _selectedSex == null ||
@@ -467,7 +444,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
       return;
     }
 
-    // Only validate passwords if NOT using Google Auth
+    // 2. Validate passwords ONLY if they are NOT a Google User
     if (widget.googleUser == null) {
       if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter a password'), backgroundColor: error));
@@ -490,12 +467,10 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
     try {
       User? finalUser;
 
-      // 1. Determine Auth Flow
+      // 3. Determine Auth Flow
       if (widget.googleUser != null) {
-        // User already authenticated via Google
         finalUser = widget.googleUser;
       } else {
-        // Create standard Email/Password account
         UserCredential userCredential = await authService.value.createAccount(
           email: _emailController.text.trim(),
           password: _passwordController.text,
@@ -506,13 +481,14 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
       if (finalUser == null) throw Exception("Failed to get user information.");
 
-      // 2. Upload Image
+      // 4. Upload manually selected image
       String? profileImageUrl;
       if (_profileImage != null) {
         profileImageUrl = await _uploadProfileImage(finalUser.uid);
-      }
+      } 
+      // NOTE: Removed Google profile picture auto-sync here based on your request!
 
-      // 3. Create DB Entry
+      // 5. Create DB Entry
       await databaseService.createUserDocument(
         userId: finalUser.uid,
         idNumber: _idNumberController.text.trim(),
@@ -528,7 +504,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         role: 'visually_impaired',
       );
 
-      // 4. Update Profile Image
+      // 6. Save Profile Image to DB (if they took one)
       if (profileImageUrl != null) {
         await databaseService.updateUserProfile(
           userId: finalUser.uid,
@@ -537,7 +513,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         );
       }
 
-      // 5. Log Activity
+      // 7. Log Activity
       await activityLogsService.logActivity(
         userId: finalUser.uid,
         action: 'account_created',
@@ -546,8 +522,6 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Account Setup Complete!'), backgroundColor: primary));
-        
-        // Return to login screen so they can automatically sign in and be routed appropriately
         Navigator.pop(context); 
       }
     } on FirebaseAuthException catch (e) {
