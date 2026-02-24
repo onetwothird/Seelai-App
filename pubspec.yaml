@@ -37,6 +37,7 @@ dependencies:
   audioplayers: ^6.5.1
   timeago: ^3.7.1
   google_sign_in: ^7.2.0
+  video_player: ^2.10.1
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,7 @@ flutter:
     - assets/emergency_images/
     - assets/icons/
     - assets/icons/light-dark.json
+    - assets/video/sample_vid.mp4
 
 flutter_launcher_icons:
   android: true
