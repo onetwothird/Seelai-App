@@ -190,7 +190,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         ),
       ),
     ).then((_) {
-      // Clear the unread notification badge once the sheet is dismissed
       if (mounted) {
         setState(() {
           _unreadNotificationCount = 0;
@@ -247,17 +246,15 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   }
 
   Future<bool> _onWillPop() async {
-    // If not on Home tab (index 0), go back to Home tab first
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
         _animationController.reset();
         _animationController.forward();
       });
-      return false; // Prevent exit
+      return false;
     }
 
-    // If on Home tab, show Exit Confirmation Dialog
     return (await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -311,22 +308,24 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
             bottom: false,
             child: Column(
               children: [
-                HeaderSection(
-                  userName: userName,
-                  profileImageUrl: widget.userData['profileImageUrl'] as String?,
-                  isDarkMode: _isDarkMode,
-                  onVoiceAssistant: _activateVoiceAssistant,
-                  onToggleDarkMode: _toggleDarkMode,
-                  onNotificationTap: _openNotifications,
-                  onProfileTap: () {
-                    setState(() {
-                      _selectedIndex = 4;
-                    });
-                  },
-                  textColor: theme.textColor,
-                  subtextColor: theme.subtextColor,
-                  unreadNotificationCount: _unreadNotificationCount,
-                ),
+                // THIS IS THE FIX: Hides the header when on the Profile tab
+                if (_selectedIndex != 4)
+                  HeaderSection(
+                    userName: userName,
+                    profileImageUrl: widget.userData['profileImageUrl'] as String?,
+                    isDarkMode: _isDarkMode,
+                    onVoiceAssistant: _activateVoiceAssistant,
+                    onToggleDarkMode: _toggleDarkMode,
+                    onNotificationTap: _openNotifications,
+                    onProfileTap: () {
+                      setState(() {
+                        _selectedIndex = 4;
+                      });
+                    },
+                    textColor: theme.textColor,
+                    subtextColor: theme.subtextColor,
+                    unreadNotificationCount: _unreadNotificationCount,
+                  ),
                 
                 Expanded(
                   child: FadeTransition(
