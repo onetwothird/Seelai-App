@@ -186,7 +186,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF7C3AED).withOpacity(0.35),
+                                color: const Color(0xFF8B5CF6),
                                 blurRadius: 5,
                                 offset: const Offset(0, 2),
                               ),
@@ -196,6 +196,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                             'Caretaker',
                             style: TextStyle(
                               color: Colors.white,
+                              overflow: TextOverflow.visible,
                               fontSize: 8.5,
                               fontWeight: FontWeight.w700,
                               height: 1.1,
