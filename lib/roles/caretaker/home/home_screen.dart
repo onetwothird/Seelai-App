@@ -132,7 +132,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       if (rawId == null) return;
 
       // 3. Create Non-Nullable 'Safe' ID
-      // This fixes the "String? can't be assigned to String" error
       final String userId = rawId;
 
       try {
@@ -268,8 +267,8 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         title: Row(
           children: [
             // Use PURPLE Theme color
-            Icon(Icons.logout_rounded, color: const Color(0xFF8B5CF6)), 
-            SizedBox(width: 10),
+            const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)), 
+            const SizedBox(width: 10),
             Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
           ],
         ),
@@ -280,7 +279,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -290,7 +289,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             },
             // Use PURPLE Theme color
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: Text('Exit', style: TextStyle(color: Colors.white)),
+            child: const Text('Exit', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -318,43 +317,45 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             bottom: false,
             child: Column(
               children: [
-                HeaderSection(
-                  caretakerName: caretakerName,
-                  profileImageUrl: widget.userData['profileImageUrl'] as String?, 
-                  isDarkMode: _isDarkMode,
-                  pendingRequestsCount: _pendingRequestsCount,
-                  onToggleDarkMode: _toggleDarkMode,
-                  onProfileTap: () {
-                    setState(() {
-                      _selectedIndex = 3; 
-                    });
-                  },
-                  onNotificationTap: () {
-                    // 1. Safely grab the Caretaker's ID
-                    String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
-                                            widget.userData['userId'] ?? 
-                                            widget.userData['uid'];
-                                            
-                    if (currentUserId == null) return;
+                // THIS CONDITION HIDES THE HEADER ON THE PROFILE TAB (INDEX 3)
+                if (_selectedIndex != 3)
+                  HeaderSection(
+                    caretakerName: caretakerName,
+                    profileImageUrl: widget.userData['profileImageUrl'] as String?, 
+                    isDarkMode: _isDarkMode,
+                    pendingRequestsCount: _pendingRequestsCount,
+                    onToggleDarkMode: _toggleDarkMode,
+                    onProfileTap: () {
+                      setState(() {
+                        _selectedIndex = 3; 
+                      });
+                    },
+                    onNotificationTap: () {
+                      // 1. Safely grab the Caretaker's ID
+                      String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
+                                              widget.userData['userId'] ?? 
+                                              widget.userData['uid'];
+                                              
+                      if (currentUserId == null) return;
 
-                    // 2. Trigger the Facebook-style bottom sheet
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true, 
-                      backgroundColor: Colors.transparent, 
-                      builder: (context) => SizedBox(
-                        height: screenHeight * 0.85, 
-                        child: NotificationsBottomSheet(
-                          caretakerId: currentUserId,
-                          isDarkMode: _isDarkMode,
-                          requestService: _requestService, 
+                      // 2. Trigger the Facebook-style bottom sheet
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true, 
+                        backgroundColor: Colors.transparent, 
+                        builder: (context) => SizedBox(
+                          height: screenHeight * 0.85, 
+                          child: NotificationsBottomSheet(
+                            caretakerId: currentUserId,
+                            isDarkMode: _isDarkMode,
+                            requestService: _requestService, 
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  textColor: theme.textColor,
-                  subtextColor: theme.subtextColor,
-                ),
+                      );
+                    },
+                    textColor: theme.textColor,
+                    subtextColor: theme.subtextColor,
+                  ),
                 
                 Expanded(
                   child: FadeTransition(
@@ -371,11 +372,11 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           ),
         ),
         bottomNavigationBar: AnimatedSlide(
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,
-          offset: _isNavVisible ? Offset.zero : Offset(0, 1),
+          offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
           child: AnimatedOpacity(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             opacity: _isNavVisible ? 1.0 : 0.0,
             child: CustomBottomNavigation(
               selectedIndex: _selectedIndex,
@@ -396,7 +397,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       case 0:
         return SingleChildScrollView(
           controller: _scrollController,
-          physics: ClampingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: HomeContent(
             isDarkMode: _isDarkMode,
             theme: theme,
@@ -435,7 +436,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       case 3:
         return SingleChildScrollView(
           controller: _scrollController,
-          physics: ClampingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: ProfileContent(
             userData: widget.userData,
             isDarkMode: _isDarkMode,
@@ -454,7 +455,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       default:
         return SingleChildScrollView(
           controller: _scrollController,
-          physics: ClampingScrollPhysics(),
+          physics: const ClampingScrollPhysics(),
           child: HomeContent(
             isDarkMode: _isDarkMode,
             theme: theme,
@@ -469,21 +470,21 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
   _AppTheme _getDarkTheme() {
     return _AppTheme(
-      backgroundGradient: LinearGradient(
+      backgroundGradient: const LinearGradient(
         colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A), Color(0xFF2A2F4A)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         stops: [0.0, 0.5, 1.0],
       ),
       textColor: white,
-      subtextColor: Color(0xFFB0B8D4),
-      cardColor: Color(0xFF1A1F3A),
+      subtextColor: const Color(0xFFB0B8D4),
+      cardColor: const Color(0xFF1A1F3A),
     );
   }
 
   _AppTheme _getLightTheme() {
     return _AppTheme(
-      backgroundGradient: LinearGradient(
+      backgroundGradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [Colors.white, Colors.white], 
