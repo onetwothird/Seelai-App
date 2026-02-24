@@ -189,14 +189,17 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF7C3AED).withOpacity(0.35),
+                                color: const Color(0xFF8B5CF6),
                                 blurRadius: 5,
                                 offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: const Text(
-                            'Patient',
+                            'Low-Vision',
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.visible, // or TextOverflow.ellipsis
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 8.5,
