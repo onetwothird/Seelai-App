@@ -2,6 +2,7 @@
 // ignore_for_file: deprecated_member_use, prefer_final_fields, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
@@ -155,6 +156,13 @@ class _MoreContentState extends State<MoreContent> {
             // --- Support Section (Cyan) ---
             _buildSectionTitle('Help & Support', Icons.help_rounded, _colSupport),
             SizedBox(height: spacingMedium),
+            _buildMenuItem(
+              'How to Use App',
+              'Watch tutorial & features tour',
+              Icons.play_circle_fill_rounded,
+              _colSupport,
+              onTap: () => _showAppGuideDialog(),
+            ),
             _buildMenuItem(
               'Help Center',
               'FAQ, user manual, and support',
@@ -397,6 +405,16 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
+  void _showAppGuideDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => MSWDGuideVideoDialog(
+        theme: widget.theme,
+        colSupport: _colSupport,
+      ),
+    );
+  }
+
   void _showSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -514,6 +532,234 @@ class _MoreContentState extends State<MoreContent> {
               style: TextStyle(
                 fontWeight: FontWeight.w700,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== MSWD VIDEO PLAYER DIALOG WIDGET ====================
+class MSWDGuideVideoDialog extends StatefulWidget {
+  final dynamic theme;
+  final Color colSupport;
+
+  const MSWDGuideVideoDialog({
+    super.key,
+    required this.theme,
+    required this.colSupport,
+  });
+
+  @override
+  State<MSWDGuideVideoDialog> createState() => _MSWDGuideVideoDialogState();
+}
+
+class _MSWDGuideVideoDialogState extends State<MSWDGuideVideoDialog> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+  bool _hasError = false;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    
+    _controller = VideoPlayerController.asset('assets/video/sample_vid.mp4')
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() {
+            _isInitialized = true;
+          });
+        }
+      }).catchError((error) {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _errorMessage = error.toString();
+          });
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: widget.theme.cardColor,
+      insetPadding: const EdgeInsets.all(20),
+      contentPadding: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // --- VIDEO HEADER ---
+            Stack(
+              children: [
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    child: _hasError 
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                "Video failed to load.\nCheck path or run 'flutter clean'.\n\nError: $_errorMessage",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                              ),
+                            ),
+                          )
+                        : _isInitialized
+                            ? GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _controller.value.isPlaying
+                                        ? _controller.pause()
+                                        : _controller.play();
+                                  });
+                                },
+                                child: Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    SizedBox.expand(
+                                      child: FittedBox(
+                                        fit: BoxFit.cover,
+                                        child: SizedBox(
+                                          width: _controller.value.size.width,
+                                          height: _controller.value.size.height,
+                                          child: VideoPlayer(_controller),
+                                        ),
+                                      ),
+                                    ),
+                                    
+                                    // Play/Pause Button Overlay
+                                    if (!_controller.value.isPlaying)
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.5),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        padding: const EdgeInsets.all(12),
+                                        child: Icon(
+                                          Icons.play_arrow_rounded,
+                                          color: widget.colSupport,
+                                          size: 50,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              )
+                            : Center(
+                                child: CircularProgressIndicator(
+                                  color: widget.colSupport,
+                                ),
+                              ),
+                  ),
+                ),
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.black.withOpacity(0.5),
+                    child: IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            // --- CONTENT ---
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Getting Started', 
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: widget.theme.textColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Learn how to manage the system efficiently.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: widget.theme.subtextColor,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildGuideStep(1, 'Manage Verifications', 'Review and approve new user registrations.', widget.colSupport),
+                    _buildGuideStep(2, 'Tracking & Reports', 'Monitor live locations and view usage analytics.', widget.colSupport),
+                    _buildGuideStep(3, 'Global Announcements', 'Send push notifications and alerts to all users.', widget.colSupport),
+                  ],
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.colSupport,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("I'm Ready!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideStep(int step, String title, String description, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Text('$step', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.theme.textColor)),
+                const SizedBox(height: 4),
+                Text(description, style: TextStyle(fontSize: 13, color: widget.theme.subtextColor)),
+              ],
             ),
           ),
         ],
