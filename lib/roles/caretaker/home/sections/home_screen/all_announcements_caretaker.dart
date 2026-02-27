@@ -29,6 +29,8 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
       backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: backgroundColor,
+        surfaceTintColor: Colors.transparent, // Prevents color shift on scroll
+        scrolledUnderElevation: 0,            // Prevents shadow/elevation on scroll
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
