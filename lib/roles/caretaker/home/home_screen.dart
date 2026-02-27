@@ -392,10 +392,14 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     );
   }
 
-  Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    switch (_selectedIndex) {
-      case 0:
-        return SingleChildScrollView(
+ Widget _buildMainContent(double width, double height, _AppTheme theme) {
+    // Use IndexedStack to keep the state of all tabs alive in the background!
+    // This entirely prevents the "Loading" flash when switching menus.
+    return IndexedStack(
+      index: _selectedIndex,
+      children: [
+        // Index 0
+        SingleChildScrollView(
           controller: _scrollController,
           physics: const ClampingScrollPhysics(),
           child: HomeContent(
@@ -406,19 +410,17 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             requestService: _requestService,
             locationService: _locationService,
           ),
-        );
-      
-      case 1:
-        return PatientsContent(
+        ),
+        // Index 1
+        PatientsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           scrollController: _scrollController, 
           locationService: _locationService,
-        );
-      
-      case 2:
-        return RequestsContent(
+        ),
+        // Index 2
+        RequestsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
@@ -426,15 +428,19 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           scrollController: _scrollController,
           onRequestCountChange: (count) {
             if (_pendingRequestsCount != count) {
-              setState(() {
-                _pendingRequestsCount = count;
+              // addPostFrameCallback ensures we don't call setState while the widget is currently building
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _pendingRequestsCount = count;
+                  });
+                }
               });
             }
           },
-        );
-      
-      case 3:
-        return SingleChildScrollView(
+        ),
+        // Index 3
+        SingleChildScrollView(
           controller: _scrollController,
           physics: const ClampingScrollPhysics(),
           child: ProfileContent(
@@ -442,30 +448,16 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
-        );
-      
-      case 4:
-        return RealtimeTrackingScreen(
+        ),
+        // Index 4
+        RealtimeTrackingScreen(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           locationService: _locationService,
-        );
-      
-      default:
-        return SingleChildScrollView(
-          controller: _scrollController,
-          physics: const ClampingScrollPhysics(),
-          child: HomeContent(
-            isDarkMode: _isDarkMode,
-            theme: theme,
-            userData: widget.userData,
-            onNotificationUpdate: _updateNotification,
-            requestService: _requestService,
-            locationService: _locationService,
-          ),
-        );
-    }
+        ),
+      ],
+    );
   }
 
   _AppTheme _getDarkTheme() {
