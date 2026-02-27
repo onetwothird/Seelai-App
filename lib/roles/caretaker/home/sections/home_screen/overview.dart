@@ -1,9 +1,10 @@
+// File: lib/roles/caretaker/home/sections/home_screen/overview.dart
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 
-class OverviewSection extends StatefulWidget {
+class OverviewSection extends StatelessWidget {
   final bool isDarkMode;
   final dynamic theme;
   final bool isLoading;
@@ -11,7 +12,6 @@ class OverviewSection extends StatefulWidget {
   final int pendingRequests;
   final int activeRequests;
   final int completedRequests;
-  final VoidCallback onRefresh;
 
   const OverviewSection({
     super.key,
@@ -22,230 +22,140 @@ class OverviewSection extends StatefulWidget {
     required this.pendingRequests,
     required this.activeRequests,
     required this.completedRequests,
-    required this.onRefresh,
   });
 
   @override
-  State<OverviewSection> createState() => _OverviewSectionState();
-}
-
-class _OverviewSectionState extends State<OverviewSection> {
-  int _currentStatIndex = 0;
-  final PageController _statsController = PageController();
-
-  @override
-  void dispose() {
-    _statsController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final stats = [
-      {
-        'icon': Icons.people_rounded,
-        'label': 'Total Patients',
-        'value': widget.isLoading ? '...' : widget.totalPatients.toString(),
-        'color': primary,
-        'subtitle': '👥 - Under your care',
-      },
-      {
-        'icon': Icons.pending_actions_rounded,
-        'label': 'Pending Requests',
-        'value': widget.isLoading ? '...' : widget.pendingRequests.toString(),
-        'color': Colors.orange,
-        'subtitle': '⏱ - Awaiting response',
-      },
-      {
-        'icon': Icons.touch_app_rounded,
-        'label': 'Active Requests',
-        'value': widget.isLoading ? '...' : widget.activeRequests.toString(),
-        'color': Colors.blue,
-        'subtitle': '🔄 - In progress',
-      },
-      {
-        'icon': Icons.check_circle_rounded,
-        'label': 'Completed',
-        'value': widget.isLoading ? '...' : widget.completedRequests.toString(),
-        'color': Colors.green,
-        'subtitle': '✅ - Total completed',
-      },
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Overview',
-              style: h3.copyWith(
-                fontSize: 20,
-                color: widget.theme.textColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (widget.isLoading)
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(primary),
-                ),
-              )
-            else
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: widget.onRefresh,
-                  borderRadius: BorderRadius.circular(radiusMedium),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(
-                      Icons.refresh_rounded,
-                      color: primary,
-                      size: 24,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        SizedBox(height: spacingMedium),
-        SizedBox(
-          height: 180,
-          child: PageView.builder(
-            controller: _statsController,
-            onPageChanged: (index) {
-              setState(() => _currentStatIndex = index % stats.length);
-            },
-            itemBuilder: (context, index) {
-              final stat = stats[index % stats.length];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: _buildStatCard(
-                  icon: stat['icon'] as IconData,
-                  label: stat['label'] as String,
-                  value: stat['value'] as String,
-                  subtitle: stat['subtitle'] as String,
-                  color: stat['color'] as Color,
-                ),
-              );
-            },
+        Text(
+          'Overview',
+          style: TextStyle(
+            fontSize: 20,
+            color: theme.textColor,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
           ),
         ),
-        SizedBox(height: spacingMedium),
-        _buildPageIndicator(stats.length),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildGridCard(
+                icon: Icons.people_rounded,
+                label: 'Patients',
+                value: totalPatients.toString(),
+                baseColor: primary, // Your brand color
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildGridCard(
+                icon: Icons.pending_actions_rounded,
+                label: 'Pending',
+                value: pendingRequests.toString(),
+                baseColor: const Color(0xFFF59E0B), // Orange
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildGridCard(
+                icon: Icons.touch_app_rounded,
+                label: 'In Progress',
+                value: activeRequests.toString(),
+                baseColor: const Color(0xFF3B82F6), // Blue
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildGridCard(
+                icon: Icons.check_circle_rounded,
+                label: 'Completed',
+                value: completedRequests.toString(),
+                baseColor: const Color(0xFF10B981), // Green
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard({
+  Widget _buildGridCard({
     required IconData icon,
     required String label,
     required String value,
-    required String subtitle,
-    required Color color,
+    required Color baseColor,
   }) {
     return Container(
-      padding: EdgeInsets.all(spacingLarge),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: widget.isDarkMode
-            ? [BoxShadow(color: color.withOpacity(0.15), blurRadius: 16, offset: Offset(0, 6))]
-            : softShadow,
-        border: widget.isDarkMode
-            ? Border.all(color: color.withOpacity(0.3), width: 1.5)
-            : Border.all(color: color.withOpacity(0.2), width: 1),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: EdgeInsets.all(spacingMedium),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(radiusMedium),
-                ),
-                child: Icon(icon, color: color, size: 28),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(radiusSmall),
-                ),
-                child: Text(
-                  subtitle,
-                  style: caption.copyWith(
-                    fontSize: 11,
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-            Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 21),
-                  child: Text(
-                    value,
-                    style: h1.copyWith(
-                      fontSize: 32,
-                      color: widget.theme.textColor,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  label,
-                  style: caption.copyWith(
-                    fontSize: 13,
-                    color: widget.theme.subtextColor,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDarkMode 
+              ? baseColor.withOpacity(0.2) 
+              : Colors.black.withOpacity(0.03),
+        ),
+        boxShadow: isDarkMode ? [] : [
+          BoxShadow(
+            color: baseColor.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPageIndicator(int itemCount) {
-    return Center(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(
-          itemCount,
-          (index) => AnimatedContainer(
-            duration: Duration(milliseconds: 300),
-            margin: EdgeInsets.symmetric(horizontal: 4),
-            width: _currentStatIndex == index ? 28 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _currentStatIndex == index
-                  ? primary
-                  : widget.theme.subtextColor.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(4),
+      child: Column(
+        // Main alignment to center items within the Column
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            // Also center the icon container horizontally
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: baseColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: baseColor, size: 22),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Wrap the text in Center to be doubly sure, and set textAlign
+          Center(
+            child: Text(
+              isLoading ? '-' : value,
+              textAlign: TextAlign.center, // Center numerical alignment
+              style: TextStyle(
+                fontSize: 28,
+                color: theme.textColor,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1,
+                height: 1.0,
+              ),
             ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              label,
+              textAlign: TextAlign.center, // Center label alignment
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.subtextColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
