@@ -22,11 +22,96 @@ class RecentActivitiesContent extends StatefulWidget {
   @override
   State<RecentActivitiesContent> createState() => _RecentActivitiesContentState();
 }
-
 class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
   final int maxDisplayedDetections = 5;
   String _selectedFilter = 'All';
+  
+  // State management
+  bool _isLoading = true;
   bool _isRefreshing = false;
+  bool _hasError = false;
+  List<Map<String, dynamic>> _allDetectionsCache = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDetections(); // Fetch once when screen loads
+  }
+
+  // Optimized Fetching: Runs all 3 database calls at the exact same time
+  Future<void> _fetchDetections() async {
+    if (!mounted) return;
+    
+    try {
+      // Start all futures concurrently instead of waiting for them one by one
+      final futures = await Future.wait([
+        faceDetectionService.getDetectedFaces(widget.userId, limit: 50),
+        objectDetectionService.getDetectedObjects(widget.userId, limit: 50),
+        textScanService.getScannedTexts(widget.userId, limit: 50),
+      ]);
+
+      final List<Map<String, dynamic>> combinedDetections = [];
+
+      // 1. Process Faces
+      final faces = futures[0] as List<dynamic>;
+      combinedDetections.addAll(faces.map((face) => {
+        ...face as Map<String, dynamic>,
+        'type': 'face',
+        'icon': Icons.face_rounded,
+        'color': Colors.purple,
+      }));
+
+      // 2. Process Objects
+      final objects = futures[1] as List<dynamic>;
+      combinedDetections.addAll(objects.map((obj) => {
+        ...obj as Map<String, dynamic>,
+        'type': 'object',
+        'icon': Icons.search_rounded,
+        'color': Colors.green,
+      }));
+
+      // 3. Process Text
+      final texts = futures[2] as List<dynamic>;
+      combinedDetections.addAll(texts.map((text) => {
+        ...text as Map<String, dynamic>,
+        'type': 'text',
+        'icon': Icons.document_scanner_rounded,
+        'color': Colors.orange,
+      }));
+
+      // Sort newest first
+      combinedDetections.sort((a, b) {
+        final aTime = DateTime.parse(a['timestamp'] as String);
+        final bTime = DateTime.parse(b['timestamp'] as String);
+        return bTime.compareTo(aTime);
+      });
+
+      if (mounted) {
+        setState(() {
+          _allDetectionsCache = combinedDetections;
+          _isLoading = false;
+          _isRefreshing = false;
+          _hasError = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isRefreshing = false;
+          _hasError = true;
+        });
+      }
+    }
+  }
+
+  void _refreshDetections() {
+    setState(() {
+      _isRefreshing = true;
+      _isLoading = _allDetectionsCache.isEmpty; // Only show main loader if cache is empty
+    });
+    _fetchDetections();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +161,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                   onPressed: _refreshDetections,
                   icon: AnimatedRotation(
                     turns: _isRefreshing ? 1 : 0,
-                    duration: Duration(milliseconds: 600),
+                    duration: const Duration(milliseconds: 600),
                     child: Icon(
                       Icons.refresh_rounded,
                       color: primary,
@@ -96,9 +181,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
           
           SizedBox(height: spacingLarge),
           
-          // Detections stream with animation
+          // Detections List with animation
           AnimatedSwitcher(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             switchInCurve: Curves.easeInOut,
             switchOutCurve: Curves.easeInOut,
             transitionBuilder: (Widget child, Animation<double> animation) {
@@ -106,14 +191,14 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                 opacity: animation,
                 child: SlideTransition(
                   position: Tween<Offset>(
-                    begin: Offset(0, 0.05),
+                    begin: const Offset(0, 0.05),
                     end: Offset.zero,
                   ).animate(animation),
                   child: child,
                 ),
               );
             },
-            child: _buildDetectionsStream(),
+            child: _buildDetectionsList(), // Renamed and modified
           ),
         ],
       ),
@@ -144,30 +229,20 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () {
+                    // Instant UI update! No network call needed.
                     setState(() {
                       _selectedFilter = filter['label'] as String;
-                      _isRefreshing = true;
-                    });
-                    // Reset refresh state after animation
-                    Future.delayed(Duration(milliseconds: 600), () {
-                      if (mounted) {
-                        setState(() {
-                          _isRefreshing = false;
-                        });
-                      }
                     });
                   },
                   borderRadius: BorderRadius.circular(radiusLarge),
                   child: AnimatedContainer(
-                    duration: Duration(milliseconds: 200),
+                    duration: const Duration(milliseconds: 200),
                     padding: EdgeInsets.symmetric(
                       horizontal: spacingMedium,
                       vertical: spacingSmall,
                     ),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? primary
-                          : widget.theme.cardColor,
+                      color: isSelected ? primary : widget.theme.cardColor,
                       borderRadius: BorderRadius.circular(radiusLarge),
                       border: Border.all(
                         color: isSelected
@@ -205,149 +280,86 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     );
   }
 
-  Widget _buildDetectionsStream() {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      key: ValueKey(_selectedFilter), // Key to trigger AnimatedSwitcher
-      stream: _getCombinedDetectionsStream(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(spacingLarge),
-              child: CircularProgressIndicator(color: primary),
-            ),
-          );
-        }
+  // Completely removed StreamBuilder. We now use standard state.
+  Widget _buildDetectionsList() {
+    if (_isLoading) {
+      return Center(
+        key: const ValueKey('loader'),
+        child: Padding(
+          padding: EdgeInsets.all(spacingLarge),
+          child: CircularProgressIndicator(color: primary),
+        ),
+      );
+    }
 
-        if (snapshot.hasError) {
-          return _buildErrorState();
-        }
+    if (_hasError) {
+      return _buildErrorState();
+    }
 
-        final allDetections = snapshot.data ?? [];
+    if (_allDetectionsCache.isEmpty) {
+      return _buildEmptyState();
+    }
 
-        if (allDetections.isEmpty) {
-          return _buildEmptyState();
-        }
+    // Instant local filtering based on the cached data
+    final filteredDetections = _filterDetections(_allDetectionsCache);
 
-        // Filter detections based on selected filter
-        final filteredDetections = _filterDetections(allDetections);
+    if (filteredDetections.isEmpty) {
+      return _buildNoResultsState();
+    }
 
-        if (filteredDetections.isEmpty) {
-          return _buildNoResultsState();
-        }
+    // Show only first 5 detections
+    final displayedDetections = filteredDetections.take(maxDisplayedDetections).toList();
+    final hasMoreDetections = filteredDetections.length > maxDisplayedDetections;
 
-        // Show only first 5 detections
-        final displayedDetections = filteredDetections.take(maxDisplayedDetections).toList();
-        final hasMoreDetections = filteredDetections.length > maxDisplayedDetections;
-
-        return Column(
-          children: [
-            // Display detection cards with staggered animation
-            ...displayedDetections.asMap().entries.map((entry) {
-              final index = entry.key;
-              final detection = entry.value;
-              return TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 300 + (index * 50)),
-                tween: Tween(begin: 0.0, end: 1.0),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Transform.translate(
-                      offset: Offset(0, 20 * (1 - value)),
-                      child: child,
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: spacingMedium),
-                  child: _buildDetectionCard(detection),
+    return Column(
+      key: ValueKey(_selectedFilter), // Triggers the AnimatedSwitcher
+      children: [
+        // Display detection cards with staggered animation
+        ...displayedDetections.asMap().entries.map((entry) {
+          final index = entry.key;
+          final detection = entry.value;
+          return TweenAnimationBuilder<double>(
+            duration: Duration(milliseconds: 300 + (index * 50)),
+            tween: Tween(begin: 0.0, end: 1.0),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - value)),
+                  child: child,
                 ),
               );
-            }),
+            },
+            child: Padding(
+              padding: EdgeInsets.only(bottom: spacingMedium),
+              child: _buildDetectionCard(detection),
+            ),
+          );
+        }),
 
-            // "View All Detections" button if more than 5
-            if (hasMoreDetections)
-              TweenAnimationBuilder<double>(
-                duration: Duration(milliseconds: 300 + (displayedDetections.length * 50)),
-                tween: Tween(begin: 0.0, end: 1.0),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return Opacity(
-                    opacity: value,
-                    child: Transform.translate(
-                      offset: Offset(0, 20 * (1 - value)),
-                      child: child,
-                    ),
-                  );
-                },
-                child: Padding(
-                  padding: EdgeInsets.only(top: spacingSmall),
-                  child: _buildViewAllButton(filteredDetections),
+        // "View All Detections" button if more than 5
+        if (hasMoreDetections)
+          TweenAnimationBuilder<double>(
+            duration: Duration(milliseconds: 300 + (displayedDetections.length * 50)),
+            tween: Tween(begin: 0.0, end: 1.0),
+            curve: Curves.easeOutCubic,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, 20 * (1 - value)),
+                  child: child,
                 ),
-              ),
-          ],
-        );
-      },
+              );
+            },
+            child: Padding(
+              padding: EdgeInsets.only(top: spacingSmall),
+              child: _buildViewAllButton(filteredDetections), // Pass filtered!
+            ),
+          ),
+      ],
     );
-  }
-
-  Stream<List<Map<String, dynamic>>> _getCombinedDetectionsStream() async* {
-    await for (final _ in Stream.periodic(Duration(milliseconds: 500))) {
-      try {
-        final List<Map<String, dynamic>> allDetections = [];
-
-        // Fetch face detections
-        if (_selectedFilter == 'All' || _selectedFilter == 'Faces') {
-          final faces = await faceDetectionService.getDetectedFaces(widget.userId, limit: 50);
-          allDetections.addAll(faces.map((face) {
-            return {
-              ...face,
-              'type': 'face',
-              'icon': Icons.face_rounded,
-              'color': Colors.purple,
-            };
-          }));
-        }
-
-        // Fetch object detections
-        if (_selectedFilter == 'All' || _selectedFilter == 'Objects') {
-          final objects = await objectDetectionService.getDetectedObjects(widget.userId, limit: 50);
-          allDetections.addAll(objects.map((obj) {
-            return {
-              ...obj,
-              'type': 'object',
-              'icon': Icons.search_rounded,
-              'color': Colors.green,
-            };
-          }));
-        }
-
-        // Fetch text scans
-        if (_selectedFilter == 'All' || _selectedFilter == 'Text') {
-          final texts = await textScanService.getScannedTexts(widget.userId, limit: 50);
-          allDetections.addAll(texts.map((text) {
-            return {
-              ...text,
-              'type': 'text',
-              'icon': Icons.document_scanner_rounded,
-              'color': Colors.orange,
-            };
-          }));
-        }
-
-        // Sort by timestamp (newest first)
-        allDetections.sort((a, b) {
-          final aTime = DateTime.parse(a['timestamp'] as String);
-          final bTime = DateTime.parse(b['timestamp'] as String);
-          return bTime.compareTo(aTime);
-        });
-
-        yield allDetections;
-      } catch (e) {
-        yield [];
-      }
-    }
   }
 
   List<Map<String, dynamic>> _filterDetections(List<Map<String, dynamic>> detections) {
@@ -414,7 +426,6 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          // ✅ ADDED: Navigate to DetectionDetailScreen when tapped
           onTap: () {
             Navigator.push(
               context,
@@ -502,7 +513,6 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                         ],
                       ),
                     ),
-                    // ✅ ADDED: Chevron icon to indicate it's tappable
                     Icon(
                       Icons.chevron_right_rounded,
                       color: widget.theme.subtextColor.withOpacity(0.5),
@@ -614,6 +624,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
 
   Widget _buildEmptyState() {
     return Container(
+      key: const ValueKey('empty'),
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         vertical: spacingXLarge,
@@ -667,6 +678,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
 
   Widget _buildNoResultsState() {
     return Container(
+      key: const ValueKey('no_results'),
       width: double.infinity,
       padding: EdgeInsets.symmetric(
         vertical: spacingXLarge,
@@ -721,6 +733,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
   Widget _buildErrorState() {
     final errorColor = widget.isDarkMode ? Colors.red.shade400 : Colors.red.shade700;
     return Container(
+      key: const ValueKey('error'),
       padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
         color: errorColor.withOpacity(0.1),
@@ -771,18 +784,5 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
       final months = (difference.inDays / 30).floor();
       return '$months ${months == 1 ? 'month' : 'months'} ago';
     }
-  }
-
-  void _refreshDetections() {
-    setState(() {
-      _isRefreshing = true;
-    });
-    Future.delayed(Duration(milliseconds: 600), () {
-      if (mounted) {
-        setState(() {
-          _isRefreshing = false;
-        });
-      }
-    });
   }
 }
