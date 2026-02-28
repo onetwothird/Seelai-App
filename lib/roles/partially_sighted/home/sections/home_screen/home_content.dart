@@ -60,7 +60,22 @@ class HomeContent extends StatelessWidget {
             userId: userId,
           ),
           
-          SizedBox(height: spacingXLarge),
+          SizedBox(height: spacingMedium),
+          
+          // === NEW: Features Section Title ===
+          Padding(
+            padding: const EdgeInsets.only(left: 4), // Aligns perfectly with Announcement title
+            child: Text(
+              'Help & Support',
+              style: h3.copyWith(
+                fontSize: 20,
+                color: theme.textColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          
+          SizedBox(height: spacingMedium),
           
           // Request Caretaker Button
           RequestCaretakerButton(
