@@ -1,6 +1,6 @@
 // File: lib/roles/mswd/home/sections/dashboard/announcement.dart
 
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously, unnecessary_to_list_in_spreads
+// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -68,9 +68,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: primary.withOpacity(0.1),
+                    color: primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(radiusMedium),
-                    border: Border.all(color: primary.withOpacity(0.3), width: 1),
+                    border: Border.all(color: primary.withValues(alpha: 0.3), width: 1),
                   ),
                   child: Row(
                     children: [
@@ -170,7 +170,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                       announcement: announcement,
                     ),
                   );
-                }).toList(),
+                }),
                 
                 // "View All Announcements" button if more than 5
                 if (hasMoreAnnouncements)
@@ -187,7 +187,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                             color: widget.theme.cardColor,
                             borderRadius: BorderRadius.circular(radiusMedium),
                             border: Border.all(
-                              color: primary.withOpacity(0.3),
+                              color: primary.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -273,7 +273,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -281,7 +281,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             : softShadow,
         border: widget.isDarkMode
             ? Border.all(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 width: 1,
               )
             : null,
@@ -294,7 +294,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
               Container(
                 padding: EdgeInsets.all(spacingSmall),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
+                  color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
                 child: Icon(
@@ -322,10 +322,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(radiusSmall),
                             border: Border.all(
-                              color: color.withOpacity(0.3),
+                              color: color.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -459,7 +459,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             ElevatedButton(
               onPressed: () async {
                 final success = await _announcementService.deleteAnnouncement(id);
-                
                 if (mounted) {
                   Navigator.of(context).pop();
                   
