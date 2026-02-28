@@ -1,6 +1,4 @@
 // File: lib/roles/mswd/home/sections/requests/requests_content.dart
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart';
@@ -27,19 +25,16 @@ class RequestsContent extends StatefulWidget {
 }
 
 class _RequestsContentState extends State<RequestsContent> {
-  // State
-  int _selectedFilterIndex = 0; // 0: All, 1: Pending, etc.
+  int _selectedFilterIndex = 0;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   
-  // Data
   List<RequestModel> _allRequests = [];
   bool _isLoading = true;
   String? _error;
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
   final Map<String, Map<String, dynamic>> _userDataCache = {};
 
-  // Filter Options
   final List<Map<String, dynamic>> _filters = [
     {'label': 'Pending', 'status': RequestStatus.pending, 'icon': Icons.pending_actions_rounded, 'color': Colors.orange},
     {'label': 'Accepted', 'status': RequestStatus.accepted, 'icon': Icons.how_to_reg_rounded, 'color': Colors.blue},
@@ -65,7 +60,6 @@ class _RequestsContentState extends State<RequestsContent> {
     _requestsSubscription = assistanceRequestService.streamAllRequests().listen(
       (requests) async {
         if (mounted) {
-          // accurate sorting: Emergency first, then newest
           requests.sort((a, b) {
             if (a.priority == RequestPriority.emergency && b.priority != RequestPriority.emergency) return -1;
             if (b.priority == RequestPriority.emergency && a.priority != RequestPriority.emergency) return 1;
@@ -111,18 +105,18 @@ class _RequestsContentState extends State<RequestsContent> {
 
     return SingleChildScrollView(
       controller: widget.scrollController,
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 100),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          SizedBox(height: 24),
+          const SizedBox(height: 32),
           _buildQuickStats(),
-          SizedBox(height: 24),
+          const SizedBox(height: 32),
           _buildSearchAndFilter(),
-          SizedBox(height: 20),
+          const SizedBox(height: 24),
           _buildFilterChips(),
-          SizedBox(height: 20),
+          const SizedBox(height: 24),
           _buildRequestList(),
         ],
       ),
@@ -130,30 +124,25 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Assistance Log',
-              style: h2.copyWith(
-                color: widget.theme.textColor,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              'Manage and track community requests',
-              style: body.copyWith(
-                color: widget.theme.subtextColor,
-                fontSize: 14,
-              ),
-            ),
-          ],
+        Text(
+          'Assistance Log',
+          style: h2.copyWith(
+            color: widget.theme.textColor,
+            fontSize: 28,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Manage and track community requests',
+          style: body.copyWith(
+            color: widget.theme.subtextColor,
+            fontSize: 15,
+          ),
         ),
       ],
     );
@@ -167,84 +156,95 @@ class _RequestsContentState extends State<RequestsContent> {
       children: [
         Expanded(
           child: _buildSummaryCard(
-            'Action Needed',
-            pending.toString(),
-            Icons.notification_important_rounded,
-            Colors.orange,
+            title: 'Action Needed',
+            count: pending.toString(),
+            icon: Icons.notification_important_rounded,
+            color: Colors.orange,
           ),
         ),
-        SizedBox(width: 16),
+        const SizedBox(width: 16),
         Expanded(
           child: _buildSummaryCard(
-            'Emergencies',
-            emergency.toString(),
-            Icons.warning_rounded,
-            Colors.redAccent,
+            title: 'Emergencies',
+            count: emergency.toString(),
+            icon: Icons.warning_rounded,
+            color: const Color(0xFFEF4444), // Modern crisp red
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSummaryCard(String title, String count, IconData icon, Color color) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+  Widget _buildSummaryCard({
+  required String title,
+  required String count,
+  required IconData icon,
+  required Color color,
+}) {
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: widget.theme.cardColor,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: widget.isDarkMode 
+          ? [BoxShadow(color: color.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 4))]
+          : softShadow,
+      border: widget.isDarkMode ? Border.all(color: color.withOpacity(0.15)) : null,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center, // Centers the content vertically
+      crossAxisAlignment: CrossAxisAlignment.center, // Centers the content horizontally
+      children: [
+        // 1. Icon stays centered at the top
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(16),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 20),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        
+        const SizedBox(height: 12),
+        
+        // 2. Count perfectly centered
+        Text(
+          count,
+          style: h2.copyWith(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: widget.theme.textColor,
+            height: 1.0,
           ),
-          SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                count,
-                style: h2.copyWith(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: widget.theme.textColor,
-                ),
-              ),
-              Text(
-                title,
-                style: caption.copyWith(
-                  color: widget.theme.subtextColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          textAlign: TextAlign.center,
+        ),
+        
+        const SizedBox(height: 8),
+        
+        // 3. Title perfectly centered
+        Text(
+          title,
+          style: caption.copyWith(
+            color: widget.theme.subtextColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
-        ],
-      ),
-    );
-  }
+          textAlign: TextAlign.center,
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildSearchAndFilter() {
     return Container(
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode ? Colors.white10 : Colors.black12,
+          color: widget.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.transparent,
         ),
       ),
       child: TextField(
@@ -252,14 +252,18 @@ class _RequestsContentState extends State<RequestsContent> {
         style: body.copyWith(color: widget.theme.textColor),
         onChanged: (v) => setState(() => _searchQuery = v),
         decoration: InputDecoration(
-          hintText: 'Search by patient name or type...',
-          hintStyle: body.copyWith(color: widget.theme.subtextColor),
-          prefixIcon: Icon(Icons.search, color: widget.theme.subtextColor),
+          hintText: 'Search patients or requests...',
+          hintStyle: body.copyWith(color: widget.theme.subtextColor.withOpacity(0.7)),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 16, right: 12),
+            child: Icon(Icons.search_rounded, color: widget.theme.subtextColor),
+          ),
+          prefixIconConstraints: const BoxConstraints(minWidth: 40),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(vertical: 18),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.close, color: widget.theme.subtextColor),
+                  icon: Icon(Icons.close_rounded, color: widget.theme.subtextColor),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
@@ -273,11 +277,11 @@ class _RequestsContentState extends State<RequestsContent> {
 
   Widget _buildFilterChips() {
     return SizedBox(
-      height: 45,
+      height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: _filters.length,
-        separatorBuilder: (_, _) => SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final filter = _filters[index];
           final isSelected = _selectedFilterIndex == index;
@@ -286,33 +290,34 @@ class _RequestsContentState extends State<RequestsContent> {
           return GestureDetector(
             onTap: () => setState(() => _selectedFilterIndex = index),
             child: AnimatedContainer(
-              duration: Duration(milliseconds: 200),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: isSelected ? color : widget.theme.cardColor,
-                borderRadius: BorderRadius.circular(25),
+                color: isSelected ? color : Colors.transparent,
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: isSelected ? color : widget.theme.subtextColor.withOpacity(0.3),
+                  color: isSelected ? color : widget.theme.subtextColor.withOpacity(0.2),
                   width: 1.5,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 8, offset: Offset(0, 2))]
+                    ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
                     : [],
               ),
               child: Row(
                 children: [
                   Icon(
                     filter['icon'],
-                    size: 16,
+                    size: 18,
                     color: isSelected ? Colors.white : widget.theme.subtextColor,
                   ),
-                  SizedBox(width: 6),
+                  const SizedBox(width: 8),
                   Text(
                     filter['label'],
                     style: TextStyle(
                       color: isSelected ? Colors.white : widget.theme.subtextColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 14,
                     ),
                   ),
                 ],
@@ -327,7 +332,6 @@ class _RequestsContentState extends State<RequestsContent> {
   Widget _buildRequestList() {
     final targetStatus = _filters[_selectedFilterIndex]['status'] as RequestStatus;
     
-    // Filter logic
     final filtered = _allRequests.where((req) {
       final matchesStatus = req.status == targetStatus;
       final matchesSearch = _searchQuery.isEmpty || 
@@ -338,13 +342,28 @@ class _RequestsContentState extends State<RequestsContent> {
 
     if (filtered.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.only(top: 40),
+        padding: const EdgeInsets.only(top: 60),
         child: Center(
           child: Column(
             children: [
-              Icon(Icons.folder_open_rounded, size: 60, color: widget.theme.subtextColor.withOpacity(0.5)),
-              SizedBox(height: 16),
-              Text('No requests found', style: body.copyWith(color: widget.theme.subtextColor)),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: widget.theme.cardColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.inbox_rounded, size: 48, color: widget.theme.subtextColor.withOpacity(0.5)),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'No requests found',
+                style: h3.copyWith(color: widget.theme.textColor, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Try adjusting your filters or search.',
+                style: body.copyWith(color: widget.theme.subtextColor),
+              ),
             ],
           ),
         ),
@@ -353,7 +372,7 @@ class _RequestsContentState extends State<RequestsContent> {
 
     return ListView.builder(
       shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         return _buildRedesignedCard(filtered[index]);
@@ -365,14 +384,11 @@ class _RequestsContentState extends State<RequestsContent> {
     final userData = _userDataCache[request.patientId];
     final profileImg = userData?['profileImageUrl'];
     
-    // -------------------------------------------------------------
-    // KEY CHANGE: The color is now based on STATUS, not PRIORITY.
-    // -------------------------------------------------------------
     final statusColor = _getStatusColor(request.status);
     final isEmergency = request.priority == RequestPriority.emergency;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 16),
       child: GestureDetector(
         onTap: () => Navigator.push(
           context,
@@ -386,138 +402,167 @@ class _RequestsContentState extends State<RequestsContent> {
           ),
         ),
         child: Container(
-          clipBehavior: Clip.antiAlias,
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: widget.theme.cardColor,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: widget.isDarkMode ? Colors.black26 : Colors.black12,
-                blurRadius: 10,
-                offset: Offset(0, 4),
-              ),
-            ],
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: isEmergency ? Colors.red.withOpacity(0.3) : widget.theme.subtextColor.withOpacity(0.08),
+              width: isEmergency ? 1.5 : 1.0,
+            ),
+            boxShadow: widget.isDarkMode 
+              ? [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 4))]
+              : softShadow,
           ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // STATUS STRIP (The container color follows the status)
-                Container(
-                  width: 6,
-                  color: statusColor, 
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Avatar, Name, and Status Badge
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Hero(
+                    tag: 'avatar_${request.id}',
+                    child: Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: widget.theme.backgroundColor,
+                        image: profileImg != null && profileImg.isNotEmpty
+                            ? DecorationImage(
+                                image: NetworkImage(profileImg),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: (profileImg == null || profileImg.isEmpty)
+                          ? Center(
+                              child: Text(
+                                request.patientName[0].toUpperCase(),
+                                style: h2.copyWith(color: widget.theme.subtextColor, fontSize: 20),
+                              ),
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header: Type + Time
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: widget.theme.backgroundColor,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                request.requestType.toUpperCase(),
-                                style: caption.copyWith(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  color: widget.theme.subtextColor,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                            Text(
-                              _formatShortTime(request.timestamp),
-                              style: caption.copyWith(
-                                fontSize: 12,
-                                color: widget.theme.subtextColor,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          request.patientName,
+                          style: h2.copyWith(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: widget.theme.textColor,
+                            letterSpacing: -0.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 12),
-                        
-                        // Body: Avatar + Name
-                        Row(
-                          children: [
-                            Hero(
-                              tag: 'avatar_${request.id}',
-                              child: Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    // BORDER matches STATUS color
-                                    color: statusColor.withOpacity(0.5), 
-                                    width: 2
-                                  ),
-                                  image: profileImg != null && profileImg.isNotEmpty
-                                      ? DecorationImage(
-                                          image: NetworkImage(profileImg),
-                                          fit: BoxFit.cover,
-                                        )
-                                      : null,
-                                ),
-                                child: (profileImg == null || profileImg.isEmpty)
-                                    ? Center(child: Text(request.patientName[0], style: h2.copyWith(color: statusColor)))
-                                    : null,
-                              ),
-                            ),
-                            SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    request.patientName,
-                                    style: h2.copyWith(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: widget.theme.textColor,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  // We keep the Emergency warning here, but the container color is controlled by Status
-                                  if (isEmergency)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            'Emergency Help',
-                                            style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else
-                                    Text(
-                                      request.location != null ? 'Location attached' : 'No location',
-                                      style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 12),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Icon(Icons.chevron_right_rounded, color: widget.theme.subtextColor),
-                          ],
+                        const SizedBox(height: 4),
+                        Text(
+                          _formatShortTime(request.timestamp),
+                          style: caption.copyWith(
+                            fontSize: 13,
+                            color: widget.theme.subtextColor,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
+                  
+                  // Clean, modern Status Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      request.status.name.toUpperCase(),
+                      style: caption.copyWith(
+                        color: statusColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Bottom Row: Request Type & Emergency Warning
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: widget.theme.backgroundColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.assignment_rounded, size: 16, color: widget.theme.subtextColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          request.requestType,
+                          style: body.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: widget.theme.textColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  if (isEmergency)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning_rounded, size: 16, color: Colors.red),
+                          const SizedBox(width: 6),
+                          Text(
+                            'EMERGENCY',
+                            style: caption.copyWith(
+                              color: Colors.red,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (request.location != null)
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_rounded, size: 14, color: widget.theme.subtextColor.withOpacity(0.7)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Location shared',
+                          style: caption.copyWith(
+                            color: widget.theme.subtextColor.withOpacity(0.8),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
@@ -525,16 +570,16 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 
   // Helpers
-  Widget _buildLoading() => Center(child: CircularProgressIndicator(color: primary));
-  Widget _buildError() => Center(child: Text(_error ?? 'Unknown Error', style: TextStyle(color: Colors.red)));
+  Widget _buildLoading() => Center(child: CircularProgressIndicator(color: const Color(0xFF3B82F6))); // Using a nice modern blue
+  Widget _buildError() => Center(child: Text(_error ?? 'Unknown Error', style: const TextStyle(color: Colors.red)));
 
   Color _getStatusColor(RequestStatus status) {
     switch (status) {
       case RequestStatus.pending: return Colors.orange;
-      case RequestStatus.accepted: return Colors.blue;
-      case RequestStatus.inProgress: return Colors.purple;
-      case RequestStatus.completed: return Colors.green;
-      case RequestStatus.declined: return Colors.red;
+      case RequestStatus.accepted: return const Color(0xFF3B82F6); // Blue
+      case RequestStatus.inProgress: return const Color(0xFF8B5CF6); // Purple
+      case RequestStatus.completed: return const Color(0xFF10B981); // Emerald
+      case RequestStatus.declined: return const Color(0xFFEF4444); // Red
     }
   }
 
