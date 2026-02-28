@@ -6,12 +6,12 @@ import 'package:seelai_app/roles/mswd/home/sections/location_track/location_trac
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
-import 'package:seelai_app/roles/mswd/home/sections/dashboard/overview.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/announcement.dart';
-import 'package:seelai_app/roles/mswd/home/sections/dashboard/user_breakdown.dart';
 import 'package:seelai_app/roles/mswd/home/sections/users/users_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/more_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard/dashboard_stats.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard/quick_actions.dart';
 
 class MSWDHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -296,31 +296,30 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       padding: EdgeInsets.only(
         left: width * 0.05,
         right: width * 0.05,
-        top: spacingMedium,
+        top: spacingLarge, // Slightly more top padding for breathing room
         bottom: 100,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Overview Section (Quick Stats)
-          OverviewSection(
+          // 1. New System Stats Overview
+          DashboardStats(
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
           
-          SizedBox(height: spacingXLarge),
-          
-          // 2. User Breakdown Section (Detailed Stats Graph)
-          // MOVED UP: Grouping statistical data with Overview
-          UserBreakdownSection(
+          SizedBox(height: spacingLarge * 1.5),
+
+          // 2. New Quick Actions Row
+          QuickActions(
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
-          
-          SizedBox(height: spacingXLarge),
-          
-          // 3. Announcement Section
-          // MOVED DOWN: Secondary information
+
+          SizedBox(height: spacingLarge * 1.5),
+
+          // 3. The existing Announcements Section 
+          // (It now sits perfectly below the high-level admin tools)
           AnnouncementSection(
             isDarkMode: _isDarkMode,
             theme: theme,
