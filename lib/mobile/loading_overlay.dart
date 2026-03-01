@@ -84,7 +84,6 @@ class _LoadingOverlayState extends State<LoadingOverlay>
   }
 }
 
-// Simple usage helper
 void showLoadingDialog(BuildContext context, String message) {
   showDialog(
     context: context,
