@@ -222,7 +222,6 @@ class _RequestsContentState extends State<RequestsContent> {
         
         const SizedBox(height: 8),
         
-        // 3. Title perfectly centered
         Text(
           title,
           style: caption.copyWith(
