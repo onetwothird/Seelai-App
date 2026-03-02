@@ -127,7 +127,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
             return Column(
               children: [
-                // Display announcement cards
                 ...displayedAnnouncements.map((announcement) {
                   return Padding(
                     padding: EdgeInsets.only(bottom: spacingMedium),
