@@ -196,7 +196,6 @@ class _ProfileContentState extends State<ProfileContent> {
             ],
           ),
 
-          // ==================== DANGER ZONE ====================
           _buildSettingsGroup(
             title: 'Danger Zone',
             children: [
