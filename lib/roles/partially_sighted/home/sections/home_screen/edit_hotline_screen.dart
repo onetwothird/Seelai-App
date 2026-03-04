@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/edit_hotline_screen.dart
-// ignore_for_file: deprecated_member_use
 
 import 'dart:io'; // Import for File handling
 import 'package:flutter/material.dart';
@@ -283,7 +282,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             borderRadius: BorderRadius.circular(radiusLarge),
             border: Border.all(
               color: widget.isDarkMode 
-                  ? _selectedColor.withOpacity(0.3) 
+                  ? _selectedColor.withValues(alpha: 0.3) 
                   : Colors.grey[200]!,
               width: 1.5,
             ),
@@ -309,7 +308,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: _selectedColor.withOpacity(0.4),
+                        color: _selectedColor.withValues(alpha: 0.4),
                         blurRadius: 16,
                         offset: Offset(0, 6),
                       ),
@@ -429,7 +428,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                   height: 60,
                   decoration: BoxDecoration(
                     color: widget.isDarkMode 
-                        ? Colors.white.withOpacity(0.05) 
+                        ? Colors.white.withValues(alpha: 0.05) 
                         : Colors.grey[100],
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
@@ -503,7 +502,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                       height: 48,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [color, color.withOpacity(0.8)],
+                          colors: [color, color.withValues(alpha: 0.8)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -515,7 +514,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: color.withOpacity(0.5),
+                                  color: color.withValues(alpha: 0.5),
                                   blurRadius: 12,
                                   spreadRadius: 2,
                                 ),
@@ -567,14 +566,14 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             boxShadow: widget.isDarkMode
                 ? [
                     BoxShadow(
-                      color: primary.withOpacity(0.1),
+                      color: primary.withValues(alpha: 0.1),
                       blurRadius: 16,
                       offset: Offset(0, 6),
                     ),
                   ]
                 : [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       blurRadius: 10,
                       offset: Offset(0, 4),
                     ),
@@ -598,7 +597,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                 margin: EdgeInsets.all(12),
                 padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _primaryColor.withOpacity(0.1),
+                  color: _primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(radiusSmall),
                 ),
                 child: Icon(icon, color: _primaryColor, size: 20),
@@ -637,7 +636,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
               borderRadius: BorderRadius.circular(radiusMedium),
               boxShadow: [
                 BoxShadow(
-                  color: _primaryColor.withOpacity(0.4),
+                  color: _primaryColor.withValues(alpha: 0.4),
                   blurRadius: 12,
                   offset: Offset(0, 6),
                 ),
