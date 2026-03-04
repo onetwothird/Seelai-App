@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/home/sections/home_screen/home_content.dart
-// ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -201,7 +200,7 @@ class _HomeContentState extends State<HomeContent> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEF4444).withOpacity(0.15),
+              color: const Color(0xFFEF4444).withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 24),
@@ -354,7 +353,7 @@ class _HomeContentState extends State<HomeContent> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: primary.withOpacity(0.1),
+                        color: primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -424,11 +423,11 @@ class _PatientCard extends StatelessWidget {
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.04),
+          color: isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
         ),
         boxShadow: isDarkMode ? [] : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
