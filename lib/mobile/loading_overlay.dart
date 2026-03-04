@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -66,7 +65,7 @@ class _LoadingOverlayState extends State<LoadingOverlay>
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
-        color: Colors.black.withOpacity(0.7),
+        color: Colors.black.withValues(alpha: 0.7),
         child: Center(
           child: SizedBox(
             width: 400,
