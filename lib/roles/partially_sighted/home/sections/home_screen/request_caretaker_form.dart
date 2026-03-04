@@ -1,6 +1,5 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/request_caretaker_form.dart
 
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -250,7 +249,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
             padding: EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
               color: isSelected
-                  ? color.withOpacity(0.1)
+                  ? color.withValues(alpha: 0.1)
                   : widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
@@ -265,7 +264,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                 Container(
                   padding: EdgeInsets.all(spacingSmall),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(radiusSmall),
                   ),
                   child: Icon(
@@ -392,7 +391,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.3),
+                        color: color.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: Offset(0, 4),
                       ),
@@ -501,12 +500,12 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                       end: Alignment.centerRight,
                     )
                   : null,
-              color: canSubmit ? null : grey.withOpacity(0.3),
+              color: canSubmit ? null : grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(radiusMedium),
               boxShadow: canSubmit
                   ? [
                       BoxShadow(
-                        color: Color(0xFF8B5CF6).withOpacity(0.4),
+                        color: Color(0xFF8B5CF6).withValues(alpha: 0.4),
                         blurRadius: 12,
                         offset: Offset(0, 6),
                       ),
