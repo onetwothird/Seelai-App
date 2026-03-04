@@ -1,5 +1,4 @@
 // File: lib/roles/mswd/home/sections/users/user_profile_screen.dart
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -185,7 +184,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             color: cardColor,
             shape: BoxShape.circle,
             boxShadow: widget.isDarkMode ? [] : [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
             ],
           ),
           child: IconButton(
@@ -208,7 +207,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               color: cardColor,
               shape: BoxShape.circle,
               boxShadow: widget.isDarkMode ? [] : [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
               ],
             ),
             child: IconButton(
@@ -235,9 +234,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.orange.withOpacity(0.1),
+                              color: Colors.orange.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
@@ -357,7 +356,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 border: Border.all(color: Colors.black, width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: primary.withOpacity(0.2),
+                    color: primary.withValues(alpha: 0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -403,7 +402,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: (isActive ? Colors.green : Colors.grey).withOpacity(0.1),
+            color: (isActive ? Colors.green : Colors.grey).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -481,7 +480,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -516,7 +515,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -527,7 +526,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 18, color: color),
@@ -594,7 +593,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -670,7 +669,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),

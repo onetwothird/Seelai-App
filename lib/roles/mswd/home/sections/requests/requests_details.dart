@@ -1,5 +1,4 @@
 // File: lib/roles/mswd/home/sections/requests/request_details.dart
-// ignore_for_file: deprecated_member_use, unnecessary_underscores
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -120,7 +119,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 )
@@ -131,7 +130,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                   ? Image.network(
                       profileImageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildDefaultAvatar(widget.request.patientName),
+                      errorBuilder: (_, _, _) => _buildDefaultAvatar(widget.request.patientName),
                     )
                   : _buildDefaultAvatar(widget.request.patientName),
             ),
@@ -176,7 +175,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -223,7 +222,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 20, color: color),
@@ -262,7 +261,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: widget.isDarkMode ? Colors.white.withOpacity(0.05) : const Color(0xFFEEF2F6),
+            color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFEEF2F6),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
@@ -304,7 +303,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: hasCaretaker ? primary.withOpacity(0.3) : widget.theme.subtextColor.withOpacity(0.2),
+              color: hasCaretaker ? primary.withValues(alpha: 0.3) : widget.theme.subtextColor.withValues(alpha: 0.2),
             ),
           ),
           child: hasCaretaker
@@ -313,7 +312,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     CircleAvatar(
                       radius: 24,
                       backgroundImage: (img != null && img.isNotEmpty) ? NetworkImage(img) : null,
-                      backgroundColor: primary.withOpacity(0.1),
+                      backgroundColor: primary.withValues(alpha: 0.1),
                       child: (img == null || img.isEmpty) ? Icon(Icons.person, color: primary) : null,
                     ),
                     const SizedBox(width: 14),
@@ -460,9 +459,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -487,7 +486,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 18),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 8,
-            shadowColor: primary.withOpacity(0.4),
+            shadowColor: primary.withValues(alpha: 0.4),
           ),
           child: const Text('Assign Caretaker', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ),
@@ -501,9 +500,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         widget.request.status.name.toUpperCase(),

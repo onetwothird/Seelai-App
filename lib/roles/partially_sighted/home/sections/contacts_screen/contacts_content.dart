@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/contacts_screen/contacts_content.dart
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously, prefer_final_fields
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -179,7 +178,7 @@ class _ContactsContentState extends State<ContactsContent> {
       _isLoadingEmergency = true;
     });
     
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
     
     if (mounted) {
       setState(() {
@@ -192,7 +191,9 @@ class _ContactsContentState extends State<ContactsContent> {
   List<ContactModel> get _allContacts => [..._caretakerContacts, ..._emergencyContacts];
 
   List<ContactModel> get _filteredContacts {
-    if (_searchQuery.isEmpty) return _allContacts;
+    if (_searchQuery.isEmpty) {
+      return _allContacts;
+    }
     
     return _allContacts.where((contact) {
       return contact.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -205,17 +206,19 @@ class _ContactsContentState extends State<ContactsContent> {
     if (_patientId != null) {
       await showDialog(
         context: context,
-        builder: (context) => AddContactDialog(
+        builder: (dialogContext) => AddContactDialog(
           patientId: _patientId!,
           isDarkMode: widget.isDarkMode,
           theme: widget.theme,
           onContactAdded: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Contact added successfully'),
-                backgroundColor: success,
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Contact added successfully'),
+                  backgroundColor: success,
+                ),
+              );
+            }
           },
         ),
       );
@@ -264,18 +267,20 @@ class _ContactsContentState extends State<ContactsContent> {
     if (_patientId != null && !contact.isCaretaker) {
       await showDialog(
         context: context,
-        builder: (context) => EditContactDialog(
+        builder: (dialogContext) => EditContactDialog(
           patientId: _patientId!,
           contact: contact,
           isDarkMode: widget.isDarkMode,
           theme: widget.theme,
           onContactUpdated: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Contact updated successfully'),
-                backgroundColor: success,
-              ),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Contact updated successfully'),
+                  backgroundColor: success,
+                ),
+              );
+            }
           },
         ),
       );
@@ -285,7 +290,7 @@ class _ContactsContentState extends State<ContactsContent> {
   Future<void> _deleteContact(ContactModel contact) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: widget.theme.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusXLarge),
@@ -296,17 +301,17 @@ class _ContactsContentState extends State<ContactsContent> {
         ),
         content: Text(
           contact.isCaretaker
-            ? 'Are you sure you want to remove ${contact.name} as your caretaker?'
-            : 'Are you sure you want to delete ${contact.name}?',
+              ? 'Are you sure you want to remove ${contact.name} as your caretaker?'
+              : 'Are you sure you want to delete ${contact.name}?',
           style: body.copyWith(color: widget.theme.subtextColor),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: Text('Cancel', style: body.copyWith(color: widget.theme.subtextColor)),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: error,
               foregroundColor: white,
@@ -327,8 +332,9 @@ class _ContactsContentState extends State<ContactsContent> {
             caretakerId: contact.id,
             patientId: _patientId!,
           );
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('Caretaker removed successfully'),
               backgroundColor: success,
             ),
@@ -338,14 +344,16 @@ class _ContactsContentState extends State<ContactsContent> {
             userId: _patientId!,
             contactId: contact.id,
           );
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text('Contact deleted successfully'),
               backgroundColor: success,
             ),
           );
         }
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to delete contact: $e'),
@@ -414,12 +422,12 @@ class _ContactsContentState extends State<ContactsContent> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     totalCount == 0
-                      ? 'No contacts yet'
-                      : '$totalCount contact${totalCount != 1 ? 's' : ''}'
-                        '${caretakerCount > 0 ? ' • $caretakerCount caretaker${caretakerCount != 1 ? 's' : ''}' : ''}',
+                        ? 'No contacts yet'
+                        : '$totalCount contact${totalCount != 1 ? 's' : ''}'
+                          '${caretakerCount > 0 ? ' • $caretakerCount caretaker${caretakerCount != 1 ? 's' : ''}' : ''}',
                     style: body.copyWith(
                       color: widget.theme.subtextColor,
                       fontSize: 14,
@@ -435,14 +443,14 @@ class _ContactsContentState extends State<ContactsContent> {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primary, primary.withOpacity(0.8)],
+                    colors: [primary, primary.withValues(alpha: 0.8)],
                   ),
                   borderRadius: BorderRadius.circular(radiusLarge),
                   boxShadow: [
                     BoxShadow(
-                      color: primary.withOpacity(0.3),
+                      color: primary.withValues(alpha: 0.3),
                       blurRadius: 12,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -451,7 +459,7 @@ class _ContactsContentState extends State<ContactsContent> {
                   child: InkWell(
                     onTap: _showAddContactDialog,
                     borderRadius: BorderRadius.circular(radiusLarge),
-                    child: Padding(
+                    child: const Padding(
                       padding: EdgeInsets.all(12),
                       child: Icon(Icons.add_rounded, color: white, size: 24),
                     ),
@@ -472,18 +480,18 @@ class _ContactsContentState extends State<ContactsContent> {
         borderRadius: BorderRadius.circular(radiusLarge),
         border: Border.all(
           color: widget.isDarkMode 
-            ? Colors.white.withOpacity(0.1)
-            : Colors.black.withOpacity(0.06),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.06),
         ),
         boxShadow: widget.isDarkMode
-          ? []
-          : [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: TextField(
         controller: _searchController,
@@ -498,16 +506,16 @@ class _ContactsContentState extends State<ContactsContent> {
             size: 22,
           ),
           suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: Icon(Icons.clear_rounded, color: widget.theme.subtextColor),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-              )
-            : null,
+              ? IconButton(
+                  icon: Icon(Icons.clear_rounded, color: widget.theme.subtextColor),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             horizontal: spacingMedium,
             vertical: spacingMedium,
           ),
@@ -519,14 +527,14 @@ class _ContactsContentState extends State<ContactsContent> {
   Widget _buildLoadingState() {
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 80),
+        padding: const EdgeInsets.symmetric(vertical: 80),
         child: Column(
           children: [
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(primary),
               strokeWidth: 3,
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             Text(
               'Loading contacts...',
               style: body.copyWith(
@@ -542,22 +550,22 @@ class _ContactsContentState extends State<ContactsContent> {
   Widget _buildErrorState() {
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.all(spacingXLarge),
+              padding: const EdgeInsets.all(spacingXLarge),
               decoration: BoxDecoration(
-                color: error.withOpacity(0.1),
+                color: error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.error_outline_rounded,
                 size: 64,
-                color: error.withOpacity(0.5),
+                color: error.withValues(alpha: 0.5),
               ),
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             Text(
               'Failed to load contacts',
               style: bodyBold.copyWith(
@@ -565,7 +573,7 @@ class _ContactsContentState extends State<ContactsContent> {
                 fontSize: 18,
               ),
             ),
-            SizedBox(height: spacingSmall),
+            const SizedBox(height: spacingSmall),
             Text(
               _error ?? 'An error occurred',
               style: body.copyWith(
@@ -574,7 +582,7 @@ class _ContactsContentState extends State<ContactsContent> {
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             ElevatedButton.icon(
               onPressed: () {
                 setState(() {
@@ -584,12 +592,12 @@ class _ContactsContentState extends State<ContactsContent> {
                 });
                 _initializePatientId();
               },
-              icon: Icon(Icons.refresh_rounded),
-              label: Text('Try Again'),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
                 foregroundColor: white,
-                padding: EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: spacingXLarge,
                   vertical: spacingMedium,
                 ),
@@ -606,25 +614,25 @@ class _ContactsContentState extends State<ContactsContent> {
 
   Widget _buildEmptyState() {
     return Container(
-      padding: EdgeInsets.all(spacingXLarge * 1.5),
+      padding: const EdgeInsets.all(spacingXLarge * 1.5),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
         border: Border.all(
           color: widget.isDarkMode 
-            ? primary.withOpacity(0.2)
-            : Colors.black.withOpacity(0.06),
+              ? primary.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.06),
         ),
       ),
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(spacingXLarge),
+            padding: const EdgeInsets.all(spacingXLarge),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  primary.withOpacity(0.2),
-                  primary.withOpacity(0.1),
+                  primary.withValues(alpha: 0.2),
+                  primary.withValues(alpha: 0.1),
                 ],
               ),
               shape: BoxShape.circle,
@@ -632,10 +640,10 @@ class _ContactsContentState extends State<ContactsContent> {
             child: Icon(
               Icons.contacts_rounded,
               size: 64,
-              color: primary.withOpacity(0.5),
+              color: primary.withValues(alpha: 0.5),
             ),
           ),
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: spacingLarge),
           Text(
             'No contacts yet',
             style: bodyBold.copyWith(
@@ -643,9 +651,9 @@ class _ContactsContentState extends State<ContactsContent> {
               fontSize: 18,
             ),
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               'Add your emergency contacts and caretakers to stay connected',
               style: body.copyWith(
@@ -667,15 +675,15 @@ class _ContactsContentState extends State<ContactsContent> {
     if (filteredContacts.isEmpty && _searchQuery.isNotEmpty) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 60),
+          padding: const EdgeInsets.symmetric(vertical: 60),
           child: Column(
             children: [
               Icon(
                 Icons.search_off_rounded,
                 size: 64,
-                color: widget.theme.subtextColor.withOpacity(0.3),
+                color: widget.theme.subtextColor.withValues(alpha: 0.3),
               ),
-              SizedBox(height: spacingLarge),
+              const SizedBox(height: spacingLarge),
               Text(
                 'No contacts found',
                 style: bodyBold.copyWith(
@@ -683,7 +691,7 @@ class _ContactsContentState extends State<ContactsContent> {
                   fontSize: 16,
                 ),
               ),
-              SizedBox(height: spacingSmall),
+              const SizedBox(height: spacingSmall),
               Text(
                 'Try a different search term',
                 style: body.copyWith(
@@ -705,20 +713,20 @@ class _ContactsContentState extends State<ContactsContent> {
       children: [
         if (caretakers.isNotEmpty) ...[
           _buildSectionLabel('My Caretakers', primary),
-          SizedBox(height: spacingMedium),
+          const SizedBox(height: spacingMedium),
           ...caretakers.map((contact) => Padding(
-            padding: EdgeInsets.only(bottom: spacingMedium),
+            padding: const EdgeInsets.only(bottom: spacingMedium),
             child: _buildContactCard(contact),
           )),
           if (emergencyContacts.isNotEmpty)
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
         ],
 
         if (emergencyContacts.isNotEmpty) ...[
           _buildSectionLabel('Emergency Contacts', error),
-          SizedBox(height: spacingMedium),
+          const SizedBox(height: spacingMedium),
           ...emergencyContacts.map((contact) => Padding(
-            padding: EdgeInsets.only(bottom: spacingMedium),
+            padding: const EdgeInsets.only(bottom: spacingMedium),
             child: _buildContactCard(contact),
           )),
         ],
@@ -745,22 +753,22 @@ class _ContactsContentState extends State<ContactsContent> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: contact.color.withOpacity(0.1),
+                  color: contact.color.withValues(alpha: 0.1),
                   blurRadius: 16,
-                  offset: Offset(0, 6),
+                  offset: const Offset(0, 6),
                 ),
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
-                  offset: Offset(0, 3),
+                  offset: const Offset(0, 3),
                 ),
               ],
         border: Border.all(
           color: widget.isDarkMode
-              ? contact.color.withOpacity(0.2)
-              : Colors.black.withOpacity(0.06),
+              ? contact.color.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.06),
           width: 1,
         ),
       ),
@@ -770,13 +778,13 @@ class _ContactsContentState extends State<ContactsContent> {
           onTap: () => _showContactOptions(contact),
           borderRadius: BorderRadius.circular(radiusXLarge),
           child: Padding(
-            padding: EdgeInsets.all(spacingLarge),
+            padding: const EdgeInsets.all(spacingLarge),
             child: Column(
               children: [
                 Row(
                   children: [
                     _buildProfileAvatar(contact),
-                    SizedBox(width: spacingMedium),
+                    const SizedBox(width: spacingMedium),
 
                     Expanded(
                       child: Column(
@@ -796,12 +804,12 @@ class _ContactsContentState extends State<ContactsContent> {
                               ),
 
                               Container(
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: spacingSmall,
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: contact.color.withOpacity(0.15),
+                                  color: contact.color.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(radiusSmall),
                                 ),
                                 child: Text(
@@ -817,13 +825,13 @@ class _ContactsContentState extends State<ContactsContent> {
                             ],
                           ),
 
-                          SizedBox(height: 6),
+                          const SizedBox(height: 6),
 
                           Row(
                             children: [
                               Icon(Icons.badge_rounded,
                                   size: 14, color: widget.theme.subtextColor),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
                                 contact.relationship,
                                 style: caption.copyWith(
@@ -835,13 +843,13 @@ class _ContactsContentState extends State<ContactsContent> {
                             ],
                           ),
 
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
 
                           Row(
                             children: [
                               Icon(Icons.phone_rounded,
                                   size: 14, color: widget.theme.subtextColor),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   contact.phoneNumber,
@@ -862,15 +870,15 @@ class _ContactsContentState extends State<ContactsContent> {
 
                     Icon(
                       Icons.arrow_forward_ios_rounded,
-                      color: widget.theme.subtextColor.withOpacity(0.5),
+                      color: widget.theme.subtextColor.withValues(alpha: 0.5),
                       size: 18,
                     ),
                   ],
                 ),
 
-                SizedBox(height: spacingMedium),
-                Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
-                SizedBox(height: spacingMedium),
+                const SizedBox(height: spacingMedium),
+                Divider(height: 1, color: widget.theme.subtextColor.withValues(alpha: 0.15)),
+                const SizedBox(height: spacingMedium),
 
                 // Quick Actions
                 Row(
@@ -883,7 +891,7 @@ class _ContactsContentState extends State<ContactsContent> {
                         onTap: () => _handleCall(contact),
                       ),
                     ),
-                    SizedBox(width: spacingSmall),
+                    const SizedBox(width: spacingSmall),
                     Expanded(
                       child: _buildActionButton(
                         icon: Icons.message_rounded,
@@ -917,7 +925,7 @@ class _ContactsContentState extends State<ContactsContent> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(radiusMedium),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             border: isOutlined ? Border.all(color: color, width: 1.5) : null,
             borderRadius: BorderRadius.circular(radiusMedium),
@@ -930,7 +938,7 @@ class _ContactsContentState extends State<ContactsContent> {
                 size: 18,
                 color: isOutlined ? color : white,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: bodyBold.copyWith(
@@ -949,11 +957,11 @@ class _ContactsContentState extends State<ContactsContent> {
     showModalBottomSheet(
       context: context,
       backgroundColor: widget.theme.cardColor,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(radiusXLarge)),
       ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.all(spacingLarge),
+      builder: (bottomSheetContext) => Padding(
+        padding: const EdgeInsets.all(spacingLarge),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -961,38 +969,39 @@ class _ContactsContentState extends State<ContactsContent> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: widget.theme.subtextColor.withOpacity(0.3),
+                color: widget.theme.subtextColor.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             if (!contact.isCaretaker)
               ListTile(
-                leading: Icon(Icons.edit_rounded, color: primary),
+                leading: const Icon(Icons.edit_rounded, color: primary),
                 title: Text('Edit Contact', style: body.copyWith(color: widget.theme.textColor)),
                 onTap: () {
-                  Navigator.pop(context);
+                  Navigator.pop(bottomSheetContext);
                   _editContact(contact);
                 },
               ),
             ListTile(
-              leading: Icon(Icons.delete_rounded, color: error),
+              leading: const Icon(Icons.delete_rounded, color: error),
               title: Text(
                 contact.isCaretaker ? 'Remove Caretaker' : 'Delete Contact',
                 style: body.copyWith(color: widget.theme.textColor),
               ),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(bottomSheetContext);
                 _deleteContact(contact);
               },
             ),
-            SizedBox(height: spacingSmall),
+            const SizedBox(height: spacingSmall),
           ],
         ),
       ),
     );
   }
-Widget _buildProfileAvatar(ContactModel contact) {
+
+  Widget _buildProfileAvatar(ContactModel contact) {
     final hasProfileImage = contact.profileImageUrl != null && 
                             contact.profileImageUrl!.isNotEmpty;
 
@@ -1007,9 +1016,9 @@ Widget _buildProfileAvatar(ContactModel contact) {
         ),
         boxShadow: [
           BoxShadow(
-            color: contact.color.withOpacity(0.2),
+            color: contact.color.withValues(alpha: 0.2),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -1020,7 +1029,7 @@ Widget _buildProfileAvatar(ContactModel contact) {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -1038,9 +1047,11 @@ Widget _buildProfileAvatar(ContactModel contact) {
                   );
                 },
                 loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
+                  if (loadingProgress == null) {
+                    return child;
+                  }
                   return Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -1057,14 +1068,14 @@ Widget _buildProfileAvatar(ContactModel contact) {
                                 loadingProgress.expectedTotalBytes!
                             : null,
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
                   );
                 },
               )
             : Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,

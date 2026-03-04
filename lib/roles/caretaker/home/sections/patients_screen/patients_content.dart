@@ -1,6 +1,5 @@
 // File: lib/roles/caretaker/home/sections/patients_screen/patients_content.dart
 
-// ignore_for_file: unnecessary_to_list_in_spreads, deprecated_member_use, duplicate_ignore, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -236,14 +235,14 @@ class _PatientsContentState extends State<PatientsContent> {
         borderRadius: BorderRadius.circular(radiusLarge),
         border: Border.all(
           color: widget.isDarkMode 
-            ? Colors.white.withOpacity(0.1)
-            : Colors.black.withOpacity(0.06),
+            ? Colors.white.withValues(alpha: 0.1)
+            : Colors.black.withValues(alpha: 0.06),
         ),
         boxShadow: widget.isDarkMode
           ? []
           : [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),
@@ -312,13 +311,13 @@ class _PatientsContentState extends State<PatientsContent> {
             Container(
               padding: EdgeInsets.all(spacingXLarge),
               decoration: BoxDecoration(
-                color: error.withOpacity(0.1),
+                color: error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.error_outline_rounded,
                 size: 64,
-                color: error.withOpacity(0.5),
+                color: error.withValues(alpha: 0.5),
               ),
             ),
             SizedBox(height: spacingLarge),
@@ -375,8 +374,8 @@ class _PatientsContentState extends State<PatientsContent> {
         borderRadius: BorderRadius.circular(radiusXLarge),
         border: Border.all(
           color: widget.isDarkMode 
-            ? primary.withOpacity(0.2)
-            : Colors.black.withOpacity(0.06),
+            ? primary.withValues(alpha: 0.2)
+            : Colors.black.withValues(alpha: 0.06),
         ),
       ),
       child: Column(
@@ -386,8 +385,8 @@ class _PatientsContentState extends State<PatientsContent> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  primary.withOpacity(0.2),
-                  primary.withOpacity(0.1),
+                  primary.withValues(alpha: 0.2),
+                  primary.withValues(alpha: 0.1),
                 ],
               ),
               shape: BoxShape.circle,
@@ -395,7 +394,7 @@ class _PatientsContentState extends State<PatientsContent> {
             child: Icon(
               Icons.people_outline_rounded,
               size: 64,
-              color: primary.withOpacity(0.5),
+              color: primary.withValues(alpha: 0.5),
             ),
           ),
           SizedBox(height: spacingLarge),
@@ -479,22 +478,22 @@ class _PatientsContentState extends State<PatientsContent> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: primary.withOpacity(0.1),
+                  color: primary.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: Offset(0, 6),
                 ),
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
                   offset: Offset(0, 3),
                 ),
               ],
         border: Border.all(
           color: widget.isDarkMode
-              ? primary.withOpacity(0.2)
-              : Colors.black.withOpacity(0.06),
+              ? primary.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.06),
           width: 1,
         ),
       ),
@@ -574,7 +573,7 @@ class _PatientsContentState extends State<PatientsContent> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: primary.withOpacity(0.15),
+                                  color: primary.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(radiusSmall),
                                 ),
                                 child: Row(
@@ -607,7 +606,7 @@ class _PatientsContentState extends State<PatientsContent> {
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: accent.withOpacity(0.15),
+                                    color: accent.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(radiusSmall),
                                   ),
                                   child: Row(

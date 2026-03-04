@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously, curly_braces_in_flow_control_structures
-
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:seelai_app/roles/partially_sighted/caretaker/caretaker_selection_screen.dart';
@@ -122,7 +120,7 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05), // FIXED
                         blurRadius: 30,
                         offset: Offset(0, -10),
                       ),
@@ -368,11 +366,14 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
   }
 
   void _showForgotPasswordDialog() {
+    // FIXED: Save parent context
+    final parentContext = context;
     final TextEditingController emailController = TextEditingController();
     
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: parentContext,
+      // FIXED: Rename builder context
+      builder: (dialogContext) => AlertDialog(
         title: Text('Reset Password'),
         content: TextField(
           controller: emailController,
@@ -384,23 +385,32 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
               if (emailController.text.isEmpty) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter your email'), backgroundColor: error));
+                Navigator.pop(dialogContext);
+                if (parentContext.mounted) {
+                  ScaffoldMessenger.of(parentContext).showSnackBar(SnackBar(content: Text('Please enter your email'), backgroundColor: error));
+                }
                 return;
               }
               try {
                 await authService.value.sendPasswordResetEmail(email: emailController.text.trim());
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Password reset email sent!'), backgroundColor: success));
+                
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                
+                if (!parentContext.mounted) return;
+                ScaffoldMessenger.of(parentContext).showSnackBar(SnackBar(content: Text('Password reset email sent!'), backgroundColor: success));
               } catch (e) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                
+                if (!parentContext.mounted) return;
+                ScaffoldMessenger.of(parentContext).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
               }
             },
             child: Text('Send'),
@@ -412,14 +422,18 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
 
   // --- GOOGLE LOGIN LOGIC ---
   Future<void> _handleGoogleLogin() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       UserCredential? userCredential = await authService.value.signInWithGoogle();
       
       if (userCredential == null) {
         // User canceled the Google flow
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
 
@@ -432,11 +446,10 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
         
         if (userRole != 'visually_impaired') {
           await authService.value.signOut();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('This account is not registered as a Partial User'), backgroundColor: error),
-            );
-          }
+          if (!mounted) return; // FIXED: Add mounted guard
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('This account is not registered as a Partial User'), backgroundColor: error),
+          );
           return;
         }
         
@@ -454,41 +467,47 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
           hasCaretaker = assignedCaretakers.isNotEmpty;
         }
         
-        if (mounted) {
-          if (hasCaretaker) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VisuallyImpairedHomeScreen(userData: userData)));
-            Future.delayed(Duration(milliseconds: 500), () {
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));
-            });
-          } else {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => CaretakerSelectionScreen(userData: userData)));
-          }
+        if (!mounted) return; // FIXED: Add mounted guard
+        
+        if (hasCaretaker) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VisuallyImpairedHomeScreen(userData: userData)));
+          Future.delayed(Duration(milliseconds: 500), () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));
+            }
+          });
+        } else {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => CaretakerSelectionScreen(userData: userData)));
         }
       } else {
         // NEW GOOGLE USER: They authenticated, but haven't filled out the form.
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => VisuallyImpairedSignupScreen(googleUser: userCredential.user),
-            ),
-          );
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Almost there! Please complete your medical profile to finish registration.'), 
-              backgroundColor: primary,
-              duration: Duration(seconds: 4),
-            ),
-          );
-        }
+        if (!mounted) return; // FIXED: Add mounted guard
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => VisuallyImpairedSignupScreen(googleUser: userCredential.user),
+          ),
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Almost there! Please complete your medical profile to finish registration.'), 
+            backgroundColor: primary,
+            duration: Duration(seconds: 4),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -503,7 +522,9 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       UserCredential userCredential = await authService.value.signIn(
@@ -518,9 +539,8 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
         
         if (userRole != 'visually_impaired') {
           await authService.value.signOut();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('This account is not registered as a User'), backgroundColor: error));
-          }
+          if (!mounted) return; // FIXED: Add mounted guard
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('This account is not registered as a User'), backgroundColor: error));
           return;
         }
         
@@ -538,31 +558,50 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
           hasCaretaker = assignedCaretakers.isNotEmpty;
         }
         
-        if (mounted) {
-          if (hasCaretaker) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VisuallyImpairedHomeScreen(userData: userData)));
-            Future.delayed(Duration(milliseconds: 500), () {
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));
-            });
-          } else {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => CaretakerSelectionScreen(userData: userData)));
-          }
+        if (!mounted) return; // FIXED: Add mounted guard
+        
+        if (hasCaretaker) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VisuallyImpairedHomeScreen(userData: userData)));
+          Future.delayed(Duration(milliseconds: 500), () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));
+            }
+          });
+        } else {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => CaretakerSelectionScreen(userData: userData)));
         }
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'An error occurred';
-      if (e.code == 'user-not-found') errorMessage = 'No user found with this email';
-      else if (e.code == 'wrong-password') errorMessage = 'Wrong password';
-      else if (e.code == 'invalid-email') errorMessage = 'Invalid email address';
-      else if (e.code == 'user-disabled') errorMessage = 'Account disabled';
-      else if (e.code == 'too-many-requests') errorMessage = 'Too many attempts. Try again later';
-      else errorMessage = e.message ?? 'Login failed';
       
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage), backgroundColor: error));
+      // FIXED: Wrapped all statements in blocks
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found with this email';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Wrong password';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (e.code == 'user-disabled') {
+        errorMessage = 'Account disabled';
+      } else if (e.code == 'too-many-requests') {
+        errorMessage = 'Too many attempts. Try again later';
+      } else {
+        errorMessage = e.message ?? 'Login failed';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage), backgroundColor: error));
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

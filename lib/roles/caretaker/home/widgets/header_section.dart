@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/home/widgets/header_section.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -105,8 +104,8 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    const Color(0xFF0A0E27).withOpacity(0.5),
-                    const Color(0xFF0A0E27).withOpacity(0.3),
+                    const Color(0xFF0A0E27).withValues(alpha: 0.5),
+                    const Color(0xFF0A0E27).withValues(alpha: 0.3),
                   ],
                 )
               : LinearGradient(
@@ -114,7 +113,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                   end: Alignment.bottomRight,
                   colors: [
                     backgroundPrimary,
-                    backgroundPrimary.withOpacity(0.9),
+                    backgroundPrimary.withValues(alpha: 0.9),
                   ],
                 ),
         ),
@@ -142,11 +141,11 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                             end: Alignment.bottomRight,
                             colors: [
                               const Color.fromARGB(255, 0, 0, 0),
-                              const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7),
+                              const Color.fromARGB(255, 0, 0, 0).withValues(alpha: 0.7),
                             ],
                           ),
                           border: Border.all(
-                            color: Colors.black.withOpacity(0.25),
+                            color: Colors.black.withValues(alpha: 0.25),
                             width: 1.2,
                           ),
                         ),
@@ -172,7 +171,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                             gradient: LinearGradient(
                               colors: [
                                 const Color(0xFF7C3AED),
-                                const Color(0xFF7C3AED).withOpacity(0.7),
+                                const Color(0xFF7C3AED).withValues(alpha: 0.7),
                               ],
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
@@ -180,8 +179,8 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: widget.isDarkMode
-                                  ? Colors.white.withOpacity(0.12)
-                                  : Colors.black.withOpacity(0.1),
+                                  ? Colors.white.withValues(alpha: 0.12)
+                                  : Colors.black.withValues(alpha: 0.1),
                               width: 1.2,
                             ),
                             boxShadow: [
@@ -256,7 +255,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                       formattedDate,
                       style: caption.copyWith(
                         fontSize: 12,
-                        color: widget.subtextColor.withOpacity(0.8),
+                        color: widget.subtextColor.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w500,
                         height: 1.2,
                       ),
@@ -343,7 +342,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
+                                      color: Colors.black.withValues(alpha: 0.2),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     ),
@@ -409,7 +408,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
           end: Alignment.bottomRight,
           colors: [
             primary,
-            primary.withOpacity(0.7),
+            primary.withValues(alpha: 0.7),
           ],
         ),
       ),

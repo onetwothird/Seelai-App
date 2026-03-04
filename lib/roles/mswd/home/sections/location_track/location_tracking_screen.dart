@@ -1,5 +1,4 @@
 // File: lib/roles/mswd/home/sections/location_track/location_tracking_screen.dart
-// ignore_for_file: deprecated_member_use, unnecessary_import, prefer_final_fields, empty_catches
 
 import 'dart:async';
 import 'dart:ui' as ui;
@@ -12,9 +11,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 // App Imports
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/mswd/mswd_location_tracking_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:seelai_app/firebase/mswd/mswd_call_service.dart';
 
 class MswdLocationTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -41,15 +38,15 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   
   StreamSubscription? _locationsStream;
   Map<String, Map<String, dynamic>> _userLocations = {};
-  Map<String, Map<String, dynamic>> _userProfiles = {};
+  final Map<String, Map<String, dynamic>> _userProfiles = {};
   
   String _selectedFilter = 'all';
   bool _showOnlyActive = false;
   String? _selectedUserId;
   
   // Tracking state
-  Map<String, GeoPoint> _lastRenderedPoints = {};
-  Map<String, String?> _lastRenderedImageUrls = {};
+  final Map<String, GeoPoint> _lastRenderedPoints = {};
+  final Map<String, String?> _lastRenderedImageUrls = {};
   
   Timer? _refreshTimer;
   Timer? _uiUpdateTimer;
@@ -142,7 +139,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     }
   }
 
-  Future<void> _refreshLocationData() async {
+ Future<void> _refreshLocationData() async {
     if (!mounted) return;
     try {
       final allLocations = await mswdLocationTrackingService.getAllUserLocations();
@@ -154,7 +151,10 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         setState(() => _userLocations = newLocations);
         if (_isMapReady) await _updateMapMarkers();
       }
-    } catch (e) {}
+    } catch (e) {
+      // Log the error so it isn't swallowed silently
+      debugPrint('Error refreshing location data: $e');
+    }
   }
 
   // ==================== MARKER UPDATE LOGIC ====================
@@ -273,7 +273,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             key: key,
             centerPoint: GeoPoint(latitude: lat, longitude: lng),
             radius: accuracy, 
-            color: Colors.blue.withOpacity(0.2),
+            color: Colors.blue.withValues(alpha: 0.2),
             strokeWidth: 1,
           ),
         );
@@ -315,7 +315,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             // Use the same fallback background color as DetailCard
-            color: primary.withOpacity(0.1),
+            color: primary.withValues(alpha: 0.1),
             // Removed the Border.all here as requested
             // Add shadow for visibility on map
             boxShadow: [
@@ -385,7 +385,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     setState(() => _selectedUserId = userId);
     await _updateMapMarkers(); 
     if (_lastRenderedPoints.containsKey(userId)) {
-      await _mapController.goToLocation(_lastRenderedPoints[userId]!);
+      await _mapController.moveTo(_lastRenderedPoints[userId]!);
     }
   }
 
@@ -516,9 +516,9 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
-                ? theme.cardColor.withOpacity(0.8) 
-                : Colors.white.withOpacity(0.8),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ? theme.cardColor.withValues(alpha: 0.8) 
+                : Colors.white.withValues(alpha: 0.8),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             borderRadius: BorderRadius.circular(30),
             boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
           ),
@@ -596,7 +596,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         child: Container(
           width: 50, height: 50,
           decoration: BoxDecoration(
-            color: widget.isDarkMode ? Colors.black54 : Colors.white.withOpacity(0.9),
+            color: widget.isDarkMode ? Colors.black54 : Colors.white.withValues(alpha: 0.9),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white24),
             boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
@@ -735,7 +735,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 5))],
-        border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05)),
+        border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -749,7 +749,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                   image: (profile['profileImageUrl'] != null && profile['profileImageUrl'].isNotEmpty)
                     ? DecorationImage(image: NetworkImage(profile['profileImageUrl']), fit: BoxFit.cover)
                     : null,
-                  color: primary.withOpacity(0.1)
+                  color: primary.withValues(alpha: 0.1)
                 ),
                 child: (profile['profileImageUrl'] == null || profile['profileImageUrl'].isEmpty)
                   ? Center(child: Text(profile['name']?[0] ?? '?', style: TextStyle(fontWeight: FontWeight.bold, color: primary)))
@@ -813,7 +813,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                  color: isActive ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
@@ -842,7 +842,8 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     if (_lastRenderedPoints.isEmpty) return;
     
     if (_selectedUserId != null && _lastRenderedPoints.containsKey(_selectedUserId)) {
-      await _mapController.goToLocation(_lastRenderedPoints[_selectedUserId]!);
+      // Replaced goToLocation with moveTo
+      await _mapController.moveTo(_lastRenderedPoints[_selectedUserId]!);
     } else {
       double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
       for (var p in _lastRenderedPoints.values) {

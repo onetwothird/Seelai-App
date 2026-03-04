@@ -1,5 +1,4 @@
 // File: lib/roles/mswd/home/sections/users/users_content.dart
-// ignore_for_file: deprecated_member_use, avoid_print, unnecessary_underscores
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -78,7 +77,6 @@ class _UsersContentState extends State<UsersContent>
       }
     } catch (e) {
       if (mounted) setState(() => _isLoadingVI = false);
-      print('Error loading visually impaired users: $e');
     }
   }
 
@@ -95,7 +93,6 @@ class _UsersContentState extends State<UsersContent>
       }
     } catch (e) {
       if (mounted) setState(() => _isLoadingCT = false);
-      print('Error loading caretakers: $e');
     }
   }
 
@@ -111,7 +108,6 @@ class _UsersContentState extends State<UsersContent>
       }
     } catch (e) {
       if (mounted) setState(() => _isLoadingPending = false);
-      print('Error loading pending caretakers: $e');
     }
   }
 
@@ -226,14 +222,14 @@ class _UsersContentState extends State<UsersContent>
         borderRadius: BorderRadius.circular(radiusLarge),
         border: Border.all(
           color: widget.isDarkMode
-              ? Colors.white.withOpacity(0.1)
-              : Colors.black.withOpacity(0.06),
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.06),
         ),
         boxShadow: widget.isDarkMode
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -279,21 +275,21 @@ class _UsersContentState extends State<UsersContent>
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: primary.withOpacity(0.1),
+                  color: primary.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
                   offset: const Offset(0, 3),
                 ),
               ],
         border: widget.isDarkMode
-            ? Border.all(color: primary.withOpacity(0.2), width: 1)
-            : Border.all(color: Colors.black.withOpacity(0.06), width: 1),
+            ? Border.all(color: primary.withValues(alpha: 0.2), width: 1)
+            : Border.all(color: Colors.black.withValues(alpha: 0.06), width: 1),
       ),
       child: Row(
         children: [
@@ -320,7 +316,7 @@ class _UsersContentState extends State<UsersContent>
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
-                    colors: [color, color.withOpacity(0.8)],
+                    colors: [color, color.withValues(alpha: 0.8)],
                   )
                 : null,
             color: isSelected ? null : Colors.transparent,
@@ -328,7 +324,7 @@ class _UsersContentState extends State<UsersContent>
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: color.withOpacity(0.3),
+                      color: color.withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -455,8 +451,8 @@ class _UsersContentState extends State<UsersContent>
         borderRadius: BorderRadius.circular(radiusXLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: widget.isDarkMode
-            ? Border.all(color: primary.withOpacity(0.2), width: 1)
-            : Border.all(color: Colors.black.withOpacity(0.06), width: 1),
+            ? Border.all(color: primary.withValues(alpha: 0.2), width: 1)
+            : Border.all(color: Colors.black.withValues(alpha: 0.06), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -476,7 +472,7 @@ class _UsersContentState extends State<UsersContent>
                   ),
                   child: ClipOval(
                     child: hasProfileImage
-                        ? Image.network(profileImageUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => _buildDefaultAvatarText(user['name'] ?? 'U', primary))
+                        ? Image.network(profileImageUrl, fit: BoxFit.cover, errorBuilder: (_,_,_) => _buildDefaultAvatarText(user['name'] ?? 'U', primary))
                         : _buildDefaultAvatarText(user['name'] ?? 'U', primary),
                   ),
                 ),
@@ -512,15 +508,15 @@ class _UsersContentState extends State<UsersContent>
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
               ]
             : softShadow,
         border: widget.isDarkMode
-            ? Border.all(color: color.withOpacity(0.2), width: 1)
-            : Border.all(color: Colors.black.withOpacity(0.06), width: 1),
+            ? Border.all(color: color.withValues(alpha: 0.2), width: 1)
+            : Border.all(color: Colors.black.withValues(alpha: 0.06), width: 1),
       ),
       child: Material(
         color: Colors.transparent,
@@ -539,7 +535,7 @@ class _UsersContentState extends State<UsersContent>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.black.withOpacity(0.25),
+                          color: Colors.black.withValues(alpha: 0.25),
                           width: 1.2,
                         ),
                       ),
@@ -574,7 +570,7 @@ class _UsersContentState extends State<UsersContent>
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.2),
+                                    color: Colors.orange.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text(
@@ -615,7 +611,7 @@ class _UsersContentState extends State<UsersContent>
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [baseColor, baseColor.withOpacity(0.7)],
+          colors: [baseColor, baseColor.withValues(alpha: 0.7)],
         ),
       ),
       child: Center(

@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -143,10 +142,10 @@ class _SelectPatientState extends State<SelectPatient> {
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              color: primary.withOpacity(0.15),
+              color: primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(radiusSmall),
               border: Border.all(
-                color: primary.withOpacity(0.3),
+                color: primary.withValues(alpha: 0.3),
               ),
             ),
             child: Text(
@@ -197,7 +196,7 @@ class _SelectPatientState extends State<SelectPatient> {
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: primary.withOpacity(0.3),
+                  color: primary.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: Offset(0, 8),
                   spreadRadius: -2,
@@ -206,7 +205,7 @@ class _SelectPatientState extends State<SelectPatient> {
             : widget.isDarkMode
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha:0.2),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
@@ -226,8 +225,8 @@ class _SelectPatientState extends State<SelectPatient> {
               gradient: isSelected
                   ? LinearGradient(
                       colors: [
-                        primary.withOpacity(0.15),
-                        accent.withOpacity(0.08),
+                        primary.withValues(alpha: 0.15),
+                        accent.withValues(alpha: 0.08),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -236,8 +235,8 @@ class _SelectPatientState extends State<SelectPatient> {
               borderRadius: BorderRadius.circular(radiusLarge),
               border: Border.all(
                 color: isSelected
-                    ? primary.withOpacity(0.6)
-                    : widget.theme.subtextColor.withOpacity(0.2),
+                    ? primary.withValues(alpha: 0.6)
+                    : widget.theme.subtextColor.withValues(alpha: 0.2),
                 width: isSelected ? 2 : 1,
               ),
             ),
@@ -256,7 +255,7 @@ class _SelectPatientState extends State<SelectPatient> {
                             : null,
                         shape: BoxShape.circle,
                         border: isSelected
-                            ? Border.all(color: primary.withOpacity(0.3), width: 2)
+                            ? Border.all(color: primary.withValues(alpha: 0.3), width: 2)
                             : null,
                       ),
                       child: profileImageUrl != null
@@ -353,7 +352,7 @@ class _SelectPatientState extends State<SelectPatient> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: primary.withOpacity(0.4),
+                          color: primary.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: Offset(0, 2),
                         ),

@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use, curly_braces_in_flow_control_structures
 
 import 'dart:io';
 import 'dart:ui'; 
@@ -172,7 +171,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0), 
-            child: Container(color: Colors.white.withOpacity(0.2)),
+            child: Container(color: Colors.white.withValues(alpha: 0.2)),
           ),
         ),
 
@@ -368,8 +367,11 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                   color: Color(0xFF94A3B8),
                 ),
                 onPressed: () => setState(() {
-                  if (isConfirm) _obscureConfirmPassword = !_obscureConfirmPassword;
-                  else _obscurePassword = !_obscurePassword;
+                  if (isConfirm) {
+                    _obscureConfirmPassword = !_obscureConfirmPassword;
+                  } else {
+                    _obscurePassword = !_obscurePassword;
+                  }
                 }),
               )
             : null,
@@ -388,7 +390,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         border: Border.all(color: Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonFormField<String>(
-        value: val,
+        initialValue: val,
         items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, overflow: TextOverflow.ellipsis))).toList(),
         onChanged: _isLoading ? null : changed,
         style: TextStyle(color: Color(0xFF1E293B), fontSize: 16),

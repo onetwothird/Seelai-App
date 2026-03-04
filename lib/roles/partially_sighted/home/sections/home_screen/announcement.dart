@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/announcement.dart
-// ignore_for_file: deprecated_member_use, unnecessary_to_list_in_spreads
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -53,7 +52,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: EdgeInsets.only(left: 4),
+          padding: const EdgeInsets.only(left: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -70,8 +69,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 child: InkWell(
                   onTap: _refreshStream,
                   borderRadius: BorderRadius.circular(radiusMedium),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
                     child: Icon(
                       Icons.refresh_rounded,
                       color: primary,
@@ -83,14 +82,14 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             ],
           ),
         ),
-        SizedBox(height: spacingMedium),
+        const SizedBox(height: spacingMedium),
         StreamBuilder<List<AnnouncementModel>>(
           stream: _announcementStream,
           builder: (context, snapshot) {
             // Show loading only on initial load
             if (snapshot.connectionState == ConnectionState.waiting && 
                 !snapshot.hasData) {
-              return Center(
+              return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(spacingLarge),
                   child: CircularProgressIndicator(color: primary),
@@ -101,17 +100,17 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(spacingMedium),
+                  padding: const EdgeInsets.all(spacingMedium),
                   child: Column(
                     children: [
                       Text(
                         'Error loading announcements',
                         style: body.copyWith(color: Colors.red),
                       ),
-                      SizedBox(height: spacingSmall),
+                      const SizedBox(height: spacingSmall),
                       TextButton(
                         onPressed: _refreshStream,
-                        child: Text('Retry'),
+                        child: const Text('Retry'),
                       ),
                     ],
                   ),
@@ -134,15 +133,15 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 // Display announcement cards
                 ...displayedAnnouncements.map((announcement) {
                   return Padding(
-                    padding: EdgeInsets.only(bottom: spacingMedium),
+                    padding: const EdgeInsets.only(bottom: spacingMedium),
                     child: _buildAnnouncementCard(announcement),
                   );
-                }).toList(),
+                }),
 
                 // "View All Announcements" button if more than 5
                 if (hasMoreAnnouncements)
                   Padding(
-                    padding: EdgeInsets.only(top: spacingSmall),
+                    padding: const EdgeInsets.only(top: spacingSmall),
                     child: Semantics(
                       label: 'View all ${allAnnouncements.length} announcements',
                       button: true,
@@ -152,24 +151,24 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                           onTap: () => _navigateToAllAnnouncements(context, allAnnouncements),
                           borderRadius: BorderRadius.circular(radiusMedium),
                           child: Container(
-                            padding: EdgeInsets.all(spacingMedium),
+                            padding: const EdgeInsets.all(spacingMedium),
                             decoration: BoxDecoration(
                               color: widget.theme.cardColor,
                               borderRadius: BorderRadius.circular(radiusMedium),
                               border: Border.all(
-                                color: primary.withOpacity(0.3),
+                                color: primary.withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.view_list_rounded,
                                   color: primary,
                                   size: 20,
                                 ),
-                                SizedBox(width: spacingSmall),
+                                const SizedBox(width: spacingSmall),
                                 Text(
                                   'View All Announcements (${allAnnouncements.length})',
                                   style: bodyBold.copyWith(
@@ -178,8 +177,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                SizedBox(width: spacingSmall),
-                                Icon(
+                                const SizedBox(width: spacingSmall),
+                                const Icon(
                                   Icons.arrow_forward_rounded,
                                   color: primary,
                                   size: 18,
@@ -216,7 +215,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   Widget _buildEmptyAnnouncementsCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: spacingXLarge,
         horizontal: spacingLarge,
       ),
@@ -225,7 +224,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.theme.subtextColor.withOpacity(0.2),
+          color: widget.theme.subtextColor.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -236,10 +235,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         children: [
           Icon(
             Icons.notifications_none_rounded,
-            color: widget.theme.subtextColor.withOpacity(0.5),
+            color: widget.theme.subtextColor.withValues(alpha: 0.5),
             size: 48,
           ),
-          SizedBox(height: spacingMedium),
+          const SizedBox(height: spacingMedium),
           Text(
             'No announcements yet',
             style: bodyBold.copyWith(
@@ -249,9 +248,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: spacingMedium),
+            padding: const EdgeInsets.symmetric(horizontal: spacingMedium),
             child: Text(
               'Check back later for updates from MSWD',
               style: caption.copyWith(
@@ -278,14 +277,14 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       label: 'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
       readOnly: true,
       child: Container(
-        padding: EdgeInsets.all(spacingMedium),
+        padding: const EdgeInsets.all(spacingMedium),
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
           boxShadow: widget.isDarkMode
               ? [
                   BoxShadow(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -293,7 +292,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
               : softShadow,
           border: widget.isDarkMode
               ? Border.all(
-                  color: color.withOpacity(0.2),
+                  color: color.withValues(alpha: 0.2),
                   width: 1,
                 )
               : null,
@@ -304,9 +303,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(spacingSmall),
+                  padding: const EdgeInsets.all(spacingSmall),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(radiusMedium),
                   ),
                   child: Icon(
@@ -315,7 +314,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                     size: 24,
                   ),
                 ),
-                SizedBox(width: spacingMedium),
+                const SizedBox(width: spacingMedium),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,14 +327,14 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.1),
+                          color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(radiusSmall),
                           border: Border.all(
-                            color: color.withOpacity(0.3),
+                            color: color.withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -347,7 +346,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                               color: color,
                               size: 12,
                             ),
-                            SizedBox(width: 4),
+                            const SizedBox(width: 4),
                             Text(
                               _getAudienceLabel(announcement),
                               style: caption.copyWith(
@@ -364,7 +363,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 ),
               ],
             ),
-            SizedBox(height: spacingMedium),
+            const SizedBox(height: spacingMedium),
             Text(
               announcement.message,
               style: caption.copyWith(
@@ -373,20 +372,20 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 height: 1.5,
               ),
             ),
-            SizedBox(height: spacingSmall),
+            const SizedBox(height: spacingSmall),
             Row(
               children: [
                 Icon(
                   Icons.access_time_rounded,
-                  color: widget.theme.subtextColor.withOpacity(0.7),
+                  color: widget.theme.subtextColor.withValues(alpha: 0.7),
                   size: 14,
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
                   timeAgo,
                   style: caption.copyWith(
                     fontSize: 11,
-                    color: widget.theme.subtextColor.withOpacity(0.7),
+                    color: widget.theme.subtextColor.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w500,
                   ),
                 ),

@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use, empty_catches
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -93,7 +92,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       final canvas = Canvas(recorder);
 
       final shadowPaint = Paint()
-        ..color = Colors.black.withOpacity(0.3)
+        ..color = Colors.black.withValues(alpha: 0.3)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
       canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
 
@@ -159,7 +158,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     final gradient = ui.Gradient.linear(
       Offset(rect.left, rect.top),
       Offset(rect.right, rect.bottom),
-      [color, color.withOpacity(0.7)],
+      [color, color.withValues(alpha: 0.7)],
     );
     final paint = Paint()..shader = gradient;
     canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
@@ -422,7 +421,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
                   key: 'patient_circle',
                   centerPoint: patientGeo,
                   radius: _isPulseExpanded ? 80.0 : 40.0,
-                  color: primary.withOpacity(0.2),
+                  color: primary.withValues(alpha: 0.2),
                   strokeWidth: 2,
                 ),
               );
@@ -795,7 +794,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         border: Border.all(color: white, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -902,14 +901,14 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: primary.withOpacity(0.2),
+                  color: primary.withValues(alpha: 0.2),
                   blurRadius: 24,
                   offset: Offset(0, 8),
                 ),
               ]
             : softShadow,
         border: widget.isDarkMode
-            ? Border.all(color: primary.withOpacity(0.3), width: 2)
+            ? Border.all(color: primary.withValues(alpha: 0.3), width: 2)
             : null,
       ),
       child: ClipRRect(
@@ -970,7 +969,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
                   borderRadius: BorderRadius.circular(radiusMedium),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Colors.black.withValues(alpha: 0.1),
                       blurRadius: 8,
                     ),
                   ],
@@ -1034,13 +1033,13 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
           borderRadius: BorderRadius.circular(radiusMedium),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 16,
               offset: Offset(0, 4),
             ),
           ],
           border: Border.all(
-            color: primary.withOpacity(0.3),
+            color: primary.withValues(alpha: 0.3),
             width: 1.5,
           ),
         ),
@@ -1098,7 +1097,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: primary.withOpacity(0.1),
+                  color: primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(radiusSmall),
                 ),
                 child: Row(
@@ -1187,7 +1186,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -1255,7 +1254,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
+            color: color.withValues(alpha: 0.4),
             blurRadius: 12,
             offset: Offset(0, 4),
           ),

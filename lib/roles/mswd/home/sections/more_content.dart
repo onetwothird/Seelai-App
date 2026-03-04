@@ -1,5 +1,4 @@
 // File: lib/roles/mswd/home/sections/more_content.dart
-// ignore_for_file: deprecated_member_use, prefer_final_fields, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -28,7 +27,7 @@ class MoreContent extends StatefulWidget {
 }
 
 class _MoreContentState extends State<MoreContent> {
-  int _pendingVerifications = 12;
+  final int _pendingVerifications = 12;
 
   // --- Color Palette for Sections ---
   final Color _colVerifications = const Color(0xFF3B82F6); // Blue
@@ -246,7 +245,7 @@ class _MoreContentState extends State<MoreContent> {
           Container(
             padding: EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15), // Uses the section color
+              color: color.withValues(alpha: 0.15), // Uses the section color
               borderRadius: BorderRadius.circular(radiusSmall),
             ),
             child: Icon(icon, color: color, size: 16), // Uses the section color
@@ -256,7 +255,7 @@ class _MoreContentState extends State<MoreContent> {
             title.toUpperCase(),
             style: caption.copyWith(
               fontSize: 11,
-              color: widget.theme.subtextColor.withOpacity(0.7),
+              color: widget.theme.subtextColor.withValues(alpha: 0.7),
               fontWeight: FontWeight.w700,
               letterSpacing: 1.2,
             ),
@@ -284,18 +283,18 @@ class _MoreContentState extends State<MoreContent> {
           border: Border.all(
             color: widget.isDarkMode
                 ? (isDestructive 
-                    ? Colors.red.withOpacity(0.3) 
-                    : color.withOpacity(0.3)) // Increased opacity slightly for visibility
+                    ? Colors.red.withValues(alpha: 0.3) 
+                    : color.withValues(alpha: 0.3)) // Increased opacity slightly for visibility
                 : (isDestructive
-                    ? Colors.red.withOpacity(0.15)
-                    : Colors.black.withOpacity(0.05)),
+                    ? Colors.red.withValues(alpha: 0.15)
+                    : Colors.black.withValues(alpha: 0.05)),
             width: 1,
           ),
           boxShadow: widget.isDarkMode
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
+                    color: Colors.black.withValues(alpha: 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -316,8 +315,8 @@ class _MoreContentState extends State<MoreContent> {
                     decoration: BoxDecoration(
                       // Uses the specific section color
                       color: isDestructive
-                          ? Colors.red.withOpacity(0.1)
-                          : color.withOpacity(0.1),
+                          ? Colors.red.withValues(alpha: 0.1)
+                          : color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(radiusMedium),
                     ),
                     child: Center(
@@ -360,7 +359,7 @@ class _MoreContentState extends State<MoreContent> {
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: error.withOpacity(0.3),
+                                      color: error.withValues(alpha: 0.3),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     ),
@@ -430,9 +429,13 @@ class _MoreContentState extends State<MoreContent> {
   }
 
   void _showLogoutDialog() {
+    // 1. Capture the parent context
+    final parentContext = context;
+
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: parentContext,
+      // 2. Rename the builder context to dialogContext
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: widget.theme.cardColor,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(radiusLarge),
@@ -464,7 +467,8 @@ class _MoreContentState extends State<MoreContent> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            // Use dialogContext here
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel',
               style: TextStyle(
@@ -475,13 +479,17 @@ class _MoreContentState extends State<MoreContent> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context); // Close the dialog
+              // Close the dialog using dialogContext before the async operation
+              Navigator.pop(dialogContext); 
               
               // Sign out
               await authService.value.signOut();
               
+              // 3. GUARD: Check if the main screen is still mounted
+              if (!parentContext.mounted) return;
+
               // Navigate to onboarding screen and remove all previous routes
-              Navigator.of(context).pushAndRemoveUntil(
+              Navigator.of(parentContext).pushAndRemoveUntil(
                 MaterialPageRoute(
                   builder: (context) => const OnboardingScreen(),
                 ),
@@ -489,7 +497,7 @@ class _MoreContentState extends State<MoreContent> {
               );
               
               // Show success message
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(parentContext).showSnackBar(
                 SnackBar(
                   content: Row(
                     children: [
@@ -650,7 +658,7 @@ class _MSWDGuideVideoDialogState extends State<MSWDGuideVideoDialog> {
                                     if (!_controller.value.isPlaying)
                                       Container(
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.5),
+                                          color: Colors.black.withValues(alpha: 0.5),
                                           shape: BoxShape.circle,
                                         ),
                                         padding: const EdgeInsets.all(12),
@@ -674,7 +682,7 @@ class _MSWDGuideVideoDialogState extends State<MSWDGuideVideoDialog> {
                   top: 10,
                   right: 10,
                   child: CircleAvatar(
-                    backgroundColor: Colors.black.withOpacity(0.5),
+                    backgroundColor: Colors.black.withValues(alpha: 0.5),
                     child: IconButton(
                       icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
                       onPressed: () => Navigator.pop(context),
@@ -746,7 +754,7 @@ class _MSWDGuideVideoDialogState extends State<MSWDGuideVideoDialog> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Text('$step', style: TextStyle(color: color, fontWeight: FontWeight.bold)),

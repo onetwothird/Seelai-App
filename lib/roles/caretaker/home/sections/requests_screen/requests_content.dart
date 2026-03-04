@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use, sized_box_for_whitespace
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -268,11 +267,11 @@ class _RequestsContentState extends State<RequestsContent>
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
         color: widget.isDarkMode 
-            ? color.withOpacity(0.15) 
-            : color.withOpacity(0.08),
+            ? color.withValues(alpha: 0.15) 
+            : color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDarkMode ? Colors.transparent : color.withOpacity(0.1),
+          color: widget.isDarkMode ? Colors.transparent : color.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -308,7 +307,7 @@ class _RequestsContentState extends State<RequestsContent>
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: widget.isDarkMode ? Colors.white10 : Colors.black.withOpacity(0.05),
+          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
         ),
       ),
       child: TabBar(
@@ -318,7 +317,7 @@ class _RequestsContentState extends State<RequestsContent>
           color: primary,
           boxShadow: [
             BoxShadow(
-              color: primary.withOpacity(0.3),
+              color: primary.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -383,7 +382,7 @@ class _RequestsContentState extends State<RequestsContent>
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 15,
                   offset: const Offset(0, 5),
                 ),
@@ -477,7 +476,7 @@ class _RequestsContentState extends State<RequestsContent>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: priorityColor.withOpacity(0.1),
+                        color: priorityColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(

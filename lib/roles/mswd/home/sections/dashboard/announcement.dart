@@ -1,6 +1,5 @@
 // File: lib/roles/mswd/home/sections/dashboard/announcement.dart
 
-// ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -428,9 +427,13 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   }
 
   void _deleteAnnouncement(String id) {
+    // 1. Capture the parent context for the SnackBar
+    final parentContext = context;
+
     showDialog(
-      context: context,
-      builder: (BuildContext context) {
+      context: parentContext,
+      // 2. Rename to dialogContext to avoid shadowing
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           backgroundColor: widget.theme.cardColor,
           shape: RoundedRectangleBorder(
@@ -450,7 +453,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              // Use dialogContext to close the popup
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Cancel',
                 style: bodyBold.copyWith(color: widget.theme.subtextColor),
@@ -458,21 +462,25 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             ),
             ElevatedButton(
               onPressed: () async {
+                // Execute the async operation
                 final success = await _announcementService.deleteAnnouncement(id);
-                if (mounted) {
-                  Navigator.of(context).pop();
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        success 
-                            ? 'Announcement deleted' 
-                            : 'Failed to delete announcement'
-                      ),
-                      backgroundColor: success ? Colors.green : Colors.red,
+                
+                // 3. GUARD: Check if the dialog is still open before popping
+                if (!dialogContext.mounted) return;
+                Navigator.of(dialogContext).pop();
+                
+                // 4. GUARD: Check if the main screen is still active before showing the SnackBar
+                if (!parentContext.mounted) return;
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success 
+                          ? 'Announcement deleted' 
+                          : 'Failed to delete announcement'
                     ),
-                  );
-                }
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -481,7 +489,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
               ),
-              child: Text('Delete'),
+              child: const Text('Delete'),
             ),
           ],
         );

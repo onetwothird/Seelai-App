@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/home/sections/requests_screen/request_details_screen.dart
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -240,7 +239,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -304,7 +303,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         // Force shadow for white-on-white contrast
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           )
@@ -369,7 +368,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, size: 20, color: color),
@@ -401,7 +400,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Widget _buildVerticalDivider(Color color) => Container(
     width: 1, 
-    color: color.withOpacity(0.2),
+    color: color.withValues(alpha: 0.2),
     margin: const EdgeInsets.symmetric(vertical: 4),
   );
 
@@ -454,10 +453,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -479,7 +478,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.location_on_rounded, color: Colors.green, size: 24),
@@ -502,7 +501,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         'Tap to view on map',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.green.withOpacity(0.8),
+                          color: Colors.green.withValues(alpha: 0.8),
                         ),
                       ),
                     ],
@@ -522,9 +521,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
         _currentRequest.status.name.toUpperCase(),
@@ -555,7 +554,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -675,7 +674,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           backgroundColor: isFilled ? color : Colors.transparent,
           foregroundColor: textColor,
           elevation: isFilled ? 4 : 0,
-          shadowColor: isFilled ? color.withOpacity(0.4) : Colors.transparent,
+          shadowColor: isFilled ? color.withValues(alpha: 0.4) : Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: borderColor != null 
