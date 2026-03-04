@@ -1,8 +1,6 @@
 // File: lib/roles/visually_impaired/home/home_screen.dart
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use, duplicate_ignore, unnecessary_import
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/recent_activities/view_recent_activites.dart';
 import 'dart:async';
 import 'package:seelai_app/themes/constants.dart';
@@ -298,8 +296,19 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false, 
+      // THIS IS THE FIX: Updated to onPopInvokedWithResult
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) return; 
+
+        final bool shouldPop = await _onWillPop();
+        
+        if (shouldPop && context.mounted) {
+          // Pass the result along when manually popping
+          Navigator.of(context).pop(result); 
+        }
+      },
       child: Scaffold(
         extendBody: true,
         body: Container(
@@ -308,7 +317,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
             bottom: false,
             child: Column(
               children: [
-                // THIS IS THE FIX: Hides the header when on the Profile tab
                 if (_selectedIndex != 4)
                   HeaderSection(
                     userName: userName,
