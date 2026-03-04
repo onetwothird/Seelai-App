@@ -121,7 +121,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
               return _buildEmptyAnnouncementsCard();
             }
 
-            // Show only first 5 announcements
             final displayedAnnouncements = allAnnouncements.take(maxDisplayedAnnouncements).toList();
             final hasMoreAnnouncements = allAnnouncements.length > maxDisplayedAnnouncements;
 
