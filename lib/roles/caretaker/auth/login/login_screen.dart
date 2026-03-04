@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/auth/login/login_screen.dart
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -111,7 +110,7 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: const BorderRadius.only(topLeft: Radius.circular(40), topRight: Radius.circular(40)),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, offset: const Offset(0, -10))],
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 30, offset: const Offset(0, -10))],
                   ),
                   child: Stack(
                     children: [
@@ -275,37 +274,65 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
     );
   }
 
-  void _showForgotPasswordDialog() {
-    final TextEditingController emailController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+ void _showForgotPasswordDialog() {
+  final TextEditingController emailController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
         title: const Text('Reset Password'),
         content: TextField(
           controller: emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(hintText: 'Enter your email', prefixIcon: Icon(Icons.email_outlined)),
+          decoration: const InputDecoration(
+            hintText: 'Enter your email',
+            prefixIcon: Icon(Icons.email_outlined),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
-              if (emailController.text.isEmpty) { Navigator.pop(context); return; }
+              final email = emailController.text.trim();
+
+              if (email.isEmpty) {
+                Navigator.pop(dialogContext);
+                return;
+              }
+
+              Navigator.pop(dialogContext);
+
+              final messenger = ScaffoldMessenger.of(context);
+
               try {
-                await authService.value.sendPasswordResetEmail(email: emailController.text.trim());
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password reset email sent!'), backgroundColor: success));
+                await authService.value
+                    .sendPasswordResetEmail(email: email);
+
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Password reset email sent!'),
+                    backgroundColor: success,
+                  ),
+                );
               } catch (e) {
-                Navigator.pop(context);
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to send reset email'),
+                  ),
+                );
               }
             },
             child: const Text('Send'),
           ),
         ],
-      ),
-    );
-  }
-
+      );
+    },
+  );
+}
   // ==================== GOOGLE LOGIN LOGIC ====================
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
