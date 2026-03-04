@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/contacts_screen/adding_contact.dart
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -37,7 +36,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
     super.dispose();
   }
 
-  Future<void> _addContact() async {
+Future<void> _addContact() async {
     if (_formKey.currentState!.validate()) {
       try {
         await emergencyContactsService.addEmergencyContact(
@@ -47,13 +46,19 @@ class _AddContactDialogState extends State<AddContactDialog> {
           relationship: _relationshipController.text,
         );
 
+        // GUARD: Check if the widget is still in the tree before proceeding
+        if (!mounted) return;
+
         widget.onContactAdded?.call();
         Navigator.pop(context);
       } catch (e) {
+        // GUARD: Check if the widget is still mounted before showing the error
+        if (!mounted) return;
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to add contact: $e'),
-            backgroundColor: error,
+            backgroundColor: error, // Assuming 'error' is defined in your constants
           ),
         );
       }
@@ -90,8 +95,8 @@ class _AddContactDialogState extends State<AddContactDialog> {
         ),
         filled: true,
         fillColor: widget.isDarkMode 
-          ? Colors.white.withOpacity(0.03)
-          : Colors.black.withOpacity(0.02),
+          ? Colors.white.withValues(alpha: 0.03)
+          : Colors.black.withValues(alpha: 0.02),
       ),
     );
   }

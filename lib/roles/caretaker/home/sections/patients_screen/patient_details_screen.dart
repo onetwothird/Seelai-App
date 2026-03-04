@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use, duplicate_ignore
 // File: lib/roles/caretaker/home/sections/patients_screen/patient_details_screen.dart
 
 import 'package:flutter/material.dart';
@@ -85,7 +84,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             color: cardColor,
             shape: BoxShape.circle,
             boxShadow: widget.isDarkMode ? [] : [
-              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
             ],
           ),
           child: IconButton(
@@ -108,7 +107,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               color: cardColor,
               shape: BoxShape.circle,
               boxShadow: widget.isDarkMode ? [] : [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
               ],
             ),
             child: IconButton(
@@ -221,7 +220,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     // Note: Shadows can sometimes cause lag in Hero, but usually fine
                     boxShadow: [
                       BoxShadow(
-                        color: primary.withOpacity(0.2),
+                        color: primary.withValues(alpha: 0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
@@ -273,7 +272,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: (isActive ? Colors.green : Colors.grey).withOpacity(0.1),
+            color: (isActive ? Colors.green : Colors.grey).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -351,7 +350,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -386,7 +385,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -397,7 +396,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 18, color: color),
@@ -464,7 +463,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(widget.isDarkMode ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),

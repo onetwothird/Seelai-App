@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'dart:io';
 import 'dart:ui'; 
@@ -129,7 +128,7 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
             child: Container(
-              color: Colors.white.withOpacity(0.2), 
+              color: Colors.white.withValues(alpha: 0.2), 
             ),
           ),
         ),

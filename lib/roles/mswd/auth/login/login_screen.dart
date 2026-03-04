@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
@@ -121,7 +120,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 30,
                         offset: const Offset(0, -10),
                       ),
@@ -365,10 +364,14 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
   }
 
   void _showForgotPasswordDialog() {
+    // 1. Capture the parent context for the SnackBar
+    final parentContext = context; 
     final TextEditingController emailController = TextEditingController();
+
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: parentContext,
+      // 2. Rename to dialogContext to avoid shadowing the outer context
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Reset Password'),
         content: TextField(
           controller: emailController,
@@ -380,23 +383,32 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
               if (emailController.text.isEmpty) {
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
                 return;
               }
+
               try {
                 await authService.value.sendPasswordResetEmail(email: emailController.text.trim());
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+                
+                // 3. GUARD: Check if the dialog is still open before popping
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+
+                // 4. GUARD: Check if the main screen is still active before showing the SnackBar
+                if (!parentContext.mounted) return;
+                ScaffoldMessenger.of(parentContext).showSnackBar(
                   const SnackBar(content: Text('Password reset email sent!'), backgroundColor: success),
                 );
               } catch (e) {
-                Navigator.pop(context);
+                // 5. GUARD: Check if the dialog is still open before popping on error
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
               }
             },
             child: const Text('Send'),

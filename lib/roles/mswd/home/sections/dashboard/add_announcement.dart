@@ -1,6 +1,5 @@
 // File: lib/roles/mswd/home/sections/dashboard/add_announcement.dart
 
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -350,7 +349,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isSelected 
-                                          ? primary.withOpacity(0.1)
+                                          ? primary.withValues(alpha: 0.1)
                                           : Colors.transparent,
                                       border: Border(
                                         bottom: BorderSide(
@@ -570,13 +569,13 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: isSelected 
-                            ? primary.withOpacity(0.1)
+                            ? primary.withValues(alpha: 0.1)
                             : widget.theme.backgroundColor,
                         borderRadius: BorderRadius.circular(radiusMedium),
                         border: Border.all(
                           color: isSelected 
                               ? primary 
-                              : widget.theme.subtextColor.withOpacity(0.2),
+                              : widget.theme.subtextColor.withValues(alpha: 0.2),
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -695,7 +694,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                         boxShadow: isSelected
                             ? [
                                 BoxShadow(
-                                  color: Color(colorValue).withOpacity(0.5),
+                                  color: Color(colorValue).withValues(alpha: 0.5),
                                   blurRadius: 8,
                                   spreadRadius: 2,
                                 ),

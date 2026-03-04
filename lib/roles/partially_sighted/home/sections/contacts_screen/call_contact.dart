@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/contacts_screen/call_contact.dart
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +21,7 @@ class CallContact {
         .trim();
 
     // Ensure the phone number has the correct format
-  // Clean number for PH format without +63
+    // Clean number for PH format without +63
     if (cleanPhoneNumber.startsWith('+63')) {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(3)}';
     } else if (cleanPhoneNumber.startsWith('63')) {
@@ -31,7 +30,6 @@ class CallContact {
       cleanPhoneNumber = '0$cleanPhoneNumber'; 
     }
     // else: already correct (starts with 0)
-
 
     final Uri telUri = Uri(scheme: 'tel', path: cleanPhoneNumber);
     
@@ -49,11 +47,14 @@ class CallContact {
 
         await launchUrl(telUri);
         
+        // GUARD: Check if the context is still mounted after async operations
+        if (!context.mounted) return;
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Calling ${contact.name}...'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       } else {
@@ -61,6 +62,9 @@ class CallContact {
       }
     } catch (e) {
       debugPrint('Error making call: $e');
+      
+      // GUARD: Check if context is mounted before showing the dialog
+      if (!context.mounted) return;
       
       // Show fallback options
       _showCallOptions(context, contact, cleanPhoneNumber, isDarkMode, theme);
@@ -74,9 +78,13 @@ class CallContact {
     bool isDarkMode,
     dynamic theme,
   ) {
+    // 1. Capture the parent context
+    final parentContext = context;
+
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: parentContext,
+      // 2. Rename to dialogContext to avoid shadowing
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.cardColor,
         title: Text(
           'Call ${contact.name}',
@@ -90,12 +98,12 @@ class CallContact {
               'Phone number:',
               style: bodyBold.copyWith(color: theme.textColor),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               contact.phoneNumber,
               style: body.copyWith(color: theme.subtextColor),
             ),
-            SizedBox(height: spacingMedium),
+            const SizedBox(height: spacingMedium),
             Text(
               'Choose an option:',
               style: bodyBold.copyWith(color: theme.textColor),
@@ -104,30 +112,33 @@ class CallContact {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            // Use dialogContext to pop the dialog
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Cancel', style: body.copyWith(color: theme.subtextColor)),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              _copyPhoneNumber(context, contact.phoneNumber);
+              Navigator.pop(dialogContext);
+              // Pass the parent context down to the next method
+              _copyPhoneNumber(parentContext, contact.phoneNumber);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: primary.withOpacity(0.1),
+              backgroundColor: primary.withValues(alpha: 0.1),
               foregroundColor: primary,
             ),
-            child: Text('Copy Number'),
+            child: const Text('Copy Number'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await _tryAlternativeCall(context, phoneNumber, contact);
+              Navigator.pop(dialogContext);
+              // Pass the parent context down
+              await _tryAlternativeCall(parentContext, phoneNumber, contact);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
               foregroundColor: white,
             ),
-            child: Text('Try Again'),
+            child: const Text('Try Again'),
           ),
         ],
       ),
@@ -137,8 +148,11 @@ class CallContact {
   static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     
+    // GUARD: Check if the context is mounted after awaiting Clipboard
+    if (!context.mounted) return;
+    
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('Phone number copied to clipboard'),
         backgroundColor: success,
         duration: Duration(seconds: 2),
@@ -161,8 +175,11 @@ class CallContact {
         throw Exception('Could not launch phone dialer');
       }
     } catch (e) {
+      // GUARD: Check if the context is mounted if an error is caught
+      if (!context.mounted) return;
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Unable to make call. Please use your phone dialer.'),
           backgroundColor: error,
           duration: Duration(seconds: 3),

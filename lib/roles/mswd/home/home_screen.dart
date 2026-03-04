@@ -1,5 +1,4 @@
 // File: lib/roles/mswd/home/home_screen.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
@@ -172,9 +171,21 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    // WRAP SCAFFOLD IN WILLPOPSCOPE
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false, // Prevents the default back button so your custom logic runs
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) {
+          return; // Screen was already popped
+        }
+
+        // Run your existing _onWillPop logic
+        final bool shouldPop = await _onWillPop();
+        
+        // If the logic returns true, safely pop the screen
+        if (shouldPop && context.mounted) {
+          Navigator.of(context).pop(result);
+        }
+      },
       child: Scaffold(
         extendBody: true,
         body: Container(
@@ -212,11 +223,11 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           ),
         ),
         bottomNavigationBar: AnimatedSlide(
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,
-          offset: _isNavVisible ? Offset.zero : Offset(0, 1),
+          offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
           child: AnimatedOpacity(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             opacity: _isNavVisible ? 1.0 : 0.0,
             child: MSWDBottomNavigation(
               selectedIndex: _selectedIndex,

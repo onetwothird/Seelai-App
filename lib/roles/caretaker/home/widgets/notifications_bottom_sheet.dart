@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/home/widgets/notifications_bottom_sheet.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -61,7 +60,7 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.3),
+                color: Colors.grey.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -111,7 +110,7 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_off_outlined, size: 60, color: subTextColor.withOpacity(0.5)),
+                        Icon(Icons.notifications_off_outlined, size: 60, color: subTextColor.withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Text("No notifications yet", style: TextStyle(color: subTextColor, fontSize: 16)),
                       ],
@@ -173,7 +172,7 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
     final timeAgo = _getTimeAgo(request.timestamp);
     
     // Facebook uses a subtle blue background for unread notifications
-    final unreadBgColor = widget.isDarkMode ? Colors.blueAccent.withOpacity(0.1) : Colors.blue.withOpacity(0.05);
+    final unreadBgColor = widget.isDarkMode ? Colors.blueAccent.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.05);
 
     return InkWell(
       onTap: () {

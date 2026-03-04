@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/screens/emergency_hotlines_screen.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -175,25 +174,25 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
           boxShadow: widget.isDarkMode
               ? [
                   BoxShadow(
-                    color: hotline.color.withOpacity(0.15),
+                    color: hotline.color.withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: Offset(0, 8),
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 16,
                     offset: Offset(0, 6),
                   ),
                 ],
           border: widget.isDarkMode
               ? Border.all(
-                  color: hotline.color.withOpacity(0.3),
+                  color: hotline.color.withValues(alpha: 0.3),
                   width: 1.5,
                 )
               : Border.all(
-                  color: Colors.grey.withOpacity(0.15),
+                  color: Colors.grey.withValues(alpha: 0.15),
                   width: 1.0,
                 ),
         ),
@@ -215,7 +214,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                         : EdgeInsets.all(spacingMedium),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [hotline.color, hotline.color.withOpacity(0.7)],
+                        colors: [hotline.color, hotline.color.withValues(alpha: 0.7)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -228,7 +227,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                           : null,
                       boxShadow: [
                         BoxShadow(
-                          color: hotline.color.withOpacity(0.4),
+                          color: hotline.color.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: Offset(0, 4),
                         ),
@@ -267,7 +266,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: hotline.color.withOpacity(0.2),
+                                  color: hotline.color.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(radiusSmall),
                                 ),
                                 child: Text(

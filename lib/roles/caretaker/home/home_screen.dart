@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/home/home_screen.dart
-// ignore_for_file: deprecated_member_use
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -306,9 +305,22 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    // WRAP SCAFFOLD IN WILLPOPSCOPE
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    // WRAP SCAFFOLD IN POPSCOPE
+    return PopScope(
+      canPop: false, // Prevents the default back button behavior so we can run custom logic
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) {
+          return; // The screen was already successfully popped
+        }
+
+        // Run your existing _onWillPop logic here
+        final bool shouldPop = await _onWillPop();
+        
+        if (shouldPop && context.mounted) {
+          // If your logic says we should pop, execute the pop manually
+          Navigator.of(context).pop(result);
+        }
+      },
       child: Scaffold(
         extendBody: true,
         body: Container(
@@ -371,6 +383,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             ),
           ),
         ),
+      
         bottomNavigationBar: AnimatedSlide(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,

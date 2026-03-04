@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/home/home_screen.dart';
@@ -376,7 +375,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.white.withOpacity(0.0),
+                              Colors.white.withValues(alpha: 0.0),
                               Colors.white,
                             ],
                             stops: const [0.0, 0.3],
@@ -394,7 +393,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 18),
                               elevation: 8,
-                              shadowColor: _primaryColor.withOpacity(0.4),
+                              shadowColor: _primaryColor.withValues(alpha: 0.4),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -485,7 +484,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? _primaryColor.withOpacity(0.04) : Colors.white,
+          color: isSelected ? _primaryColor.withValues(alpha: 0.04) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? _primaryColor : Colors.grey.shade100,
@@ -494,8 +493,8 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? _primaryColor.withOpacity(0.1)
-                  : Colors.grey.withOpacity(0.05),
+                  ? _primaryColor.withValues(alpha: 0.1)
+                  : Colors.grey.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -510,7 +509,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: isSelected
-                    ? _primaryColor.withOpacity(0.1)
+                    ? _primaryColor.withValues(alpha: 0.1)
                     : const Color(0xFFF1F5F9),
                 image: hasProfileImage
                     ? DecorationImage(

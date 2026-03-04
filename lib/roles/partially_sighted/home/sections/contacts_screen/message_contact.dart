@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/contacts_screen/message_contact.dart
-// ignore_for_file: use_build_context_synchronously
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -66,20 +65,23 @@ class MessageContact {
         // Open SMS app
         await launchUrl(smsUri);
         
+        // GUARD: Check if context is mounted
+        if (!context.mounted) return;
+
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: white),
-                SizedBox(width: 12),
+                const Icon(Icons.check_circle_rounded, color: white),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text('Opening SMS for ${contact.name}'),
                 ),
               ],
             ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(radiusMedium),
@@ -87,6 +89,9 @@ class MessageContact {
           ),
         );
       } else {
+        // GUARD: Check if context is mounted before showing options
+        if (!context.mounted) return;
+
         // Fallback: Show options
         _showMessageOptions(
           context: context,
@@ -99,6 +104,9 @@ class MessageContact {
     } catch (e) {
       debugPrint('Error opening SMS: $e');
       
+      // GUARD: Check if context is mounted
+      if (!context.mounted) return;
+
       // Show fallback options
       _showMessageOptions(
         context: context,
@@ -117,9 +125,13 @@ class MessageContact {
     required bool isDarkMode,
     required dynamic theme,
   }) {
+    // 1. Capture the parent context
+    final parentContext = context;
+
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: parentContext,
+      // 2. Rename to dialogContext to avoid shadowing
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.cardColor,
         title: Text(
           'Send Message to ${contact.name}',
@@ -133,17 +145,17 @@ class MessageContact {
               'Phone number:',
               style: bodyBold.copyWith(color: theme.textColor),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               contact.phoneNumber,
               style: body.copyWith(color: theme.subtextColor),
             ),
-            SizedBox(height: spacingMedium),
+            const SizedBox(height: spacingMedium),
             Text(
               'Choose an option:',
               style: bodyBold.copyWith(color: theme.textColor),
             ),
-            SizedBox(height: spacingSmall),
+            const SizedBox(height: spacingSmall),
             Text(
               'SMS app could not be opened automatically.',
               style: body.copyWith(
@@ -155,31 +167,34 @@ class MessageContact {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            // Use dialogContext to pop the dialog
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text('Cancel', style: body.copyWith(color: theme.subtextColor)),
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              _copyPhoneNumber(context, contact.phoneNumber);
+              Navigator.pop(dialogContext);
+              // Pass the parent context down
+              _copyPhoneNumber(parentContext, contact.phoneNumber);
             },
             style: ElevatedButton.styleFrom(
-              // ignore: deprecated_member_use
-              backgroundColor: primary.withOpacity(0.1),
+              // Fixed deprecation and removed ignore comment
+              backgroundColor: primary.withValues(alpha: 0.1),
               foregroundColor: primary,
             ),
-            child: Text('Copy Number'),
+            child: const Text('Copy Number'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
-              await _tryAlternativeSMS(context, phoneNumber, contact);
+              Navigator.pop(dialogContext);
+              // Pass the parent context down
+              await _tryAlternativeSMS(parentContext, phoneNumber, contact);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
               foregroundColor: white,
             ),
-            child: Text('Try Again'),
+            child: const Text('Try Again'),
           ),
         ],
       ),
@@ -189,8 +204,11 @@ class MessageContact {
   static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     
+    // GUARD: Check if context is mounted
+    if (!context.mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
+      const SnackBar(
         content: Text('Phone number copied to clipboard'),
         backgroundColor: success,
         duration: Duration(seconds: 2),
@@ -219,8 +237,11 @@ class MessageContact {
         }
       }
     } catch (e) {
+      // GUARD: Check if context is mounted
+      if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Unable to open messaging app. Please use your device\'s SMS app.'),
           backgroundColor: error,
           duration: Duration(seconds: 3),

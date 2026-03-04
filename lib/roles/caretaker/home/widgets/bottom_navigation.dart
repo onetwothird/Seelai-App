@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use, duplicate_ignore
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -38,8 +37,8 @@ class CustomBottomNavigation extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: isDarkMode
-                ? primary.withOpacity(0.2)
-                : Colors.black.withOpacity(0.1),
+                ? primary.withValues(alpha: 0.2)
+                : Colors.black.withValues(alpha: 0.1),
             blurRadius: 24,
             offset: Offset(0, 8),
             spreadRadius: -4,
@@ -94,8 +93,8 @@ class CustomBottomNavigation extends StatelessWidget {
               color: isSelected
                   ? (isDarkMode ? white : primary)
                   : (isDarkMode
-                      ? subtextColor.withOpacity(0.6)
-                      : grey.withOpacity(0.7)),
+                      ? subtextColor.withValues(alpha: 0.6)
+                      : grey.withValues(alpha: 0.7)),
               letterSpacing: 0.2,
             ),
           ),
@@ -126,13 +125,13 @@ class CustomBottomNavigation extends StatelessWidget {
                 color: isSelected
                     ? null
                     : (isDarkMode
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.grey.withOpacity(0.1)),
+                        ? Colors.white.withValues(alpha: 0.05)
+                        : Colors.grey.withValues(alpha: 0.1)),
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: primary.withOpacity(0.4),
+                          color: primary.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: Offset(0, 4),
                           spreadRadius: -2,
@@ -159,8 +158,8 @@ class CustomBottomNavigation extends StatelessWidget {
                 color: isSelected
                     ? (isDarkMode ? white : primary)
                     : (isDarkMode
-                        ? subtextColor.withOpacity(0.6)
-                        : grey.withOpacity(0.7)),
+                        ? subtextColor.withValues(alpha: 0.6)
+                        : grey.withValues(alpha: 0.7)),
                 letterSpacing: 0.2,
               ),
             ),
@@ -202,13 +201,13 @@ class CustomBottomNavigation extends StatelessWidget {
                     color: isSelected
                         ? null
                         : (isDarkMode
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.grey.withOpacity(0.1)),
+                            ? Colors.white.withValues(alpha: 0.05)
+                            : Colors.grey.withValues(alpha: 0.1)),
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: primary.withOpacity(0.4),
+                              color: primary.withValues(alpha: 0.4),
                               blurRadius: 12,
                               offset: Offset(0, 4),
                               spreadRadius: -2,
@@ -267,8 +266,8 @@ class CustomBottomNavigation extends StatelessWidget {
                 color: isSelected
                     ? (isDarkMode ? white : primary)
                     : (isDarkMode
-                        ? subtextColor.withOpacity(0.6)
-                        : grey.withOpacity(0.7)),
+                        ? subtextColor.withValues(alpha: 0.6)
+                        : grey.withValues(alpha: 0.7)),
                 letterSpacing: 0.2,
               ),
             ),

@@ -187,9 +187,9 @@ class _RequestsContentState extends State<RequestsContent> {
       color: widget.theme.cardColor,
       borderRadius: BorderRadius.circular(24),
       boxShadow: widget.isDarkMode 
-          ? [BoxShadow(color: color.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 4))]
+          ? [BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))]
           : softShadow,
-      border: widget.isDarkMode ? Border.all(color: color.withOpacity(0.15)) : null,
+      border: widget.isDarkMode ? Border.all(color: color.withValues(alpha: 0.15)) : null,
     ),
     child: Column(
       mainAxisSize: MainAxisSize.min,
@@ -200,7 +200,7 @@ class _RequestsContentState extends State<RequestsContent> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.12),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Icon(icon, color: color, size: 24),
@@ -243,7 +243,7 @@ class _RequestsContentState extends State<RequestsContent> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.transparent,
+          color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.transparent,
         ),
       ),
       child: TextField(
@@ -300,7 +300,7 @@ class _RequestsContentState extends State<RequestsContent> {
                   width: 1.5,
                 ),
                 boxShadow: isSelected
-                    ? [BoxShadow(color: color.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
+                    ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))]
                     : [],
               ),
               child: Row(
@@ -406,11 +406,11 @@ class _RequestsContentState extends State<RequestsContent> {
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isEmergency ? Colors.red.withOpacity(0.3) : widget.theme.subtextColor.withOpacity(0.08),
+              color: isEmergency ? Colors.red.withValues(alpha: 0.3) : widget.theme.subtextColor.withValues(alpha: 0.08),
               width: isEmergency ? 1.5 : 1.0,
             ),
             boxShadow: widget.isDarkMode 
-              ? [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 4))]
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 4))]
               : softShadow,
           ),
           child: Column(
@@ -478,7 +478,7 @@ class _RequestsContentState extends State<RequestsContent> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -526,7 +526,7 @@ class _RequestsContentState extends State<RequestsContent> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.1),
+                        color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(

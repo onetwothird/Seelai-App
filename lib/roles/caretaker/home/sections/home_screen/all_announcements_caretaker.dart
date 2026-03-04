@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/home/sections/home_screen/all_announcements_caretaker.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -91,7 +90,7 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
             ? []
             : [
                 BoxShadow(
-                  color: const Color(0xFF909090).withOpacity(0.05),
+                  color: const Color(0xFF909090).withValues(alpha: 0.05),
                   blurRadius: 20,
                   offset: const Offset(0, 4),
                 ),
@@ -110,7 +109,7 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(icon, color: color, size: 24),
@@ -200,7 +199,7 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
               shape: BoxShape.circle,
               boxShadow: [
                  BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 20,
                   offset: Offset(0,10)
                  )

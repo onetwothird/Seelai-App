@@ -1,5 +1,4 @@
 // File: lib/roles/caretaker/home/sections/home_screen/overview.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -99,12 +98,12 @@ class OverviewSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isDarkMode 
-              ? baseColor.withOpacity(0.2) 
-              : Colors.black.withOpacity(0.03),
+              ? baseColor.withValues(alpha: 0.2) 
+              : Colors.black.withValues(alpha: 0.03),
         ),
         boxShadow: isDarkMode ? [] : [
           BoxShadow(
-            color: baseColor.withOpacity(0.04),
+            color: baseColor.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -121,7 +120,7 @@ class OverviewSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: baseColor.withOpacity(0.15),
+                  color: baseColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: baseColor, size: 22),
