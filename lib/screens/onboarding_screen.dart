@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/screens/role_selection_screen.dart';
@@ -196,7 +195,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               elevation: 4,
-                              shadowColor: primaryColor.withOpacity(0.4),
+                              shadowColor: primaryColor.withValues(alpha: 0.4),
                             ),
                             child: Row(
                               children: [
