@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/home_content.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -9,6 +8,7 @@ import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/loc
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/announcement.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/request_caretaker.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/emergency_hotline.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/quick_contact_section.dart';
 
 class HomeContent extends StatelessWidget {
   final CameraService cameraService;
@@ -43,7 +43,16 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Location Map Section
+          // 1. QUICK CONNECT MOVED TO THE TOP
+          QuickContactSection(
+            isDarkMode: isDarkMode,
+            theme: theme,
+            userData: userData,
+          ),
+          
+          SizedBox(height: spacingXLarge),
+
+          // 2. LOCATION MAP MOVED DOWN
           LocationSection(
             isDarkMode: isDarkMode,
             theme: theme,
@@ -62,9 +71,9 @@ class HomeContent extends StatelessWidget {
           
           SizedBox(height: spacingMedium),
           
-          // === NEW: Features Section Title ===
+          // Features Section Title
           Padding(
-            padding: const EdgeInsets.only(left: 4), // Aligns perfectly with Announcement title
+            padding: const EdgeInsets.only(left: 4), 
             child: Text(
               'Help & Support',
               style: h3.copyWith(
