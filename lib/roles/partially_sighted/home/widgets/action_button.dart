@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/widgets/action_button.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -35,7 +34,7 @@ class ActionButton extends StatelessWidget {
           boxShadow: isDarkMode 
             ? [
                 BoxShadow(
-                  color: (isEmergency ? error : primary).withOpacity(0.2),
+                  color: (isEmergency ? error : primary).withValues(alpha: 0.2),
                   blurRadius: 16,
                   offset: Offset(0, 6),
                 ),
@@ -49,15 +48,15 @@ class ActionButton extends StatelessWidget {
           child: InkWell(
             onTap: onPressed,
             borderRadius: BorderRadius.circular(radiusLarge),
-            splashColor: primary.withOpacity(0.2),
+            splashColor: primary.withValues(alpha: 0.2),
             child: Container(
               padding: EdgeInsets.symmetric(vertical: spacingLarge * 1.2),
               decoration: BoxDecoration(
                 gradient: isEmergency
                   ? LinearGradient(
                       colors: [
-                        error.withOpacity(isDarkMode ? 0.25 : 0.1), 
-                        error.withOpacity(isDarkMode ? 0.15 : 0.05)
+                        error.withValues(alpha: isDarkMode ? 0.25 : 0.1), 
+                        error.withValues(alpha: isDarkMode ? 0.15 : 0.05)
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -67,13 +66,13 @@ class ActionButton extends StatelessWidget {
                 border: isDarkMode 
                   ? Border.all(
                       color: isEmergency 
-                        ? error.withOpacity(0.4)
-                        : primary.withOpacity(0.3), 
+                        ? error.withValues(alpha: 0.4)
+                        : primary.withValues(alpha: 0.3), 
                       width: 1.5
                     )
                   : Border.all(
                       color: isEmergency 
-                        ? error.withOpacity(0.3)
+                        ? error.withValues(alpha: 0.3)
                         : greyLighter,
                       width: 1.5,
                     ),
@@ -84,12 +83,12 @@ class ActionButton extends StatelessWidget {
                     padding: EdgeInsets.all(spacingMedium * 1.2),
                     decoration: BoxDecoration(
                       gradient: isEmergency 
-                        ? LinearGradient(colors: [error, error.withOpacity(0.8)])
+                        ? LinearGradient(colors: [error, error.withValues(alpha: 0.8)])
                         : primaryGradient,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: (isEmergency ? error : primary).withOpacity(0.4),
+                          color: (isEmergency ? error : primary).withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: Offset(0, 4),
                         ),
