@@ -97,7 +97,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     
     if (!mounted) return;
 
-    showDialog(
+   showDialog(
       context: context,
       barrierDismissible: false, 
       builder: (BuildContext dialogContext) {
@@ -141,11 +141,13 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
                   callId: callId,
                   status: 'rejected',
                 );
-                if (mounted) {
-                  Navigator.of(dialogContext).pop();
-                  _isDialogShowing = false;
-                  _currentRingingCallId = null;
-                }
+                
+                // FIX: Check if the specific dialog context is mounted
+                if (!dialogContext.mounted) return;
+                
+                Navigator.of(dialogContext).pop();
+                _isDialogShowing = false;
+                _currentRingingCallId = null;
               },
               child: const Icon(Icons.call_end_rounded, color: Colors.white),
             ),
@@ -154,18 +156,19 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
               elevation: 0,
               backgroundColor: const Color(0xFF22C55E),
               onPressed: () {
-                if (mounted) {
-                  Navigator.of(dialogContext).pop();
-                  _isDialogShowing = false;
-                  _currentRingingCallId = null;
-                  
-                  _navigateToCallScreen(
-                    callId: callId, 
-                    callType: callType, 
-                    callerData: callerData ?? {'id': callerId, 'name': callerName},
-                    listenPath: listenPath,
-                  );
-                }
+                // FIX: Applied the same check here for consistency
+                if (!dialogContext.mounted) return;
+                
+                Navigator.of(dialogContext).pop();
+                _isDialogShowing = false;
+                _currentRingingCallId = null;
+                
+                _navigateToCallScreen(
+                  callId: callId, 
+                  callType: callType, 
+                  callerData: callerData ?? {'id': callerId, 'name': callerName},
+                  listenPath: listenPath,
+                );
               },
               child: const Icon(Icons.call_rounded, color: Colors.white),
             ),
