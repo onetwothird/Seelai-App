@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/recent_activities/all_detections_screen.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -319,7 +318,7 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
               boxShadow: widget.isDarkMode
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha: 0.1),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -327,7 +326,7 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                   : softShadow,
               border: widget.isDarkMode
                   ? Border.all(
-                      color: color.withOpacity(0.2),
+                      color: color.withValues(alpha: 0.2),
                       width: 1,
                     )
                   : null,
@@ -340,7 +339,7 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                     Container(
                       padding: EdgeInsets.all(spacingSmall),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
+                        color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(radiusMedium),
                       ),
                       child: Icon(
@@ -366,10 +365,10 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
+                              color: color.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(radiusSmall),
                               border: Border.all(
-                                color: color.withOpacity(0.3),
+                                color: color.withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),

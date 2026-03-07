@@ -20,6 +20,9 @@ import 'package:seelai_app/roles/partially_sighted/screens/scanner/mode_selectio
 // NEW IMPORT FOR THE NOTIFICATIONS BOTTOM SHEET
 import 'package:seelai_app/roles/partially_sighted/home/widgets/notifications_bottom_sheet.dart'; 
 
+// NEW IMPORT FOR THE GLOBAL CALL LISTENER
+import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
+
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
@@ -260,7 +263,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            Icon(Icons.logout_rounded, color: const Color(0xFF8B5CF6)), 
+            const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)), 
             const SizedBox(width: 10),
             Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
           ],
@@ -296,72 +299,74 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    return PopScope(
-      canPop: false, 
-      // THIS IS THE FIX: Updated to onPopInvokedWithResult
-      onPopInvokedWithResult: (bool didPop, Object? result) async {
-        if (didPop) return; 
+    // WRAP EVERYTHING IN THE LISTENER
+    return IncomingCallListener(
+      userRole: 'visually_impaired', // Correct role for this screen
+      child: PopScope(
+        canPop: false, 
+        onPopInvokedWithResult: (bool didPop, Object? result) async {
+          if (didPop) return; 
 
-        final bool shouldPop = await _onWillPop();
-        
-        if (shouldPop && context.mounted) {
-          // Pass the result along when manually popping
-          Navigator.of(context).pop(result); 
-        }
-      },
-      child: Scaffold(
-        extendBody: true,
-        body: Container(
-          decoration: BoxDecoration(gradient: theme.backgroundGradient),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                if (_selectedIndex != 4)
-                  HeaderSection(
-                    userName: userName,
-                    profileImageUrl: widget.userData['profileImageUrl'] as String?,
-                    isDarkMode: _isDarkMode,
-                    onVoiceAssistant: _activateVoiceAssistant,
-                    onToggleDarkMode: _toggleDarkMode,
-                    onNotificationTap: _openNotifications,
-                    onProfileTap: () {
-                      setState(() {
-                        _selectedIndex = 4;
-                      });
-                    },
-                    textColor: theme.textColor,
-                    subtextColor: theme.subtextColor,
-                    unreadNotificationCount: _unreadNotificationCount,
-                  ),
-                
-                Expanded(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: _buildMainContent(
-                      screenWidth,
-                      screenHeight,
-                      theme,
+          final bool shouldPop = await _onWillPop();
+          
+          if (shouldPop && context.mounted) {
+            Navigator.of(context).pop(result); 
+          }
+        },
+        child: Scaffold(
+          extendBody: true,
+          body: Container(
+            decoration: BoxDecoration(gradient: theme.backgroundGradient),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  if (_selectedIndex != 4)
+                    HeaderSection(
+                      userName: userName,
+                      profileImageUrl: widget.userData['profileImageUrl'] as String?,
+                      isDarkMode: _isDarkMode,
+                      onVoiceAssistant: _activateVoiceAssistant,
+                      onToggleDarkMode: _toggleDarkMode,
+                      onNotificationTap: _openNotifications,
+                      onProfileTap: () {
+                        setState(() {
+                          _selectedIndex = 4;
+                        });
+                      },
+                      textColor: theme.textColor,
+                      subtextColor: theme.subtextColor,
+                      unreadNotificationCount: _unreadNotificationCount,
+                    ),
+                  
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: _buildMainContent(
+                        screenWidth,
+                        screenHeight,
+                        theme,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        bottomNavigationBar: AnimatedSlide(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
-          child: AnimatedOpacity(
+          bottomNavigationBar: AnimatedSlide(
             duration: const Duration(milliseconds: 300),
-            opacity: _isNavVisible ? 1.0 : 0.0,
-            child: CustomBottomNavigation(
-              selectedIndex: _selectedIndex,
-              isDarkMode: _isDarkMode,
-              onItemTapped: _onNavItemTapped,
-              textColor: theme.textColor,
-              subtextColor: theme.subtextColor,
+            curve: Curves.easeInOutCubic,
+            offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isNavVisible ? 1.0 : 0.0,
+              child: CustomBottomNavigation(
+                selectedIndex: _selectedIndex,
+                isDarkMode: _isDarkMode,
+                onItemTapped: _onNavItemTapped,
+                textColor: theme.textColor,
+                subtextColor: theme.subtextColor,
+              ),
             ),
           ),
         ),

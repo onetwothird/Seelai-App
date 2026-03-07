@@ -20,6 +20,9 @@ import 'package:seelai_app/firebase/caretaker/request_service.dart';
 // Add the new import for the bottom sheet
 import 'package:seelai_app/roles/caretaker/home/widgets/notifications_bottom_sheet.dart';
 
+// NEW IMPORT FOR THE GLOBAL CALL LISTENER
+import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
+
 class CaretakerHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
@@ -305,99 +308,102 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    // WRAP SCAFFOLD IN POPSCOPE
-    return PopScope(
-      canPop: false, // Prevents the default back button behavior so we can run custom logic
-      onPopInvokedWithResult: (bool didPop, Object? result) async {
-        if (didPop) {
-          return; // The screen was already successfully popped
-        }
+    // WRAP EVERYTHING IN THE LISTENER
+    return IncomingCallListener(
+      userRole: 'caretaker', // Correct role for this screen
+      child: PopScope(
+        canPop: false, // Prevents the default back button behavior so we can run custom logic
+        onPopInvokedWithResult: (bool didPop, Object? result) async {
+          if (didPop) {
+            return; // The screen was already successfully popped
+          }
 
-        // Run your existing _onWillPop logic here
-        final bool shouldPop = await _onWillPop();
-        
-        if (shouldPop && context.mounted) {
-          // If your logic says we should pop, execute the pop manually
-          Navigator.of(context).pop(result);
-        }
-      },
-      child: Scaffold(
-        extendBody: true,
-        body: Container(
-          decoration: BoxDecoration(gradient: theme.backgroundGradient),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                // THIS CONDITION HIDES THE HEADER ON THE PROFILE TAB (INDEX 3)
-                if (_selectedIndex != 3)
-                  HeaderSection(
-                    caretakerName: caretakerName,
-                    profileImageUrl: widget.userData['profileImageUrl'] as String?, 
-                    isDarkMode: _isDarkMode,
-                    pendingRequestsCount: _pendingRequestsCount,
-                    onToggleDarkMode: _toggleDarkMode,
-                    onProfileTap: () {
-                      setState(() {
-                        _selectedIndex = 3; 
-                      });
-                    },
-                    onNotificationTap: () {
-                      // 1. Safely grab the Caretaker's ID
-                      String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
-                                              widget.userData['userId'] ?? 
-                                              widget.userData['uid'];
-                                              
-                      if (currentUserId == null) return;
+          // Run your existing _onWillPop logic here
+          final bool shouldPop = await _onWillPop();
+          
+          if (shouldPop && context.mounted) {
+            // If your logic says we should pop, execute the pop manually
+            Navigator.of(context).pop(result);
+          }
+        },
+        child: Scaffold(
+          extendBody: true,
+          body: Container(
+            decoration: BoxDecoration(gradient: theme.backgroundGradient),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  // THIS CONDITION HIDES THE HEADER ON THE PROFILE TAB (INDEX 3)
+                  if (_selectedIndex != 3)
+                    HeaderSection(
+                      caretakerName: caretakerName,
+                      profileImageUrl: widget.userData['profileImageUrl'] as String?, 
+                      isDarkMode: _isDarkMode,
+                      pendingRequestsCount: _pendingRequestsCount,
+                      onToggleDarkMode: _toggleDarkMode,
+                      onProfileTap: () {
+                        setState(() {
+                          _selectedIndex = 3; 
+                        });
+                      },
+                      onNotificationTap: () {
+                        // 1. Safely grab the Caretaker's ID
+                        String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
+                                                widget.userData['userId'] ?? 
+                                                widget.userData['uid'];
+                                                
+                        if (currentUserId == null) return;
 
-                      // 2. Trigger the Facebook-style bottom sheet
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true, 
-                        backgroundColor: Colors.transparent, 
-                        builder: (context) => SizedBox(
-                          height: screenHeight * 0.85, 
-                          child: NotificationsBottomSheet(
-                            caretakerId: currentUserId,
-                            isDarkMode: _isDarkMode,
-                            requestService: _requestService, 
+                        // 2. Trigger the Facebook-style bottom sheet
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true, 
+                          backgroundColor: Colors.transparent, 
+                          builder: (context) => SizedBox(
+                            height: screenHeight * 0.85, 
+                            child: NotificationsBottomSheet(
+                              caretakerId: currentUserId,
+                              isDarkMode: _isDarkMode,
+                              requestService: _requestService, 
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    textColor: theme.textColor,
-                    subtextColor: theme.subtextColor,
-                  ),
-                
-                Expanded(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: _buildMainContent(
-                      screenWidth,
-                      screenHeight,
-                      theme,
+                        );
+                      },
+                      textColor: theme.textColor,
+                      subtextColor: theme.subtextColor,
+                    ),
+                  
+                  Expanded(
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: _buildMainContent(
+                        screenWidth,
+                        screenHeight,
+                        theme,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      
-        bottomNavigationBar: AnimatedSlide(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
-          child: AnimatedOpacity(
+        
+          bottomNavigationBar: AnimatedSlide(
             duration: const Duration(milliseconds: 300),
-            opacity: _isNavVisible ? 1.0 : 0.0,
-            child: CustomBottomNavigation(
-              selectedIndex: _selectedIndex,
-              isDarkMode: _isDarkMode,
-              onItemTapped: _onNavItemTapped,
-              textColor: theme.textColor,
-              subtextColor: theme.subtextColor,
-              pendingRequestsCount: _pendingRequestsCount,
+            curve: Curves.easeInOutCubic,
+            offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 300),
+              opacity: _isNavVisible ? 1.0 : 0.0,
+              child: CustomBottomNavigation(
+                selectedIndex: _selectedIndex,
+                isDarkMode: _isDarkMode,
+                onItemTapped: _onNavItemTapped,
+                textColor: theme.textColor,
+                subtextColor: theme.subtextColor,
+                pendingRequestsCount: _pendingRequestsCount,
+              ),
             ),
           ),
         ),

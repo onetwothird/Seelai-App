@@ -1,7 +1,5 @@
 // File: lib/roles/visually_impaired/screens/scanner/text_document/text_reader_screen.dart
 
-// ignore_for_file: curly_braces_in_flow_control_structures, avoid_print, deprecated_member_use, use_build_context_synchronously
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -128,14 +126,16 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     _brightnessCheckCounter = 0;
 
     if (!widget.cameraService.isInitialized || 
-        widget.cameraService.controller == null) return;
+        widget.cameraService.controller == null) {
+      return;
+    }
 
     try {
       if (!_documentDetected && !_isFlashOn) {
         await _turnOnFlash();
       }
     } catch (e) {
-      print('Error checking brightness: $e');
+      debugPrint('Error checking brightness: $e');
     }
   }
 
@@ -178,7 +178,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
         }
       }
     } catch (e) {
-      print('Error turning on flash: $e');
+      debugPrint('Error turning on flash: $e');
     }
   }
 
@@ -195,7 +195,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
         _flashIndicatorTimer?.cancel();
       }
     } catch (e) {
-      print('Error turning off flash: $e');
+      debugPrint('Error turning off flash: $e');
     }
   }
 
@@ -208,7 +208,6 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     }
   }
 
-  // IMPROVED: Much larger and more accurate bounding box calculation
   Rect _calculateBoundingBox(List<TextBlock> blocks) {
     if (blocks.isEmpty) return Rect.zero;
     
@@ -217,16 +216,13 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     double maxX = double.negativeInfinity;
     double maxY = double.negativeInfinity;
     
-    // Include ALL text elements (blocks, lines, and words) for complete coverage
     for (var block in blocks) {
-      // Process the entire block
       final rect = block.boundingBox;
       if (rect.left < minX) minX = rect.left;
       if (rect.top < minY) minY = rect.top;
       if (rect.right > maxX) maxX = rect.right;
       if (rect.bottom > maxY) maxY = rect.bottom;
       
-      // Also process individual lines within the block
       for (var line in block.lines) {
         final lineRect = line.boundingBox;
         if (lineRect.left < minX) minX = lineRect.left;
@@ -234,7 +230,6 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
         if (lineRect.right > maxX) maxX = lineRect.right;
         if (lineRect.bottom > maxY) maxY = lineRect.bottom;
         
-        // And individual elements/words for maximum accuracy
         for (var element in line.elements) {
           final elemRect = element.boundingBox;
           if (elemRect.left < minX) minX = elemRect.left;
@@ -245,35 +240,27 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       }
     }
     
-    // Calculate dimensions
     final width = maxX - minX;
     final height = maxY - minY;
     final area = width * height;
     
-    // SIGNIFICANTLY INCREASED padding based on text area size
-    // This ensures ALL text is covered by the bounding box
     double paddingHorizontal = 100.0;
     double paddingVertical = 100.0;
     
     if (area > 500000) {
-      // Very large text area - extra large padding
       paddingHorizontal = 150.0;
       paddingVertical = 150.0;
     } else if (area > 300000) {
-      // Large text area - large padding
       paddingHorizontal = 120.0;
       paddingVertical = 120.0;
     } else if (area > 100000) {
-      // Medium text area - medium padding
       paddingHorizontal = 100.0;
       paddingVertical = 100.0;
     } else {
-      // Small text area - still generous padding
       paddingHorizontal = 80.0;
       paddingVertical = 80.0;
     }
     
-    // Add extra padding for multi-line text (15% extra on each side)
     if (blocks.length > 1 || (blocks.isNotEmpty && blocks.first.lines.length > 2)) {
       paddingHorizontal *= 1.15;
       paddingVertical *= 1.15;
@@ -287,12 +274,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     );
   }
 
-  /// Save scanned text to Firebase
   Future<void> _saveScannedTextToFirebase(String text, int blockCount) async {
     try {
       final userId = authService.value.currentUser?.uid;
       if (userId == null) {
-        print('⚠️ No user logged in, cannot save to Firebase');
+        debugPrint('No user logged in, cannot save to Firebase');
         return;
       }
 
@@ -309,12 +295,12 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       );
 
       if (success) {
-        print('✅ Scanned text saved to Firebase successfully');
+        debugPrint('Scanned text saved to Firebase successfully');
       } else {
-        print('⚠️ Failed to save scanned text to Firebase');
+        debugPrint('Failed to save scanned text to Firebase');
       }
     } catch (e) {
-      print('❌ Error saving to Firebase: $e');
+      debugPrint('Error saving to Firebase: $e');
     }
   }
 
@@ -355,7 +341,6 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             _hasReadText = true;
             _readingCompleted = false;
             
-            // Save to Firebase before speaking
             await _saveScannedTextToFirebase(extractedText, recognizedText.blocks.length);
             
             await _flutterTts.speak(extractedText);
@@ -377,7 +362,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
         }
       }
     } catch (e) {
-      print('Error detecting text: $e');
+      debugPrint('Error detecting text: $e');
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
@@ -393,7 +378,8 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      // FIX: Renamed builder context to modalContext to avoid shadowing
+      builder: (modalContext) => Container(
         height: screenHeight * 0.8,
         decoration: BoxDecoration(
           color: widget.isDarkMode ? Colors.grey[900] : white,
@@ -409,7 +395,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
               height: 4,
               decoration: BoxDecoration(
                 color: widget.isDarkMode 
-                    ? white.withOpacity(0.3) 
+                    ? white.withValues(alpha: 0.3) 
                     : Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
               ),
@@ -427,7 +413,8 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                     ),
                   ),
                   IconButton(
-                    onPressed: () => Navigator.pop(context),
+                    // FIX: pop using modalContext
+                    onPressed: () => Navigator.pop(modalContext),
                     icon: Icon(
                       Icons.close_rounded,
                       color: widget.isDarkMode ? white : Colors.black,
@@ -497,12 +484,14 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                       onPressed: () async {
                         if (_extractedText != null) {
                           await _flutterTts.speak(_extractedText!);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Reading text aloud...'),
-                              backgroundColor: Colors.orange,
-                            ),
-                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Reading text aloud...'),
+                                backgroundColor: Colors.orange,
+                              ),
+                            );
+                          }
                         }
                       },
                       icon: Icon(Icons.volume_up_rounded),
@@ -554,13 +543,13 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                       Icon(
                         Icons.camera_alt_outlined,
                         size: screenWidth * 0.2,
-                        color: white.withOpacity(0.3),
+                        color: white.withValues(alpha: 0.3),
                       ),
                       SizedBox(height: spacingLarge),
                       Text(
                         'Camera Initializing...',
                         style: bodyBold.copyWith(
-                          color: white.withOpacity(0.7),
+                          color: white.withValues(alpha: 0.7),
                           fontSize: screenWidth * 0.04,
                         ),
                       ),
@@ -577,10 +566,10 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.5),
-                    Colors.black.withOpacity(0.2),
-                    Colors.black.withOpacity(0.2),
-                    Colors.black.withOpacity(0.6),
+                    Colors.black.withValues(alpha: 0.5),
+                    Colors.black.withValues(alpha: 0.2),
+                    Colors.black.withValues(alpha: 0.2),
+                    Colors.black.withValues(alpha: 0.6),
                   ],
                   stops: [0.0, 0.3, 0.7, 1.0],
                 ),
@@ -623,7 +612,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
               child: Container(
                 padding: EdgeInsets.all(spacingSmall),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                   shape: BoxShape.circle,
                 ),
                 child: SizedBox(
@@ -650,37 +639,29 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     final previewSize = controller.value.previewSize;
     if (previewSize == null) return SizedBox.shrink();
     
-    // Get camera orientation and dimensions
-    // previewSize.width and height might be swapped depending on orientation
     final isPortrait = previewSize.height > previewSize.width;
     final cameraWidth = isPortrait ? previewSize.width : previewSize.height;
     final cameraHeight = isPortrait ? previewSize.height : previewSize.width;
     
-    // Calculate scale to fit the preview in the screen
     final scaleX = screenWidth / cameraWidth;
     final scaleY = screenHeight / cameraHeight;
     final scale = scaleX > scaleY ? scaleX : scaleY;
     
-    // Calculate the actual preview dimensions on screen
     final previewWidth = cameraWidth * scale;
     final previewHeight = cameraHeight * scale;
     
-    // Calculate offset if preview is larger than screen (cropped edges)
     final offsetX = (previewWidth - screenWidth) / 2;
     final offsetY = (previewHeight - screenHeight) / 2;
     
-    // Transform bounding box coordinates
     final scaledLeft = (_textBoundingBox!.left * scale) - offsetX;
     final scaledTop = (_textBoundingBox!.top * scale) - offsetY;
     final scaledWidth = _textBoundingBox!.width * scale;
     final scaledHeight = _textBoundingBox!.height * scale;
     
-    // More generous margins to ensure text visibility
     final minMargin = screenWidth * 0.02;
     final topMargin = screenHeight * 0.12;
     final bottomMargin = screenHeight * 0.25;
     
-    // Clamp to screen bounds but allow full expansion
     final constrainedLeft = scaledLeft.clamp(minMargin, screenWidth - minMargin - 50);
     final constrainedTop = scaledTop.clamp(topMargin, screenHeight - bottomMargin - 50);
     final maxWidth = screenWidth - (minMargin * 2);
@@ -704,7 +685,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
           borderRadius: BorderRadius.circular(screenWidth * 0.04),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFFFF006E).withOpacity(0.3),
+              color: Color(0xFFFF006E).withValues(alpha: 0.3),
               blurRadius: 8,
               spreadRadius: 2,
             ),
@@ -731,10 +712,10 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
-                      color: white.withOpacity(0.2),
+                      color: white.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -767,7 +748,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                   style: caption.copyWith(
                     color: _documentDetected 
                         ? (_isReading ? Colors.orange : Colors.green)
-                        : white.withOpacity(0.7),
+                        : white.withValues(alpha: 0.7),
                     fontSize: screenWidth * 0.03,
                   ),
                 ),
@@ -789,8 +770,8 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: _isFlashOn 
-                        ? Colors.orange.withOpacity(0.3)
-                        : Colors.grey.withOpacity(0.3),
+                        ? Colors.orange.withValues(alpha: 0.3)
+                        : Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(radiusSmall),
                     border: Border.all(
                       color: _isFlashOn ? Colors.orange : Colors.grey,
@@ -840,11 +821,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
           vertical: spacingMedium,
         ),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.9),
+          color: Colors.orange.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(radiusMedium),
           boxShadow: [
             BoxShadow(
-              color: Colors.orange.withOpacity(0.3),
+              color: Colors.orange.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: Offset(0, 4),
             ),
@@ -874,11 +855,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     );
   }
 
-Widget _buildControls(double screenWidth, double screenHeight) {
+  Widget _buildControls(double screenWidth, double screenHeight) {
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(radiusXLarge),
         ),
@@ -891,10 +872,10 @@ Widget _buildControls(double screenWidth, double screenHeight) {
               margin: EdgeInsets.only(bottom: spacingLarge),
               padding: EdgeInsets.all(spacingMedium),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.2),
+                color: Colors.green.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(radiusMedium),
                 border: Border.all(
-                  color: Colors.green.withOpacity(0.4),
+                  color: Colors.green.withValues(alpha: 0.4),
                   width: 1,
                 ),
               ),
@@ -936,7 +917,7 @@ Widget _buildControls(double screenWidth, double screenHeight) {
                         ? '${_extractedText!.substring(0, 100)}...' 
                         : _extractedText!,
                     style: caption.copyWith(
-                      color: white.withOpacity(0.7),
+                      color: white.withValues(alpha: 0.7),
                       fontSize: screenWidth * 0.03,
                     ),
                     maxLines: 2,
@@ -971,7 +952,7 @@ Widget _buildControls(double screenWidth, double screenHeight) {
                           ? (_readingCompleted ? 'Done - Ready for next scan' : 'Auto-scanning active')
                           : 'Looking for text...',
                   style: bodyBold.copyWith(
-                    color: white.withOpacity(0.9),
+                    color: white.withValues(alpha: 0.9),
                     fontSize: screenWidth * 0.035,
                   ),
                 ),

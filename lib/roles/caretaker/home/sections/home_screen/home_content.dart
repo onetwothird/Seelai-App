@@ -3,15 +3,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
 
 // Import the separated components
 import 'overview.dart';
 import 'announcement.dart';
+import 'my_patients.dart'; // Added the new My Patients import
 
 class HomeContent extends StatefulWidget {
   final bool isDarkMode;
@@ -168,7 +167,12 @@ class _HomeContentState extends State<HomeContent> {
           const SizedBox(height: 32),
           
           // Live Patients List
-          _buildPatientsSection(),
+          MyPatientsSection(
+            isDarkMode: widget.isDarkMode,
+            theme: widget.theme,
+            isLoadingPatients: _isLoadingPatients,
+            assignedPatients: _assignedPatients,
+          ),
 
           const SizedBox(height: 32),
 
@@ -229,295 +233,6 @@ class _HomeContentState extends State<HomeContent> {
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPatientsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'My Patients',
-              style: TextStyle(
-                fontSize: 20,
-                color: widget.theme.textColor,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-            ),
-            TextButton(
-              onPressed: () => _showAllPatientsBottomSheet(context), 
-              child: Text(
-                'See All',
-                style: TextStyle(color: primary, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        if (_isLoadingPatients)
-          // --- UPDATED LOADING INDICATOR HERE ---
-          Center(
-            child: Padding(
-              padding: EdgeInsets.all(spacingLarge), 
-              child: CircularProgressIndicator(color: primary),
-            ),
-          )
-        else if (_assignedPatients.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: widget.theme.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: widget.theme.subtextColor.withOpacity(0.1)),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.group_off_rounded, size: 40, color: widget.theme.subtextColor.withOpacity(0.5)),
-                const SizedBox(height: 12),
-                Text(
-                  'No patients assigned yet',
-                  style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          )
-        else
-          SizedBox(
-            height: 140,
-            // Horizontal list is safe from scrolling conflicts here
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: _assignedPatients.length,
-              itemBuilder: (context, index) {
-                final patient = _assignedPatients[index];
-                return _PatientCard(
-                  patient: patient,
-                  theme: widget.theme,
-                  isDarkMode: widget.isDarkMode,
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  // Bottom Sheet to view all patients
- void _showAllPatientsBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: BoxDecoration(
-            color: widget.theme.backgroundGradient.colors.last, // Match app background
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              // Drag Handle
-              Center(
-                child: Container(
-                  margin: const EdgeInsets.only(top: 12, bottom: 16),
-                  height: 4,
-                  width: 40,
-                  decoration: BoxDecoration(
-                    color: widget.theme.subtextColor.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    Text(
-                      'All Assigned Patients',
-                      style: TextStyle(
-                        color: widget.theme.textColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '${_assignedPatients.length}',
-                        style: TextStyle(color: primary, fontWeight: FontWeight.bold),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  physics: const BouncingScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 0.85, // Changed from 0.75 to make them less awkward/tall
-                  ),
-                  itemCount: _assignedPatients.length,
-                  itemBuilder: (context, index) {
-                    return _PatientCard(
-                      patient: _assignedPatients[index],
-                      theme: widget.theme,
-                      isDarkMode: widget.isDarkMode,
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-/// Extracted Widget for Patient Card to handle Real-Time Online Status and Images
-class _PatientCard extends StatelessWidget {
-  final Map<String, dynamic> patient;
-  final dynamic theme;
-  final bool isDarkMode;
-
-  const _PatientCard({
-    required this.patient,
-    required this.theme,
-    required this.isDarkMode,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final patientName = patient['name'] ?? 'Unknown';
-    final patientId = patient['userId'] ?? '';
-    // Safely extract the profile image URL
-    final profileImageUrl = patient['profileImageUrl'] as String?; 
-    
-    // The exact purple color you requested
-    final Color primaryPurple = const Color(0xFF8B5CF6);
-
-    return Container(
-      width: 110,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
-        ),
-        boxShadow: isDarkMode ? [] : [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // === PROFILE IMAGE OR PURPLE ICON ===
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              // If no image, use the solid purple background
-              color: (profileImageUrl != null && profileImageUrl.isNotEmpty)
-                  ? (isDarkMode ? Colors.white10 : Colors.grey[200])
-                  : primaryPurple, 
-              // The black outline you requested
-              border: Border.all(
-                color: isDarkMode ? Colors.white30 : Colors.black, 
-                width: 1.0,
-              ), 
-              image: (profileImageUrl != null && profileImageUrl.isNotEmpty)
-                  ? DecorationImage(
-                      image: NetworkImage(profileImageUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
-            ),
-            // Show the white person icon if there is no image
-            child: (profileImageUrl == null || profileImageUrl.isEmpty)
-                ? const Center(
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 28, 
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 12),
-          
-          Text(
-            patientName,
-            maxLines: 1,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: theme.textColor,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 4),
-          
-          // === REAL-TIME STATUS CHECKER ===
-          StreamBuilder<Map<String, dynamic>?>(
-            stream: locationTrackingService.trackPatientLocation(patientId),
-            builder: (context, snapshot) {
-              bool isOnline = false;
-
-              if (snapshot.hasData && snapshot.data != null) {
-                isOnline = locationTrackingService.isLocationRecent(snapshot.data!);
-              }
-
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: isOnline ? Colors.green : Colors.grey, 
-                      shape: BoxShape.circle
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    isOnline ? 'Online' : 'Offline',
-                    style: TextStyle(
-                      color: isOnline ? theme.subtextColor : Colors.grey, 
-                      fontSize: 11,
-                      fontWeight: isOnline ? FontWeight.w600 : FontWeight.w400,
-                    ),
-                  )
-                ],
-              );
-            },
-          )
         ],
       ),
     );

@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// File: lib/roles/visually_impaired/models/face_detection_controller.dart
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -30,7 +30,7 @@ class FaceDetectionController {
   DateTime? lastFrameTime;
   double fps = 0.0;
   
-  // Flash/brightness related (ADDED)
+  // Flash/brightness related
   bool isLowLight = false;
   bool isFlashOn = false;
   bool showFlashIndicator = false;
@@ -157,7 +157,8 @@ class FaceDetectionController {
         await startFaceDetection();
       }
     } catch (e) {
-      print('Model loading error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Model loading error: $e');
     }
   }
 
@@ -176,7 +177,7 @@ class FaceDetectionController {
         if (!isDetecting && isModelLoaded && !isDisposing) {
           isDetecting = true;
           
-          // 1. Check brightness FIRST on every frame (ADDED)
+          // 1. Check brightness FIRST on every frame
           _checkBrightnessAndManageFlash(image);
           
           // 2. Run Detection
@@ -186,7 +187,8 @@ class FaceDetectionController {
       isStreamRunning = true;
       _notifyStateChanged();
     } catch (e) {
-      print('Stream start error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Stream start error: $e');
     }
   }
 
@@ -239,7 +241,8 @@ class FaceDetectionController {
         }
       }
     } catch (e) {
-      print('Detection error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Detection error: $e');
     }
 
     isDetecting = false;
@@ -297,7 +300,8 @@ class FaceDetectionController {
         }
       }
     } catch (e) {
-      print('Read faces error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Read faces error: $e');
     }
   }
 
@@ -320,7 +324,8 @@ class FaceDetectionController {
         },
       );
     } catch (e) {
-      print('Firebase save error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Firebase save error: $e');
     }
   }
 
@@ -412,7 +417,8 @@ class FaceDetectionController {
         });
       }
     } catch (e) {
-      print('Flash on error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Flash on error: $e');
     }
   }
 
@@ -429,7 +435,8 @@ class FaceDetectionController {
         _notifyStateChanged();
       }
     } catch (e) {
-      print('Flash off error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Flash off error: $e');
     }
   }
 

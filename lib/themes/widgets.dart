@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 
@@ -75,20 +73,20 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
                     width: 2.5,
                   )
                 : Border.all(
-                    color: widget.isTransparent ? Colors.transparent : white.withOpacity(0.2),
+                    color: widget.isTransparent ? Colors.transparent : white.withValues(alpha: 0.2),
                     width: 1,
                   ),
             boxShadow: widget.isTransparent || _isPressed 
                 ? [] 
                 : [
                     BoxShadow(
-                      color: primary.withOpacity(0.3),
+                      color: primary.withValues(alpha: 0.3),
                       blurRadius: 20,
                       offset: Offset(0, 8),
                       spreadRadius: -2,
                     ),
                     BoxShadow(
-                      color: secondary.withOpacity(0.2),
+                      color: secondary.withValues(alpha: 0.2),
                       blurRadius: 30,
                       offset: Offset(0, 12),
                       spreadRadius: -4,
@@ -100,8 +98,8 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
             child: InkWell(
               onTap: widget.onPressed,
               borderRadius: BorderRadius.circular(radiusLarge),
-              splashColor: white.withOpacity(0.1),
-              highlightColor: white.withOpacity(0.05),
+              splashColor: white.withValues(alpha: 0.1),
+              highlightColor: white.withValues(alpha: 0.05),
               child: Center(
                 child: Text(
                   widget.text,
@@ -171,7 +169,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           filled: true,
           hintText: widget.hint,
           hintStyle: body.copyWith(
-            color: greyLight.withOpacity(0.7),
+            color: greyLight.withValues(alpha: 0.7),
             fontWeight: FontWeight.w400,
           ),
           suffixIcon: widget.isPassword
@@ -262,14 +260,14 @@ class _SocialButtonState extends State<SocialButton> with SingleTickerProviderSt
               onTap: widget.onPressed,
               onHover: (hovering) => setState(() => _isHovered = hovering),
               borderRadius: BorderRadius.circular(radiusLarge),
-              splashColor: primary.withOpacity(0.1),
-              highlightColor: primary.withOpacity(0.05),
+              splashColor: primary.withValues(alpha: 0.1),
+              highlightColor: primary.withValues(alpha: 0.05),
               child: Container(
                 height: 64,
                 width: 96,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _isHovered ? primary.withOpacity(0.4) : greyLighter,
+                    color: _isHovered ? primary.withValues(alpha: 0.4) : greyLighter,
                     width: _isHovered ? 2 : 1.5,
                   ),
                   borderRadius: BorderRadius.circular(radiusLarge),

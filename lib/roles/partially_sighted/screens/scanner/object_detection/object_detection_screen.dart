@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -82,10 +81,18 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
       return _buildLoadingScreen(screenWidth);
     }
 
-    return WillPopScope(
-      onWillPop: () async {
+   return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) return;
+
+        // Ensure the controller is fully disposed before navigating away
         await _controller.dispose();
-        return true;
+
+        // Safely pop the screen
+        if (context.mounted) {
+          Navigator.of(context).pop(result);
+        }
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -148,13 +155,13 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             Icon(
               Icons.camera_alt_outlined,
               size: screenWidth * 0.2,
-              color: white.withOpacity(0.3),
+              color: white.withValues(alpha: 0.3),
             ),
             SizedBox(height: spacingLarge),
             Text(
               'Camera Initializing...',
               style: bodyBold.copyWith(
-                color: white.withOpacity(0.7),
+                color: white.withValues(alpha: 0.7),
                 fontSize: screenWidth * 0.04,
               ),
             ),
@@ -185,10 +192,10 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.5),
-              Colors.black.withOpacity(0.2),
-              Colors.black.withOpacity(0.2),
-              Colors.black.withOpacity(0.6),
+              Colors.black.withValues(alpha: 0.5),
+              Colors.black.withValues(alpha: 0.2),
+              Colors.black.withValues(alpha: 0.2),
+              Colors.black.withValues(alpha: 0.6),
             ],
             stops: [0.0, 0.3, 0.7, 1.0],
           ),
@@ -229,10 +236,10 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
           child: Container(
             padding: EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: white.withOpacity(0.2),
+                color: white.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -266,7 +273,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
           style: caption.copyWith(
             color: _state.recognitions.isNotEmpty
                 ? (_state.isReading ? Colors.orange : Colors.green)
-                : white.withOpacity(0.7),
+                : white.withValues(alpha: 0.7),
             fontSize: screenWidth * 0.03,
           ),
         ),
@@ -303,8 +310,8 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             ),
             decoration: BoxDecoration(
               color: _state.isFlashOn 
-                  ? Colors.orange.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.3),
+                  ? Colors.orange.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(radiusSmall),
               border: Border.all(
                 color: _state.isFlashOn ? Colors.orange : Colors.grey,
@@ -351,11 +358,11 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
           vertical: spacingMedium,
         ),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.9),
+          color: Colors.orange.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(radiusMedium),
           boxShadow: [
             BoxShadow(
-              color: Colors.orange.withOpacity(0.3),
+              color: Colors.orange.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: Offset(0, 4),
             ),
@@ -389,7 +396,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(radiusXLarge),
         ),
@@ -410,10 +417,10 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
       margin: EdgeInsets.only(bottom: spacingLarge),
       padding: EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.2),
+        color: Colors.green.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(radiusMedium),
         border: Border.all(
-          color: Colors.green.withOpacity(0.4),
+          color: Colors.green.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -445,7 +452,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                 ? '${_state.lastDetectedObjects.substring(0, 80)}...' 
                 : _state.lastDetectedObjects,
             style: caption.copyWith(
-              color: white.withOpacity(0.7),
+              color: white.withValues(alpha: 0.7),
               fontSize: screenWidth * 0.03,
             ),
             maxLines: 2,
@@ -482,7 +489,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                     ? (_state.readingCompleted ? 'Done - Ready for next scan' : 'Auto-scanning active')
                     : 'Looking for objects...',
             style: bodyBold.copyWith(
-              color: white.withOpacity(0.9),
+              color: white.withValues(alpha: 0.9),
               fontSize: screenWidth * 0.035,
             ),
           ),
@@ -494,9 +501,9 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             vertical: spacingSmall,
           ),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.2),
+            color: Colors.orange.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(radiusSmall),
-            border: Border.all(color: Colors.orange.withOpacity(0.4)),
+            border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
           ),
           child: Text(
             'FPS: ${_state.fps.toStringAsFixed(1)}',
@@ -667,7 +674,7 @@ class BoxPainter extends CustomPainter {
     
     canvas.drawRect(
       labelRect, 
-      Paint()..color = Colors.green.withOpacity(0.9)
+      Paint()..color = Colors.green.withValues(alpha: 0.9)
     );
 
     textPainter.paint(

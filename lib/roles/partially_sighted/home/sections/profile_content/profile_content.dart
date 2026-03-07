@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/profile_content.dart
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -253,7 +252,7 @@ class _ProfileContentState extends State<ProfileContent> {
               // Soft professional drop shadow
               boxShadow: [
                 BoxShadow(
-                  color: _colPersonal.withOpacity(0.25),
+                  color: _colPersonal.withValues(alpha: 0.25),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -297,7 +296,7 @@ class _ProfileContentState extends State<ProfileContent> {
           end: Alignment.bottomRight,
           colors: [
             _colPersonal,
-            _colPersonal.withOpacity(0.6),
+            _colPersonal.withValues(alpha: 0.6),
           ],
         ),
       ),
@@ -349,12 +348,12 @@ class _ProfileContentState extends State<ProfileContent> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: widget.isDarkMode 
-                    ? Colors.white.withOpacity(0.05) 
-                    : Colors.black.withOpacity(0.05),
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
               ),
               boxShadow: widget.isDarkMode 
                   ? [] 
-                  : [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                  : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
             ),
             child: Column(
               children: children,
@@ -392,7 +391,7 @@ class _ProfileContentState extends State<ProfileContent> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isDestructive ? _colSafety.withOpacity(0.1) : iconColor.withOpacity(0.1),
+                      color: isDestructive ? _colSafety.withValues(alpha: 0.1) : iconColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(icon, size: 20, color: isDestructive ? _colSafety : iconColor),
@@ -433,7 +432,7 @@ class _ProfileContentState extends State<ProfileContent> {
                 height: 1,
                 thickness: 1,
                 indent: 56,
-                color: widget.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
+                color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
               ),
           ],
         ),
@@ -470,7 +469,7 @@ class _ProfileContentState extends State<ProfileContent> {
         labelStyle: TextStyle(color: widget.theme.subtextColor),
         prefixIcon: Icon(icon, color: widget.theme.subtextColor),
         filled: true,
-        fillColor: widget.isDarkMode ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
+        fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -505,9 +504,11 @@ class _ProfileContentState extends State<ProfileContent> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      // 1. Renamed to dialogContext
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setStateDialog) {
+          // 2. Renamed to statefulContext
+          builder: (statefulContext, setStateDialog) {
             return AlertDialog(
               backgroundColor: widget.theme.cardColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -525,14 +526,14 @@ class _ProfileContentState extends State<ProfileContent> {
                     _buildDialogTextField('Diagnosis', _diagnosisController, Icons.medical_services_outlined),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _selectedSex,
+                      initialValue: _selectedSex,
                       dropdownColor: widget.theme.cardColor,
                       decoration: InputDecoration(
                         labelText: 'Sex',
                         labelStyle: TextStyle(color: widget.theme.subtextColor),
                         prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor),
                         filled: true,
-                        fillColor: widget.isDarkMode ? Colors.black.withOpacity(0.2) : Colors.grey.withOpacity(0.05),
+                        fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       ),
                       items: ['Male', 'Female', 'Not Specified']
@@ -546,7 +547,8 @@ class _ProfileContentState extends State<ProfileContent> {
               actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  // Use the statefulContext to safely pop the dialog
+                  onPressed: () => Navigator.pop(statefulContext),
                   child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
                 ),
                 ElevatedButton(
@@ -571,23 +573,35 @@ class _ProfileContentState extends State<ProfileContent> {
                         sex: _selectedSex,
                       );
 
-                      if (mounted) {
-                        setState(() {
-                          _currentData['name'] = _nameController.text.trim();
-                          _currentData['address'] = _addressController.text.trim();
-                          _currentData['contactNumber'] = _contactController.text.trim();
-                          _currentData['diagnosis'] = _diagnosisController.text.trim();
-                          _currentData['sex'] = _selectedSex;
-                        });
-                      }
+                      // 3. Check if the dialog's context is still valid before popping it
+                      if (!statefulContext.mounted) return;
+                      Navigator.pop(statefulContext);
 
-                      Navigator.pop(context);
+                      // 4. Check if the main screen is still valid before updating its UI
+                      if (!mounted) return;
+                      setState(() {
+                        _currentData['name'] = _nameController.text.trim();
+                        _currentData['address'] = _addressController.text.trim();
+                        _currentData['contactNumber'] = _contactController.text.trim();
+                        _currentData['diagnosis'] = _diagnosisController.text.trim();
+                        _currentData['sex'] = _selectedSex;
+                      });
+                      
                       _showSnackbar('Profile updated successfully', _colSecurity);
+                      
                     } catch (e) {
-                      _showSnackbar('Error updating profile: $e', _colSafety);
-                    } finally {
-                      if (mounted) setStateDialog(() => _isLoading = false);
+                      // 5. If it failed, stop the loading spinner (only if the dialog is still open)
+                      if (statefulContext.mounted) {
+                        setStateDialog(() => _isLoading = false);
+                      }
+                      
+                      // Safely show the error on the main screen
+                      if (mounted) {
+                        _showSnackbar('Error updating profile: $e', _colSafety);
+                      }
                     }
+                    // Notice: The `finally` block was completely removed! 
+                    // If successful, the dialog is closed, so running setStateDialog would crash it.
                   },
                   child: _isLoading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -601,16 +615,18 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  void _showChangePasswordDialog() {
+ void _showChangePasswordDialog() {
     _currentPasswordController.clear();
     _newPasswordController.clear();
     _confirmPasswordController.clear();
 
     showDialog(
       context: context,
-      builder: (context) {
+      // 1. Rename to dialogContext
+      builder: (dialogContext) {
         return StatefulBuilder(
-          builder: (context, setStateDialog) {
+          // 2. Rename to statefulContext
+          builder: (statefulContext, setStateDialog) {
             return AlertDialog(
               backgroundColor: widget.theme.cardColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -635,7 +651,8 @@ class _ProfileContentState extends State<ProfileContent> {
               actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
+                  // Use statefulContext to safely dismiss
+                  onPressed: () => Navigator.pop(statefulContext),
                   child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
                 ),
                 ElevatedButton(
@@ -665,13 +682,27 @@ class _ProfileContentState extends State<ProfileContent> {
                         newPassword: _newPasswordController.text,
                       );
 
-                      Navigator.pop(context);
-                      _showSnackbar('Password changed successfully', _colSecurity);
+                      // 3. Check if the dialog is still open before popping it
+                      if (!statefulContext.mounted) return;
+                      Navigator.pop(statefulContext);
+                      
+                      // 4. Safely trigger the snackbar on the main screen
+                      if (mounted) {
+                        _showSnackbar('Password changed successfully', _colSecurity);
+                      }
+                      
                     } catch (e) {
-                      _showSnackbar('Error: Please check your current password', _colSafety);
-                    } finally {
-                      if (mounted) setStateDialog(() => _isLoading = false);
+                      // 5. If it failed, stop the loading spinner (only if dialog is open)
+                      if (statefulContext.mounted) {
+                        setStateDialog(() => _isLoading = false);
+                      }
+                      
+                      // Show error on the main screen
+                      if (mounted) {
+                        _showSnackbar('Error: Please check your current password', _colSafety);
+                      }
                     }
+                    // Removed the `finally` block to prevent crashing after successful pop!
                   },
                   child: _isLoading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -748,19 +779,18 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  void _showLogoutDialog() {
+ void _showLogoutDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      // 1. Rename this to dialogContext to avoid shadowing your screen's context
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: widget.theme.cardColor,
-        // Increased radius for a more modern, professional look
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         titlePadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
         contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ==================== HEADER INDICATOR ====================
             Center(
               child: Container(
                 width: 40,
@@ -772,14 +802,12 @@ class _ProfileContentState extends State<ProfileContent> {
                 ),
               ),
             ),
-            // ==================== HEADER CONTENT ====================
             Row(
               children: [
-                // Icon placed inside a soft red background for professional contrast
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: _colSafety.withOpacity(0.15),
+                    color: _colSafety.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.logout_rounded, color: _colSafety, size: 24),
@@ -809,7 +837,8 @@ class _ProfileContentState extends State<ProfileContent> {
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            // Use dialogContext here
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel', 
               style: TextStyle(
@@ -821,8 +850,16 @@ class _ProfileContentState extends State<ProfileContent> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              // Use dialogContext to close the dialog
+              Navigator.pop(dialogContext);
+              
               await authService.value.signOut();
+              
+              // 2. THIS IS THE FIX: Check if the main screen is still mounted 
+              // before doing anything else with the main `context`.
+              if (!mounted) return; 
+
+              // Now it's safe to use the main `context` to navigate
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                 (route) => false,
@@ -951,7 +988,7 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
                                     ),
                                     if (!_controller.value.isPlaying)
                                       Container(
-                                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
+                                        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
                                         padding: const EdgeInsets.all(12),
                                         child: Icon(Icons.play_arrow_rounded, color: widget.colSupport, size: 50),
                                       ),
@@ -965,7 +1002,7 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
                   top: 10,
                   right: 10,
                   child: CircleAvatar(
-                    backgroundColor: Colors.black.withOpacity(0.5),
+                    backgroundColor: Colors.black.withValues(alpha: 0.5),
                     child: IconButton(
                       icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
                       onPressed: () => Navigator.pop(context),
@@ -1005,7 +1042,7 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
             child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 16),

@@ -1,6 +1,5 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/request_caretaker.dart
 
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -63,15 +62,15 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
               _navigateToRequestForm(context);
             },
             borderRadius: BorderRadius.circular(radiusLarge),
-            splashColor: accent.withOpacity(0.2),
-            highlightColor: accent.withOpacity(0.1),
+            splashColor: accent.withValues(alpha: 0.2),
+            highlightColor: accent.withValues(alpha: 0.1),
             child: Container(
               padding: EdgeInsets.all(spacingMedium),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: widget.isDarkMode
                       ? [Color(0xFF1A1F3A), Color(0xFF2A2F4A)]
-                      : [white, white.withOpacity(0.9)],
+                      : [white, white.withValues(alpha: 0.9)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -79,7 +78,7 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
                 boxShadow: widget.isDarkMode
                     ? [
                         BoxShadow(
-                          color: accent.withOpacity(0.15),
+                          color: accent.withValues(alpha: 0.15),
                           blurRadius: 20,
                           offset: const Offset(0, 8),
                           spreadRadius: 2,
@@ -87,14 +86,14 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
                       ]
                     : [
                         BoxShadow(
-                          color: accent.withOpacity(0.1),
+                          color: accent.withValues(alpha: 0.1),
                           blurRadius: 16,
                           offset: const Offset(0, 6),
                         ),
                       ],
                 border: widget.isDarkMode
                     ? Border.all(
-                        color: accent.withOpacity(0.3),
+                        color: accent.withValues(alpha: 0.3),
                         width: 1.5,
                       )
                     : null,
@@ -105,14 +104,14 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
                     padding: EdgeInsets.all(spacingMedium),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [accent, accent.withOpacity(0.7)],
+                        colors: [accent, accent.withValues(alpha: 0.7)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(radiusMedium),
                       boxShadow: [
                         BoxShadow(
-                          color: accent.withOpacity(0.4),
+                          color: accent.withValues(alpha: 0.4),
                           blurRadius: 12,
                           offset: Offset(0, 4),
                         ),
@@ -152,7 +151,7 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
                   Container(
                     padding: EdgeInsets.all(spacingXSmall),
                     decoration: BoxDecoration(
-                      color: accent.withOpacity(0.1),
+                      color: accent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(radiusSmall),
                     ),
                     child: Icon(

@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/recent_activities/detection_detail_screen.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -114,15 +113,15 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    color.withOpacity(0.2),
-                    color.withOpacity(0.05),
+                    color.withValues(alpha: 0.2),
+                    color.withValues(alpha: 0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(radiusLarge),
                 border: Border.all(
-                  color: color.withOpacity(0.3),
+                  color: color.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -131,7 +130,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                   Container(
                     padding: EdgeInsets.all(spacingMedium),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.2),
+                      color: color.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(radiusMedium),
                     ),
                     child: Icon(icon, color: color, size: 40),
@@ -224,7 +223,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                   color: widget.theme.cardColor,
                   borderRadius: BorderRadius.circular(radiusMedium),
                   border: Border.all(
-                    color: Colors.purple.withOpacity(0.2),
+                    color: Colors.purple.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -233,7 +232,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                     Container(
                       padding: EdgeInsets.all(spacingSmall),
                       decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.1),
+                        color: Colors.purple.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(radiusSmall),
                       ),
                       child: Icon(
@@ -272,7 +271,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getConfidenceColor(confidence).withOpacity(0.1),
+                        color: _getConfidenceColor(confidence).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(radiusSmall),
                       ),
                       child: Text(
@@ -330,7 +329,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                   color: widget.theme.cardColor,
                   borderRadius: BorderRadius.circular(radiusMedium),
                   border: Border.all(
-                    color: Colors.green.withOpacity(0.2),
+                    color: Colors.green.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
@@ -339,7 +338,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                     Container(
                       padding: EdgeInsets.all(spacingSmall),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(radiusSmall),
                       ),
                       child: Icon(
@@ -378,7 +377,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _getConfidenceColor(confidence).withOpacity(0.1),
+                        color: _getConfidenceColor(confidence).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(radiusSmall),
                       ),
                       child: Text(
@@ -484,7 +483,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: Colors.orange.withOpacity(0.2),
+                color: Colors.orange.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),

@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -82,10 +81,18 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       return _buildLoadingScreen(screenWidth);
     }
 
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop) return;
+
+        // Run your cleanup logic before popping
         await _controller.dispose();
-        return true;
+
+        // Safely pop the screen after disposal is complete
+        if (context.mounted) {
+          Navigator.of(context).pop(result);
+        }
       },
       child: Scaffold(
         backgroundColor: Colors.black,
@@ -149,13 +156,13 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             Icon(
               Icons.camera_alt_outlined,
               size: screenWidth * 0.2,
-              color: white.withOpacity(0.3),
+              color: white.withValues(alpha: 0.3),
             ),
             SizedBox(height: spacingLarge),
             Text(
               'Camera Initializing...',
               style: bodyBold.copyWith(
-                color: white.withOpacity(0.7),
+                color: white.withValues(alpha: 0.7),
                 fontSize: screenWidth * 0.04,
               ),
             ),
@@ -186,10 +193,10 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withOpacity(0.5),
-              Colors.black.withOpacity(0.2),
-              Colors.black.withOpacity(0.2),
-              Colors.black.withOpacity(0.6),
+              Colors.black.withValues(alpha: 0.5),
+              Colors.black.withValues(alpha: 0.2),
+              Colors.black.withValues(alpha: 0.2),
+              Colors.black.withValues(alpha: 0.6),
             ],
             stops: [0.0, 0.3, 0.7, 1.0],
           ),
@@ -230,10 +237,10 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           child: Container(
             padding: EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: white.withOpacity(0.2),
+                color: white.withValues(alpha: 0.2),
                 width: 1,
               ),
             ),
@@ -267,7 +274,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           style: caption.copyWith(
             color: _state.recognitions.isNotEmpty
                 ? (_state.isReading ? Colors.purple.shade300 : Colors.purple)
-                : white.withOpacity(0.7),
+                : white.withValues(alpha: 0.7),
             fontSize: screenWidth * 0.03,
           ),
         ),
@@ -305,8 +312,8 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             ),
             decoration: BoxDecoration(
               color: _state.isFlashOn 
-                  ? Colors.purple.withOpacity(0.3)
-                  : Colors.grey.withOpacity(0.3),
+                  ? Colors.purple.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(radiusSmall),
               border: Border.all(
                 color: _state.isFlashOn ? Colors.purple : Colors.grey,
@@ -354,11 +361,11 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           vertical: spacingMedium,
         ),
         decoration: BoxDecoration(
-          color: Colors.purple.withOpacity(0.9),
+          color: Colors.purple.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(radiusMedium),
           boxShadow: [
             BoxShadow(
-              color: Colors.purple.withOpacity(0.3),
+              color: Colors.purple.withValues(alpha: 0.3),
               blurRadius: 10,
               offset: Offset(0, 4),
             ),
@@ -392,7 +399,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     return Container(
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(radiusXLarge),
         ),
@@ -413,10 +420,10 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       margin: EdgeInsets.only(bottom: spacingLarge),
       padding: EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
-        color: Colors.purple.withOpacity(0.2),
+        color: Colors.purple.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(radiusMedium),
         border: Border.all(
-          color: Colors.purple.withOpacity(0.4),
+          color: Colors.purple.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
@@ -446,7 +453,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           Text(
             'Found: ${_state.lastDetectedFaces}',
             style: caption.copyWith(
-              color: white.withOpacity(0.7),
+              color: white.withValues(alpha: 0.7),
               fontSize: screenWidth * 0.03,
             ),
             maxLines: 2,
@@ -483,7 +490,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                     ? 'Scanning caretakers...'
                     : 'Looking for faces...',
             style: bodyBold.copyWith(
-              color: white.withOpacity(0.9),
+              color: white.withValues(alpha: 0.9),
               fontSize: screenWidth * 0.035,
             ),
           ),
@@ -495,9 +502,9 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             vertical: spacingSmall,
           ),
           decoration: BoxDecoration(
-            color: Colors.purple.withOpacity(0.2),
+            color: Colors.purple.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(radiusSmall),
-            border: Border.all(color: Colors.purple.withOpacity(0.4)),
+            border: Border.all(color: Colors.purple.withValues(alpha: 0.4)),
           ),
           child: Text(
             'FPS: ${_state.fps.toStringAsFixed(1)}',
@@ -685,7 +692,7 @@ class FaceBoxPainter extends CustomPainter {
     // Draw simple background rect (same as Object Detection)
     canvas.drawRect(
       labelRect, 
-      Paint()..color = color.withOpacity(0.9)
+      Paint()..color = color.withValues(alpha: 0.9)
     );
 
     // Draw text
