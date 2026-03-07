@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/recent_activities/view_recent_activites.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -424,7 +423,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
               boxShadow: widget.isDarkMode
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha: 0.1),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -432,7 +431,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                   : softShadow,
               border: widget.isDarkMode
                   ? Border.all(
-                      color: color.withOpacity(0.2),
+                      color: color.withValues(alpha: 0.2),
                       width: 1,
                     )
                   : null,
@@ -445,7 +444,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                     Container(
                       padding: EdgeInsets.all(spacingSmall),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
+                        color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(radiusMedium),
                       ),
                       child: Icon(icon, color: color, size: 24),
@@ -467,10 +466,10 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
+                              color: color.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(radiusSmall),
                               border: Border.all(
-                                color: color.withOpacity(0.3),
+                                color: color.withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),
@@ -562,7 +561,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: primary.withOpacity(0.3),
+                color: primary.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -700,9 +699,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     return Container(
       padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
-        color: errorColor.withOpacity(0.1),
+        color: errorColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(color: errorColor.withOpacity(0.3)),
+        border: Border.all(color: errorColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

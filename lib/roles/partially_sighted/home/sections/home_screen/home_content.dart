@@ -8,7 +8,7 @@ import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/loc
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/announcement.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/request_caretaker.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/emergency_hotline.dart';
-import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/quick_contact_section.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/quick_contact_section.dart';
 
 class HomeContent extends StatelessWidget {
   final CameraService cameraService;

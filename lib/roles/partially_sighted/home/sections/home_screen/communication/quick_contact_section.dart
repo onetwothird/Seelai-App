@@ -1,7 +1,11 @@
-// File: lib/roles/partially_sighted/home/sections/home_screen/quick_contact_section.dart
+// File: lib/roles/partially_sighted/home/sections/home_screen/communication/quick_contact_section.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
+
+// NEW IMPORTS FOR CALL SCREENS
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/voice_call_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/video_call_screen.dart';
 
 class QuickContactSection extends StatelessWidget {
   final bool isDarkMode;
@@ -27,11 +31,16 @@ class QuickContactSection extends StatelessWidget {
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
-              _showComingSoon(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VoiceCallScreen(userData: userData),
+                ),
+              );
             },
           ),
         ),
-        const SizedBox(width: 12), // Nice, tight spacing between buttons
+        const SizedBox(width: 12),
         Expanded(
           child: _ContactAction(
             title: 'Video Call',
@@ -40,28 +49,16 @@ class QuickContactSection extends StatelessWidget {
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
-              _showComingSoon(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => VideoCallScreen(userData: userData),
+                ),
+              );
             },
           ),
         ),
       ],
-    );
-  }
-
-  void _showComingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Call feature coming soon!',
-          style: bodyBold.copyWith(color: Colors.white),
-        ),
-        backgroundColor: theme.cardColor,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
     );
   }
 }
@@ -135,7 +132,6 @@ class _ContactActionState extends State<_ContactAction> with SingleTickerProvide
                 color: widget.isDarkMode ? widget.theme.cardColor : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  // A clean, flat border instead of a shadow
                   color: widget.isDarkMode 
                       ? widget.primaryColor.withValues(alpha: 0.3) 
                       : Colors.grey.withValues(alpha: 0.2),

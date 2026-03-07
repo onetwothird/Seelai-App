@@ -1,9 +1,9 @@
-// ignore_for_file: avoid_print
 
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 
 class CloudinaryService {
   // Your Cloudinary credentials
@@ -50,8 +50,8 @@ class CloudinaryService {
     }
   }
   
-  /// Delete image from Cloudinary
-  Future<bool> deleteProfileImage(String userId, String role) async {
+ 
+ Future<bool> deleteProfileImage(String userId, String role) async {
     try {
       final publicId = 'seelai_profiles/$role/$userId';
       final timestamp = (DateTime.now().millisecondsSinceEpoch / 1000).round().toString();
@@ -75,11 +75,12 @@ class CloudinaryService {
       }
       return false;
     } catch (e) {
-      print('Failed to delete from Cloudinary: $e');
+      // THIS IS THE FIX: Swapped print for debugPrint
+      debugPrint('Failed to delete from Cloudinary: $e');
       return false;
     }
   }
-  
+
   /// Generate SHA-1 signature for authenticated requests
   String _generateSignature(String publicId, String timestamp) {
     final stringToSign = 'public_id=$publicId&timestamp=$timestamp$apiSecret';

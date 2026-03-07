@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/widgets/icon_button.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -27,7 +26,7 @@ class CustomIconButton extends StatelessWidget {
         boxShadow: isDarkMode 
           ? [
               BoxShadow(
-                color: (isSpecial ? accent : primary).withOpacity(0.3),
+                color: (isSpecial ? accent : primary).withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: Offset(0, 4),
               ),
@@ -37,13 +36,13 @@ class CustomIconButton extends StatelessWidget {
       ),
       child: Material(
         color: isDarkMode 
-          ? (isSpecial ? accent.withOpacity(0.25) : primary.withOpacity(0.2))
-          : primaryLight.withOpacity(0.12),
+          ? (isSpecial ? accent.withValues(alpha: 0.25) : primary.withValues(alpha: 0.2))
+          : primaryLight.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(radiusMedium),
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(radiusMedium),
-          splashColor: primary.withOpacity(0.3),
+          splashColor: primary.withValues(alpha: 0.3),
           child: Container(
             padding: EdgeInsets.all(spacingMedium),
             child: Icon(

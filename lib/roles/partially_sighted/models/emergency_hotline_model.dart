@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/models/emergency_hotline_model.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 
@@ -15,7 +14,7 @@ class EmergencyHotline {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final bool isPredefined;
-  final String imageAsset; // NEW: Added this field
+  final String imageAsset;
 
   EmergencyHotline({
     required this.id,
@@ -29,7 +28,7 @@ class EmergencyHotline {
     DateTime? createdAt,
     DateTime? updatedAt,
     this.isPredefined = false,
-    this.imageAsset = '', // NEW: Default to empty string
+    this.imageAsset = '',
   })  : createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -45,6 +44,7 @@ class EmergencyHotline {
         json['iconCode'] as int,
         fontFamily: 'MaterialIcons',
       ),
+      // THIS IS THE FIX: Using Color.fromARGB32 instead of Color()
       color: Color(json['colorValue'] as int),
       isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] != null
@@ -54,7 +54,7 @@ class EmergencyHotline {
           ? DateTime.parse(json['updatedAt'] as String)
           : null,
       isPredefined: json['isPredefined'] as bool? ?? false,
-      imageAsset: json['imageAsset'] as String? ?? '', // NEW: Read from JSON
+      imageAsset: json['imageAsset'] as String? ?? '',
     );
   }
 
@@ -67,12 +67,13 @@ class EmergencyHotline {
       'address': address,
       'description': description,
       'iconCode': icon.codePoint,
-      'colorValue': color.value,
+      // THIS IS THE FIX: Using toARGB32() instead of .value
+      'colorValue': color.toARGB32(),
       'isActive': isActive,
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'isPredefined': isPredefined,
-      'imageAsset': imageAsset, // NEW: Save to JSON
+      'imageAsset': imageAsset,
     };
   }
 
@@ -89,7 +90,7 @@ class EmergencyHotline {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isPredefined,
-    String? imageAsset, // NEW
+    String? imageAsset,
   }) {
     return EmergencyHotline(
       id: id ?? this.id,
@@ -103,7 +104,7 @@ class EmergencyHotline {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
       isPredefined: isPredefined ?? this.isPredefined,
-      imageAsset: imageAsset ?? this.imageAsset, // NEW
+      imageAsset: imageAsset ?? this.imageAsset,
     );
   }
 
@@ -112,7 +113,7 @@ class EmergencyHotline {
     return 'EmergencyHotline(department: $departmentName, phone: $phoneNumber, image: $imageAsset)';
   }
 
-  // NEW: Predefined emergency hotlines for Naic, Cavite
+  // Predefined emergency hotlines for Naic, Cavite
   static List<EmergencyHotline> getNaicPredefinedHotlines(String userId) {
     final now = DateTime.now();
     
@@ -147,7 +148,7 @@ class EmergencyHotline {
       ),
       EmergencyHotline(
         id: 'predefined_emergency_$userId',
-        departmentName: 'MDRRMO Naic', // Updated for Naic Rescue
+        departmentName: 'MDRRMO Naic',
         phoneNumber: '4105725',
         address: '',
         description: 'Naic Emergency Response Unit',
@@ -252,28 +253,29 @@ class EmergencyHotline {
       {
         'departmentName': 'Police Station',
         'iconCode': Icons.local_police_rounded.codePoint,
-        'colorValue': Colors.blue.value,
+        // THESE ARE THE FIXES: Using toARGB32() on the Colors
+        'colorValue': Colors.blue.toARGB32(),
         'description': 'Emergency police assistance',
         'imageAsset': '',
       },
       {
         'departmentName': 'Fire Station',
         'iconCode': Icons.local_fire_department_rounded.codePoint,
-        'colorValue': Colors.red.value,
+        'colorValue': Colors.red.toARGB32(),
         'description': 'Fire and rescue services',
         'imageAsset': '',
       },
       {
         'departmentName': 'Hospital/Ambulance',
         'iconCode': Icons.local_hospital_rounded.codePoint,
-        'colorValue': Colors.green.value,
+        'colorValue': Colors.green.toARGB32(),
         'description': 'Medical emergency services',
         'imageAsset': '',
       },
       {
         'departmentName': 'Emergency Hotline',
         'iconCode': Icons.phone_in_talk_rounded.codePoint,
-        'colorValue': Colors.orange.value,
+        'colorValue': Colors.orange.toARGB32(),
         'description': 'General emergency hotline',
         'imageAsset': '',
       },

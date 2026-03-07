@@ -1,6 +1,5 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/widgets/map_marker_helper.dart
 
-// ignore_for_file: deprecated_member_use
 
 import 'dart:ui' as ui;
 import 'dart:typed_data';
@@ -20,7 +19,7 @@ class MapMarkerHelper {
 
       // Draw shadow
       final shadowPaint = Paint()
-        ..color = Colors.black.withOpacity(0.3)
+        ..color = Colors.black.withValues(alpha: 0.3)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
       canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
 
@@ -90,7 +89,7 @@ class MapMarkerHelper {
     final gradient = ui.Gradient.linear(
       Offset(rect.left, rect.top),
       Offset(rect.right, rect.bottom),
-      [color, color.withOpacity(0.7)],
+      [color, color.withValues(alpha: 0.7)],
     );
     final paint = Paint()..shader = gradient;
     canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);

@@ -1,5 +1,4 @@
 // File: lib/roles/visually_impaired/home/sections/recent_activities/recent_activities_content.dart
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'all_detections_screen.dart';
@@ -447,7 +446,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
               boxShadow: widget.isDarkMode
                   ? [
                       BoxShadow(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha: 0.1),
                         blurRadius: 16,
                         offset: const Offset(0, 6),
                       ),
@@ -455,7 +454,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                   : softShadow,
               border: widget.isDarkMode
                   ? Border.all(
-                      color: color.withOpacity(0.2),
+                      color: color.withValues(alpha: 0.2),
                       width: 1,
                     )
                   : null,
@@ -468,7 +467,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                     Container(
                       padding: EdgeInsets.all(spacingSmall),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.15),
+                        color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(radiusMedium),
                       ),
                       child: Icon(
@@ -494,10 +493,10 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
+                              color: color.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(radiusSmall),
                               border: Border.all(
-                                color: color.withOpacity(0.3),
+                                color: color.withValues(alpha: 0.3),
                                 width: 1,
                               ),
                             ),
@@ -587,7 +586,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: primary.withOpacity(0.3),
+                color: primary.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),
@@ -736,9 +735,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
       key: const ValueKey('error'),
       padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
-        color: errorColor.withOpacity(0.1),
+        color: errorColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(color: errorColor.withOpacity(0.3)),
+        border: Border.all(color: errorColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

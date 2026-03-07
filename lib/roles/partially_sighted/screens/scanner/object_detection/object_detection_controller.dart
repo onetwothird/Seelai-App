@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -179,7 +177,8 @@ class ObjectDetectionController {
         await startObjectDetection();
       }
     } catch (e) {
-      print('Model loading error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Model loading error: $e');
     }
   }
 
@@ -208,7 +207,8 @@ class ObjectDetectionController {
       isStreamRunning = true;
       _notifyStateChanged();
     } catch (e) {
-      print('Stream start error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Stream start error: $e');
     }
   }
 
@@ -259,7 +259,8 @@ class ObjectDetectionController {
         }
       }
     } catch (e) {
-      print('Detection error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Detection error: $e');
     }
 
     isDetecting = false;
@@ -297,7 +298,8 @@ class ObjectDetectionController {
         }
       } 
     } catch (e) {
-      print('Read objects error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Read objects error: $e');
     }
   }
 
@@ -319,7 +321,8 @@ class ObjectDetectionController {
         },
       );
     } catch (e) {
-      print('Firebase save error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Firebase save error: $e');
     }
   }
 
@@ -390,7 +393,8 @@ class ObjectDetectionController {
         });
       }
     } catch (e) {
-      print('Flash on error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Flash on error: $e');
     }
   }
 
@@ -407,7 +411,8 @@ class ObjectDetectionController {
         _notifyStateChanged();
       }
     } catch (e) {
-      print('Flash off error: $e');
+      // THIS IS THE FIX: Replaced print with debugPrint
+      debugPrint('Flash off error: $e');
     }
   }
 

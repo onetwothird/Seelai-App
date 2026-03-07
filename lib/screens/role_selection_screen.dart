@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/auth/login/login_screen.dart';
@@ -179,7 +178,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.white.withOpacity(0.0),
+                    Colors.white.withValues(alpha: 0.0),
                     Colors.white,
                   ],
                   stops: const [0.0, 0.3],
@@ -197,8 +196,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     backgroundColor: _primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 18),
-                    elevation: 8,
-                    shadowColor: _primaryColor.withOpacity(0.4),
+                      elevation: 8,
+                      shadowColor: _primaryColor.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -236,7 +235,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.05) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade100,
@@ -245,8 +244,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           boxShadow: [
             BoxShadow(
               color: isSelected
-                  ? color.withOpacity(0.15)
-                  : Colors.grey.withOpacity(0.05),
+                  ? color.withValues(alpha: 0.15)
+                  : Colors.grey.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -341,7 +340,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: activeColor.withOpacity(0.1),
+                  color: activeColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.lock_person_rounded,

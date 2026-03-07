@@ -1,7 +1,5 @@
 // File: lib/roles/visually_impaired/screens/scanner/mode_selection_screen.dart
 
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -124,8 +122,8 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.black.withOpacity(0.8),
-                    Colors.black.withOpacity(0.9),
+                    Colors.black.withValues(alpha: 0.8),
+                    Colors.black.withValues(alpha: 0.9),
                   ],
                 ),
               ),
@@ -179,10 +177,10 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                 child: Container(
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
-                      color: white.withOpacity(0.2),
+                      color: white.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -215,13 +213,13 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
     return Container(
       padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.8),
+        color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(radiusXLarge),
         ),
         border: Border(
           top: BorderSide(
-            color: white.withOpacity(0.1),
+            color: white.withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -234,7 +232,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: white.withOpacity(0.3),
+              color: white.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -255,7 +253,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
           Text(
             'Choose what you want to scan',
             style: body.copyWith(
-              color: white.withOpacity(0.7),
+              color: white.withValues(alpha: 0.7),
               fontSize: 14,
             ),
           ),
@@ -318,15 +316,15 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  color.withOpacity(0.2),
-                  color.withOpacity(0.1),
+                  color.withValues(alpha: 0.2),
+                  color.withValues(alpha: 0.1),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(radiusLarge),
               border: Border.all(
-                color: color.withOpacity(0.4),
+                color: color.withValues(alpha: 0.4),
                 width: 1.5,
               ),
             ),
@@ -336,12 +334,12 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                   padding: EdgeInsets.all(spacingMedium),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.8)],
+                      colors: [color, color.withValues(alpha: 0.8)],
                     ),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     boxShadow: [
                       BoxShadow(
-                        color: color.withOpacity(0.4),
+                        color: color.withValues(alpha: 0.4),
                         blurRadius: 12,
                         offset: Offset(0, 4),
                       ),
@@ -372,7 +370,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                       Text(
                         description,
                         style: caption.copyWith(
-                          color: white.withOpacity(0.7),
+                          color: white.withValues(alpha: 0.7),
                           fontSize: 13,
                         ),
                       ),

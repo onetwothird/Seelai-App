@@ -1,6 +1,5 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/location.dart
 
-// ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -37,20 +36,20 @@ class LocationSection extends StatelessWidget {
         boxShadow: isDarkMode
             ? [
                 BoxShadow(
-                  color: primary.withOpacity(0.1),
+                  color: primary.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: Offset(0, 8),
                 ),
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 16,
                   offset: Offset(0, 4),
                 ),
               ],
         border: isDarkMode
-            ? Border.all(color: primary.withOpacity(0.2), width: 1)
+            ? Border.all(color: primary.withValues(alpha: 0.2), width: 1)
             : null,
       ),
       child: Column(
@@ -106,28 +105,28 @@ class LocationSection extends StatelessWidget {
         boxShadow: isDarkMode
             ? [
                 BoxShadow(
-                  color: error.withOpacity(0.1),
+                  color: error.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: Offset(0, 8),
                 ),
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 16,
                   offset: Offset(0, 4),
                 ),
               ],
         border: isDarkMode
-            ? Border.all(color: error.withOpacity(0.2), width: 1)
-            : Border.all(color: error.withOpacity(0.1), width: 1),
+            ? Border.all(color: error.withValues(alpha: 0.2), width: 1)
+            : Border.all(color: error.withValues(alpha: 0.1), width: 1),
       ),
       child: Column(
         children: [
           Container(
             padding: EdgeInsets.all(spacingLarge),
             decoration: BoxDecoration(
-              color: error.withOpacity(0.1),
+              color: error.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(

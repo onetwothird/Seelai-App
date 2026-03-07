@@ -1,10 +1,8 @@
 // File: lib/roles/visually_impaired/home/widgets/vi_notifications_bottom_sheet.dart
-// ignore_for_file: unnecessary_import, deprecated_member_use
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
-import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
 class ViNotificationsBottomSheet extends StatefulWidget {
@@ -61,7 +59,7 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.3),
+                color: Colors.grey.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -118,7 +116,7 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.notifications_off_outlined, size: 60, color: subTextColor.withOpacity(0.5)),
+                          Icon(Icons.notifications_off_outlined, size: 60, color: subTextColor.withValues(alpha: 0.5)),
                           const SizedBox(height: 16),
                           Text("No notifications yet", style: TextStyle(color: subTextColor, fontSize: 16)),
                         ],
@@ -209,7 +207,7 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
     }
 
     final timeAgo = _getTimeAgo(request.responseTime ?? request.timestamp);
-    final unreadBgColor = widget.isDarkMode ? Colors.blueAccent.withOpacity(0.1) : Colors.blue.withOpacity(0.05);
+    final unreadBgColor = widget.isDarkMode ? Colors.blueAccent.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.05);
 
     return Semantics(
       label: 'Notification: $caretakerName $actionText ${request.requestType}. $timeAgo.',
