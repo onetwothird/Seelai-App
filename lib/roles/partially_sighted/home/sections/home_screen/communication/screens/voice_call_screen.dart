@@ -170,18 +170,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.lock_rounded, color: _primaryColor.withValues(alpha: 0.8), size: 14),
-                    const SizedBox(width: 8),
-                    Text(
-                      'End-to-end encrypted WebRTC',
-                      style: caption.copyWith(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
-                ),
                 const Spacer(),
                 AnimatedBuilder(
                   animation: _pulseController,
