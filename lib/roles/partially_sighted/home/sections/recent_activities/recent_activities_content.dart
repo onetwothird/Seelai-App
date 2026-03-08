@@ -378,20 +378,21 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     }).toList();
   }
 
-  Widget _buildDetectionCard(Map<String, dynamic> detection) {
+ Widget _buildDetectionCard(Map<String, dynamic> detection) {
     final type = detection['type'] as String;
-    final icon = detection['icon'] as IconData;
     final color = detection['color'] as Color;
     final timestamp = DateTime.parse(detection['timestamp'] as String);
     final timeAgo = _getTimeAgo(timestamp);
 
     String title = '';
     String description = '';
+    String detectedLabel = ''; // This replaces your icon
 
     switch (type) {
       case 'face':
         final faceCount = detection['faceCount'] as int;
         title = 'Face Detection';
+        detectedLabel = 'Face';
         description = 'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
         break;
       case 'object':
@@ -399,18 +400,34 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         final objects = detection['objects'] as List? ?? [];
         title = 'Object Detection';
         if (objects.isNotEmpty) {
-          final objectNames = objects.take(3).map((o) => (o as Map)['label']).join(', ');
-          description = objectCount > 3 
-              ? '$objectNames, +${objectCount - 3} more'
-              : objectNames;
+          final firstObject = objects.first['label'] as String;
+          // Capitalize the first letter of the detected object
+          detectedLabel = '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
+          
+          if (objectCount > 1) {
+            final otherNames = objects.skip(1).take(2).map((o) => (o as Map)['label']).join(', ');
+            description = objectCount > 3 
+                ? '+$otherNames, +${objectCount - 3} more'
+                : '+$otherNames';
+          } else {
+             // Show confidence if there are no other objects to list
+             final conf = objects.first['confidence'];
+             if (conf != null) {
+                description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
+             } else {
+                description = 'Detected 1 object';
+             }
+          }
         } else {
-          description = 'Detected $objectCount ${objectCount == 1 ? 'object' : 'objects'}';
+          detectedLabel = 'Object';
+          description = 'Detected 0 objects';
         }
         break;
       case 'text':
         final textBlockCount = detection['textBlockCount'] as int? ?? 0;
         final text = detection['text'] as String? ?? '';
         title = 'Text Scan';
+        detectedLabel = 'Text';
         description = text.length > 50 ? '${text.substring(0, 50)}...' : text;
         if (description.isEmpty) {
           description = 'Scanned $textBlockCount ${textBlockCount == 1 ? 'block' : 'blocks'}';
@@ -464,16 +481,27 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
               children: [
                 Row(
                   children: [
+                    // 👇 THIS CONTAINER REPLACES THE ICON WIDGET
                     Container(
-                      padding: EdgeInsets.all(spacingSmall),
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        maxWidth: 80, // Prevents extremely long words from breaking layout
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: color.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(radiusMedium),
                       ),
-                      child: Icon(
-                        icon,
-                        color: color,
-                        size: 24,
+                      child: Text(
+                        detectedLabel,
+                        style: bodyBold.copyWith(
+                          color: color,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     SizedBox(width: spacingMedium),
