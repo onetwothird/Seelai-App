@@ -472,7 +472,6 @@ class FaceDetectionController {
   Size? get previewSize => cameraService.controller?.value.previewSize;
 }
 
-/// State object for face detection
 class FaceDetectionState {
   final List<Map<String, dynamic>> recognitions;
   final bool isDetecting;
