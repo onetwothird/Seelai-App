@@ -22,7 +22,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
 
   String? _selectedRole;
   
-  // Consistent color matching OnboardingScreen
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
