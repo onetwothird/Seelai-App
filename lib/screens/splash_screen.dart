@@ -19,7 +19,6 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
   void initState() {
     super.initState();
 
-    // Initialize fade animation controller
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -32,7 +31,6 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
       ),
     );
 
-    // Navigate after splash duration
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
         _fadeController.forward().then((_) {
@@ -66,7 +64,7 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // CHANGED: Background is now White Only
+      backgroundColor: Colors.white, 
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: Center(
