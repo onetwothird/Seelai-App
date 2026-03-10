@@ -1,3 +1,4 @@
+// File: lib/firebase/cloudinary_service.dart
 
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -10,36 +11,28 @@ class CloudinaryService {
   static const String cloudName = 'dpkko2k4u';
   static const String apiKey = '473668786762914';
   static const String apiSecret = 'Kt4OIMrujtPtb2kGmn6nolTe4kc';
-  static const String uploadPreset = 'profile_images'; // The preset we created
   
-  /// Upload image to Cloudinary
-  /// Returns the secure URL of the uploaded image
+  static const String uploadPresetProfile = 'profile_images'; 
+  static const String uploadPresetDetections = 'detection_images'; // Create this in Cloudinary!
+  
+  /// Upload profile image to Cloudinary
   Future<String?> uploadProfileImage(File imageFile, String userId, String role) async {
     try {
-      // Create multipart request
       var request = http.MultipartRequest(
         'POST',
         Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
       );
       
-      // Add fields
-      request.fields['upload_preset'] = uploadPreset;
-      request.fields['folder'] = 'seelai_profiles/$role'; // Organize by role
-      request.fields['public_id'] = userId; // Use userId as filename
+      request.fields['upload_preset'] = uploadPresetProfile;
+      request.fields['folder'] = 'seelai_profiles/$role'; 
+      request.fields['public_id'] = userId; 
       
-      // Add image file
-      request.files.add(
-        await http.MultipartFile.fromPath('file', imageFile.path),
-      );
-      
-      // Send request
+      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
       var response = await request.send();
       
       if (response.statusCode == 200) {
         var responseData = await response.stream.bytesToString();
         var jsonResponse = json.decode(responseData);
-        
-        // Return the secure URL
         return jsonResponse['secure_url'] as String;
       } else {
         var responseData = await response.stream.bytesToString();
@@ -50,13 +43,41 @@ class CloudinaryService {
     }
   }
   
- 
- Future<bool> deleteProfileImage(String userId, String role) async {
+  /// Upload a detection snapshot to Cloudinary
+  Future<String?> uploadDetectionImage(File imageFile, String userId, String detectionType) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
+      );
+      
+      // Use a preset that doesn't crop images into circles
+      request.fields['upload_preset'] = uploadPresetDetections; 
+      
+      // ✅ This creates the dedicated folder structure: seelai_detections/object/user123
+      request.fields['folder'] = 'seelai_detections/$detectionType/$userId'; 
+      
+      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      var response = await request.send();
+      
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonResponse = json.decode(responseData);
+        return jsonResponse['secure_url'] as String;
+      } else {
+        debugPrint('Upload failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Failed to upload detection to Cloudinary: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteProfileImage(String userId, String role) async {
     try {
       final publicId = 'seelai_profiles/$role/$userId';
       final timestamp = (DateTime.now().millisecondsSinceEpoch / 1000).round().toString();
-      
-      // Generate signature for authenticated request
       final signature = _generateSignature(publicId, timestamp);
       
       final response = await http.post(
@@ -75,13 +96,11 @@ class CloudinaryService {
       }
       return false;
     } catch (e) {
-      // THIS IS THE FIX: Swapped print for debugPrint
       debugPrint('Failed to delete from Cloudinary: $e');
       return false;
     }
   }
 
-  /// Generate SHA-1 signature for authenticated requests
   String _generateSignature(String publicId, String timestamp) {
     final stringToSign = 'public_id=$publicId&timestamp=$timestamp$apiSecret';
     final bytes = utf8.encode(stringToSign);
@@ -90,5 +109,4 @@ class CloudinaryService {
   }
 }
 
-// Create a singleton instance
 final CloudinaryService cloudinaryService = CloudinaryService();
