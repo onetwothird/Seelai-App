@@ -14,6 +14,7 @@ class TextScanService {
     required String userId,
     required String scannedText,
     required int textBlockCount,
+    String? imageUrl,
     String? sourceType,
     Map<String, dynamic>? metadata,
   }) async {
@@ -37,6 +38,7 @@ class TextScanService {
         'text': scannedText,
         'textBlockCount': textBlockCount,
         'sourceType': sourceType ?? 'document',
+        'imageUrl': imageUrl,
         'timestamp': DateTime.now().toIso8601String(),
         'wordCount': scannedText.split(' ').length,
         'characterCount': scannedText.length,
