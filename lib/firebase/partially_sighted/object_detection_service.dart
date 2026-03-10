@@ -13,6 +13,7 @@ class ObjectDetectionService {
     required String userId,
     required List<Map<String, dynamic>> detectedObjects,
     required int objectCount,
+    String? imageUrl,
     Map<String, dynamic>? metadata,
   }) async {
     try {
@@ -51,6 +52,7 @@ class ObjectDetectionService {
         'userId': userId,
         'objects': objectsList,
         'objectCount': objectCount,
+        'imageUrl': imageUrl,
         'timestamp': DateTime.now().toIso8601String(),
         'metadata': metadata ?? {},
         'createdAt': ServerValue.timestamp,
