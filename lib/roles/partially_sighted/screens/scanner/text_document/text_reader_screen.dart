@@ -1,12 +1,14 @@
 // File: lib/roles/visually_impaired/screens/scanner/text_document/text_reader_screen.dart
 
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart'; 
+import 'package:seelai_app/services/cloudinary_service.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -222,22 +224,6 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       if (rect.top < minY) minY = rect.top;
       if (rect.right > maxX) maxX = rect.right;
       if (rect.bottom > maxY) maxY = rect.bottom;
-      
-      for (var line in block.lines) {
-        final lineRect = line.boundingBox;
-        if (lineRect.left < minX) minX = lineRect.left;
-        if (lineRect.top < minY) minY = lineRect.top;
-        if (lineRect.right > maxX) maxX = lineRect.right;
-        if (lineRect.bottom > maxY) maxY = lineRect.bottom;
-        
-        for (var element in line.elements) {
-          final elemRect = element.boundingBox;
-          if (elemRect.left < minX) minX = elemRect.left;
-          if (elemRect.top < minY) minY = elemRect.top;
-          if (elemRect.right > maxX) maxX = elemRect.right;
-          if (elemRect.bottom > maxY) maxY = elemRect.bottom;
-        }
-      }
     }
     
     final width = maxX - minX;
@@ -274,7 +260,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     );
   }
 
-  Future<void> _saveScannedTextToFirebase(String text, int blockCount) async {
+  Future<void> _saveScannedTextToFirebase(String text, int blockCount, {String? imageUrl}) async {
     try {
       final userId = authService.value.currentUser?.uid;
       if (userId == null) {
@@ -287,6 +273,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
         scannedText: text,
         textBlockCount: blockCount,
         sourceType: 'document',
+        imageUrl: imageUrl,
         metadata: {
           'flashUsed': _isFlashOn,
           'lowLight': _isLowLight,
@@ -341,7 +328,17 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             _hasReadText = true;
             _readingCompleted = false;
             
-            await _saveScannedTextToFirebase(extractedText, recognizedText.blocks.length);
+            String? uploadedImageUrl;
+            final userId = authService.value.currentUser?.uid;
+            if (userId != null) {
+              uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
+                File(image.path), 
+                userId, 
+                'text'
+              );
+            }
+            
+            await _saveScannedTextToFirebase(extractedText, recognizedText.blocks.length, imageUrl: uploadedImageUrl);
             
             await _flutterTts.speak(extractedText);
             
@@ -378,7 +375,6 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      // FIX: Renamed builder context to modalContext to avoid shadowing
       builder: (modalContext) => Container(
         height: screenHeight * 0.8,
         decoration: BoxDecoration(
@@ -413,7 +409,6 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                     ),
                   ),
                   IconButton(
-                    // FIX: pop using modalContext
                     onPressed: () => Navigator.pop(modalContext),
                     icon: Icon(
                       Icons.close_rounded,
