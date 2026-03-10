@@ -1,12 +1,15 @@
+// File: lib/roles/visually_impaired/models/object_detection_controller.dart
+
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter_vision/flutter_vision.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:seelai_app/services/cloudinary_service.dart';
 
-/// Controller that handles all object detection logic
 class ObjectDetectionController {
   final CameraService cameraService;
   final Function(ObjectDetectionState) onStateChanged;
@@ -14,7 +17,6 @@ class ObjectDetectionController {
   late FlutterVision _vision;
   late FlutterTts _flutterTts;
   
-  // Detection state
   List<Map<String, dynamic>> recognitions = [];
   bool isDetecting = false;
   bool isModelLoaded = false;
@@ -23,22 +25,18 @@ class ObjectDetectionController {
   bool isStreamRunning = false;
   bool isDisposing = false;
   
-  // Performance tracking
   int frameCount = 0;
   DateTime? lastFrameTime;
   double fps = 0.0;
   
-  // Flash/brightness related
   bool isLowLight = false;
   bool isFlashOn = false;
   bool showFlashIndicator = false;
   Timer? _flashIndicatorTimer;
   
-  // Detection tracking
   String lastDetectedObjects = '';
-  DateTime _lastSpeechTime = DateTime.now(); // Controls the "Again and Again" timing
+  DateTime _lastSpeechTime = DateTime.now();
   
-  // Brightness monitoring
   int _darkFrameCount = 0;
   int _brightFrameCount = 0;
 
@@ -47,21 +45,15 @@ class ObjectDetectionController {
     required this.onStateChanged,
   });
 
-  /// Initialize the controller
   Future<void> initialize() async {
     _vision = FlutterVision();
     _flutterTts = FlutterTts();
     
     await _initializeTts();
-    
-    // Start loading model and detection immediately
     loadModel();
-    
-    // Announce mode without blocking
     _announceMode();
   }
 
-  /// Cleanup all resources
   Future<void> dispose() async {
     isDisposing = true;
     await _cleanupResources();
@@ -70,7 +62,6 @@ class ObjectDetectionController {
   Future<void> _cleanupResources() async {
     try {
       _flashIndicatorTimer?.cancel();
-      
       await _flutterTts.stop();
       await turnOffFlash();
       
@@ -80,32 +71,20 @@ class ObjectDetectionController {
         try {
           await cameraService.controller!.stopImageStream();
           isStreamRunning = false;
-        } catch (e) {
-          // Silent fail
-        }
+        } catch (_) { /* Ignored */ }
       }
       
       await Future.delayed(Duration(milliseconds: 100));
       
       try {
         await _vision.closeYoloModel();
-      } catch (e) {
-        // Silent fail
-      }
-    } catch (e) {
-      // Silent fail
-    }
+      } catch (_) { /* Ignored */ }
+    } catch (_) { /* Ignored */ }
   }
 
   Future<void> _initializeTts() async {
     try {
-      // ---------------------------------------------------------------
-      // THESIS FIX: Set Language to Filipino ('fil-PH')
-      // This ensures 'Takure', 'Lamesa', 'Kalan' are pronounced correctly.
-      // If you use 'en-US', it will try to say them with an American accent.
-      // ---------------------------------------------------------------
       await _flutterTts.setLanguage("fil-PH"); 
-      
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -133,41 +112,25 @@ class ObjectDetectionController {
           _notifyStateChanged();
         }
       });
-    } catch (e) {
-      // Silent fail
-    }
+    } catch (_) { /* Ignored */ }
   }
 
   void _announceMode() {
     Future.delayed(Duration(milliseconds: 300), () {
       if (!isDisposing) {
-        // Since we switched to Filipino, English sentences might sound
-        // slightly accented, but still understandable.
         _flutterTts.speak('Object detection mode activated.');
       }
     });
   }
 
-  /// Load the YOLO model
   Future<void> loadModel() async {
     try {
       await _vision.loadYoloModel(
         labels: 'assets/object_model/labels.txt',
         modelPath: 'assets/object_model/seelai-objects.tflite',
         modelVersion: "yolov8",
-        
-        // -----------------------------------------------------------
-        // THESIS FIX: Enable Quantization Support
-        // This ensures the plugin correctly interprets the 8-bit integer outputs
-        // from your quantized model.
         quantization: true, 
-        
-        // THESIS FIX: Disable GPU for Int8 Models
-        // Int8 models run faster on CPU using ARM NEON instructions.
-        // Forcing GPU on an Int8 model causes slow "de-quantization".
         useGpu: false, 
-        // -----------------------------------------------------------
-        
         numThreads: 4,
       );
       
@@ -176,43 +139,29 @@ class ObjectDetectionController {
         _notifyStateChanged();
         await startObjectDetection();
       }
-    } catch (e) {
-      // THIS IS THE FIX: Replaced print with debugPrint
-      debugPrint('Model loading error: $e');
-    }
+    } catch (_) { /* Ignored */ }
   }
 
-  /// Start the object detection stream
   Future<void> startObjectDetection() async {
     if (isDisposing) return;
     if (!cameraService.isInitialized || cameraService.controller == null) return;
     if (!isModelLoaded) return;
     
-    if (cameraService.controller!.value.isStreamingImages) {
-      return;
-    }
+    if (cameraService.controller!.value.isStreamingImages) return;
 
     try {
       await cameraService.controller!.startImageStream((image) {
         if (!isDetecting && isModelLoaded && !isDisposing) {
           isDetecting = true;
-          
-          // 1. Check brightness FIRST on every frame
           _checkBrightnessAndManageFlash(image);
-
-          // 2. Run Detection
           detectObjects(image);
         }
       });
       isStreamRunning = true;
       _notifyStateChanged();
-    } catch (e) {
-      // THIS IS THE FIX: Replaced print with debugPrint
-      debugPrint('Stream start error: $e');
-    }
+    } catch (_) { /* Ignored */ }
   }
 
-  /// Detect objects in the camera frame
   Future<void> detectObjects(CameraImage image) async {
     if (isDisposing) {
       isDetecting = false;
@@ -222,21 +171,20 @@ class ObjectDetectionController {
     final now = DateTime.now();
 
     try {
-      // THESIS: High Accuracy Settings
       final result = await _vision.yoloOnFrame(
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.4,
-        confThreshold: 0.6, // Strict confidence
-        classThreshold: 0.6, // Strict class matching
+        confThreshold: 0.6, 
+        classThreshold: 0.6, 
       );
 
       if (!isDisposing) {
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.6; // Only accept > 60%
+            return confidence >= 0.6; 
           }
           return false;
         }).toList();
@@ -245,66 +193,74 @@ class ObjectDetectionController {
 
         if (lastFrameTime != null) {
           final elapsed = now.difference(lastFrameTime!).inMilliseconds;
-          if (elapsed > 0) {
-            fps = 1000 / elapsed;
-          }
+          if (elapsed > 0) fps = 1000 / elapsed;
         }
         lastFrameTime = now;
 
         _notifyStateChanged();
 
-        // Auto-detect and read objects
         if (recognitions.isNotEmpty) {
           await _detectAndReadObjects();
         }
       }
-    } catch (e) {
-      // THIS IS THE FIX: Replaced print with debugPrint
-      debugPrint('Detection error: $e');
-    }
+    } catch (_) { /* Ignored */ }
 
     isDetecting = false;
   }
 
-  /// Detect and read objects automatically
   Future<void> _detectAndReadObjects() async {
     if (isDisposing) return;
     
     try {
-      final detectedObjectsText = recognitions
-          .map((r) => '${r['tag']}')
-          .join(', ');
+      final detectedObjectsText = recognitions.map((r) => '${r['tag']}').join(', ');
       
       if (detectedObjectsText.isNotEmpty) {
         final timeSinceLastSpeech = DateTime.now().difference(_lastSpeechTime).inMilliseconds;
-        const speechInterval = 2500; // 2.5 seconds delay between repeats
+        const speechInterval = 2500; 
         
         if (timeSinceLastSpeech > speechInterval && !isReading) {
           
           lastDetectedObjects = detectedObjectsText;
           readingCompleted = false;
-          _lastSpeechTime = DateTime.now(); // Reset timer
+          _lastSpeechTime = DateTime.now(); 
           
-          // Save to Firebase
-          await _saveDetectedObjectsToFirebase(recognitions.length);
+          String? uploadedImageUrl;
+          final controller = cameraService.controller;
+          final userId = authService.value.currentUser?.uid;
+
+          if (controller != null && userId != null) {
+            try {
+              if (controller.value.isStreamingImages) {
+                await controller.stopImageStream();
+                isStreamRunning = false;
+              }
+              
+              final xFile = await controller.takePicture();
+              
+              startObjectDetection();
+              
+              uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
+                File(xFile.path), 
+                userId, 
+                'object'
+              );
+            } catch (_) {
+              if (!isStreamRunning) {
+                startObjectDetection();
+              }
+            }
+          }
           
-          // Speak
-          // Note: Since we set language to 'fil-PH', this will pronounce
-          // "Nakakakita ako ng [Object]" naturally if you translate the prefix, 
-          // or just pronounce the Tagalog label correctly.
+          await _saveDetectedObjectsToFirebase(recognitions.length, imageUrl: uploadedImageUrl);
           await _flutterTts.speak('I see $detectedObjectsText');
           
           _notifyStateChanged();
         }
       } 
-    } catch (e) {
-      // THIS IS THE FIX: Replaced print with debugPrint
-      debugPrint('Read objects error: $e');
-    }
+    } catch (_) { /* Ignored */ }
   }
 
-  /// Save detected objects to Firebase
-  Future<void> _saveDetectedObjectsToFirebase(int objectCount) async {
+  Future<void> _saveDetectedObjectsToFirebase(int objectCount, {String? imageUrl}) async {
     try {
       final userId = authService.value.currentUser?.uid;
       if (userId == null) return;
@@ -313,6 +269,7 @@ class ObjectDetectionController {
         userId: userId,
         detectedObjects: recognitions,
         objectCount: objectCount,
+        imageUrl: imageUrl,
         metadata: {
           'flashUsed': isFlashOn,
           'lowLight': isLowLight,
@@ -320,13 +277,9 @@ class ObjectDetectionController {
           'deviceInfo': 'mobile_camera',
         },
       );
-    } catch (e) {
-      // THIS IS THE FIX: Replaced print with debugPrint
-      debugPrint('Firebase save error: $e');
-    }
+    } catch (_) { /* Ignored */ }
   }
 
-  /// Calculate pixel brightness directly from camera stream
   void _checkBrightnessAndManageFlash(CameraImage image) {
     if (isDisposing) return;
 
@@ -341,7 +294,6 @@ class ObjectDetectionController {
     }
 
     double averageBrightness = totalBrightness / sampleCount;
-    
     const int kDarkThreshold = 40; 
     const int kBrightThreshold = 150; 
     
@@ -372,7 +324,6 @@ class ObjectDetectionController {
     }
   }
 
-  /// Turn on flash/torch
   Future<void> turnOnFlash() async {
     try {
       final controller = cameraService.controller;
@@ -383,7 +334,6 @@ class ObjectDetectionController {
         showFlashIndicator = true;
         
         _notifyStateChanged();
-        
         _flutterTts.speak('Turning on light.');
         
         _flashIndicatorTimer?.cancel();
@@ -392,13 +342,9 @@ class ObjectDetectionController {
           _notifyStateChanged();
         });
       }
-    } catch (e) {
-      // THIS IS THE FIX: Replaced print with debugPrint
-      debugPrint('Flash on error: $e');
-    }
+    } catch (_) { /* Ignored */ }
   }
 
-  /// Turn off flash/torch
   Future<void> turnOffFlash() async {
     try {
       final controller = cameraService.controller;
@@ -410,13 +356,9 @@ class ObjectDetectionController {
         _flashIndicatorTimer?.cancel();
         _notifyStateChanged();
       }
-    } catch (e) {
-      // THIS IS THE FIX: Replaced print with debugPrint
-      debugPrint('Flash off error: $e');
-    }
+    } catch (_) { /* Ignored */ }
   }
 
-  /// Toggle flash manually
   Future<void> toggleFlashManually() async {
     if (isFlashOn) {
       await turnOffFlash();
@@ -426,7 +368,6 @@ class ObjectDetectionController {
     }
   }
 
-  /// Notify state changed
   void _notifyStateChanged() {
     if (!isDisposing) {
       onStateChanged(ObjectDetectionState(
@@ -444,11 +385,9 @@ class ObjectDetectionController {
     }
   }
 
-  /// Get current camera preview size
   Size? get previewSize => cameraService.controller?.value.previewSize;
 }
 
-/// State object for object detection
 class ObjectDetectionState {
   final List<Map<String, dynamic>> recognitions;
   final bool isDetecting;
