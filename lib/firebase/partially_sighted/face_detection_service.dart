@@ -13,6 +13,7 @@ class FaceDetectionService {
     required String userId,
     required List<Map<String, dynamic>> detectedFaces,
     required int faceCount,
+    String? imageUrl,
     Map<String, dynamic>? metadata,
   }) async {
     try {
@@ -51,6 +52,7 @@ class FaceDetectionService {
         'userId': userId,
         'faces': facesList,
         'faceCount': faceCount,
+        'imageUrl': imageUrl,
         'timestamp': DateTime.now().toIso8601String(),
         'metadata': metadata ?? {},
         'createdAt': ServerValue.timestamp,
