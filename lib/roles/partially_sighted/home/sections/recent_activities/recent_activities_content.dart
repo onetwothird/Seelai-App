@@ -383,10 +383,11 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     final color = detection['color'] as Color;
     final timestamp = DateTime.parse(detection['timestamp'] as String);
     final timeAgo = _getTimeAgo(timestamp);
+    final imageUrl = detection['imageUrl'] as String?;
 
     String title = '';
     String description = '';
-    String detectedLabel = ''; // This replaces your icon
+    String detectedLabel = ''; 
 
     switch (type) {
       case 'face':
@@ -401,7 +402,6 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         title = 'Object Detection';
         if (objects.isNotEmpty) {
           final firstObject = objects.first['label'] as String;
-          // Capitalize the first letter of the detected object
           detectedLabel = '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
           
           if (objectCount > 1) {
@@ -410,7 +410,6 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                 ? '+$otherNames, +${objectCount - 3} more'
                 : '+$otherNames';
           } else {
-             // Show confidence if there are no other objects to list
              final conf = objects.first['confidence'];
              if (conf != null) {
                 description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
@@ -427,8 +426,8 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         final textBlockCount = detection['textBlockCount'] as int? ?? 0;
         final text = detection['text'] as String? ?? '';
         title = 'Text Scan';
-        detectedLabel = 'Text';
-        description = text.length > 50 ? '${text.substring(0, 50)}...' : text;
+        detectedLabel = 'Document';
+        description = text.length > 40 ? '${text.substring(0, 40)}...' : text;
         if (description.isEmpty) {
           description = 'Scanned $textBlockCount ${textBlockCount == 1 ? 'block' : 'blocks'}';
         }
@@ -436,7 +435,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     }
 
     return Semantics(
-      label: '$title. $description. Scanned $timeAgo',
+      label: '$detectedLabel. $title. $description. Scanned $timeAgo',
       button: true,
       hint: 'Double tap to view details',
       child: Material(
@@ -474,108 +473,104 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                       color: color.withValues(alpha: 0.2),
                       width: 1,
                     )
-                  : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // 👇 THIS CONTAINER REPLACES THE ICON WIDGET
-                    Container(
-                      constraints: const BoxConstraints(
-                        minWidth: 48,
-                        maxWidth: 80, // Prevents extremely long words from breaking layout
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(radiusMedium),
-                      ),
-                      child: Text(
-                        detectedLabel,
-                        style: bodyBold.copyWith(
-                          color: color,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  : Border.all(
+                      color: widget.theme.subtextColor.withOpacity(0.1),
+                      width: 1,
                     ),
-                    SizedBox(width: spacingMedium),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 👇 NEW: Image Thumbnail replacing the Text Chip
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(radiusMedium),
+                    border: Border.all(
+                      color: color.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            detection['icon'] as IconData? ?? Icons.image_rounded,
+                            color: color,
+                            size: 30,
+                          ),
+                        )
+                      : Icon(
+                          detection['icon'] as IconData? ?? Icons.image_rounded,
+                          color: color,
+                          size: 30,
+                        ),
+                ),
+                SizedBox(width: spacingMedium),
+                
+                // Text Details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            title,
-                            style: bodyBold.copyWith(
-                              fontSize: 15,
-                              color: widget.theme.textColor,
-                              fontWeight: FontWeight.w700,
+                          Expanded(
+                            child: Text(
+                              detectedLabel, // E.g., "Remote", "Lamesa"
+                              style: h3.copyWith(
+                                fontSize: 16,
+                                color: widget.theme.textColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(radiusSmall),
-                              border: Border.all(
-                                color: color.withValues(alpha: 0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              _getTypeLabel(type),
-                              style: caption.copyWith(
-                                fontSize: 11,
-                                color: color,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          Text(
+                            timeAgo,
+                            style: caption.copyWith(
+                              fontSize: 11,
+                              color: widget.theme.subtextColor.withOpacity(0.8),
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: widget.theme.subtextColor.withOpacity(0.5),
-                      size: 24,
-                    ),
-                  ],
-                ),
-                SizedBox(height: spacingMedium),
-                Text(
-                  description,
-                  style: caption.copyWith(
-                    fontSize: 13,
-                    color: widget.theme.subtextColor,
-                    height: 1.5,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: spacingSmall),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      color: widget.theme.subtextColor.withOpacity(0.7),
-                      size: 14,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      timeAgo,
-                      style: caption.copyWith(
-                        fontSize: 11,
-                        color: widget.theme.subtextColor.withOpacity(0.7),
-                        fontWeight: FontWeight.w500,
+                      SizedBox(height: 4),
+                      Text(
+                        title, // E.g., "Object Detection"
+                        style: caption.copyWith(
+                          fontSize: 12,
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
+                      SizedBox(height: 4),
+                      Text(
+                        description,
+                        style: body.copyWith(
+                          fontSize: 13,
+                          color: widget.theme.subtextColor,
+                          height: 1.3,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: spacingSmall),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: widget.theme.subtextColor.withOpacity(0.4),
+                  size: 24,
                 ),
               ],
             ),
@@ -780,19 +775,6 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         ],
       ),
     );
-  }
-
-  String _getTypeLabel(String type) {
-    switch (type) {
-      case 'face':
-        return 'Face Scan';
-      case 'object':
-        return 'Object Scan';
-      case 'text':
-        return 'Text Scan';
-      default:
-        return 'Detection';
-    }
   }
 
   String _getTimeAgo(DateTime timestamp) {
