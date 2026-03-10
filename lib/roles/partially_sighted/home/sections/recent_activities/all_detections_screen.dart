@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'detection_detail_screen.dart'; // ✅ ADD THIS IMPORT
+import 'detection_detail_screen.dart';
 
 class AllDetectionsScreen extends StatefulWidget {
   final List<Map<String, dynamic>> detections;
@@ -76,7 +76,7 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
           ),
         ),
         title: Text(
-          'All Detections',
+          'Detections Gallery',
           style: h2.copyWith(
             fontSize: 20,
             color: widget.theme.textColor,
@@ -98,11 +98,11 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
 
           // Detection count
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+            padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: spacingSmall),
             child: Row(
               children: [
                 Text(
-                  '${_filteredDetections.length} ${_filteredDetections.length == 1 ? 'detection' : 'detections'}',
+                  '${_filteredDetections.length} ${_filteredDetections.length == 1 ? 'Record' : 'Records'} found',
                   style: bodyBold.copyWith(
                     fontSize: 14,
                     color: widget.theme.subtextColor,
@@ -113,26 +113,10 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
             ),
           ),
 
-          SizedBox(height: spacingMedium),
-
-          // Detections list
+          // Detections Feed
           Expanded(
             child: AnimatedSwitcher(
-              duration: Duration(milliseconds: 300),
-              switchInCurve: Curves.easeInOut,
-              switchOutCurve: Curves.easeInOut,
-              transitionBuilder: (Widget child, Animation<double> animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: Offset(0, 0.05),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                );
-              },
+              duration: const Duration(milliseconds: 300),
               child: _filteredDetections.isEmpty
                   ? _buildEmptyState()
                   : ListView.builder(
@@ -141,28 +125,12 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                         left: width * 0.06,
                         right: width * 0.06,
                         bottom: spacingLarge,
+                        top: spacingMedium,
                       ),
                       itemCount: _filteredDetections.length,
                       itemBuilder: (context, index) {
                         final detection = _filteredDetections[index];
-                        return TweenAnimationBuilder<double>(
-                          duration: Duration(milliseconds: 300 + (index * 30)),
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, value, child) {
-                            return Opacity(
-                              opacity: value,
-                              child: Transform.translate(
-                                offset: Offset(0, 20 * (1 - value)),
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: EdgeInsets.only(bottom: spacingMedium),
-                            child: _buildDetectionCard(detection),
-                          ),
-                        );
+                        return _buildVisualFeedCard(detection);
                       },
                     ),
             ),
@@ -187,59 +155,48 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
           final isSelected = _selectedFilter == filter['label'];
           return Padding(
             padding: EdgeInsets.only(right: spacingSmall),
-            child: Semantics(
-              label: '${filter['label']} filter',
-              button: true,
-              selected: isSelected,
-              hint: 'Double tap to filter by ${filter['label']}',
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    setState(() {
-                      _selectedFilter = filter['label'] as String;
-                      _updateFilteredDetections();
-                    });
-                  },
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _selectedFilter = filter['label'] as String;
+                  _updateFilteredDetections();
+                });
+              },
+              borderRadius: BorderRadius.circular(radiusLarge),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: EdgeInsets.symmetric(
+                  horizontal: spacingMedium,
+                  vertical: spacingSmall,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected ? primary : widget.theme.cardColor,
                   borderRadius: BorderRadius.circular(radiusLarge),
-                  child: AnimatedContainer(
-                    duration: Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: spacingMedium,
-                      vertical: spacingSmall,
+                  border: Border.all(
+                    color: isSelected
+                        ? primary
+                        : widget.theme.subtextColor.withOpacity(0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      filter['icon'] as IconData,
+                      color: isSelected ? white : widget.theme.textColor,
+                      size: 18,
                     ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? primary
-                          : widget.theme.cardColor,
-                      borderRadius: BorderRadius.circular(radiusLarge),
-                      border: Border.all(
-                        color: isSelected
-                            ? primary
-                            : widget.theme.subtextColor.withOpacity(0.2),
-                        width: 1.5,
+                    SizedBox(width: spacingSmall),
+                    Text(
+                      filter['label'] as String,
+                      style: bodyBold.copyWith(
+                        fontSize: 14,
+                        color: isSelected ? white : widget.theme.textColor,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          filter['icon'] as IconData,
-                          color: isSelected ? white : widget.theme.textColor,
-                          size: 18,
-                        ),
-                        SizedBox(width: spacingSmall),
-                        Text(
-                          filter['label'] as String,
-                          style: bodyBold.copyWith(
-                            fontSize: 14,
-                            color: isSelected ? white : widget.theme.textColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -249,15 +206,17 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
     );
   }
 
-  Widget _buildDetectionCard(Map<String, dynamic> detection) {
+  // 👇 The entirely new, highly visual feed card design
+  Widget _buildVisualFeedCard(Map<String, dynamic> detection) {
     final type = detection['type'] as String;
     final color = detection['color'] as Color;
     final timestamp = DateTime.parse(detection['timestamp'] as String);
     final timeAgo = _getTimeAgo(timestamp);
+    final imageUrl = detection['imageUrl'] as String?;
 
     String title = '';
     String description = '';
-    String detectedLabel = '';
+    String detectedLabel = ''; 
 
     switch (type) {
       case 'face':
@@ -267,259 +226,205 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
         description = 'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
         break;
       case 'object':
-        final objectCount = detection['objectCount'] as int;
         final objects = detection['objects'] as List? ?? [];
         title = 'Object Detection';
         if (objects.isNotEmpty) {
           final firstObject = objects.first['label'] as String;
-          // Capitalize the first letter of the detected object
           detectedLabel = '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
-          
-          if (objectCount > 1) {
-            final otherNames = objects.skip(1).take(2).map((o) => (o as Map)['label']).join(', ');
-            description = objectCount > 3 
-                ? '+$otherNames, +${objectCount - 3} more'
-                : '+$otherNames';
-          } else {
-             // Show confidence if there are no other objects to list
-             final conf = objects.first['confidence'];
-             if (conf != null) {
-                description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
-             } else {
-                description = 'Detected 1 object';
-             }
-          }
+          final conf = objects.first['confidence'];
+          description = conf != null ? 'Confidence: ${(conf * 100).toStringAsFixed(1)}%' : 'Detected successfully';
         } else {
           detectedLabel = 'Object';
-          description = 'Detected 0 objects';
+          description = 'No objects found';
         }
         break;
       case 'text':
-        final textBlockCount = detection['textBlockCount'] as int? ?? 0;
         final text = detection['text'] as String? ?? '';
         title = 'Text Scan';
-        detectedLabel = 'Text';
+        detectedLabel = 'Document';
         description = text.length > 50 ? '${text.substring(0, 50)}...' : text;
-        if (description.isEmpty) {
-          description = 'Scanned $textBlockCount ${textBlockCount == 1 ? 'block' : 'blocks'}';
-        }
         break;
     }
 
-    return Semantics(
-      label: '$title. $description. Scanned $timeAgo',
-      button: true,
-      hint: 'Double tap to view details',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DetectionDetailScreen(
-                  detection: detection,
-                  isDarkMode: widget.isDarkMode,
-                  theme: widget.theme,
+    return Padding(
+      padding: EdgeInsets.only(bottom: spacingLarge),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetectionDetailScreen(
+                detection: detection,
+                isDarkMode: widget.isDarkMode,
+                theme: widget.theme,
+              ),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(radiusLarge),
+        child: Container(
+          decoration: BoxDecoration(
+            color: widget.theme.cardColor,
+            borderRadius: BorderRadius.circular(radiusLarge),
+            boxShadow: widget.isDarkMode ? [] : softShadow,
+            border: Border.all(
+              color: widget.theme.subtextColor.withOpacity(0.15),
+              width: 1,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Full Width Image Header
+              if (imageUrl != null && imageUrl.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: widget.theme.backgroundColor,
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Center(
+                          child: Icon(Icons.broken_image_rounded, size: 40, color: widget.theme.subtextColor),
+                        ),
+                      ),
+                      // Type Badge Overlay
+                      Positioned(
+                        top: spacingMedium,
+                        right: spacingMedium,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(radiusLarge),
+                            border: Border.all(color: color, width: 1),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(detection['icon'] as IconData, color: color, size: 14),
+                              SizedBox(width: 4),
+                              Text(
+                                title,
+                                style: caption.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    ],
+                  ),
+                )
+              else
+                // Fallback Header
+                Container(
+                  width: double.infinity,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0.05)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(detection['icon'] as IconData, size: 40, color: color.withValues(alpha: 0.5)),
+                  ),
+                ),
+
+              // 2. Info Section
+              Padding(
+                padding: EdgeInsets.all(spacingLarge),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            detectedLabel,
+                            style: h2.copyWith(
+                              fontSize: 18,
+                              color: widget.theme.textColor,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Text(
+                          timeAgo,
+                          style: caption.copyWith(
+                            fontSize: 12,
+                            color: widget.theme.subtextColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: spacingSmall),
+                    Text(
+                      description,
+                      style: body.copyWith(
+                        fontSize: 14,
+                        color: widget.theme.subtextColor,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-            );
-          },
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: Container(
-            padding: EdgeInsets.all(spacingMedium),
-            decoration: BoxDecoration(
-              color: widget.theme.cardColor,
-              borderRadius: BorderRadius.circular(radiusLarge),
-              boxShadow: widget.isDarkMode
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.1),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : softShadow,
-              border: widget.isDarkMode
-                  ? Border.all(
-                      color: color.withValues(alpha: 0.2),
-                      width: 1,
-                    )
-                  : null,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // 👇 THIS CONTAINER REPLACES THE ICON WIDGET
-                    Container(
-                      constraints: const BoxConstraints(
-                        minWidth: 48,
-                        maxWidth: 80, // Prevents extremely long words from breaking layout
-                      ),
-                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(radiusMedium),
-                      ),
-                      child: Text(
-                        detectedLabel,
-                        style: bodyBold.copyWith(
-                          color: color,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    SizedBox(width: spacingMedium),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: bodyBold.copyWith(
-                              fontSize: 15,
-                              color: widget.theme.textColor,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(radiusSmall),
-                              border: Border.all(
-                                color: color.withValues(alpha: 0.3),
-                                width: 1,
-                              ),
-                            ),
-                            child: Text(
-                              _getTypeLabel(type),
-                              style: caption.copyWith(
-                                fontSize: 11,
-                                color: color,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: widget.theme.subtextColor.withOpacity(0.5),
-                      size: 24,
-                    ),
-                  ],
-                ),
-                SizedBox(height: spacingMedium),
-                Text(
-                  description,
-                  style: caption.copyWith(
-                    fontSize: 13,
-                    color: widget.theme.subtextColor,
-                    height: 1.5,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: spacingSmall),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.access_time_rounded,
-                      color: widget.theme.subtextColor.withOpacity(0.7),
-                      size: 14,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      timeAgo,
-                      style: caption.copyWith(
-                        fontSize: 11,
-                        color: widget.theme.subtextColor.withOpacity(0.7),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
     );
   }
 
-
   Widget _buildEmptyState() {
     return Center(
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.06),
-        padding: EdgeInsets.symmetric(
-          vertical: spacingXLarge,
-          horizontal: spacingLarge,
-        ),
+        padding: EdgeInsets.symmetric(vertical: spacingXLarge, horizontal: spacingLarge),
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
           boxShadow: widget.isDarkMode ? [] : softShadow,
-          border: Border.all(
-            color: widget.theme.subtextColor.withOpacity(0.2),
-            width: 1,
-          ),
+          border: Border.all(color: widget.theme.subtextColor.withOpacity(0.2), width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.search_off_rounded,
-              color: widget.theme.subtextColor.withOpacity(0.5),
-              size: 48,
-            ),
+            Icon(Icons.search_off_rounded, color: widget.theme.subtextColor.withOpacity(0.5), size: 48),
             SizedBox(height: spacingMedium),
             Text(
-              'No $_selectedFilter detections',
-              style: bodyBold.copyWith(
-                fontSize: 16,
-                color: widget.theme.textColor,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
+              'No $_selectedFilter records',
+              style: bodyBold.copyWith(fontSize: 16, color: widget.theme.textColor, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: spacingSmall),
             Text(
-              'Try scanning with $_selectedFilter detection mode',
-              style: caption.copyWith(
-                fontSize: 13,
-                color: widget.theme.subtextColor,
-              ),
-              textAlign: TextAlign.center,
+              'Try scanning with $_selectedFilter mode',
+              style: caption.copyWith(fontSize: 13, color: widget.theme.subtextColor),
             ),
           ],
         ),
       ),
     );
-  }
-
-  String _getTypeLabel(String type) {
-    switch (type) {
-      case 'face':
-        return 'Face Detection';
-      case 'object':
-        return 'Object Detection';
-      case 'text':
-        return 'Text Scan';
-      default:
-        return 'Detection';
-    }
   }
 
   String _getTimeAgo(DateTime timestamp) {
@@ -531,12 +436,8 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
       return '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
     } else if (difference.inDays < 7) {
       return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
-    } else if (difference.inDays < 30) {
-      final weeks = (difference.inDays / 7).floor();
-      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
     } else {
-      final months = (difference.inDays / 30).floor();
-      return '$months ${months == 1 ? 'month' : 'months'} ago';
+      return '${(difference.inDays / 7).floor()} weeks ago';
     }
   }
 }
