@@ -52,10 +52,12 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  // Scroll detection for bottom nav
-  final ScrollController _scrollController = ScrollController();
+  // =========================================================
+  // FIX: Removed "late" keyword so it never crashes on hot reload again!
+  // =========================================================
+  List<ScrollController> _scrollControllers = [];
+  List<double> _lastScrollPositions = [];
   bool _isNavVisible = true;
-  double _lastScrollPosition = 0;
   
   // Stream subscription
   StreamSubscription? _requestsSubscription;
@@ -65,7 +67,15 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     super.initState();
     _initializeServices();
     _initializeAnimations();
-    _initializeScrollListener();
+    
+    // Initialize a scroll controller and position tracker for each tab
+    _lastScrollPositions = List.filled(5, 0.0);
+    _scrollControllers = List.generate(5, (index) {
+      final controller = ScrollController();
+      controller.addListener(() => _handleScroll(controller, index));
+      return controller;
+    });
+
     _requestPermissionsAndInitialize();
     _setupRequestListener();
   }
@@ -88,10 +98,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
     
     _animationController.forward();
-  }
-
-  void _initializeScrollListener() {
-    _scrollController.addListener(_handleScroll);
   }
 
   void _setupRequestListener() {
@@ -119,9 +125,14 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     });
   }
 
-  void _handleScroll() {
-    final currentScroll = _scrollController.position.pixels;
-    final scrollDelta = currentScroll - _lastScrollPosition;
+  void _handleScroll(ScrollController controller, int index) {
+    if (!controller.hasClients || _lastScrollPositions.isEmpty) return;
+    
+    // Only process scroll events for the currently active tab
+    if (index != _selectedIndex) return;
+
+    final currentScroll = controller.position.pixels;
+    final scrollDelta = currentScroll - _lastScrollPositions[index];
     
     const scrollThreshold = 10.0;
     
@@ -134,7 +145,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         });
       }
       
-      _lastScrollPosition = currentScroll;
+      _lastScrollPositions[index] = currentScroll;
     }
     
     if (currentScroll <= 0 && !_isNavVisible) {
@@ -241,7 +252,9 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   void dispose() {
     _cameraService.dispose();
     _animationController.dispose();
-    _scrollController.dispose();
+    for (var controller in _scrollControllers) {
+      controller.dispose();
+    }
     _requestsSubscription?.cancel();
     super.dispose();
   }
@@ -291,6 +304,16 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Bulletproof check: if hot reload destroyed controllers, recreate them instantly
+    if (_scrollControllers.isEmpty) {
+      _lastScrollPositions = List.filled(5, 0.0);
+      _scrollControllers = List.generate(5, (index) {
+        final controller = ScrollController();
+        controller.addListener(() => _handleScroll(controller, index));
+        return controller;
+      });
+    }
+
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     final userName = widget.userData['name'] ?? 'User';
@@ -299,9 +322,8 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    // WRAP EVERYTHING IN THE LISTENER
     return IncomingCallListener(
-      userRole: 'visually_impaired', // Correct role for this screen
+      userRole: 'visually_impaired',
       child: PopScope(
         canPop: false, 
         onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -375,59 +397,52 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    Widget content;
     final userId = widget.userData['uid'] as String? ?? '';
     
-    switch (_selectedIndex) {
-      case 0:
-        content = HomeContent(
-          cameraService: _cameraService,
-          permissionService: _permissionService,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          onNotificationUpdate: _updateNotification,
-          userData: widget.userData,
-        );
-        break;
-      case 1:
-        return SingleChildScrollView(
-          controller: _scrollController,
+    return IndexedStack(
+      index: _selectedIndex,
+      children: [
+        SingleChildScrollView(
+          controller: _scrollControllers[0],
+          physics: const ClampingScrollPhysics(),
+          child: HomeContent(
+            cameraService: _cameraService,
+            permissionService: _permissionService,
+            isDarkMode: _isDarkMode,
+            theme: theme,
+            onNotificationUpdate: _updateNotification,
+            userData: widget.userData,
+          ),
+        ),
+        SingleChildScrollView(
+          controller: _scrollControllers[1],
           physics: const ClampingScrollPhysics(),
           child: ContactsContent(
             isDarkMode: _isDarkMode,
             theme: theme,
             userData: widget.userData,
           ),
-        );
-      case 3:
-        content = ViewRecentActivities(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          userId: userId, 
-        );
-        break;
-      case 4:
-        content = ProfileContent(
-          userData: widget.userData,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-        );
-        break;
-      default:
-        content = HomeContent(
-          cameraService: _cameraService,
-          permissionService: _permissionService,
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          onNotificationUpdate: _updateNotification,
-          userData: widget.userData,
-        );
-    }
-    
-    return SingleChildScrollView(
-      controller: _scrollController,
-      physics: const ClampingScrollPhysics(),
-      child: content,
+        ),
+        const SizedBox.shrink(),
+        SingleChildScrollView(
+          controller: _scrollControllers[3],
+          physics: const ClampingScrollPhysics(),
+          child: ViewRecentActivities(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+            userId: userId, 
+          ),
+        ),
+        SingleChildScrollView(
+          controller: _scrollControllers[4],
+          physics: const ClampingScrollPhysics(),
+          child: ProfileContent(
+            userData: widget.userData,
+            isDarkMode: _isDarkMode,
+            theme: theme,
+          ),
+        ),
+      ],
     );
   }
 
