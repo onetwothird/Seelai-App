@@ -5,54 +5,100 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-
 
 class VideoCallScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
   final String? callId;
   final bool isCaller;
   final String callPath;
-
+  final VoidCallback? onClose; 
   const VideoCallScreen({
     super.key, 
     required this.userData,
     this.callId,
     this.isCaller = true,
     this.callPath = 'visually_impaired_communication',
+    this.onClose,
   });
+
+ static void startCall(
+    BuildContext context, 
+    Map<String, dynamic> userData, {
+    String? callId,
+    bool isCaller = true,
+    String callPath = 'visually_impaired_communication',
+  }) {
+    OverlayEntry? overlayEntry;
+    
+    overlayEntry = OverlayEntry(
+      builder: (context) => VideoCallScreen(
+        userData: userData,
+        callId: callId,
+        isCaller: isCaller,
+        callPath: callPath,
+        onClose: () {
+          overlayEntry?.remove();
+        },
+      ),
+    );
+    
+    Overlay.of(context).insert(overlayEntry);
+  }
 
   @override
   State<VideoCallScreen> createState() => _VideoCallScreenState();
 }
 
-class _VideoCallScreenState extends State<VideoCallScreen> {
+class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   bool _isMuted = false;
   bool _isVideoOff = false;
+  bool _hasRemoteStream = false; 
+  bool _isMinimized = false;     
 
   String? _currentCallId;
   StreamSubscription<DatabaseEvent>? _callSubscription;
   
-  // Initialize WebRTC Service
   final WebRTCService _webrtcService = WebRTCService();
   bool _isConnectionReady = false;
 
-  final Color _primaryColor = const Color(0xFF8B5CF6);
+  Offset _pipPosition = const Offset(20, 40);
+
+  String _caretakerName = 'Caretaker';
+  String? _caretakerImage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); 
     _startCallProcess();
   }
 
+  @override
+  Future<bool> didPopRoute() async {
+    if (!_isMinimized && mounted) {
+      setState(() => _isMinimized = true);
+      return true; 
+    }
+    return false; 
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); 
+    _callSubscription?.cancel();
+    if (_currentCallId != null) {
+      _webrtcService.hangUp(widget.callPath, _currentCallId!); 
+    }
+    super.dispose();
+  }
+
   Future<void> _startCallProcess() async {
-    // 1. Initialize Video Renderers & Camera
     await _webrtcService.initRenderers();
     await _webrtcService.openUserMedia(true);
 
     _webrtcService.onAddRemoteStream = (stream) {
-      if (mounted) setState(() {}); // Refresh to show remote video
+      if (mounted) setState(() => _hasRemoteStream = true);
     };
     
     _webrtcService.onConnectionClosed = () {
@@ -61,7 +107,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
 
     if (mounted) setState(() => _isConnectionReady = true);
 
-    // 2. Handle Database Signaling
     await _handleCallConnection();
   }
 
@@ -70,22 +115,27 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
     if (currentUserId == null) return;
 
     String receiverId = ''; 
-    if (widget.userData['assignedCaretakers'] is Map) {
-      final map = widget.userData['assignedCaretakers'] as Map;
-      if (map.isNotEmpty) {
-        receiverId = map.keys.first.toString();
+    final ac = widget.userData['assignedCaretakers'];
+    if (ac is Map && ac.isNotEmpty) {
+      receiverId = ac.keys.first.toString();
+      
+      final caretakerData = await databaseService.getUserData(receiverId);
+      if (caretakerData != null && mounted) {
+        setState(() {
+          _caretakerName = caretakerData['name'] ?? 'Caretaker';
+          _caretakerImage = caretakerData['profileImageUrl'];
+        });
       }
     }
 
     if (widget.isCaller && widget.callId == null) {
-      if (receiverId.isEmpty) return; // Cannot call without a receiver
+      if (receiverId.isEmpty) return; 
       _currentCallId = await callTrackingService.initiateCall(
         callerId: currentUserId,
         receiverId: receiverId,
         type: 'video',
         path: widget.callPath,
       );
-      
       await _webrtcService.makeCall(widget.callPath, _currentCallId!, true);
     } else if (widget.callId != null) {
       _currentCallId = widget.callId;
@@ -94,7 +144,6 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
         callId: _currentCallId!,
         status: 'accepted',
       );
-      
       await _webrtcService.answerCall(widget.callPath, _currentCallId!, true);
     }
 
@@ -123,176 +172,340 @@ class _VideoCallScreenState extends State<VideoCallScreen> {
   }
 
   void _cleanupAndPop() {
-    if (mounted) Navigator.pop(context);
-  }
-
-  @override
-  void dispose() {
-    _callSubscription?.cancel();
-    if (_currentCallId != null) {
-      _webrtcService.hangUp(widget.callPath, _currentCallId!); 
+    if (mounted && widget.onClose != null) {
+      widget.onClose!(); 
     }
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    String caretakerName = 'Caretaker';
-    if (widget.userData['assignedCaretakers'] is Map) {
-      final map = widget.userData['assignedCaretakers'] as Map;
-      if (map.isNotEmpty && map.values.first is Map) {
-        caretakerName = map.values.first['name'] ?? 'Caretaker';
+    final size = MediaQuery.of(context).size;
+    
+    double pipWidth = 120.0;
+    double pipHeight = 180.0; 
+
+    if (_hasRemoteStream) {
+      final videoWidth = _webrtcService.remoteRenderer.videoWidth.toDouble();
+      final videoHeight = _webrtcService.remoteRenderer.videoHeight.toDouble();
+      if (videoWidth > 0 && videoHeight > 0 && videoWidth > videoHeight) {
+        pipWidth = 180.0;
+        pipHeight = 120.0;
       }
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: Stack(
-        children: [
-          // REMOTE VIDEO (Caretaker)
-          Positioned.fill(
-            child: _isConnectionReady
-                ? RTCVideoView(
-                    _webrtcService.remoteRenderer,
-                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                  )
-                : const Center(child: CircularProgressIndicator(color: Colors.white54)),
-          ),
-          
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(
-                    children: [
-                      Text(
-                        caretakerName,
-                        style: h3.copyWith(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, shadows: [const Shadow(color: Colors.black54, blurRadius: 10)]),
-                      ),
-                    ],
-                  ),
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.fastOutSlowIn,
+      left: _isMinimized ? _pipPosition.dx : 0,
+      top: _isMinimized ? _pipPosition.dy : 0,
+      width: _isMinimized ? pipWidth : size.width,
+      height: _isMinimized ? pipHeight : size.height,
+      child: Material(
+        type: _isMinimized ? MaterialType.transparency : MaterialType.canvas,
+        elevation: _isMinimized ? 15 : 0,
+        borderRadius: BorderRadius.circular(_isMinimized ? 16 : 0),
+        clipBehavior: Clip.antiAlias,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _isMinimized
+              ? _buildMinimizedPiP(pipWidth, pipHeight)
+              : Scaffold(
+                  key: const ValueKey('full_screen'),
+                  backgroundColor: Colors.black,
+                  body: _buildFullScreenCall(),
                 ),
-                const Spacer(),
+        ),
+      ),
+    );
+  }
 
-                // LOCAL VIDEO (Patient PiP)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.only(right: 20, bottom: 24),
-                    width: 110,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF334155),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: _primaryColor.withValues(alpha: 0.6), width: 2),
-                    ),
-                    child: _isVideoOff
-                        ? const Center(child: Icon(Icons.videocam_off_rounded, color: Colors.white54, size: 40))
-                        : (_isConnectionReady)
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(18), 
-                                child: RTCVideoView(
-                                  _webrtcService.localRenderer,
-                                  mirror: true,
-                                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                                ),
-                              )
-                            : const Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-                
-                // Bottom Controls
-                Container(
-                  margin: const EdgeInsets.only(left: 20, right: 20, bottom: 32),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(40),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(40),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildCallAction(
-                            icon: Icons.flip_camera_ios_rounded,
-                            isActive: false,
-                            label: 'Flip Camera',
-                            onTap: () => _webrtcService.switchCamera(),
-                          ),
-                          _buildCallAction(
-                            icon: _isVideoOff ? Icons.videocam_off_rounded : Icons.videocam_rounded,
-                            isActive: _isVideoOff,
-                            label: 'Toggle Video',
-                            onTap: () {
-                              setState(() => _isVideoOff = !_isVideoOff);
-                              _webrtcService.toggleVideo(_isVideoOff);
-                            },
-                          ),
-                          _buildCallAction(
-                            icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                            isActive: _isMuted,
-                            label: 'Mute',
-                            onTap: () {
-                              setState(() => _isMuted = !_isMuted);
-                              _webrtcService.toggleMic(_isMuted);
-                            },
-                          ),
-                          _buildEndCallButton(context),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget _buildProfileAvatar(double size) {
+    final hasProfileImage = _caretakerImage != null && _caretakerImage!.isNotEmpty;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ClipOval(
+        child: hasProfileImage
+            ? Image.network(
+                _caretakerImage!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildAvatarFallback(size * 0.4),
+              )
+            : _buildAvatarFallback(size * 0.4),
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback(double iconSize) {
+    return Container(
+      color: const Color(0xFF334155),
+      child: Center(
+        child: Icon(Icons.person_rounded, color: Colors.white, size: iconSize),
+      ),
+    );
+  }
+
+  Widget _buildUserVideoFallback(String? imageUrl, {double iconSize = 40}) {
+    return ClipRect(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (imageUrl != null && imageUrl.isNotEmpty)
+            Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF334155)),
+            )
+          else
+            Container(color: const Color(0xFF334155)),
+          
+          Container(color: Colors.black.withValues(alpha: 0.2)),
         ],
       ),
     );
   }
 
-  Widget _buildCallAction({required IconData icon, required bool isActive, required String label, required VoidCallback onTap}) {
-    return Semantics(
-      label: label,
-      button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isActive ? _primaryColor : Colors.white.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+  Widget _buildFullScreenCall() {
+    final currentUserImage = widget.userData['profileImageUrl'] as String?;
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 500),
+            child: _hasRemoteStream
+                ? RTCVideoView(
+                    _webrtcService.remoteRenderer,
+                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    key: const ValueKey('remoteVideo'),
+                  )
+                : (_isConnectionReady && !_isVideoOff
+                    ? RTCVideoView(
+                        _webrtcService.localRenderer,
+                        mirror: true,
+                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey('localVideoBackground'),
+                      )
+                    : Container(
+                        key: const ValueKey('clearLocalBackground'),
+                        child: _buildUserVideoFallback(currentUserImage),
+                      )),
           ),
-          child: Icon(icon, color: Colors.white, size: 24),
+        ),
+
+        if (!_hasRemoteStream)
+          Positioned.fill(
+            child: Container(color: Colors.black.withValues(alpha: 0.5)),
+          ),
+
+        if (!_hasRemoteStream)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 60,
+            left: 0,
+            right: 0,
+            child: Column(
+              children: [
+                _buildProfileAvatar(110),
+                const SizedBox(height: 24),
+                Text(
+                  _caretakerName,
+                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Calling...',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+
+        SafeArea(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                onPressed: () => setState(() => _isMinimized = true),
+              ),
+            ),
+          ),
+        ),
+
+        if (_hasRemoteStream && _isConnectionReady)
+          Positioned(
+            bottom: 120, 
+            right: 20,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 110,
+              height: 160,
+              decoration: BoxDecoration(
+                color: const Color(0xFF334155),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 5))],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16), 
+                child: _isVideoOff
+                    ? _buildUserVideoFallback(currentUserImage)
+                    : RTCVideoView(
+                        _webrtcService.localRenderer,
+                        mirror: true,
+                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      ),
+              ),
+            ),
+          ),
+
+        Positioned(
+          bottom: 32,
+          left: 20,
+          right: 20,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(40),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildCallAction(
+                      icon: Icons.flip_camera_ios_rounded,
+                      isActive: false,
+                      onTap: () => _webrtcService.switchCamera(),
+                    ),
+                    _buildCallAction(
+                      icon: _isVideoOff ? Icons.videocam_off_rounded : Icons.videocam_rounded,
+                      isActive: _isVideoOff,
+                      onTap: () {
+                        setState(() => _isVideoOff = !_isVideoOff);
+                        _webrtcService.toggleVideo(_isVideoOff);
+                      },
+                    ),
+                    _buildCallAction(
+                      icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                      isActive: _isMuted,
+                      onTap: () {
+                        setState(() => _isMuted = !_isMuted);
+                        _webrtcService.toggleMic(_isMuted);
+                      },
+                    ),
+                    _buildEndCallButton(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMinimizedPiP(double pipWidth, double pipHeight) {
+    final currentUserImage = widget.userData['profileImageUrl'] as String?;
+
+    return GestureDetector(
+      key: const ValueKey('pip_screen'),
+      onPanUpdate: (details) {
+        setState(() {
+          final size = MediaQuery.of(context).size;
+          double newX = _pipPosition.dx + details.delta.dx;
+          double newY = _pipPosition.dy + details.delta.dy;
+          
+          newX = newX.clamp(10.0, size.width - pipWidth - 10.0);
+          newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
+          
+          _pipPosition = Offset(newX, newY);
+        });
+      },
+      onTap: () => setState(() => _isMinimized = false), 
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16.0), 
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _hasRemoteStream
+                  ? RTCVideoView(
+                      _webrtcService.remoteRenderer,
+                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                    )
+                  : _buildUserVideoFallback(_caretakerImage, iconSize: 0), 
+
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 40,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF334155),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8), 
+                    child: (_isConnectionReady && !_isVideoOff)
+                        ? RTCVideoView(
+                            _webrtcService.localRenderer,
+                            mirror: true,
+                            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                          )
+                        : _buildUserVideoFallback(currentUserImage, iconSize: 0), 
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildEndCallButton(BuildContext context) {
-    return Semantics(
-      label: 'End Video Call',
-      button: true,
-      child: GestureDetector(
-        onTap: _endCall,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFEF4444),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4)),
-            ]
-          ),
-          child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 28),
+  Widget _buildCallAction({required IconData icon, required bool isActive, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.08),
+          shape: BoxShape.circle,
         ),
+        child: Icon(icon, color: Colors.white, size: 24),
+      ),
+    );
+  }
+
+  Widget _buildEndCallButton() {
+    return GestureDetector(
+      onTap: _endCall,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEF4444),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4)),
+          ]
+        ),
+        child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 28),
       ),
     );
   }
