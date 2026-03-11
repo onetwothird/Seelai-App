@@ -8,12 +8,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
-
 class CaretakerVoiceCallScreen extends StatefulWidget {
   final Map<String, dynamic> patientData;
   final String? callId;
   final bool isCaller;
   final String callPath;
+  final VoidCallback? onClose;
 
   const CaretakerVoiceCallScreen({
     super.key, 
@@ -21,48 +21,99 @@ class CaretakerVoiceCallScreen extends StatefulWidget {
     this.callId,
     this.isCaller = true,
     this.callPath = 'caretaker_communication',
+    this.onClose,
   });
+
+ static void startCall(
+    BuildContext context, 
+    Map<String, dynamic> patientData, {
+    String? callId,
+    bool isCaller = true,
+    String callPath = 'caretaker_communication',
+  }) {
+    OverlayEntry? overlayEntry;
+    
+    overlayEntry = OverlayEntry(
+      builder: (context) => CaretakerVoiceCallScreen(
+        patientData: patientData,
+        callId: callId,           // Passes the specific call ID to answer
+        isCaller: isCaller,       // Sets to false if they are answering
+        callPath: callPath,       // Tells Firebase exactly where to look
+        onClose: () {
+          overlayEntry?.remove();
+        },
+      ),
+    );
+    
+    Overlay.of(context).insert(overlayEntry);
+  }
 
   @override
   State<CaretakerVoiceCallScreen> createState() => _CaretakerVoiceCallScreenState();
 }
 
-class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> with SingleTickerProviderStateMixin {
+class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _pulseController;
   bool _isMuted = false;
   bool _isSpeaker = false;
+  bool _isMinimized = false; 
 
   String? _currentCallId;
   StreamSubscription<DatabaseEvent>? _callSubscription;
   
-  // Initialize WebRTC Service
   final WebRTCService _webrtcService = WebRTCService();
-  
-  final Color _primaryColor = const Color(0xFF8B5CF6);
+  final Color _primaryColor = const Color(0xFF8B5CF6); 
+  Offset _pipPosition = const Offset(20, 40);
+
+  String _patientName = 'Patient';
+  String? _patientImage;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); 
+    
+    _patientName = widget.patientData['name'] ?? 'Patient';
+    _patientImage = widget.patientData['profileImageUrl'];
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-    
+
     _startCallProcess();
+  }
+
+  @override
+  Future<bool> didPopRoute() async {
+    if (!_isMinimized && mounted) {
+      setState(() => _isMinimized = true);
+      return true; 
+    }
+    return false;
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); 
+    _callSubscription?.cancel();
+    if (_currentCallId != null) {
+      _webrtcService.hangUp(widget.callPath, _currentCallId!);
+    }
+    _pulseController.dispose();
+    super.dispose();
   }
 
   Future<void> _startCallProcess() async {
     await Permission.microphone.request();
-
-    // 1. Initialize Audio Media (false = no video)
+    
     await _webrtcService.initRenderers();
-    await _webrtcService.openUserMedia(false);
+    await _webrtcService.openUserMedia(false); 
     
     _webrtcService.onConnectionClosed = () {
       if (mounted) _endCall();
     };
 
-    // 2. Handle Database Signaling
     await _handleCallConnection();
   }
 
@@ -74,7 +125,6 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
 
     if (widget.isCaller && widget.callId == null) {
       if (receiverId.isEmpty) return;
-      
       _currentCallId = await callTrackingService.initiateCall(
         callerId: currentUserId,
         receiverId: receiverId,
@@ -85,7 +135,6 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
       await _webrtcService.makeCall(widget.callPath, _currentCallId!, false);
     } else if (widget.callId != null) {
       _currentCallId = widget.callId;
-      
       await callTrackingService.updateCallStatus(
         path: widget.callPath,
         callId: _currentCallId!,
@@ -120,131 +169,245 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
   }
 
   void _cleanupAndPop() {
-    if (mounted) Navigator.pop(context);
-  }
-
-  @override
-  void dispose() {
-    _callSubscription?.cancel();
-    if (_currentCallId != null) {
-      _webrtcService.hangUp(widget.callPath, _currentCallId!);
+    if (mounted && widget.onClose != null) {
+      widget.onClose!(); 
     }
-    _pulseController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final String patientName = widget.patientData['name'] ?? 'Patient';
-    final String? patientImage = widget.patientData['profileImageUrl'];
+    final size = MediaQuery.of(context).size;
+    
+    double pipWidth = 120.0;
+    double pipHeight = 180.0;
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFF0F172A), Color(0xFF2E1065)],
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.fastOutSlowIn,
+      left: _isMinimized ? _pipPosition.dx : 0,
+      top: _isMinimized ? _pipPosition.dy : 0,
+      width: _isMinimized ? pipWidth : size.width,
+      height: _isMinimized ? pipHeight : size.height,
+      child: Material(
+        type: _isMinimized ? MaterialType.transparency : MaterialType.canvas,
+        elevation: _isMinimized ? 15 : 0,
+        borderRadius: BorderRadius.circular(_isMinimized ? 16 : 0),
+        clipBehavior: Clip.antiAlias,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _isMinimized
+              ? _buildMinimizedPiPContent(pipWidth, pipHeight)
+              : Scaffold(
+                  key: const ValueKey('full_screen'),
+                  body: _buildFullScreenCall(),
                 ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullScreenCall() {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
               ),
             ),
           ),
-          SafeArea(
-            child: Column(
-              children: [            
-                const Spacer(),
-                AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Container(
-                      width: 160,
-                      height: 160,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: _primaryColor.withValues(alpha: 0.3 * _pulseController.value),
-                            blurRadius: 60 * _pulseController.value,
-                            spreadRadius: 30 * _pulseController.value,
-                          ),
-                        ],
-                      ),
-                      child: child,
-                    );
-                  },
-                  child: Container(
+        ),
+        SafeArea(
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                    onPressed: () => setState(() => _isMinimized = true), 
+                  ),
+                ),
+              ),
+              const Spacer(),
+              AnimatedBuilder(
+                animation: _pulseController,
+                builder: (context, child) {
+                  return Container(
+                    width: 180, 
+                    height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: _primaryColor, width: 4),
-                      image: patientImage != null && patientImage.isNotEmpty
-                          ? DecorationImage(image: NetworkImage(patientImage), fit: BoxFit.cover)
-                          : null,
-                      color: const Color(0xFF334155),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _primaryColor.withValues(alpha: 0.15 * _pulseController.value), 
+                          blurRadius: 50 * _pulseController.value,
+                          spreadRadius: 20 * _pulseController.value,
+                        ),
+                      ],
                     ),
-                    child: (patientImage == null || patientImage.isEmpty)
-                        ? const Icon(Icons.person_rounded, size: 80, color: Colors.white)
-                        : null,
-                  ),
+                    child: child,
+                  );
+                },
+                child: _buildProfileAvatar(180),
+              ),
+              const SizedBox(height: 40),
+              Text(
+                _patientName,
+                style: h3.copyWith(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Connected',
+                style: body.copyWith(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(40),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
                 ),
-                const SizedBox(height: 40),
-                Text(
-                  patientName,
-                  style: h3.copyWith(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Connected',
-                  style: body.copyWith(color: _primaryColor.withValues(alpha: 0.9), fontSize: 18),
-                ),
-                const Spacer(),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(40),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildCallAction(
-                            icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
-                            isActive: _isMuted,
-                            label: 'Mute',
-                            onTap: () {
-                              setState(() => _isMuted = !_isMuted);
-                              _webrtcService.toggleMic(_isMuted);
-                            },
-                          ),
-                          _buildEndCallButton(context),
-                          _buildCallAction(
-                            icon: _isSpeaker ? Icons.volume_up_rounded : Icons.volume_down_rounded,
-                            isActive: _isSpeaker,
-                            label: 'Speaker',
-                            onTap: () {
-                              setState(() => _isSpeaker = !_isSpeaker);
-                              // Note: flutter_webrtc handles system audio, might need native 
-                              // packages to explicitly route audio to device loudspeaker
-                            },
-                          ),
-                        ],
-                      ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(40),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildCallAction(
+                          icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                          isActive: _isMuted,
+                          label: 'Mute',
+                          onTap: () {
+                            setState(() => _isMuted = !_isMuted);
+                            _webrtcService.toggleMic(_isMuted);
+                          },
+                        ),
+                        _buildEndCallButton(context),
+                        _buildCallAction(
+                          icon: _isSpeaker ? Icons.volume_up_rounded : Icons.volume_down_rounded,
+                          isActive: _isSpeaker,
+                          label: 'Speaker',
+                          onTap: () {
+                            setState(() => _isSpeaker = !_isSpeaker);
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMinimizedPiPContent(double pipWidth, double pipHeight) {
+    return GestureDetector(
+      key: const ValueKey('pip_screen'),
+      onPanUpdate: (details) {
+        setState(() {
+          final size = MediaQuery.of(context).size;
+          double newX = _pipPosition.dx + details.delta.dx;
+          double newY = _pipPosition.dy + details.delta.dy;
+          
+          newX = newX.clamp(10.0, size.width - pipWidth - 10.0); 
+          newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
+          
+          _pipPosition = Offset(newX, newY);
+        });
+      },
+      onTap: () => setState(() => _isMinimized = false), 
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B), 
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _buildUserImageFallback(_patientImage),
+
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF334155),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded, 
+                    color: _primaryColor, 
+                    size: 20
+                  ), 
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserImageFallback(String? imageUrl) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (imageUrl != null && imageUrl.isNotEmpty)
+          Image.network(
+            imageUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF334155)),
+          )
+        else
+          Container(color: const Color(0xFF334155)),
+        
+        Container(color: Colors.black.withValues(alpha: 0.3)), 
+      ],
+    );
+  }
+
+  Widget _buildProfileAvatar(double size) {
+    final hasProfileImage = _patientImage != null && _patientImage!.isNotEmpty;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5)),
         ],
       ),
+      child: ClipOval(
+        child: hasProfileImage
+            ? Image.network(
+                _patientImage!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildAvatarFallback(size * 0.4),
+              )
+            : _buildAvatarFallback(size * 0.4),
+      ),
+    );
+  }
+
+  Widget _buildAvatarFallback(double iconSize) {
+    return Container(
+      decoration: const BoxDecoration(color: Color(0xFF1E293B)),
+      child: Center(child: Icon(Icons.person_rounded, color: Colors.white38, size: iconSize)),
     );
   }
 
@@ -258,7 +421,7 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isActive ? _primaryColor : Colors.white.withValues(alpha: 0.1),
+            color: isActive ? _primaryColor : Colors.white.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.white, size: 28),
@@ -279,7 +442,7 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
             color: const Color(0xFFEF4444),
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 4)),
+              BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4)),
             ]
           ), 
           child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 32),
