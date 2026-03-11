@@ -31,12 +31,10 @@ class QuickContactSection extends StatelessWidget {
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => VoiceCallScreen(userData: userData),
-                ),
-              );
+              // =========================================================
+              // FIX: Launch as overlay just like the Video Call!
+              // =========================================================
+              VoiceCallScreen.startCall(context, userData);
             },
           ),
         ),
@@ -49,12 +47,12 @@ class QuickContactSection extends StatelessWidget {
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => VideoCallScreen(userData: userData),
-                ),
-              );
+              // =========================================================
+              // THIS IS THE OVERLAY FIX!
+              // Instead of pushing a standard screen, we launch it as an overlay
+              // so the buttons underneath remain fully clickable when minimized!
+              // =========================================================
+              VideoCallScreen.startCall(context, userData);
             },
           ),
         ),
