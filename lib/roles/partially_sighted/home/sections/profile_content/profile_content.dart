@@ -40,12 +40,11 @@ class _ProfileContentState extends State<ProfileContent> {
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  // Color Palette (Professional UI Grouping Colors)
-  final Color _colPersonal = const Color(0xFF3B82F6); // Blue
-  final Color _colMedical = const Color(0xFF8B5CF6);  // Purple
-  final Color _colSecurity = const Color(0xFF10B981); // Green
-  final Color _colSupport = const Color(0xFF06B6D4);  // Cyan
-  final Color _colSafety = const Color(0xFFEF4444);   // Red
+  // Color Palette 
+  final Color _colPersonal = const Color(0xFF3B82F6); // Kept for the gradient fallback avatar
+  final Color _colSecurity = const Color(0xFF10B981); // Kept for success snackbars/buttons
+  final Color _colSupport = const Color(0xFF06B6D4);  
+  final Color _colSafety = const Color(0xFFEF4444);   // Kept for Sign Out / SOS
 
   @override
   void initState() {
@@ -107,7 +106,7 @@ class _ProfileContentState extends State<ProfileContent> {
               _buildSettingsTile(
                 title: 'Phone Number',
                 icon: Icons.phone_outlined,
-                iconColor: _colPersonal,
+                iconColor: _colPersonal, // Passed but overridden internally for a clean look
                 value: _currentData['contactNumber']?.toString().isNotEmpty == true 
                     ? _currentData['contactNumber'] 
                     : 'Not provided',
@@ -143,13 +142,13 @@ class _ProfileContentState extends State<ProfileContent> {
               _buildSettingsTile(
                 title: 'Disability Type',
                 icon: Icons.accessible_outlined,
-                iconColor: _colMedical,
+                iconColor: _colPersonal,
                 value: _currentData['disabilityType'] ?? 'Visual Impairment',
               ),
               _buildSettingsTile(
                 title: 'Diagnosis',
                 icon: Icons.medical_information_outlined,
-                iconColor: _colMedical,
+                iconColor: _colPersonal,
                 value: _currentData['diagnosis']?.toString().isNotEmpty == true 
                     ? _currentData['diagnosis'] 
                     : 'Not provided',
@@ -157,7 +156,7 @@ class _ProfileContentState extends State<ProfileContent> {
               _buildSettingsTile(
                 title: 'Assigned Caretakers',
                 icon: Icons.people_outline_rounded,
-                iconColor: _colMedical,
+                iconColor: _colPersonal,
                 value: _getCaretakerStatus(),
                 isLast: true,
               ),
@@ -171,13 +170,13 @@ class _ProfileContentState extends State<ProfileContent> {
               _buildSettingsTile(
                 title: 'Update Profile',
                 icon: Icons.edit_outlined,
-                iconColor: _colSecurity,
+                iconColor: _colPersonal,
                 onTap: _showEditProfileDialog,
               ),
               _buildSettingsTile(
                 title: 'Change Password',
                 icon: Icons.lock_outline_rounded,
-                iconColor: _colSecurity,
+                iconColor: _colPersonal,
                 onTap: _showChangePasswordDialog,
                 isLast: true,
               ),
@@ -191,19 +190,19 @@ class _ProfileContentState extends State<ProfileContent> {
               _buildSettingsTile(
                 title: 'How to Use Seelai',
                 icon: Icons.play_circle_fill_rounded,
-                iconColor: _colSupport,
+                iconColor: _colPersonal,
                 onTap: _showAppGuideDialog,
               ),
               _buildSettingsTile(
                 title: 'About Seelai',
                 icon: Icons.info_outline_rounded,
-                iconColor: _colSupport,
+                iconColor: _colPersonal,
                 onTap: _showAboutDialog,
               ),
               _buildSettingsTile(
                 title: 'Privacy Policy',
                 icon: Icons.privacy_tip_outlined,
-                iconColor: _colSupport,
+                iconColor: _colPersonal,
                 onTap: _showPrivacyDialog,
                 isLast: true,
               ),
@@ -212,7 +211,7 @@ class _ProfileContentState extends State<ProfileContent> {
           
           // ==================== DANGER ZONE ====================
           _buildSettingsGroup(
-            title: 'Danger Zone', // <-- Added Header Here!
+            title: 'Danger Zone',
             children: [
               _buildSettingsTile(
                 title: 'Sign Out',
@@ -244,15 +243,13 @@ class _ProfileContentState extends State<ProfileContent> {
             width: 100,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              // The crisp 1px solid black border matching your contacts page
               border: Border.all(
-                color: Colors.black,
+                color: widget.isDarkMode ? Colors.white24 : Colors.black,
                 width: 1.0,
               ),
-              // Soft professional drop shadow
               boxShadow: [
                 BoxShadow(
-                  color: _colPersonal.withValues(alpha: 0.25),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -367,12 +364,21 @@ class _ProfileContentState extends State<ProfileContent> {
   Widget _buildSettingsTile({
     required String title,
     required IconData icon,
-    required Color iconColor,
+    required Color iconColor, // Kept for method signature compatibility, overridden internally
     String? value,
     VoidCallback? onTap,
     bool isDestructive = false,
     bool isLast = false,
   }) {
+    // 🎨 THE FIX: Adaptive Monochromatic Colors 🎨
+    // If destructive, stay Red. Otherwise, adapt to theme (Black in Light Mode, White in Dark Mode)
+    final displayIconColor = isDestructive ? _colSafety : widget.theme.textColor;
+    
+    // The container gets a very subtle transparency of the text color (acts as a light grey/white bubble)
+    final displayContainerColor = isDestructive 
+        ? _colSafety.withValues(alpha: 0.1) 
+        : widget.theme.textColor.withValues(alpha: 0.05);
+
     final textColor = isDestructive ? _colSafety : widget.theme.textColor;
 
     return Material(
@@ -391,10 +397,10 @@ class _ProfileContentState extends State<ProfileContent> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isDestructive ? _colSafety.withValues(alpha: 0.1) : iconColor.withValues(alpha: 0.1),
+                      color: displayContainerColor,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(icon, size: 20, color: isDestructive ? _colSafety : iconColor),
+                    child: Icon(icon, size: 20, color: displayIconColor),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -504,10 +510,8 @@ class _ProfileContentState extends State<ProfileContent> {
 
     showDialog(
       context: context,
-      // 1. Renamed to dialogContext
       builder: (dialogContext) {
         return StatefulBuilder(
-          // 2. Renamed to statefulContext
           builder: (statefulContext, setStateDialog) {
             return AlertDialog(
               backgroundColor: widget.theme.cardColor,
@@ -547,7 +551,6 @@ class _ProfileContentState extends State<ProfileContent> {
               actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               actions: [
                 TextButton(
-                  // Use the statefulContext to safely pop the dialog
                   onPressed: () => Navigator.pop(statefulContext),
                   child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
                 ),
@@ -573,11 +576,9 @@ class _ProfileContentState extends State<ProfileContent> {
                         sex: _selectedSex,
                       );
 
-                      // 3. Check if the dialog's context is still valid before popping it
                       if (!statefulContext.mounted) return;
                       Navigator.pop(statefulContext);
 
-                      // 4. Check if the main screen is still valid before updating its UI
                       if (!mounted) return;
                       setState(() {
                         _currentData['name'] = _nameController.text.trim();
@@ -590,18 +591,13 @@ class _ProfileContentState extends State<ProfileContent> {
                       _showSnackbar('Profile updated successfully', _colSecurity);
                       
                     } catch (e) {
-                      // 5. If it failed, stop the loading spinner (only if the dialog is still open)
                       if (statefulContext.mounted) {
                         setStateDialog(() => _isLoading = false);
                       }
-                      
-                      // Safely show the error on the main screen
                       if (mounted) {
                         _showSnackbar('Error updating profile: $e', _colSafety);
                       }
                     }
-                    // Notice: The `finally` block was completely removed! 
-                    // If successful, the dialog is closed, so running setStateDialog would crash it.
                   },
                   child: _isLoading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -622,10 +618,8 @@ class _ProfileContentState extends State<ProfileContent> {
 
     showDialog(
       context: context,
-      // 1. Rename to dialogContext
       builder: (dialogContext) {
         return StatefulBuilder(
-          // 2. Rename to statefulContext
           builder: (statefulContext, setStateDialog) {
             return AlertDialog(
               backgroundColor: widget.theme.cardColor,
@@ -651,7 +645,6 @@ class _ProfileContentState extends State<ProfileContent> {
               actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               actions: [
                 TextButton(
-                  // Use statefulContext to safely dismiss
                   onPressed: () => Navigator.pop(statefulContext),
                   child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
                 ),
@@ -682,27 +675,21 @@ class _ProfileContentState extends State<ProfileContent> {
                         newPassword: _newPasswordController.text,
                       );
 
-                      // 3. Check if the dialog is still open before popping it
                       if (!statefulContext.mounted) return;
                       Navigator.pop(statefulContext);
                       
-                      // 4. Safely trigger the snackbar on the main screen
                       if (mounted) {
                         _showSnackbar('Password changed successfully', _colSecurity);
                       }
                       
                     } catch (e) {
-                      // 5. If it failed, stop the loading spinner (only if dialog is open)
                       if (statefulContext.mounted) {
                         setStateDialog(() => _isLoading = false);
                       }
-                      
-                      // Show error on the main screen
                       if (mounted) {
                         _showSnackbar('Error: Please check your current password', _colSafety);
                       }
                     }
-                    // Removed the `finally` block to prevent crashing after successful pop!
                   },
                   child: _isLoading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
@@ -782,7 +769,6 @@ class _ProfileContentState extends State<ProfileContent> {
  void _showLogoutDialog() {
     showDialog(
       context: context,
-      // 1. Rename this to dialogContext to avoid shadowing your screen's context
       builder: (dialogContext) => AlertDialog(
         backgroundColor: widget.theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -837,7 +823,6 @@ class _ProfileContentState extends State<ProfileContent> {
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         actions: [
           TextButton(
-            // Use dialogContext here
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel', 
@@ -850,16 +835,12 @@ class _ProfileContentState extends State<ProfileContent> {
           ),
           ElevatedButton(
             onPressed: () async {
-              // Use dialogContext to close the dialog
               Navigator.pop(dialogContext);
               
               await authService.value.signOut();
               
-              // 2. THIS IS THE FIX: Check if the main screen is still mounted 
-              // before doing anything else with the main `context`.
               if (!mounted) return; 
 
-              // Now it's safe to use the main `context` to navigate
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                 (route) => false,
@@ -1021,9 +1002,9 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
                     const SizedBox(height: 8),
                     Text("Watch the video above or check the quick steps below.", style: TextStyle(fontSize: 14, color: widget.theme.subtextColor)),
                     const SizedBox(height: 24),
-                    _buildGuideStep(icon: Icons.visibility_rounded, color: widget.colSupport, title: "Object Detection", description: "Point your camera to detect objects."),
-                    _buildGuideStep(icon: Icons.support_agent_rounded, color: widget.colSupport, title: "Caretaker Connection", description: "Your caretakers are one tap away."),
-                    _buildGuideStep(icon: Icons.sos_rounded, color: widget.colSafety, title: "SOS Emergency", description: "Triple-tap for immediate help."),
+                    _buildGuideStep(icon: Icons.visibility_rounded, title: "Object Detection", description: "Point your camera to detect objects."),
+                    _buildGuideStep(icon: Icons.support_agent_rounded, title: "Caretaker Connection", description: "Your caretakers are one tap away."),
+                    _buildGuideStep(icon: Icons.sos_rounded, title: "SOS Emergency", description: "Triple-tap for immediate help.", isDestructive: true),
                   ],
                 ),
               ),
@@ -1034,7 +1015,18 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
     );
   }
 
-  Widget _buildGuideStep({required IconData icon, required Color color, required String title, required String description}) {
+  Widget _buildGuideStep({
+    required IconData icon, 
+    required String title, 
+    required String description, 
+    bool isDestructive = false
+  }) {
+    // 🎨 Apply the same clean adaptive style to the video guide items! 🎨
+    final displayIconColor = isDestructive ? widget.colSafety : widget.theme.textColor;
+    final displayContainerColor = isDestructive 
+        ? widget.colSafety.withValues(alpha: 0.15) 
+        : widget.theme.textColor.withValues(alpha: 0.05);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 20.0),
       child: Row(
@@ -1042,8 +1034,8 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: color, size: 22),
+            decoration: BoxDecoration(color: displayContainerColor, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: displayIconColor, size: 22),
           ),
           const SizedBox(width: 16),
           Expanded(
