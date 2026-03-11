@@ -76,7 +76,7 @@ class MyPatientsSection extends StatelessWidget {
           )
         else
           SizedBox(
-            height: 165, // INCREASED HEIGHT: From 140 to 165 to fit the buttons
+            height: 165, 
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
@@ -87,6 +87,7 @@ class MyPatientsSection extends StatelessWidget {
                   patient: patient,
                   theme: theme,
                   isDarkMode: isDarkMode,
+                  isBottomSheet: false, // Tells the card it's NOT in the bottom sheet
                 );
               },
             ),
@@ -105,7 +106,7 @@ class MyPatientsSection extends StatelessWidget {
         return Container(
           height: MediaQuery.of(context).size.height * 0.7,
           decoration: BoxDecoration(
-            color: theme.backgroundGradient.colors.last, // Match app background
+            color: theme.backgroundGradient.colors.last, 
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -158,7 +159,7 @@ class MyPatientsSection extends StatelessWidget {
                     crossAxisCount: 3,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 0.70, // ADJUSTED: To give the cards more vertical room in the grid
+                    childAspectRatio: 0.70, 
                   ),
                   itemCount: assignedPatients.length,
                   itemBuilder: (context, index) {
@@ -166,6 +167,7 @@ class MyPatientsSection extends StatelessWidget {
                       patient: assignedPatients[index],
                       theme: theme,
                       isDarkMode: isDarkMode,
+                      isBottomSheet: true, // Tells the card it IS in the bottom sheet
                     );
                   },
                 ),
@@ -183,11 +185,13 @@ class _PatientCard extends StatelessWidget {
   final Map<String, dynamic> patient;
   final dynamic theme;
   final bool isDarkMode;
+  final bool isBottomSheet;
 
   const _PatientCard({
     required this.patient,
     required this.theme,
     required this.isDarkMode,
+    required this.isBottomSheet,
   });
 
   @override
@@ -201,7 +205,7 @@ class _PatientCard extends StatelessWidget {
     final Color primaryPurple = const Color(0xFF8B5CF6);
 
     return Container(
-      width: 120, // SLIGHTLY WIDER: Changed from 110 to 120 to fit buttons comfortably
+      width: 120, 
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
@@ -303,7 +307,7 @@ class _PatientCard extends StatelessWidget {
           
           const SizedBox(height: 10),
           
-          // === NEW: ACTION BUTTONS ===
+          // === NEW: ACTION BUTTONS WITH OVERLAY FIX ===
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -311,14 +315,11 @@ class _PatientCard extends StatelessWidget {
                 icon: Icons.call_rounded,
                 color: const Color(0xFF10B981), // Emerald Green
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CaretakerVoiceCallScreen(
-                        patientData: patient, // Pass the specific patient map
-                      ),
-                    ),
-                  );
+                  // Close bottom sheet if open so we go back to Home Screen
+                  if (isBottomSheet) Navigator.pop(context); 
+                  
+                  // Launch Call as Floating Overlay
+                  CaretakerVoiceCallScreen.startCall(context, patient);
                 },
               ),
               const SizedBox(width: 12),
@@ -326,14 +327,11 @@ class _PatientCard extends StatelessWidget {
                 icon: Icons.videocam_rounded,
                 color: const Color(0xFF3B82F6), // Azure Blue
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CaretakerVideoCallScreen(
-                        patientData: patient, // Pass the specific patient map
-                      ),
-                    ),
-                  );
+                  // Close bottom sheet if open so we go back to Home Screen
+                  if (isBottomSheet) Navigator.pop(context); 
+                  
+                  // Launch Call as Floating Overlay
+                  CaretakerVideoCallScreen.startCall(context, patient);
                 },
               ),
             ],
@@ -352,7 +350,7 @@ class _PatientCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(6), // Very small padding
+        padding: const EdgeInsets.all(6), 
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           shape: BoxShape.circle,
@@ -360,7 +358,7 @@ class _PatientCard extends StatelessWidget {
         ),
         child: Icon(
           icon,
-          size: 16, // Very small icon
+          size: 16, 
           color: color,
         ),
       ),
