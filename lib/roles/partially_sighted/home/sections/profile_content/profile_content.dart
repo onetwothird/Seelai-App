@@ -361,20 +361,16 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  Widget _buildSettingsTile({
+ Widget _buildSettingsTile({
     required String title,
     required IconData icon,
-    required Color iconColor, // Kept for method signature compatibility, overridden internally
+    required Color iconColor,
     String? value,
     VoidCallback? onTap,
     bool isDestructive = false,
     bool isLast = false,
   }) {
-    // 🎨 THE FIX: Adaptive Monochromatic Colors 🎨
-    // If destructive, stay Red. Otherwise, adapt to theme (Black in Light Mode, White in Dark Mode)
     final displayIconColor = isDestructive ? _colSafety : widget.theme.textColor;
-    
-    // The container gets a very subtle transparency of the text color (acts as a light grey/white bubble)
     final displayContainerColor = isDestructive 
         ? _colSafety.withValues(alpha: 0.1) 
         : widget.theme.textColor.withValues(alpha: 0.05);
@@ -403,6 +399,8 @@ class _ProfileContentState extends State<ProfileContent> {
                     child: Icon(icon, size: 20, color: displayIconColor),
                   ),
                   const SizedBox(width: 16),
+                  
+                  // The title takes up its required space
                   Expanded(
                     child: Text(
                       title,
@@ -413,16 +411,33 @@ class _ProfileContentState extends State<ProfileContent> {
                       ),
                     ),
                   ),
+                  
                   if (value != null) ...[
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: widget.theme.subtextColor,
+                    const SizedBox(width: 16),
+                    // THE FIX: Expanded -> Row(end) -> Flexible -> ScrollView
+                    Expanded(
+                      flex: 2, 
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Text(
+                                value,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: widget.theme.subtextColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                  
                   if (onTap != null && value == null) ...[
                     Icon(
                       Icons.chevron_right_rounded,
