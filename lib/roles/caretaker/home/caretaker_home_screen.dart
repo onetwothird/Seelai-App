@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; 
 import 'package:geolocator/geolocator.dart'; 
-import 'package:seelai_app/roles/caretaker/home/sections/home_screen/home_content.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/home_screen/caretaker_home_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/header_section.dart';

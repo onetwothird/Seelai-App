@@ -1,11 +1,10 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/communication/quick_contact_section.dart
 
 import 'package:flutter/material.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/video_call_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/voice_call_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 
-// NEW IMPORTS FOR CALL SCREENS
-import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/voice_call_screen.dart';
-import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/video_call_screen.dart';
 
 class QuickContactSection extends StatelessWidget {
   final bool isDarkMode;
@@ -27,13 +26,12 @@ class QuickContactSection extends StatelessWidget {
           child: _ContactAction(
             title: 'Voice Call',
             icon: Icons.call_rounded,
-            primaryColor: const Color(0xFF10B981), // Emerald Green
+            primaryColor: const Color(0xFF10B981),
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
-              // =========================================================
-              // FIX: Launch as overlay just like the Video Call!
-              // =========================================================
+              // Passes patient's own userData which has 'assignedCaretakers'
+              // VoiceCallScreen reads assignedCaretakers.keys.first as the receiverId
               VoiceCallScreen.startCall(context, userData);
             },
           ),
@@ -43,15 +41,10 @@ class QuickContactSection extends StatelessWidget {
           child: _ContactAction(
             title: 'Video Call',
             icon: Icons.videocam_rounded,
-            primaryColor: const Color(0xFF3B82F6), // Azure Blue
+            primaryColor: const Color(0xFF3B82F6),
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
-              // =========================================================
-              // THIS IS THE OVERLAY FIX!
-              // Instead of pushing a standard screen, we launch it as an overlay
-              // so the buttons underneath remain fully clickable when minimized!
-              // =========================================================
               VideoCallScreen.startCall(context, userData);
             },
           ),

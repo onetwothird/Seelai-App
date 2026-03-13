@@ -13,7 +13,7 @@ import 'package:seelai_app/roles/caretaker/home/sections/home_screen/communicati
 
 class IncomingCallListener extends StatefulWidget {
   final Widget child;
-  final String userRole; // 'visually_impaired' or 'caretaker'
+  final String userRole; 
 
   const IncomingCallListener({
     super.key,
@@ -40,9 +40,6 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     final currentUserId = databaseService.currentUserId;
     if (currentUserId == null) return;
 
-    // Listen to the opposite path. 
-    // If patient calls, it logs to 'visually_impaired_communication' (Caretaker listens here)
-    // If caretaker calls, it logs to 'caretaker_communication' (Patient listens here)
     String listenPath = widget.userRole == 'caretaker' 
         ? 'visually_impaired_communication' 
         : 'caretaker_communication';
@@ -58,7 +55,6 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
         final callId = entry.key.toString();
         final callData = Map<String, dynamic>.from(entry.value as Map);
 
-        // Check if there's an active incoming call
         if (callData['status'] == 'calling' && !_isDialogShowing) {
           await _showIncomingCallDialog(
             callId: callId,
@@ -67,8 +63,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
             listenPath: listenPath,
           );
         } 
-        // Auto-dismiss if the caller hung up before we answered
-        else if ((callData['status'] == 'ended' || callData['status'] == 'cancelled') && _currentRingingCallId == callId) {
+        else if ((callData['status'] == 'ended' || callData['status'] == 'cancelled' || callData['status'] == 'missed') && _currentRingingCallId == callId) {
           if (_isDialogShowing && mounted) {
             Navigator.of(context, rootNavigator: true).pop();
             _isDialogShowing = false;
@@ -88,7 +83,6 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     _isDialogShowing = true;
     _currentRingingCallId = callId;
 
-    // Fetch caller's profile
     String callerRole = widget.userRole == 'caretaker' ? 'visually_impaired' : 'caretaker';
     Map<String, dynamic>? callerData = await databaseService.getUserDataByRole(callerId, callerRole);
     
@@ -142,7 +136,6 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
                   status: 'rejected',
                 );
                 
-                // FIX: Check if the specific dialog context is mounted
                 if (!dialogContext.mounted) return;
                 
                 Navigator.of(dialogContext).pop();
@@ -156,7 +149,6 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
               elevation: 0,
               backgroundColor: const Color(0xFF22C55E),
               onPressed: () {
-                // FIX: Applied the same check here for consistency
                 if (!dialogContext.mounted) return;
                 
                 Navigator.of(dialogContext).pop();
@@ -184,23 +176,12 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     required Map<String, dynamic> callerData,
     required String listenPath,
   }) {
-    Widget screen;
-    
+    // FIX: Using .startCall() instead of Navigator.push so both users get the Dialog!
     if (widget.userRole == 'caretaker') {
       if (callType == 'video') {
-        screen = CaretakerVideoCallScreen(
-          patientData: callerData,
-          callId: callId,
-          isCaller: false,
-          callPath: listenPath,
-        );
+        CaretakerVideoCallScreen.startCall(context, callerData, callId: callId, isCaller: false, callPath: listenPath);
       } else {
-        screen = CaretakerVoiceCallScreen(
-          patientData: callerData,
-          callId: callId,
-          isCaller: false,
-          callPath: listenPath,
-        );
+        CaretakerVoiceCallScreen.startCall(context, callerData, callId: callId, isCaller: false, callPath: listenPath);
       }
     } else {
       Map<String, dynamic> mockUserData = {
@@ -210,26 +191,11 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
       };
 
       if (callType == 'video') {
-        screen = VideoCallScreen(
-          userData: mockUserData,
-          callId: callId,
-          isCaller: false,
-          callPath: listenPath,
-        );
+        VideoCallScreen.startCall(context, mockUserData, callId: callId, isCaller: false, callPath: listenPath);
       } else {
-        screen = VoiceCallScreen(
-          userData: mockUserData,
-          callId: callId,
-          isCaller: false,
-          callPath: listenPath,
-        );
+        VoiceCallScreen.startCall(context, mockUserData, callId: callId, isCaller: false, callPath: listenPath);
       }
     }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
   }
 
   @override

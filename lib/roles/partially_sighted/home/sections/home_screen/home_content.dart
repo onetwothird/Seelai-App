@@ -9,6 +9,7 @@ import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/ann
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/request_caretaker.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/emergency_hotline.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/quick_contact_section.dart';
+import 'communication/missed_call_alert_section.dart';
 
 class HomeContent extends StatelessWidget {
   final CameraService cameraService;
@@ -31,7 +32,7 @@ class HomeContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final userId = userData['uid'] as String? ?? '';
+    final userId = userData['uid'] as String? ?? userData['userId'] as String? ?? '';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -43,7 +44,14 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. QUICK CONNECT MOVED TO THE TOP
+          // 1. MISSED CALLS (Removed userId requirement)
+          MissedCallAlertSection(
+            isDarkMode: isDarkMode,
+            theme: theme,
+          ),
+
+
+          // 2. QUICK CONTACT
           QuickContactSection(
             isDarkMode: isDarkMode,
             theme: theme,
@@ -52,7 +60,7 @@ class HomeContent extends StatelessWidget {
           
           SizedBox(height: spacingXLarge),
 
-          // 2. LOCATION MAP MOVED DOWN
+          // 3. LOCATION MAP MOVED DOWN
           LocationSection(
             isDarkMode: isDarkMode,
             theme: theme,
