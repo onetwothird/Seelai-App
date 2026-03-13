@@ -12,11 +12,9 @@ class WebRTCService {
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   
-  // Renderers to display the video in the UI
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
 
-  // STUN servers help the phones find each other over the internet
   final Map<String, dynamic> _configuration = {
     'iceServers': [
       {'urls': 'stun:stun.l.google.com:19302'},
@@ -24,16 +22,18 @@ class WebRTCService {
     ]
   };
 
-  // Callbacks for the UI
   Function(MediaStream stream)? onAddRemoteStream;
   Function()? onConnectionClosed;
+
+  // FIX: ICE Candidate Queue to prevent Black Screens
+  final List<RTCIceCandidate> _remoteCandidatesQueue = [];
+  bool _isRemoteDescriptionSet = false;
 
   Future<void> initRenderers() async {
     await localRenderer.initialize();
     await remoteRenderer.initialize();
   }
 
-  /// 1. Open Camera and Microphone
   Future<void> openUserMedia(bool isVideo) async {
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
@@ -51,18 +51,18 @@ class WebRTCService {
     localRenderer.srcObject = _localStream;
   }
 
-  /// 2. Initialize Peer Connection
   Future<void> _createPeerConnection(String path, String callId, bool isCaller) async {
+    _remoteCandidatesQueue.clear();
+    _isRemoteDescriptionSet = false;
+    
     _peerConnection = await createPeerConnection(_configuration);
 
-    // Add our local stream (camera/mic) to the connection
     if (_localStream != null) {
       _localStream!.getTracks().forEach((track) {
         _peerConnection!.addTrack(track, _localStream!);
       });
     }
 
-    // Listen for the remote stream (the other person's camera/mic)
     _peerConnection!.onTrack = (RTCTrackEvent event) {
       if (event.streams.isNotEmpty) {
         _remoteStream = event.streams[0];
@@ -71,7 +71,6 @@ class WebRTCService {
       }
     };
 
-    // Listen for ICE candidates (network routing info) and send to Firebase
     _peerConnection!.onIceCandidate = (RTCIceCandidate candidate) {
       String candidateType = isCaller ? 'callerCandidates' : 'receiverCandidates';
       _database.ref('$path/calls/$callId/$candidateType').push().set({
@@ -90,80 +89,96 @@ class WebRTCService {
     };
   }
 
-  /// 3. Caller Logic: Make the Call (Create Offer)
   Future<void> makeCall(String path, String callId, bool isVideo) async {
     await _createPeerConnection(path, callId, true);
 
-    // Create Offer
     RTCSessionDescription offer = await _peerConnection!.createOffer();
     await _peerConnection!.setLocalDescription(offer);
 
-    // Save Offer to Firebase
     await _database.ref('$path/calls/$callId/offer').set({
       'type': offer.type,
       'sdp': offer.sdp,
     });
 
-    // Listen for the Answer from the receiver
-    // Listen for the Answer from the receiver
     _database.ref('$path/calls/$callId/answer').onValue.listen((event) async {
       if (event.snapshot.exists) {
-        // Use the asynchronous getRemoteDescription() method instead
         final currentRemoteDesc = await _peerConnection?.getRemoteDescription();
         
         if (currentRemoteDesc == null) {
           final data = Map<String, dynamic>.from(event.snapshot.value as Map);
           var answer = RTCSessionDescription(data['sdp'], data['type']);
+          
           await _peerConnection!.setRemoteDescription(answer);
+          _isRemoteDescriptionSet = true;
+
+          // Process queued ICE candidates now that SDP is ready
+          for (var candidate in _remoteCandidatesQueue) {
+            await _peerConnection!.addCandidate(candidate);
+          }
+          _remoteCandidatesQueue.clear();
         }
       }
     });
 
-    // Listen for Receiver's ICE Candidates
     _database.ref('$path/calls/$callId/receiverCandidates').onChildAdded.listen((event) {
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        _peerConnection!.addCandidate(
-          RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']),
-        );
+        var candidate = RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']);
+        
+        if (_isRemoteDescriptionSet) {
+          _peerConnection!.addCandidate(candidate);
+        } else {
+          _remoteCandidatesQueue.add(candidate);
+        }
       }
     });
   }
 
-  /// 4. Receiver Logic: Answer the Call (Create Answer)
   Future<void> answerCall(String path, String callId, bool isVideo) async {
     await _createPeerConnection(path, callId, false);
 
-    // Get the Offer from Firebase
-    DatabaseEvent offerEvent = await _database.ref('$path/calls/$callId/offer').once();
-    if (offerEvent.snapshot.exists) {
-      final offerData = Map<String, dynamic>.from(offerEvent.snapshot.value as Map);
-      var offer = RTCSessionDescription(offerData['sdp'], offerData['type']);
-      await _peerConnection!.setRemoteDescription(offer);
+    _database.ref('$path/calls/$callId/offer').onValue.listen((event) async {
+      if (event.snapshot.exists) {
+        final currentRemoteDesc = await _peerConnection?.getRemoteDescription();
+        
+        if (currentRemoteDesc == null) {
+          final offerData = Map<String, dynamic>.from(event.snapshot.value as Map);
+          var offer = RTCSessionDescription(offerData['sdp'], offerData['type']);
+          
+          await _peerConnection!.setRemoteDescription(offer);
+          _isRemoteDescriptionSet = true;
 
-      // Create Answer
-      RTCSessionDescription answer = await _peerConnection!.createAnswer();
-      await _peerConnection!.setLocalDescription(answer);
+          RTCSessionDescription answer = await _peerConnection!.createAnswer();
+          await _peerConnection!.setLocalDescription(answer);
 
-      // Save Answer to Firebase
-      await _database.ref('$path/calls/$callId/answer').set({
-        'type': answer.type,
-        'sdp': answer.sdp,
-      });
-    }
+          await _database.ref('$path/calls/$callId/answer').set({
+            'type': answer.type,
+            'sdp': answer.sdp,
+          });
 
-    // Listen for Caller's ICE Candidates
+          // Process queued ICE candidates now that SDP is ready
+          for (var candidate in _remoteCandidatesQueue) {
+            await _peerConnection!.addCandidate(candidate);
+          }
+          _remoteCandidatesQueue.clear();
+        }
+      }
+    });
+
     _database.ref('$path/calls/$callId/callerCandidates').onChildAdded.listen((event) {
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        _peerConnection!.addCandidate(
-          RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']),
-        );
+        var candidate = RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']);
+        
+        if (_isRemoteDescriptionSet) {
+          _peerConnection!.addCandidate(candidate);
+        } else {
+          _remoteCandidatesQueue.add(candidate);
+        }
       }
     });
   }
 
-  /// 5. Controls & Cleanup
   void toggleMic(bool mute) {
     if (_localStream != null) {
       _localStream!.getAudioTracks()[0].enabled = !mute;
@@ -183,10 +198,13 @@ class WebRTCService {
   }
 
   Future<void> hangUp(String path, String callId) async {
-    // Update Firebase status
-    await _database.ref('$path/calls/$callId').update({'status': 'ended'});
+    final event = await _database.ref('$path/calls/$callId/status').once();
+    final currentStatus = event.snapshot.value as String?;
+
+    if (currentStatus != 'missed' && currentStatus != 'rejected') {
+      await _database.ref('$path/calls/$callId').update({'status': 'ended'});
+    }
     
-    // Stop tracks and close connection
     _localStream?.getTracks().forEach((track) => track.stop());
     _remoteStream?.getTracks().forEach((track) => track.stop());
     await _peerConnection?.close();
@@ -194,6 +212,7 @@ class WebRTCService {
     _peerConnection = null;
     _localStream = null;
     _remoteStream = null;
+    _remoteCandidatesQueue.clear();
     
     localRenderer.srcObject = null;
     remoteRenderer.srcObject = null;
