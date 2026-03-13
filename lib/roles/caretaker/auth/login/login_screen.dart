@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
-import 'package:seelai_app/roles/caretaker/home/home_screen.dart';
+import 'package:seelai_app/roles/caretaker/home/caretaker_home_screen.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/firebase/activity_logs_service.dart';

@@ -6,11 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-
+import 'communication/caretaker_missed_call_alert_section.dart';
 // Import the separated components
 import 'overview.dart';
 import 'announcement.dart';
-import 'my_patients.dart'; // Added the new My Patients import
+import 'my_patients.dart'; 
 
 class HomeContent extends StatefulWidget {
   final bool isDarkMode;
@@ -121,10 +121,11 @@ class _HomeContentState extends State<HomeContent> {
             final status = request.status.toString().split('.').last;
             if (status == 'pending') {
               pending++;
-            // ignore: curly_braces_in_flow_control_structures
-            } else if (status == 'accepted' || status == 'inProgress') active++;
-            // ignore: curly_braces_in_flow_control_structures
-            else if (status == 'completed') completed++;
+            } else if (status == 'accepted' || status == 'inProgress') {
+              active++;
+            } else if (status == 'completed') {
+              completed++;
+            }
           }
           
           setState(() {
@@ -143,8 +144,6 @@ class _HomeContentState extends State<HomeContent> {
 
   @override
   Widget build(BuildContext context) {
-    // Because home_screen.dart already wraps this in a SingleChildScrollView, 
-    // we only return a Column here to prevent scroll conflicts!
     return Padding(
       padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 120),
       child: Column(
@@ -152,6 +151,14 @@ class _HomeContentState extends State<HomeContent> {
         children: [
           // Dynamic Alert Banner
           if (_pendingRequests > 0) _buildUrgentAlert(),
+          
+          // FIX: Pass the Caretaker ID securely and use 'widget.' to fix the crash
+          if (_caretakerId != null)
+            CaretakerMissedCallAlertSection(
+              caretakerId: _caretakerId!,
+              isDarkMode: widget.isDarkMode,
+              theme: widget.theme,
+            ),
 
           // Stats Grid
           OverviewSection(

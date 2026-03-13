@@ -7,13 +7,14 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:seelai_app/shared/widgets/call_rating_dialog.dart';
 
 class VoiceCallScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
   final String? callId;
   final bool isCaller;
   final String callPath;
-  final VoidCallback? onClose;
+  final void Function(bool wasConnected)? onClose;
 
   const VoiceCallScreen({
     super.key, 
@@ -34,13 +35,27 @@ class VoiceCallScreen extends StatefulWidget {
     OverlayEntry? overlayEntry;
     
     overlayEntry = OverlayEntry(
-      builder: (context) => VoiceCallScreen(
+      builder: (overlayContext) => VoiceCallScreen(
         userData: userData,
         callId: callId,
         isCaller: isCaller,
         callPath: callPath,
-        onClose: () {
+        onClose: (bool wasConnected) {
           overlayEntry?.remove();
+          
+          if (wasConnected) {
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (context.mounted) {
+                showDialog(
+                  context: context, 
+                  barrierDismissible: false,
+                  builder: (dialogContext) => CallRatingDialog(
+                    onDismissed: () {},
+                  ),
+                );
+              }
+            });
+          }
         },
       ),
     );
@@ -58,8 +73,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   bool _isSpeaker = false;
   bool _isMinimized = false; 
 
+  bool _isAccepted = false;
+  bool _isEnding = false;
+  bool _hasPopped = false;
+
   String? _currentCallId;
   StreamSubscription<DatabaseEvent>? _callSubscription;
+  Timer? _ringingTimeout; 
   
   final WebRTCService _webrtcService = WebRTCService();
   final Color _primaryColor = const Color(0xFF10B981); 
@@ -103,7 +123,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   void dispose() {
     WidgetsBinding.instance.removeObserver(this); 
     _callSubscription?.cancel();
-    if (_currentCallId != null) {
+    _ringingTimeout?.cancel(); 
+    if (_currentCallId != null && !_isEnding) {
+      _isEnding = true;
+      callTrackingService.updateCallStatus(
+        path: widget.callPath,
+        callId: _currentCallId!,
+        status: 'ended',
+      );
       _webrtcService.hangUp(widget.callPath, _currentCallId!);
     }
     _pulseController.dispose();
@@ -151,8 +178,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
       );
       
       await _webrtcService.makeCall(widget.callPath, _currentCallId!, false);
+
+      _ringingTimeout = Timer(const Duration(seconds: 40), () {
+        if (mounted) _endCall();
+      });
+
     } else if (widget.callId != null) {
       _currentCallId = widget.callId;
+      _isAccepted = true; 
       await callTrackingService.updateCallStatus(
         path: widget.callPath,
         callId: _currentCallId!,
@@ -166,8 +199,14 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
       _callSubscription = callTrackingService.listenToCallStatus(widget.callPath, _currentCallId!).listen((event) {
         if (event.snapshot.exists) {
           final data = event.snapshot.value as Map<dynamic, dynamic>;
-          if (data['status'] == 'ended' || data['status'] == 'rejected') {
-            if (mounted) _cleanupAndPop();
+          
+          if (data['status'] == 'accepted') {
+            if (mounted) setState(() => _isAccepted = true);
+            _ringingTimeout?.cancel();
+          }
+
+          if (data['status'] == 'ended' || data['status'] == 'rejected' || data['status'] == 'missed') {
+            if (mounted) _endCall();
           }
         }
       });
@@ -175,20 +214,37 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   }
 
   Future<void> _endCall() async {
-    if (_currentCallId != null) {
-      await callTrackingService.updateCallStatus(
-        path: widget.callPath,
-        callId: _currentCallId!,
-        status: 'ended',
-      );
-      await _webrtcService.hangUp(widget.callPath, _currentCallId!);
+    if (_isEnding) return;
+    
+    // FIX: Using setState forces the screen to hide BEFORE WebRTC throws errors
+    if (mounted) {
+      setState(() => _isEnding = true);
+    } else {
+      _isEnding = true;
     }
-    _cleanupAndPop();
+    
+    _ringingTimeout?.cancel(); 
+    _cleanupAndPop(); 
+
+    if (_currentCallId != null) {
+      String finalStatus = (widget.isCaller && !_isAccepted) ? 'missed' : 'ended';
+      try {
+        await callTrackingService.updateCallStatus(
+          path: widget.callPath,
+          callId: _currentCallId!,
+          status: finalStatus,
+        );
+        await _webrtcService.hangUp(widget.callPath, _currentCallId!);
+      } catch (e) {
+        debugPrint("Error ending call: $e");
+      }
+    }
   }
 
   void _cleanupAndPop() {
-    if (mounted && widget.onClose != null) {
-      widget.onClose!(); 
+    if (!_hasPopped && widget.onClose != null) {
+      _hasPopped = true;
+      widget.onClose!(_isAccepted); 
     }
   }
 
@@ -225,6 +281,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    if (_isEnding) return const SizedBox.shrink(); // FIX: Safely removes UI
+
     final size = MediaQuery.of(context).size;
     
     double pipWidth = 120.0;
