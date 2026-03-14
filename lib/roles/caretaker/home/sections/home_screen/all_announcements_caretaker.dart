@@ -38,7 +38,13 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.cardColor,
               shape: BoxShape.circle,
-              border: Border.all(color: theme.subtextColor.withOpacity(0.1)),
+              // Standardized subtle border
+              border: Border.all(
+                color: isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
+                width: 1,
+              ),
             ),
             child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: theme.textColor),
           ),
@@ -86,6 +92,7 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
+        // Removed dark mode shadow
         boxShadow: isDarkMode
             ? []
             : [
@@ -95,8 +102,12 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
+        // Replaced colored border with neutral subtle border
         border: Border.all(
-          color: theme.subtextColor.withOpacity(isDarkMode ? 0.1 : 0.05),
+          color: isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
         ),
       ),
       child: Column(
@@ -151,7 +162,10 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
           ),
           SizedBox(height: 16),
           // Divider for separation
-          Divider(color: theme.subtextColor.withOpacity(0.1), height: 1),
+          Divider(
+            color: isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), 
+            height: 1,
+          ),
           SizedBox(height: 16),
           // Message Body
           Text(
@@ -197,13 +211,22 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.cardColor,
               shape: BoxShape.circle,
-              boxShadow: [
-                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 20,
-                  offset: Offset(0,10)
-                 )
-              ]
+              // Removed dark mode shadow and added neutral border
+              boxShadow: isDarkMode 
+                ? [] 
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    )
+                  ],
+              border: Border.all(
+                color: isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
+                width: 1,
+              ),
             ),
             child: Icon(
               Icons.notifications_none_rounded,
