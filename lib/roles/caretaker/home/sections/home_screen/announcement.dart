@@ -1,3 +1,4 @@
+// File: lib/roles/caretaker/home/sections/home_screen/announcement.dart // (Assuming path based on imports)
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -212,9 +213,13 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
+        // Removed dark mode shadow
         boxShadow: widget.isDarkMode ? [] : softShadow,
+        // Using neutral subtle border
         border: Border.all(
-          color: widget.theme.subtextColor.withOpacity(0.2),
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -268,21 +273,17 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
+        // Removed colored glowy shadow
         boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
+            ? []
             : softShadow,
-        border: widget.isDarkMode
-            ? Border.all(
-                color: color.withValues(alpha: 0.2),
-                width: 1,
-              )
-            : null,
+        // Replaced colored border with neutral subtle border
+        border: Border.all(
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
