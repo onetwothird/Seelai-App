@@ -11,7 +11,7 @@ import 'package:seelai_app/roles/caretaker/home/widgets/header_section.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patients_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/requests_content.dart';
-import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/profile_content.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/caretaker_profile_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart'; 
