@@ -36,15 +36,37 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     }
   }
 
+  // Local helper for icon to prevent dependency on model methods
+  IconData _getRequestIcon(String type) {
+    final t = type.toLowerCase();
+    if (t.contains('medical') || t.contains('health')) return Icons.medical_services_rounded;
+    if (t.contains('transport') || t.contains('ride')) return Icons.directions_car_rounded;
+    if (t.contains('food') || t.contains('grocery')) return Icons.shopping_basket_rounded;
+    if (t.contains('emergency')) return Icons.warning_rounded;
+    return Icons.assignment_rounded;
+  }
+
+  // Local helper for priority color to prevent dependency on model methods
+  Color _getPriorityColor(dynamic priority) {
+    final p = priority.toString().toLowerCase();
+    if (p.contains('emergency')) return Colors.red;
+    if (p.contains('high')) return Colors.orange;
+    if (p.contains('medium')) return Colors.blue;
+    if (p.contains('low')) return Colors.green;
+    return Colors.grey;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Determine background color based on theme
-    final bgColor = widget.isDarkMode ? const Color(0xFF0F1429) : const Color(0xFFF5F7FA);
+    final bgColor = widget.isDarkMode ? const Color(0xFF0F1429) : Colors.white;
+    final fallbackColor = const Color(0xFF8B5CF6); // Default primary purple
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: bgColor,
+        surfaceTintColor: Colors.transparent, 
+        scrolledUnderElevation: 2.0, 
         elevation: 0,
         centerTitle: true,
         leading: Padding(
@@ -58,7 +80,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           ),
         ),
         title: Text(
-          'Ref #${widget.request.id.substring(0, 6).toUpperCase()}',
+          'Ref #${widget.request.id.length > 6 ? widget.request.id.substring(0, 6).toUpperCase() : widget.request.id.toUpperCase()}',
           style: TextStyle(
             color: widget.theme.subtextColor, 
             fontSize: 14, 
@@ -78,29 +100,26 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
         child: Column(
           children: [
-            _buildProfileHeader(),
+            _buildProfileHeader(fallbackColor),
             const SizedBox(height: 24),
-            _buildKeyStatsGrid(),
+            _buildKeyStatsGrid(fallbackColor),
             const SizedBox(height: 24),
             _buildMessageBubble(),
             const SizedBox(height: 24),
-            _buildCaretakerCard(),
+            _buildCaretakerCard(fallbackColor),
             const SizedBox(height: 24),
-            _buildTimelineSection(),
+            _buildTimelineSection(fallbackColor),
             const SizedBox(height: 24),
             _buildLocationCard(),
             const SizedBox(height: 40),
-            _buildPrimaryAction(),
+            _buildPrimaryAction(fallbackColor),
           ],
         ),
       ),
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 1. Profile Header with the specific Black Outline
-  // ---------------------------------------------------------------------------
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader(Color primaryColor) {
     final profileImageUrl = _patientData?['profileImageUrl'] as String?;
 
     return Column(
@@ -112,7 +131,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             height: 110,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              // SPECIFIC REQUEST: Black outline, not too thick (1.5)
               border: Border.all(
                 color: Colors.black, 
                 width: 1.5
@@ -130,9 +148,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                   ? Image.network(
                       profileImageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _buildDefaultAvatar(widget.request.patientName),
+                      errorBuilder: (_, _, _) => _buildDefaultAvatar(widget.request.patientName, primaryColor),
                     )
-                  : _buildDefaultAvatar(widget.request.patientName),
+                  : _buildDefaultAvatar(widget.request.patientName, primaryColor),
             ),
           ),
         ),
@@ -162,11 +180,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 2. Key Stats Grid (Replaces the vertical list)
-  // ---------------------------------------------------------------------------
-  Widget _buildKeyStatsGrid() {
-    final priorityColor = widget.request.getPriorityColor();
+  Widget _buildKeyStatsGrid(Color primaryColor) {
+    final priorityColor = _getPriorityColor(widget.request.priority);
+    final icon = _getRequestIcon(widget.request.requestType);
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
@@ -185,8 +201,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildStatItem(
-            icon: widget.request.getIcon(),
-            color: primary,
+            icon: icon,
+            color: primaryColor,
             label: 'Type',
             value: widget.request.requestType,
           ),
@@ -246,9 +262,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Widget _buildVerticalDivider() => Container(height: 30, width: 1, color: widget.theme.subtextColor.withOpacity(0.2));
 
-  // ---------------------------------------------------------------------------
-  // 3. Message Bubble
-  // ---------------------------------------------------------------------------
   Widget _buildMessageBubble() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +279,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
               bottomRight: Radius.circular(20),
-              bottomLeft: Radius.circular(4), // Chat bubble effect
+              bottomLeft: Radius.circular(4),
             ),
           ),
           child: Text(
@@ -282,12 +295,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 4. Caretaker Card
-  // ---------------------------------------------------------------------------
-  Widget _buildCaretakerCard() {
+  Widget _buildCaretakerCard(Color primaryColor) {
     final hasCaretaker = widget.request.caretakerId != null;
-    final name = _caretakerData?['name'] ?? 'Unknown';
+    final name = _caretakerData?['name'] ?? 'Unknown Responder';
     final img = _caretakerData?['profileImageUrl'];
 
     return Column(
@@ -303,7 +313,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: hasCaretaker ? primary.withValues(alpha: 0.3) : widget.theme.subtextColor.withValues(alpha: 0.2),
+              color: hasCaretaker ? primaryColor.withValues(alpha: 0.3) : widget.theme.subtextColor.withValues(alpha: 0.2),
             ),
           ),
           child: hasCaretaker
@@ -312,8 +322,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     CircleAvatar(
                       radius: 24,
                       backgroundImage: (img != null && img.isNotEmpty) ? NetworkImage(img) : null,
-                      backgroundColor: primary.withValues(alpha: 0.1),
-                      child: (img == null || img.isEmpty) ? Icon(Icons.person, color: primary) : null,
+                      backgroundColor: primaryColor.withValues(alpha: 0.1),
+                      child: (img == null || img.isEmpty) ? Icon(Icons.person, color: primaryColor) : null,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -322,14 +332,14 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         children: [
                           Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: widget.theme.textColor)),
                           const SizedBox(height: 2),
-                          Text('Assigned Caretaker', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                          const Text('Assigned Caretaker', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.phone_in_talk_rounded),
-                      color: primary,
-                      onPressed: () {}, // Action
+                      color: primaryColor,
+                      onPressed: () {}, 
                     ),
                   ],
                 )
@@ -348,10 +358,15 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 5. Clean Timeline
-  // ---------------------------------------------------------------------------
-  Widget _buildTimelineSection() {
+  Widget _buildTimelineSection(Color primaryColor) {
+    // Safely extract optional times if they exist on the model, otherwise fallback to null.
+    // In Dart, you can safely attempt to access dynamic properties if you aren't sure they are strictly typed.
+    DateTime? responseTime;
+    DateTime? completedTime;
+    
+    try { responseTime = (widget.request as dynamic).responseTime; } catch (_) {}
+    try { completedTime = (widget.request as dynamic).completedTime; } catch (_) {}
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -368,19 +383,22 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           child: Column(
             children: [
               _buildTimelineStep(
+                primaryColor: primaryColor,
                 title: 'Request Created',
                 time: widget.request.timestamp,
                 isActive: true,
                 isTop: true,
               ),
               _buildTimelineStep(
+                primaryColor: primaryColor,
                 title: 'Caretaker Assigned',
-                time: widget.request.responseTime,
+                time: responseTime,
                 isActive: widget.request.status.index > RequestStatus.pending.index,
               ),
               _buildTimelineStep(
+                primaryColor: primaryColor,
                 title: 'Completed',
-                time: widget.request.completedTime,
+                time: completedTime,
                 isActive: widget.request.status == RequestStatus.completed,
                 isBottom: true,
               ),
@@ -392,13 +410,14 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   Widget _buildTimelineStep({
+    required Color primaryColor,
     required String title,
     DateTime? time,
     bool isActive = false,
     bool isTop = false,
     bool isBottom = false,
   }) {
-    final color = isActive ? primary : widget.theme.subtextColor.withOpacity(0.3);
+    final color = isActive ? primaryColor : widget.theme.subtextColor.withOpacity(0.3);
     
     return IntrinsicHeight(
       child: Row(
@@ -413,7 +432,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                   width: 12, height: 12,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isActive ? primary : Colors.transparent,
+                    color: isActive ? primaryColor : Colors.transparent,
                     border: Border.all(color: color, width: 2),
                   ),
                 ),
@@ -424,10 +443,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isBottom ? 0 : 24.0, top: isTop ? 0 : 0), // Adjust alignment
+              padding: EdgeInsets.only(bottom: isBottom ? 0 : 24.0, top: isTop ? 0 : 0), 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start, // Align to top of step
+                mainAxisAlignment: MainAxisAlignment.start, 
                 children: [
                   Text(
                     title,
@@ -441,6 +460,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     Text(
                       DateFormat('MMM dd, hh:mm a').format(time),
                       style: TextStyle(color: widget.theme.subtextColor, fontSize: 11),
+                    )
+                  else if (isActive)
+                     Text(
+                      'Just updated', // Fallback string if time is null but status is active
+                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 11),
                     ),
                 ],
               ),
@@ -451,9 +475,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 6. Components
-  // ---------------------------------------------------------------------------
   Widget _buildLocationCard() {
     if (widget.request.location == null) return const SizedBox.shrink();
     return Container(
@@ -463,30 +484,30 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.map_rounded, color: Colors.blue),
-          const SizedBox(width: 12),
-          const Expanded(child: Text('GPS Location Available', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
-          const Icon(Icons.arrow_forward_rounded, color: Colors.blue, size: 18),
+          Icon(Icons.map_rounded, color: Colors.blue),
+          SizedBox(width: 12),
+          Expanded(child: Text('GPS Location Available', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
+          Icon(Icons.arrow_forward_rounded, color: Colors.blue, size: 18),
         ],
       ),
     );
   }
 
-  Widget _buildPrimaryAction() {
+  Widget _buildPrimaryAction(Color primaryColor) {
     if (widget.request.status == RequestStatus.pending) {
       return SizedBox(
         width: double.infinity,
         child: ElevatedButton(
           onPressed: () {},
           style: ElevatedButton.styleFrom(
-            backgroundColor: primary,
+            backgroundColor: primaryColor,
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 18),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 8,
-            shadowColor: primary.withValues(alpha: 0.4),
+            shadowColor: primaryColor.withValues(alpha: 0.4),
           ),
           child: const Text('Assign Caretaker', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ),
@@ -511,13 +532,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  Widget _buildDefaultAvatar(String name) {
+  Widget _buildDefaultAvatar(String name, Color primaryColor) {
     return Container(
-      color: primary,
+      color: primaryColor,
       child: Center(
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
         ),
       ),
     );
