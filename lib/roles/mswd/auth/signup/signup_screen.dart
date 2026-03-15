@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:seelai_app/services/cloudinary_service.dart';
+import 'package:seelai_app/storage/cloudinary_service.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
