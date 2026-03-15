@@ -17,6 +17,9 @@ import 'package:seelai_app/roles/mswd/home/sections/dashboard/quick_actions.dart
 import 'package:seelai_app/roles/mswd/home/widgets/mswd_notifications_bottom_sheet.dart'; 
 import 'package:seelai_app/firebase/firebase_services.dart';
 
+// Import the new registration screen
+import 'package:seelai_app/roles/mswd/home/sections/registration/subject_registration_screen.dart';
+
 class MSWDHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
@@ -180,6 +183,62 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       },
       child: Scaffold(
         extendBody: true,
+        
+        // --- ADD FACE/OBJECT FLOATING ACTION BUTTON ---
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+        floatingActionButton: _isNavVisible && _selectedIndex != 3 
+            ? Container(
+                height: 56,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(28),
+                    onTap: () => _showAddOptionsBottomSheet(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.center_focus_strong_rounded,
+                            color: Colors.white, 
+                            size: 22
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Add Face/Object',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ) 
+            : null,
+        // --- END FLOATING ACTION BUTTON ---
+
         body: Container(
           decoration: BoxDecoration(gradient: theme.backgroundGradient),
           child: SafeArea(
@@ -217,7 +276,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                     subtextColor: theme.subtextColor,
                   ),
                 
-                // Using AnimatedSwitcher instead of manual AnimationControllers!
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
@@ -310,7 +368,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       padding: EdgeInsets.only(
         left: width * 0.05,
         right: width * 0.05,
-        top: 16, // Reduced top padding
+        top: 16, 
         bottom: 100,
       ),
       child: Column(
@@ -321,7 +379,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
             theme: theme,
           ),
           
-          const SizedBox(height: 20), // TIGHTENED GAP
+          const SizedBox(height: 20),
 
           QuickActions(
             isDarkMode: _isDarkMode,
@@ -329,7 +387,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
             onNavigateToTab: _onNavItemTapped, 
           ),
 
-          const SizedBox(height: 40), // TIGHTENED GAP
+          const SizedBox(height: 40),
 
           UrgentAlertsSection(
             isDarkMode: _isDarkMode,
@@ -337,7 +395,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
             onNavigateToTab: _onNavItemTapped,
           ),
 
-          const SizedBox(height: 15), // TIGHTENED GAP
+          const SizedBox(height: 15),
 
           AnnouncementSection(
             isDarkMode: _isDarkMode,
@@ -376,6 +434,192 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       subtextColor: grey,
       cardColor: white,
       backgroundColor: backgroundPrimary,
+    );
+  }
+
+  // =========================================================================
+  // ADD OPTIONS BOTTOM SHEET METHODS
+  // =========================================================================
+
+  void _showAddOptionsBottomSheet(BuildContext context) {
+    // Your exact primary color
+    final Color primaryColor = const Color(0xFF8B5CF6);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext bc) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Tiny drag handle pill at the top
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _isDarkMode ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'What would you like to add?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: _isDarkMode ? Colors.white : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Register a new subject for detection',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: _isDarkMode ? Colors.white54 : Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 32),
+              
+              // Option 1: Caretaker Face
+              _buildAddOptionCard(
+                icon: Icons.face_retouching_natural_rounded,
+                title: 'Caretaker Face',
+                subtitle: 'Scan and register a new trusted person',
+                gradientColors: [
+                  primaryColor, 
+                  primaryColor.withValues(alpha: 0.8)
+                ], 
+                onTap: () {
+                  Navigator.pop(bc);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SubjectRegistrationScreen(
+                        isDarkMode: _isDarkMode,
+                        subjectType: SubjectType.face,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Option 2: Object
+              _buildAddOptionCard(
+                icon: Icons.view_in_ar_rounded, 
+                title: 'New Object',
+                subtitle: 'Scan an everyday item for detection',
+                gradientColors: [
+                  primaryColor.withValues(alpha: 0.8), 
+                  primaryColor.withValues(alpha: 0.6)
+                ], 
+                onTap: () {
+                  Navigator.pop(bc);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SubjectRegistrationScreen(
+                        isDarkMode: _isDarkMode,
+                        subjectType: SubjectType.object,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  // Helper widget for the beautiful cards
+  Widget _buildAddOptionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required List<Color> gradientColors,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: _isDarkMode ? const Color(0xFF0F1429) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: _isDarkMode ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: gradientColors[0].withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 28),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _isDarkMode ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _isDarkMode ? Colors.white60 : Colors.black54,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: _isDarkMode ? Colors.white38 : Colors.black26,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart'; 
-import 'package:seelai_app/services/cloudinary_service.dart';
+import 'package:seelai_app/storage/cloudinary_service.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
