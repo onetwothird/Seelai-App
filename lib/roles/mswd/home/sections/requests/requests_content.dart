@@ -1,4 +1,5 @@
 // File: lib/roles/mswd/home/sections/requests/requests_content.dart
+
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart';
@@ -61,8 +62,11 @@ class _RequestsContentState extends State<RequestsContent> {
       (requests) async {
         if (mounted) {
           requests.sort((a, b) {
-            if (a.priority == RequestPriority.emergency && b.priority != RequestPriority.emergency) return -1;
-            if (b.priority == RequestPriority.emergency && a.priority != RequestPriority.emergency) return 1;
+            final aIsEmergency = a.priority.toString().contains('emergency');
+            final bIsEmergency = b.priority.toString().contains('emergency');
+            
+            if (aIsEmergency && !bIsEmergency) return -1;
+            if (bIsEmergency && !aIsEmergency) return 1;
             return b.timestamp.compareTo(a.timestamp);
           });
 
@@ -150,7 +154,7 @@ class _RequestsContentState extends State<RequestsContent> {
 
   Widget _buildQuickStats() {
     final pending = _allRequests.where((r) => r.status == RequestStatus.pending).length;
-    final emergency = _allRequests.where((r) => r.priority == RequestPriority.emergency && r.status != RequestStatus.completed).length;
+    final emergency = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed).length;
 
     return Row(
       children: [
@@ -168,7 +172,7 @@ class _RequestsContentState extends State<RequestsContent> {
             title: 'Emergencies',
             count: emergency.toString(),
             icon: Icons.warning_rounded,
-            color: const Color(0xFFEF4444), // Modern crisp red
+            color: const Color(0xFFEF4444), 
           ),
         ),
       ],
@@ -176,65 +180,62 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 
   Widget _buildSummaryCard({
-  required String title,
-  required String count,
-  required IconData icon,
-  required Color color,
-}) {
-  return Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: widget.theme.cardColor,
-      borderRadius: BorderRadius.circular(24),
-      boxShadow: widget.isDarkMode 
-          ? [BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 16, offset: const Offset(0, 4))]
-          : softShadow,
-      border: widget.isDarkMode ? Border.all(color: color.withValues(alpha: 0.15)) : null,
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center, // Centers the content vertically
-      crossAxisAlignment: CrossAxisAlignment.center, // Centers the content horizontally
-      children: [
-        // 1. Icon stays centered at the top
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Icon(icon, color: color, size: 24),
+    required String title,
+    required String count,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: widget.isDarkMode ? [] : softShadow,
+        border: Border.all(
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
         ),
-        
-        const SizedBox(height: 12),
-        
-        // 2. Count perfectly centered
-        Text(
-          count,
-          style: h2.copyWith(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: widget.theme.textColor,
-            height: 1.0,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 24),
           ),
-          textAlign: TextAlign.center,
-        ),
-        
-        const SizedBox(height: 8),
-        
-        Text(
-          title,
-          style: caption.copyWith(
-            color: widget.theme.subtextColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+          const SizedBox(height: 12),
+          Text(
+            count,
+            style: h2.copyWith(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: widget.theme.textColor,
+              height: 1.0,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: caption.copyWith(
+              color: widget.theme.subtextColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSearchAndFilter() {
     return Container(
@@ -243,7 +244,10 @@ class _RequestsContentState extends State<RequestsContent> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.transparent,
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
         ),
       ),
       child: TextField(
@@ -299,9 +303,7 @@ class _RequestsContentState extends State<RequestsContent> {
                   color: isSelected ? color : widget.theme.subtextColor.withOpacity(0.2),
                   width: 1.5,
                 ),
-                boxShadow: isSelected
-                    ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4))]
-                    : [],
+                boxShadow: const [],
               ),
               child: Row(
                 children: [
@@ -339,32 +341,48 @@ class _RequestsContentState extends State<RequestsContent> {
       return matchesStatus && matchesSearch;
     }).toList();
 
+    // Redesigned Empty State Card
     if (filtered.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 60),
-        child: Center(
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: widget.theme.cardColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.inbox_rounded, size: 48, color: widget.theme.subtextColor.withOpacity(0.5)),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'No requests found',
-                style: h3.copyWith(color: widget.theme.textColor, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Try adjusting your filters or search.',
-                style: body.copyWith(color: widget.theme.subtextColor),
-              ),
-            ],
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: widget.isDarkMode 
+                ? Colors.white.withValues(alpha: 0.05) 
+                : Colors.black.withValues(alpha: 0.05),
           ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // This fixes the awkward stretching!
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: widget.theme.backgroundColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.inbox_rounded, 
+                size: 40, 
+                color: widget.theme.subtextColor.withValues(alpha: 0.5)
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No requests found',
+              style: h3.copyWith(color: widget.theme.textColor, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Try adjusting your filters or search criteria.',
+              style: body.copyWith(color: widget.theme.subtextColor, fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       );
     }
@@ -384,7 +402,7 @@ class _RequestsContentState extends State<RequestsContent> {
     final profileImg = userData?['profileImageUrl'];
     
     final statusColor = _getStatusColor(request.status);
-    final isEmergency = request.priority == RequestPriority.emergency;
+    final isEmergency = request.priority.toString().contains('emergency');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -406,17 +424,16 @@ class _RequestsContentState extends State<RequestsContent> {
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: isEmergency ? Colors.red.withValues(alpha: 0.3) : widget.theme.subtextColor.withValues(alpha: 0.08),
+              color: isEmergency 
+                  ? Colors.red.withValues(alpha: 0.5) 
+                  : (widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
               width: isEmergency ? 1.5 : 1.0,
             ),
-            boxShadow: widget.isDarkMode 
-              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 16, offset: const Offset(0, 4))]
-              : softShadow,
+            boxShadow: widget.isDarkMode ? [] : softShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Avatar, Name, and Status Badge
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -438,7 +455,7 @@ class _RequestsContentState extends State<RequestsContent> {
                       child: (profileImg == null || profileImg.isEmpty)
                           ? Center(
                               child: Text(
-                                request.patientName[0].toUpperCase(),
+                                request.patientName.isNotEmpty ? request.patientName[0].toUpperCase() : '?',
                                 style: h2.copyWith(color: widget.theme.subtextColor, fontSize: 20),
                               ),
                             )
@@ -474,7 +491,6 @@ class _RequestsContentState extends State<RequestsContent> {
                     ),
                   ),
                   
-                  // Clean, modern Status Badge
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
@@ -496,7 +512,6 @@ class _RequestsContentState extends State<RequestsContent> {
               
               const SizedBox(height: 20),
               
-              // Bottom Row: Request Type & Emergency Warning
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -548,12 +563,12 @@ class _RequestsContentState extends State<RequestsContent> {
                   else if (request.location != null)
                     Row(
                       children: [
-                        Icon(Icons.location_on_rounded, size: 14, color: widget.theme.subtextColor.withOpacity(0.7)),
+                        Icon(Icons.location_on_rounded, size: 14, color: widget.theme.subtextColor.withValues(alpha: 0.7)),
                         const SizedBox(width: 4),
                         Text(
                           'Location shared',
                           style: caption.copyWith(
-                            color: widget.theme.subtextColor.withOpacity(0.8),
+                            color: widget.theme.subtextColor.withValues(alpha: 0.8),
                             fontSize: 12,
                           ),
                         ),
@@ -569,16 +584,16 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 
   // Helpers
-  Widget _buildLoading() => Center(child: CircularProgressIndicator(color: const Color(0xFF3B82F6))); // Using a nice modern blue
+  Widget _buildLoading() => const Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6))); 
   Widget _buildError() => Center(child: Text(_error ?? 'Unknown Error', style: const TextStyle(color: Colors.red)));
 
   Color _getStatusColor(RequestStatus status) {
     switch (status) {
       case RequestStatus.pending: return Colors.orange;
-      case RequestStatus.accepted: return const Color(0xFF3B82F6); // Blue
-      case RequestStatus.inProgress: return const Color(0xFF8B5CF6); // Purple
-      case RequestStatus.completed: return const Color(0xFF10B981); // Emerald
-      case RequestStatus.declined: return const Color(0xFFEF4444); // Red
+      case RequestStatus.accepted: return const Color(0xFF3B82F6); 
+      case RequestStatus.inProgress: return const Color(0xFF8B5CF6); 
+      case RequestStatus.completed: return const Color(0xFF10B981); 
+      case RequestStatus.declined: return const Color(0xFFEF4444); 
     }
   }
 

@@ -1,6 +1,5 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/all_announcements_vi.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
@@ -27,7 +26,7 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: widget.isDarkMode ? const Color(0xFF1A1A1A) : const Color(0xFFF5F5F5),
+      backgroundColor: widget.theme.backgroundColor,
       appBar: AppBar(
         backgroundColor: widget.theme.cardColor,
         elevation: 0,
@@ -113,21 +112,13 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
-          boxShadow: widget.isDarkMode
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.1),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : softShadow,
-          border: widget.isDarkMode
-              ? Border.all(
-                  color: color.withValues(alpha: 0.2),
-                  width: 1,
-                )
-              : null,
+          boxShadow: widget.isDarkMode ? [] : softShadow,
+          border: Border.all(
+            color: widget.isDarkMode 
+                ? Colors.white.withValues(alpha: 0.05) 
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

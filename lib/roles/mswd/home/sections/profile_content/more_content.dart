@@ -1,4 +1,4 @@
-// File: lib/roles/caretaker/home/sections/profile_screen/profile_content.dart
+// File: lib/roles/mswd/home/sections/more_content.dart
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -7,32 +7,35 @@ import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:intl/intl.dart';
 
-class ProfileContent extends StatefulWidget {
+class MoreContent extends StatefulWidget {
   final Map<String, dynamic> userData;
   final bool isDarkMode;
   final dynamic theme;
+  final VoidCallback onToggleDarkMode;
 
-  const ProfileContent({
+  const MoreContent({
     super.key,
     required this.userData,
     required this.isDarkMode,
     required this.theme,
+    required this.onToggleDarkMode,
   });
 
   @override
-  State<ProfileContent> createState() => _ProfileContentState();
+  State<MoreContent> createState() => _MoreContentState();
 }
 
-class _ProfileContentState extends State<ProfileContent> {
+class _MoreContentState extends State<MoreContent> {
   late Map<String, dynamic> _userData;
   bool _isLoading = false;
   
-  // --- Color Palette (Matched with MoreContent) ---
-  final Color _colVerifications = const Color(0xFF3B82F6); // Blue (Personal)
-  final Color _colTracking = const Color(0xFF8B5CF6);      // Purple (Demographics)
-  final Color _colSafety = const Color(0xFFEF4444);        // Red (Danger)
-  final Color _colSupport = const Color(0xFF06B6D4);       // Cyan (Support)
-  final Color _colSecurity = const Color(0xFF10B981);      // Emerald Green (Account)
+  // --- Color Palette ---
+  final Color _colVerifications = const Color(0xFF3B82F6); // Blue
+  final Color _colTracking = const Color(0xFF8B5CF6);      // Purple
+  final Color _colSafety = const Color(0xFFEF4444);        // Red
+  final Color _colSupport = const Color(0xFF06B6D4);       // Cyan
+  final Color _colSecurity = const Color(0xFF10B981);      // Green
+  final Color _colAdmin = const Color(0xFFF59E0B);         // Amber for Admin Tools
 
   @override
   void initState() {
@@ -41,7 +44,7 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   @override
-  void didUpdateWidget(covariant ProfileContent oldWidget) {
+  void didUpdateWidget(covariant MoreContent oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.userData != oldWidget.userData) {
       setState(() {
@@ -52,9 +55,10 @@ class _ProfileContentState extends State<ProfileContent> {
 
   Future<void> _refreshUserData() async {
     if (databaseService.currentUserId != null) {
+      // Refreshing from the 'admin' role in Firebase
       final freshData = await databaseService.getUserDataByRole(
         databaseService.currentUserId!,
-        'caretaker',
+        'admin',
       );
       if (freshData != null && mounted) {
         setState(() {
@@ -72,24 +76,29 @@ class _ProfileContentState extends State<ProfileContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ==================== PAGE HEADER ====================
-          Text(
-            'Profile & Settings',
-            style: TextStyle(
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
-              color: widget.theme.textColor,
-              letterSpacing: -0.5,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Admin Profile & Settings',
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.bold,
+                  color: widget.theme.textColor,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // ==================== PROFILE IMAGE & NAME ====================
           _buildCenteredProfileImage(),
           const SizedBox(height: 32),
           
-          // ==================== PERSONAL INFORMATION ====================
+          // ==================== ADMINISTRATIVE DETAILS ====================
           _buildSettingsGroup(
-            title: 'Personal Information',
+            title: 'Administrative Details',
             children: [
               _buildSettingsTile(
                 title: 'Email Address',
@@ -104,12 +113,44 @@ class _ProfileContentState extends State<ProfileContent> {
                 value: _userData['phone'] ?? _userData['contactNumber'] ?? 'Not provided',
               ),
               _buildSettingsTile(
-                title: 'Relationship',
-                icon: Icons.people_outline_rounded,
+                title: 'Department',
+                icon: Icons.business_center_outlined,
                 iconColor: _colVerifications,
-                value: _userData['relationship']?.toString().isNotEmpty == true 
-                    ? _userData['relationship'] 
-                    : 'Not specified',
+                value: _userData['department']?.toString().isNotEmpty == true 
+                    ? _userData['department'] 
+                    : 'MSWD General',
+              ),
+              _buildSettingsTile(
+                title: 'Admin ID',
+                icon: Icons.badge_outlined,
+                iconColor: _colVerifications,
+                value: _userData['adminId']?.toString().isNotEmpty == true 
+                    ? _userData['adminId'] 
+                    : 'A-${_userData['userId']?.substring(0, 5).toUpperCase() ?? '00000'}',
+                isLast: true,
+              ),
+            ],
+          ),
+
+          // ==================== ADMIN TOOLS (NEW) ====================
+          _buildSettingsGroup(
+            title: 'System Management',
+            children: [
+              _buildSettingsTile(
+                title: 'System Activity Logs',
+                icon: Icons.manage_search_rounded,
+                iconColor: _colAdmin,
+                onTap: () {
+                  _showSnackbar('Navigating to system logs...', _colAdmin);
+                },
+              ),
+              _buildSettingsTile(
+                title: 'Export System Report',
+                icon: Icons.file_download_outlined,
+                iconColor: _colAdmin,
+                onTap: () {
+                  _showSnackbar('Generating PDF report...', _colSecurity);
+                },
                 isLast: true,
               ),
             ],
@@ -168,7 +209,7 @@ class _ProfileContentState extends State<ProfileContent> {
             title: 'Support & Information',
             children: [
               _buildSettingsTile(
-                title: 'How to Use App',
+                title: 'Admin Guide Video',
                 icon: Icons.play_circle_fill_rounded,
                 iconColor: _colSupport,
                 onTap: _showHowToUseDialog,
@@ -179,7 +220,7 @@ class _ProfileContentState extends State<ProfileContent> {
                 iconColor: _colSupport,
                 onTap: () => _showInfoDialog(
                   'Privacy Policy', 
-                  'This application collects minimal data required to assist visually impaired individuals. Your location data is shared only with your assigned patients during active monitoring.'
+                  'As an MSWD administrator, you are bound by data privacy laws. Location data and assistance requests must be kept strictly confidential.'
                 ),
               ),
               _buildSettingsTile(
@@ -188,13 +229,14 @@ class _ProfileContentState extends State<ProfileContent> {
                 iconColor: _colSupport,
                 onTap: () => _showInfoDialog(
                   'Terms of Service', 
-                  'By using this app, you agree to act responsibly as a caretaker and respond to emergency alerts promptly.'
+                  'By using the administrative portal, you agree to act responsibly, monitor alerts, and dispatch care effectively.'
                 ),
                 isLast: true,
               ),
             ],
           ),
 
+          // ==================== DANGER ZONE ====================
           _buildSettingsGroup(
             title: 'Danger Zone',
             children: [
@@ -217,46 +259,74 @@ class _ProfileContentState extends State<ProfileContent> {
 
   Widget _buildCenteredProfileImage() {
     final profileUrl = _userData['profileImageUrl'] as String?;
-    final name = _userData['name'] ?? 'Caretaker';
-    final initial = name.toString().isNotEmpty ? name.toString()[0].toUpperCase() : '?';
+    final name = _userData['name'] ?? 'Admin';
+    final initial = name.toString().isNotEmpty ? name.toString()[0].toUpperCase() : 'A';
 
     return Center(
       child: Column(
         children: [
-          Container(
-            height: 100,
-            width: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.black,
-                width: 1.0,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _colVerifications.withValues(alpha: 0.25),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                height: 100,
+                width: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.isDarkMode ? Colors.white24 : Colors.black,
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipOval(
-              child: (profileUrl != null && profileUrl.isNotEmpty)
-                  ? Image.network(
-                      profileUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return _buildGradientFallback(initial);
-                      },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return _buildGradientFallback('', isLoading: true);
-                      },
-                    )
-                  : _buildGradientFallback(initial),
-            ),
+                child: ClipOval(
+                  child: (profileUrl != null && profileUrl.isNotEmpty)
+                      ? Image.network(
+                          profileUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildGradientFallback(initial);
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return _buildGradientFallback('', isLoading: true);
+                          },
+                        )
+                      : _buildGradientFallback(initial),
+                ),
+              ),
+              // MSWD Verified Badge
+              Positioned(
+                bottom: -8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _colTracking,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: widget.theme.backgroundColor, width: 2),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(width: 4),
+                      Text(
+                        'MSWSD',
+                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
             name,
             style: TextStyle(
@@ -277,8 +347,8 @@ class _ProfileContentState extends State<ProfileContent> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            _colVerifications,
-            _colVerifications.withValues(alpha: 0.6),
+            _colTracking,
+            _colTracking.withValues(alpha: 0.6),
           ],
         ),
       ),
@@ -355,6 +425,11 @@ class _ProfileContentState extends State<ProfileContent> {
     bool isDestructive = false,
     bool isLast = false,
   }) {
+    final displayIconColor = isDestructive ? _colSafety : widget.theme.textColor;
+    final displayContainerColor = isDestructive 
+        ? _colSafety.withValues(alpha: 0.1) 
+        : widget.theme.textColor.withValues(alpha: 0.05);
+
     final textColor = isDestructive ? _colSafety : widget.theme.textColor;
 
     return Material(
@@ -373,12 +448,13 @@ class _ProfileContentState extends State<ProfileContent> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isDestructive ? _colSafety.withValues(alpha: 0.1) : iconColor.withValues(alpha: 0.1),
+                      color: displayContainerColor,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(icon, size: 20, color: isDestructive ? _colSafety : iconColor),
+                    child: Icon(icon, size: 20, color: displayIconColor),
                   ),
                   const SizedBox(width: 16),
+                  
                   Expanded(
                     child: Text(
                       title,
@@ -389,16 +465,32 @@ class _ProfileContentState extends State<ProfileContent> {
                       ),
                     ),
                   ),
+                  
                   if (value != null) ...[
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: widget.theme.subtextColor,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2, 
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Text(
+                                value,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: widget.theme.subtextColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                  
                   if (onTap != null && value == null) ...[
                     Icon(
                       Icons.chevron_right_rounded,
@@ -473,246 +565,194 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   // ==================== DIALOGS ====================
-void _showEditProfileDialog() {
-  final parentContext = context; 
 
-  final nameController =
-      TextEditingController(text: _userData['name']);
-  final phoneController =
-      TextEditingController(text: _userData['phone'] ?? _userData['contactNumber']);
-  final relationshipController =
-      TextEditingController(text: _userData['relationship']);
-  final ageController =
-      TextEditingController(text: _userData['age']?.toString() ?? '');
-  String? selectedSex = _userData['sex'];
+  void _showEditProfileDialog() {
+    final parentContext = context; 
 
-  showDialog(
-    context: parentContext,
-    builder: (dialogContext) => StatefulBuilder(
-      builder: (dialogContext, setStateDialog) {
-        return AlertDialog(
-          backgroundColor: widget.theme.cardColor,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            'Edit Profile',
-            style: TextStyle(
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+    final nameController = TextEditingController(text: _userData['name']);
+    final phoneController = TextEditingController(text: _userData['phone'] ?? _userData['contactNumber']);
+    final departmentController = TextEditingController(text: _userData['department']);
+    final ageController = TextEditingController(text: _userData['age']?.toString() ?? '');
+    String? selectedSex = _userData['sex'];
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setStateDialog) {
+          return AlertDialog(
+            backgroundColor: widget.theme.cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text(
+              'Update Admin Profile',
+              style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20),
             ),
-          ),
-          content: SingleChildScrollView(
-            child: SizedBox(
-              width: double.maxFinite,
+            content: SingleChildScrollView(
+              child: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildDialogTextField('Full Name', nameController, Icons.person_outline),
+                    const SizedBox(height: 16),
+                    _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone),
+                    const SizedBox(height: 16),
+                    _buildDialogTextField('Department', departmentController, Icons.business_center_outlined),
+                    const SizedBox(height: 16),
+                    _buildDialogTextField('Age', ageController, Icons.cake_outlined, inputType: TextInputType.number),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedSex,
+                      dropdownColor: widget.theme.cardColor,
+                      decoration: InputDecoration(
+                        labelText: 'Sex',
+                        labelStyle: TextStyle(color: widget.theme.subtextColor),
+                        prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor),
+                        filled: true,
+                        fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                      items: ['Male', 'Female', 'Not Specified']
+                          .map((sex) => DropdownMenuItem(value: sex, child: Text(sex, style: TextStyle(color: widget.theme.textColor))))
+                          .toList(),
+                      onChanged: (val) => setStateDialog(() => selectedSex = val),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _colSecurity,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                onPressed: _isLoading ? null : () async {
+                  setStateDialog(() => _isLoading = true);
+                  Navigator.pop(dialogContext);
+
+                  try {
+                    await databaseService.updateUserProfile(
+                      userId: databaseService.currentUserId!,
+                      role: 'admin',
+                      name: nameController.text.trim(),
+                      phone: phoneController.text.trim(),
+                      contactNumber: phoneController.text.trim(),
+                      department: departmentController.text.trim(),
+                      age: int.tryParse(ageController.text.trim()),
+                      sex: selectedSex,
+                    );
+
+                    await _refreshUserData();
+
+                    if (!mounted) return;
+                    _showSnackbar('Profile updated successfully', _colSecurity);
+                  } catch (e) {
+                    if (!mounted) return;
+                    _showSnackbar('Error updating profile: $e', _colSafety);
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
+                },
+                child: _isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (builderContext, setStateDialog) {
+          return AlertDialog(
+            backgroundColor: widget.theme.cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Text('Change Password', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
+            content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildDialogTextField('Full Name', nameController, Icons.person_outline),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField('Relationship', relationshipController, Icons.people_outline),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField('Age', ageController, Icons.cake_outlined, inputType: TextInputType.number),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedSex,
-                    dropdownColor: widget.theme.cardColor,
-                    decoration: InputDecoration(
-                      labelText: 'Sex',
-                      labelStyle: TextStyle(color: widget.theme.subtextColor),
-                      prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor),
-                      filled: true,
-                      fillColor: widget.isDarkMode
-                          ? Colors.black.withValues(alpha: 0.2)
-                          : Colors.grey.withValues(alpha: 0.05),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    items: ['Male', 'Female', 'Not Specified']
-                        .map((sex) => DropdownMenuItem(
-                              value: sex,
-                              child: Text(sex,
-                                  style: TextStyle(
-                                      color: widget.theme.textColor)),
-                            ))
-                        .toList(),
-                    onChanged: (val) =>
-                        setStateDialog(() => selectedSex = val),
+                  Text(
+                    'You will need to sign in again after changing your password.',
+                    style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
                   ),
+                  const SizedBox(height: 20),
+                  _buildDialogTextField('Current Password', currentPassController, Icons.lock_outline, isPassword: true),
+                  const SizedBox(height: 16),
+                  _buildDialogTextField('New Password', newPassController, Icons.lock_outline, isPassword: true),
+                  const SizedBox(height: 16),
+                  _buildDialogTextField('Confirm Password', confirmPassController, Icons.lock_outline, isPassword: true),
                 ],
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel',
-                  style:
-                      TextStyle(color: widget.theme.subtextColor)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _colSecurity,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
+            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(builderContext),
+                child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
               ),
-              onPressed: _isLoading
-                  ? null
-                  : () async {
-                      setStateDialog(() => _isLoading = true);
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _colSecurity,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+                onPressed: _isLoading ? null : () async {
+                  if (newPassController.text != confirmPassController.text) {
+                    _showSnackbar('New passwords do not match', _colSafety);
+                    return;
+                  }
+                  if (newPassController.text.length < 6) {
+                    _showSnackbar('Password must be at least 6 characters', _colSafety);
+                    return;
+                  }
 
-                      // ✅ Close dialog BEFORE async gap
-                      Navigator.pop(dialogContext);
+                  setStateDialog(() => _isLoading = true);
+                  try {
+                    await authService.value.resetPasswordFromCurrentPassword(
+                      email: _userData['email'],
+                      currentPassword: currentPassController.text,
+                      newPassword: newPassController.text,
+                    );
+                    
+                    if (!builderContext.mounted) return;
+                    Navigator.pop(builderContext);
+                    _showSnackbar('Password changed successfully', _colSecurity);
+                  } catch (e) {
+                    _showSnackbar('Failed to change password. Check current password.', _colSafety);
+                  } finally {
+                    if (builderContext.mounted) {
+                      setStateDialog(() => _isLoading = false);
+                    }
+                  }
+                },
+                child: _isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        }
+      ),
+    );
+  }
 
-                      try {
-                        await databaseService.updateUserProfile(
-                          userId: databaseService.currentUserId!,
-                          role: 'caretaker',
-                          name: nameController.text.trim(),
-                          phone: phoneController.text.trim(),
-                          contactNumber: phoneController.text.trim(),
-                          relationship:
-                              relationshipController.text.trim(),
-                          age: int.tryParse(
-                              ageController.text.trim()),
-                          sex: selectedSex,
-                        );
-
-                        await _refreshUserData();
-
-                        if (!mounted) return;
-
-                        _showSnackbar(
-                            'Profile updated successfully!',
-                            _colSecurity);
-                      } catch (e) {
-                        if (!mounted) return;
-
-                        _showSnackbar(
-                            'Error updating profile: $e',
-                            _colSafety);
-                      } finally {
-                        if (mounted) {
-                          setState(() => _isLoading = false);
-                        }
-                      }
-                    },
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text(
-                      'Save',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold),
-                    ),
-            ),
-          ],
-        );
-      },
-    ),
-  );
-}
- void _showChangePasswordDialog() {
-   final currentPassController = TextEditingController();
-   final newPassController = TextEditingController();
-   final confirmPassController = TextEditingController();
-
-   showDialog(
-     context: context,
-     // Renamed to dialogContext to avoid shadowing the outer context
-     builder: (dialogContext) => StatefulBuilder(
-       // Renamed to builderContext to avoid shadowing
-       builder: (builderContext, setStateDialog) {
-         return AlertDialog(
-           backgroundColor: widget.theme.cardColor,
-           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-           title: Text('Change Password', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
-           content: SingleChildScrollView(
-             child: Column(
-               mainAxisSize: MainAxisSize.min,
-               children: [
-                 Text(
-                   'You will need to sign in again after changing your password.',
-                   style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
-                 ),
-                 const SizedBox(height: 20),
-                 _buildDialogTextField('Current Password', currentPassController, Icons.lock_outline, isPassword: true),
-                 const SizedBox(height: 16),
-                 _buildDialogTextField('New Password', newPassController, Icons.lock_outline, isPassword: true),
-                 const SizedBox(height: 16),
-                 _buildDialogTextField('Confirm Password', confirmPassController, Icons.lock_outline, isPassword: true),
-               ],
-             ),
-           ),
-           actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-           actions: [
-             TextButton(
-               onPressed: () => Navigator.pop(builderContext),
-               child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
-             ),
-             ElevatedButton(
-               style: ElevatedButton.styleFrom(
-                 backgroundColor: _colSecurity,
-                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                 elevation: 0,
-               ),
-               onPressed: _isLoading ? null : () async {
-                 if (newPassController.text != confirmPassController.text) {
-                   _showSnackbar('New passwords do not match', _colSafety);
-                   return;
-                 }
-                 if (newPassController.text.length < 6) {
-                   _showSnackbar('Password must be at least 6 characters', _colSafety);
-                   return;
-                 }
-
-                 setStateDialog(() => _isLoading = true);
-                 try {
-                   await authService.value.resetPasswordFromCurrentPassword(
-                     email: _userData['email'],
-                     currentPassword: currentPassController.text,
-                     newPassword: newPassController.text,
-                   );
-                   
-                   // --- FIX: Add mounted check before using context after await ---
-                   if (!builderContext.mounted) return;
-
-                   Navigator.pop(builderContext);
-                   _showSnackbar('Password changed successfully!', _colSecurity);
-                 } catch (e) {
-                   _showSnackbar('Failed to change password. Check current password.', _colSafety);
-                 } finally {
-                   // Ensure the builderContext is still mounted before calling setStateDialog
-                   if (builderContext.mounted) {
-                     setStateDialog(() => _isLoading = false);
-                   }
-                 }
-               },
-               child: _isLoading
-                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                   : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-             ),
-           ],
-         );
-       }
-     ),
-   );
- }
-
- void _showLogoutDialog() {
-    // Capture the widget's context to avoid confusion
+  void _showLogoutDialog() {
     final parentContext = context;
 
     showDialog(
@@ -761,7 +801,7 @@ void _showEditProfileDialog() {
           ],
         ),
         content: Text(
-          'Are you sure you want to sign out?', 
+          'Are you sure you want to sign out of the Admin Portal?', 
           style: TextStyle(
             color: widget.theme.subtextColor, 
             fontSize: 16, 
@@ -771,7 +811,6 @@ void _showEditProfileDialog() {
         actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         actions: [
           TextButton(
-            // Use dialogContext here to close the dialog
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancel', 
@@ -784,22 +823,16 @@ void _showEditProfileDialog() {
           ),
           ElevatedButton(
             onPressed: () async {
-              // 1. Close the dialog first using dialogContext
               Navigator.pop(dialogContext);
-              
-              // 2. Perform the async sign-out operation
               await authService.value.signOut();
               
-              // 3. GUARD: Check if the SPECIFIC context we are about to use is mounted
               if (!parentContext.mounted) return;
 
-              // 4. Safe to use parentContext now
               Navigator.of(parentContext).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                 (route) => false,
               );
               
-              // 5. Ensure the state is still mounted before calling a state method
               if (mounted) {
                 _showSnackbar('Successfully signed out', Colors.green);
               }
@@ -845,30 +878,36 @@ void _showEditProfileDialog() {
   void _showHowToUseDialog() {
     showDialog(
       context: context,
-      builder: (context) => CaretakerGuideVideoDialog(
+      builder: (context) => AdminGuideVideoDialog(
         theme: widget.theme,
         colSupport: _colSupport,
+        colSafety: _colSafety,
+        colAdmin: _colAdmin,
       ),
     );
   }
 }
 
-// ==================== CARETAKER VIDEO PLAYER DIALOG WIDGET ====================
-class CaretakerGuideVideoDialog extends StatefulWidget {
+// ==================== ADMIN VIDEO PLAYER DIALOG WIDGET ====================
+class AdminGuideVideoDialog extends StatefulWidget {
   final dynamic theme;
   final Color colSupport;
+  final Color colSafety;
+  final Color colAdmin;
 
-  const CaretakerGuideVideoDialog({
+  const AdminGuideVideoDialog({
     super.key,
     required this.theme,
     required this.colSupport,
+    required this.colSafety,
+    required this.colAdmin,
   });
 
   @override
-  State<CaretakerGuideVideoDialog> createState() => _CaretakerGuideVideoDialogState();
+  State<AdminGuideVideoDialog> createState() => _AdminGuideVideoDialogState();
 }
 
-class _CaretakerGuideVideoDialogState extends State<CaretakerGuideVideoDialog> {
+class _AdminGuideVideoDialogState extends State<AdminGuideVideoDialog> {
   late VideoPlayerController _controller;
   bool _isInitialized = false;
   bool _hasError = false;
@@ -907,7 +946,7 @@ class _CaretakerGuideVideoDialogState extends State<CaretakerGuideVideoDialog> {
       backgroundColor: widget.theme.cardColor,
       insetPadding: const EdgeInsets.all(20),
       contentPadding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       content: SizedBox(
         width: double.maxFinite,
         child: Column(
@@ -920,10 +959,10 @@ class _CaretakerGuideVideoDialogState extends State<CaretakerGuideVideoDialog> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                   ),
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                     child: _hasError 
                         ? Center(
                             child: Padding(
@@ -1000,7 +1039,7 @@ class _CaretakerGuideVideoDialogState extends State<CaretakerGuideVideoDialog> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Getting Started', 
+                      'Admin Training Guide', 
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1009,33 +1048,36 @@ class _CaretakerGuideVideoDialogState extends State<CaretakerGuideVideoDialog> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Learn how to monitor your patients efficiently.',
+                      'Learn how to effectively manage the MSWD system.',
                       style: TextStyle(
                         fontSize: 14,
                         color: widget.theme.subtextColor,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    _buildGuideStep(1, 'Connect with Patients', 'Use the QR scanner or enter a Patient ID to link accounts.', widget.colSupport),
-                    _buildGuideStep(2, 'Dashboard Monitoring', 'View real-time location and status of assigned patients.', widget.colSupport),
-                    _buildGuideStep(3, 'Emergency Alerts', 'Receive instant notifications for SOS requests.', widget.colSupport),
+                    _buildGuideStep(
+                      icon: Icons.map_rounded, 
+                      title: 'Live Tracking', 
+                      description: 'Use the Command Center Map to globally track all active users.'
+                    ),
+                    _buildGuideStep(
+                      icon: Icons.people_outline_rounded, 
+                      title: 'User Management', 
+                      description: 'Access the Directory to securely review profiles and make direct communications.'
+                    ),
+                    _buildGuideStep(
+                      icon: Icons.campaign_rounded, 
+                      title: 'System Broadcasts', 
+                      description: 'Send critical announcements targeting specific groups or individuals.',
+                      colorOverride: widget.colAdmin,
+                    ),
+                    _buildGuideStep(
+                      icon: Icons.warning_rounded, 
+                      title: 'Emergency Dispatch', 
+                      description: 'Monitor the live alerts feed to coordinate critical SOS requests.',
+                      isDestructive: true,
+                    ),
                   ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.colSupport,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("I'm Ready!", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
             ),
@@ -1045,28 +1087,39 @@ class _CaretakerGuideVideoDialogState extends State<CaretakerGuideVideoDialog> {
     );
   }
 
-  Widget _buildGuideStep(int step, String title, String description, Color color) {
+  Widget _buildGuideStep({
+    required IconData icon, 
+    required String title, 
+    required String description, 
+    bool isDestructive = false,
+    Color? colorOverride,
+  }) {
+    final displayIconColor = isDestructive 
+        ? widget.colSafety 
+        : (colorOverride ?? widget.theme.textColor);
+        
+    final displayContainerColor = isDestructive 
+        ? widget.colSafety.withValues(alpha: 0.15) 
+        : (colorOverride?.withValues(alpha: 0.15) ?? widget.theme.textColor.withValues(alpha: 0.05));
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 20.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Text('$step', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: displayContainerColor, borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: displayIconColor, size: 22),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: widget.theme.textColor)),
+                Text(title, style: TextStyle(color: widget.theme.textColor, fontSize: 15, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(description, style: TextStyle(fontSize: 13, color: widget.theme.subtextColor)),
+                Text(description, style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, height: 1.4)),
               ],
             ),
           ),

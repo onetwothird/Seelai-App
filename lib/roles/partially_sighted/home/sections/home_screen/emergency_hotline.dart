@@ -1,6 +1,5 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/emergency_hotline.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/screens/emergency_hotlines_screen.dart';
@@ -68,64 +67,32 @@ class _EmergencyHotlineButtonState extends State<EmergencyHotlineButton> with Si
               );
             },
             borderRadius: BorderRadius.circular(radiusLarge),
-            splashColor: error.withValues(alpha: 0.2),
-            highlightColor: error.withValues(alpha: 0.1),
+            splashColor: error.withValues(alpha: 0.1),
+            highlightColor: error.withValues(alpha: 0.05),
             child: Container(
               padding: EdgeInsets.all(spacingMedium),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: widget.isDarkMode
-                      ? [Color(0xFF1A1F3A), Color(0xFF2A2F4A)]
-                      : [white, white.withValues(alpha: 0.9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: widget.theme.cardColor,
                 borderRadius: BorderRadius.circular(radiusLarge),
-                boxShadow: widget.isDarkMode
-                    ? [
-                        BoxShadow(
-                          color: error.withValues(alpha: 0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: error.withValues(alpha: 0.1),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                border: widget.isDarkMode
-                    ? Border.all(
-                        color: error.withValues(alpha: 0.3),
-                        width: 1.5,
-                      )
-                    : null,
+                boxShadow: widget.isDarkMode ? [] : softShadow,
+                border: Border.all(
+                  color: widget.isDarkMode 
+                      ? Colors.white.withValues(alpha: 0.05) 
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
+                ),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: EdgeInsets.all(spacingMedium),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [error, error.withValues(alpha: 0.7)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: error.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(radiusMedium),
-                      boxShadow: [
-                        BoxShadow(
-                          color: error.withValues(alpha: 0.4),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Icon(
                       Icons.phone_in_talk_rounded,
-                      color: white,
+                      color: error,
                       size: 26,
                     ),
                   ),

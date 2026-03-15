@@ -47,21 +47,24 @@ class _CallRatingDialogState extends State<CallRatingDialog> {
                     setState(() {
                       _selectedStars = index + 1;
                     });
-                    
+
+                    final navigator = Navigator.of(context);
+
                     // Close after short delay so they can see their selection
                     Future.delayed(const Duration(milliseconds: 500), () {
-                      if (mounted) {
-                        Navigator.of(context).pop();
-                        widget.onDismissed();
-                      }
+                      if (!mounted) return;
+
+                      navigator.pop();
+                      widget.onDismissed();
                     });
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Icon(
                       Icons.star_rounded,
-                      // Grey stars when unselected, white/light grey when selected
-                      color: index < _selectedStars ? Colors.white : Colors.grey.shade600,
+                      color: index < _selectedStars
+                          ? Colors.white
+                          : Colors.grey.shade600,
                       size: 40,
                     ),
                   ),

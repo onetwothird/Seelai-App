@@ -9,8 +9,10 @@ class HeaderSection extends StatefulWidget {
   final String adminName;
   final String? profileImageUrl;
   final bool isDarkMode;
+  final int pendingRequestsCount; // <-- Defined here
   final VoidCallback onToggleDarkMode;
   final VoidCallback? onProfileTap;
+  final VoidCallback? onNotificationTap; // <-- Defined here
   final Color textColor;
   final Color subtextColor;
 
@@ -19,8 +21,10 @@ class HeaderSection extends StatefulWidget {
     required this.adminName,
     this.profileImageUrl,
     required this.isDarkMode,
+    required this.pendingRequestsCount, // <-- Required here
     required this.onToggleDarkMode,
     this.onProfileTap,
+    this.onNotificationTap, // <-- Included here
     required this.textColor,
     required this.subtextColor,
   });
@@ -79,7 +83,11 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     final formattedDate = DateFormat('EEEE, MMMM d').format(now);
 
     final profileSize = 56.0;
+    final double notificationSize = 55.0; // Bell size
     final double themeToggleSize = 60.0;
+
+    final badgeYellow = const Color(0xFFFDCB58); // Badge color
+    final badgeBorderColor = const Color(0xFF1A1A40); // Badge border
 
     return Semantics(
       label: 'Header section. Hi ${widget.adminName}. Today is $formattedDate',
@@ -87,7 +95,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
         padding: EdgeInsets.fromLTRB(
           width * 0.05,      // Left padding
           height * 0.015,    // Top padding
-          width * 0.02,      // Right padding (Reduced to 0.02 to match other headers)
+          width * 0.02,      // Right padding
           height * 0.015,    // Bottom padding
         ),
         decoration: BoxDecoration(
@@ -285,6 +293,81 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                         controller: _themeController,
                         fit: BoxFit.contain,
                         animate: false,
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 1),
+
+                // --- CUSTOM NOTIFICATION BELL (Lottie) ---
+                Semantics(
+                  label: widget.pendingRequestsCount > 0 
+                    ? 'Pending requests. You have ${widget.pendingRequestsCount} pending request${widget.pendingRequestsCount > 1 ? 's' : ''}' 
+                    : 'Pending requests',
+                  hint: 'Double tap to view pending requests',
+                  button: true,
+                  child: InkWell(
+                    onTap: widget.onNotificationTap,
+                    borderRadius: BorderRadius.circular(50),
+                    child: SizedBox(
+                      width: notificationSize,
+                      height: notificationSize,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: [
+                          // Bell Lottie
+                          Padding(
+                            padding: const EdgeInsets.all(2.0),
+                            child: Lottie.asset(
+                              'assets/icons/Notification.json',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                          
+                          // Badge
+                          if (widget.pendingRequestsCount > 0)
+                            Positioned(
+                              right: 8,
+                              top: 6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: badgeYellow,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: badgeBorderColor,
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 18,
+                                  minHeight: 18,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    widget.pendingRequestsCount > 9 
+                                        ? '9+' 
+                                        : widget.pendingRequestsCount.toString(),
+                                    style: TextStyle(
+                                      color: badgeBorderColor,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      height: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
