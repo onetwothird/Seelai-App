@@ -1,6 +1,5 @@
 // File: lib/roles/mswd/home/sections/dashboard/announcement.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/mswd/announcement_service.dart';
@@ -269,21 +268,17 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
+        // Removed glowy colored shadow, using a neutral soft shadow
         boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
+            ? []
             : softShadow,
-        border: widget.isDarkMode
-            ? Border.all(
-                color: color.withValues(alpha: 0.2),
-                width: 1,
-              )
-            : null,
+        // Replaced colored border with a neutral border to match the requested design
+        border: Border.all(
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

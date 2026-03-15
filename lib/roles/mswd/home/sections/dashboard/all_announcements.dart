@@ -1,6 +1,5 @@
 // File: lib/roles/mswd/home/sections/dashboard/all_announcements.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
@@ -77,21 +76,17 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
+        // Removed glowy colored shadow
         boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
+            ? []
             : softShadow,
-        border: widget.isDarkMode
-            ? Border.all(
-                color: color.withValues(alpha: 0.2),
-                width: 1,
-              )
-            : null,
+        // Using the same clean, neutral border as the main dashboard
+        border: Border.all(
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

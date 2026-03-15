@@ -46,7 +46,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
           debugPrint('✅ Predefined hotlines initialized successfully');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 content: Text('Emergency hotlines have been set up for you'),
                 backgroundColor: Colors.green,
                 duration: Duration(seconds: 2),
@@ -69,12 +69,9 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Set scaffold background to match container
-      backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
+      backgroundColor: widget.theme.backgroundColor,
       appBar: AppBar(
-        // Force solid background matching the body
-        backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
-        // Disable the color change on scroll
+        backgroundColor: widget.theme.cardColor,
         scrolledUnderElevation: 0,
         elevation: 0,
         leading: IconButton(
@@ -98,17 +95,14 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
         ],
       ),
       body: Container(
-        decoration: BoxDecoration(
-          // Ensure container matches the white background
-          color: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
-        ),
+        color: widget.theme.backgroundColor,
         child: _isInitializing
             ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(color: primary),
-                    SizedBox(height: spacingMedium),
+                    const CircularProgressIndicator(color: primary),
+                    const SizedBox(height: spacingMedium),
                     Text(
                       'Setting up emergency hotlines...',
                       style: body.copyWith(color: widget.theme.textColor),
@@ -120,7 +114,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                 stream: _service.streamHotlines(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(
+                    return const Center(
                       child: CircularProgressIndicator(color: primary),
                     );
                   }
@@ -141,7 +135,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                   }
 
                   return ListView.builder(
-                    padding: EdgeInsets.all(spacingLarge),
+                    padding: const EdgeInsets.all(spacingLarge),
                     itemCount: hotlines.length,
                     itemBuilder: (context, index) {
                       final hotline = hotlines[index];
@@ -160,41 +154,17 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
       button: true,
       hint: 'Double tap to call ${hotline.phoneNumber}',
       child: Container(
-        margin: EdgeInsets.only(bottom: spacingMedium),
+        margin: const EdgeInsets.only(bottom: spacingMedium),
         decoration: BoxDecoration(
-          gradient: widget.isDarkMode
-              ? LinearGradient(
-                  colors: [Color(0xFF1A1F3A), Color(0xFF2A2F4A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: widget.isDarkMode ? null : widget.theme.cardColor,
+          color: widget.theme.cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
-          boxShadow: widget.isDarkMode
-              ? [
-                  BoxShadow(
-                    color: hotline.color.withValues(alpha: 0.15),
-                    blurRadius: 20,
-                    offset: Offset(0, 8),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: Offset(0, 6),
-                  ),
-                ],
-          border: widget.isDarkMode
-              ? Border.all(
-                  color: hotline.color.withValues(alpha: 0.3),
-                  width: 1.5,
-                )
-              : Border.all(
-                  color: Colors.grey.withValues(alpha: 0.15),
-                  width: 1.0,
-                ),
+          boxShadow: widget.isDarkMode ? [] : softShadow,
+          border: Border.all(
+            color: widget.isDarkMode 
+                ? Colors.white.withValues(alpha: 0.05) 
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
         ),
         child: Material(
           color: Colors.transparent,
@@ -202,45 +172,33 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
             onTap: () => _callHotline(hotline),
             borderRadius: BorderRadius.circular(radiusLarge),
             child: Padding(
-              padding: EdgeInsets.all(spacingMedium),
+              padding: const EdgeInsets.all(spacingMedium),
               child: Row(
                 children: [
                   // --- IMAGE/ICON CONTAINER START ---
                   Container(
-                    width: 60, // Fixed width for consistency
-                    height: 60, // Fixed height for consistency
+                    width: 60,
+                    height: 60, 
                     padding: hotline.imageAsset.isNotEmpty 
-                        ? EdgeInsets.zero // No padding if it's an image, let it fill
-                        : EdgeInsets.all(spacingMedium),
+                        ? EdgeInsets.zero 
+                        : const EdgeInsets.all(spacingMedium),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [hotline.color, hotline.color.withValues(alpha: 0.7)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                      color: hotline.color.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(radiusMedium),
                       image: hotline.imageAsset.isNotEmpty
                           ? DecorationImage(
                               image: AssetImage(hotline.imageAsset),
-                              fit: BoxFit.cover, // Fills the box nicely
+                              fit: BoxFit.cover,
                             )
                           : null,
-                      boxShadow: [
-                        BoxShadow(
-                          color: hotline.color.withValues(alpha: 0.4),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
                     ),
-                    // Only show Icon if no image is provided
                     child: hotline.imageAsset.isNotEmpty
                         ? null 
-                        : Icon(hotline.icon, color: white, size: 26),
+                        : Icon(hotline.icon, color: hotline.color, size: 26),
                   ),
                   // --- IMAGE/ICON CONTAINER END ---
                   
-                  SizedBox(width: spacingMedium),
+                  const SizedBox(width: spacingMedium),
                   
                   // Info
                   Expanded(
@@ -261,7 +219,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                             ),
                             if (hotline.isPredefined)
                               Container(
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: spacingSmall,
                                   vertical: 4,
                                 ),
@@ -280,7 +238,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                               ),
                           ],
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           hotline.phoneNumber,
                           style: body.copyWith(
@@ -299,6 +257,8 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                       Icons.more_vert_rounded,
                       color: widget.theme.subtextColor,
                     ),
+                    color: widget.theme.cardColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     onSelected: (value) {
                       if (value == 'edit') {
                         _editHotline(hotline);
@@ -311,9 +271,9 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                         value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.edit_rounded, size: 20),
-                            SizedBox(width: spacingSmall),
-                            Text('Edit'),
+                            Icon(Icons.edit_rounded, size: 20, color: widget.theme.textColor),
+                            const SizedBox(width: spacingSmall),
+                            Text('Edit', style: TextStyle(color: widget.theme.textColor)),
                           ],
                         ),
                       ),
@@ -321,9 +281,9 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                         value: 'delete',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_rounded, size: 20, color: error),
-                            SizedBox(width: spacingSmall),
-                            Text('Delete', style: TextStyle(color: error)),
+                            const Icon(Icons.delete_rounded, size: 20, color: error),
+                            const SizedBox(width: spacingSmall),
+                            const Text('Delete', style: TextStyle(color: error)),
                           ],
                         ),
                       ),
@@ -343,29 +303,30 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.phone_in_talk_rounded, size: 80, color: widget.theme.subtextColor),
-          SizedBox(height: spacingMedium),
+          Icon(Icons.phone_in_talk_rounded, size: 80, color: widget.theme.subtextColor.withValues(alpha: 0.5)),
+          const SizedBox(height: spacingMedium),
           Text(
             'No emergency hotlines yet',
             style: h3.copyWith(color: widget.theme.textColor),
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Text(
             'Add your first emergency hotline',
             style: body.copyWith(color: widget.theme.subtextColor),
           ),
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: spacingLarge),
           ElevatedButton.icon(
             onPressed: _addNewHotline,
-            icon: Icon(Icons.add_rounded),
-            label: Text('Add Hotline'),
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Add Hotline'),
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
               foregroundColor: white,
-              padding: EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: spacingLarge,
                 vertical: spacingMedium,
               ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
@@ -381,7 +342,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
 
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Unable to make call'),
           backgroundColor: error,
         ),
@@ -448,18 +409,21 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Hotline'),
+        backgroundColor: widget.theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Delete Hotline', style: TextStyle(color: widget.theme.textColor)),
         content: Text(
           'Are you sure you want to delete "${hotline.departmentName}"?${hotline.isPredefined ? '\n\nThis is an official hotline.' : ''}',
+          style: TextStyle(color: widget.theme.subtextColor),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Delete', style: TextStyle(color: error)),
+            child: const Text('Delete', style: TextStyle(color: error)),
           ),
         ],
       ),

@@ -9,7 +9,7 @@ import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/scr
 class AnnouncementSection extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
-  final String userId; // Pass the visually impaired user's ID
+  final String userId;
 
   const AnnouncementSection({
     super.key,
@@ -86,7 +86,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         StreamBuilder<List<AnnouncementModel>>(
           stream: _announcementStream,
           builder: (context, snapshot) {
-            // Show loading only on initial load
             if (snapshot.connectionState == ConnectionState.waiting && 
                 !snapshot.hasData) {
               return const Center(
@@ -124,13 +123,11 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
               return _buildEmptyAnnouncementsCard();
             }
 
-            // Show only first 5 announcements
             final displayedAnnouncements = allAnnouncements.take(maxDisplayedAnnouncements).toList();
             final hasMoreAnnouncements = allAnnouncements.length > maxDisplayedAnnouncements;
 
             return Column(
               children: [
-                // Display announcement cards
                 ...displayedAnnouncements.map((announcement) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: spacingMedium),
@@ -138,7 +135,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                   );
                 }),
 
-                // "View All Announcements" button if more than 5
                 if (hasMoreAnnouncements)
                   Padding(
                     padding: const EdgeInsets.only(top: spacingSmall),
@@ -156,18 +152,16 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                               color: widget.theme.cardColor,
                               borderRadius: BorderRadius.circular(radiusMedium),
                               border: Border.all(
-                                color: primary.withValues(alpha: 0.3),
+                                color: widget.isDarkMode 
+                                    ? Colors.white.withValues(alpha: 0.05) 
+                                    : Colors.black.withValues(alpha: 0.05),
                                 width: 1,
                               ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
-                                  Icons.view_list_rounded,
-                                  color: primary,
-                                  size: 20,
-                                ),
+                                const Icon(Icons.view_list_rounded, color: primary, size: 20),
                                 const SizedBox(width: spacingSmall),
                                 Text(
                                   'View All Announcements (${allAnnouncements.length})',
@@ -178,11 +172,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                                   ),
                                 ),
                                 const SizedBox(width: spacingSmall),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  color: primary,
-                                  size: 18,
-                                ),
+                                const Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
                               ],
                             ),
                           ),
@@ -215,16 +205,15 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   Widget _buildEmptyAnnouncementsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: spacingXLarge,
-        horizontal: spacingLarge,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: spacingXLarge, horizontal: spacingLarge),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.theme.subtextColor.withValues(alpha: 0.2),
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -281,21 +270,13 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
-          boxShadow: widget.isDarkMode
-              ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.1),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : softShadow,
-          border: widget.isDarkMode
-              ? Border.all(
-                  color: color.withValues(alpha: 0.2),
-                  width: 1,
-                )
-              : null,
+          boxShadow: widget.isDarkMode ? [] : softShadow,
+          border: Border.all(
+            color: widget.isDarkMode 
+                ? Colors.white.withValues(alpha: 0.05) 
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,11 +289,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(radiusMedium),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
                 const SizedBox(width: spacingMedium),
                 Expanded(
@@ -341,11 +318,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              _getAudienceIcon(announcement.targetAudience),
-                              color: color,
-                              size: 12,
-                            ),
+                            Icon(_getAudienceIcon(announcement.targetAudience), color: color, size: 12),
                             const SizedBox(width: 4),
                             Text(
                               _getAudienceLabel(announcement),

@@ -56,7 +56,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: spacingSmall),
+                    const SizedBox(height: spacingSmall),
                     Text(
                       'Your scanning history',
                       style: body.copyWith(
@@ -75,8 +75,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                   onPressed: _refreshDetections,
                   icon: AnimatedRotation(
                     turns: _isRefreshing ? 1 : 0,
-                    duration: Duration(milliseconds: 600),
-                    child: Icon(
+                    duration: const Duration(milliseconds: 600),
+                    child: const Icon(
                       Icons.refresh_rounded,
                       color: primary,
                       size: 24,
@@ -88,16 +88,16 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
             ],
           ),
           
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: spacingLarge),
           
           // Filter chips
           _buildFilterChips(),
           
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: spacingLarge),
           
           // Detections stream with animation
           AnimatedSwitcher(
-            duration: Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             switchInCurve: Curves.easeInOut,
             switchOutCurve: Curves.easeInOut,
             transitionBuilder: (Widget child, Animation<double> animation) {
@@ -105,7 +105,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                 opacity: animation,
                 child: SlideTransition(
                   position: Tween<Offset>(
-                    begin: Offset(0, 0.05),
+                    begin: const Offset(0, 0.05),
                     end: Offset.zero,
                   ).animate(animation),
                   child: child,
@@ -133,7 +133,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
         children: filters.map((filter) {
           final isSelected = _selectedFilter == filter['label'];
           return Padding(
-            padding: EdgeInsets.only(right: spacingSmall),
+            padding: const EdgeInsets.only(right: spacingSmall),
             child: Semantics(
               label: '${filter['label']} filter',
               button: true,
@@ -147,7 +147,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                       _selectedFilter = filter['label'] as String;
                       _isRefreshing = true;
                     });
-                    Future.delayed(Duration(milliseconds: 600), () {
+                    Future.delayed(const Duration(milliseconds: 600), () {
                       if (mounted) {
                         setState(() {
                           _isRefreshing = false;
@@ -157,8 +157,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                   },
                   borderRadius: BorderRadius.circular(radiusLarge),
                   child: AnimatedContainer(
-                    duration: Duration(milliseconds: 200),
-                    padding: EdgeInsets.symmetric(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
                       horizontal: spacingMedium,
                       vertical: spacingSmall,
                     ),
@@ -168,8 +168,10 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                       border: Border.all(
                         color: isSelected
                             ? primary
-                            : widget.theme.subtextColor.withOpacity(0.2),
-                        width: 1.5,
+                            : (widget.isDarkMode 
+                                ? Colors.white.withValues(alpha: 0.05) 
+                                : Colors.black.withValues(alpha: 0.05)),
+                        width: 1,
                       ),
                     ),
                     child: Row(
@@ -180,7 +182,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                           color: isSelected ? white : widget.theme.textColor,
                           size: 18,
                         ),
-                        SizedBox(width: spacingSmall),
+                        const SizedBox(width: spacingSmall),
                         Text(
                           filter['label'] as String,
                           style: bodyBold.copyWith(
@@ -207,7 +209,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
       stream: _getCombinedDetectionsStream(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-          return Center(
+          return const Center(
             child: Padding(
               padding: EdgeInsets.all(spacingLarge),
               child: CircularProgressIndicator(color: primary),
@@ -253,7 +255,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                   );
                 },
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: spacingMedium),
+                  padding: const EdgeInsets.only(bottom: spacingMedium),
                   child: _buildDetectionCard(detection),
                 ),
               );
@@ -274,7 +276,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                   );
                 },
                 child: Padding(
-                  padding: EdgeInsets.only(top: spacingSmall),
+                  padding: const EdgeInsets.only(top: spacingSmall),
                   child: _buildViewAllButton(filteredDetections),
                 ),
               ),
@@ -285,7 +287,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
   }
 
   Stream<List<Map<String, dynamic>>> _getCombinedDetectionsStream() async* {
-    await for (final _ in Stream.periodic(Duration(milliseconds: 500))) {
+    await for (final _ in Stream.periodic(const Duration(milliseconds: 500))) {
       try {
         final List<Map<String, dynamic>> allDetections = [];
 
@@ -355,7 +357,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     }).toList();
   }
 
-Widget _buildDetectionCard(Map<String, dynamic> detection) {
+  Widget _buildDetectionCard(Map<String, dynamic> detection) {
     final type = detection['type'] as String;
     final color = detection['color'] as Color;
     final timestamp = DateTime.parse(detection['timestamp'] as String);
@@ -432,33 +434,22 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
           },
           borderRadius: BorderRadius.circular(radiusLarge),
           child: Container(
-            padding: EdgeInsets.all(spacingMedium),
+            padding: const EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusLarge),
-              boxShadow: widget.isDarkMode
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.1),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : softShadow,
-              border: widget.isDarkMode
-                  ? Border.all(
-                      color: color.withValues(alpha: 0.2),
-                      width: 1,
-                    )
-                  : Border.all(
-                      color: widget.theme.subtextColor.withOpacity(0.1),
-                      width: 1,
-                    ),
+              boxShadow: widget.isDarkMode ? [] : softShadow,
+              border: Border.all(
+                color: widget.isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
+                width: 1,
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 👇 NEW: Image Thumbnail replacing the Text Chip
+                // Image Thumbnail 
                 Container(
                   width: 70,
                   height: 70,
@@ -466,7 +457,9 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
-                      color: color.withValues(alpha: 0.3),
+                      color: widget.isDarkMode 
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : Colors.black.withValues(alpha: 0.05),
                       width: 1,
                     ),
                   ),
@@ -487,7 +480,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
                           size: 30,
                         ),
                 ),
-                SizedBox(width: spacingMedium),
+                const SizedBox(width: spacingMedium),
                 
                 // Text Details
                 Expanded(
@@ -500,7 +493,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
                         children: [
                           Expanded(
                             child: Text(
-                              detectedLabel, // E.g., "Remote", "Lamesa"
+                              detectedLabel,
                               style: h3.copyWith(
                                 fontSize: 16,
                                 color: widget.theme.textColor,
@@ -520,16 +513,16 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
                           ),
                         ],
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        title, // E.g., "Object Detection"
+                        title,
                         style: caption.copyWith(
                           fontSize: 12,
                           color: color,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
                         description,
                         style: body.copyWith(
@@ -543,7 +536,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
                     ],
                   ),
                 ),
-                SizedBox(width: spacingSmall),
+                const SizedBox(width: spacingSmall),
                 Icon(
                   Icons.chevron_right_rounded,
                   color: widget.theme.subtextColor.withOpacity(0.4),
@@ -583,20 +576,22 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
           },
           borderRadius: BorderRadius.circular(radiusMedium),
           child: Container(
-            padding: EdgeInsets.all(spacingMedium),
+            padding: const EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: primary.withValues(alpha: 0.3),
+                color: widget.isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.view_list_rounded, color: primary, size: 20),
-                SizedBox(width: spacingSmall),
+                const Icon(Icons.view_list_rounded, color: primary, size: 20),
+                const SizedBox(width: spacingSmall),
                 Text(
                   'View All $categoryLabel ($totalCount)',
                   style: bodyBold.copyWith(
@@ -605,8 +600,8 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(width: spacingSmall),
-                Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
+                const SizedBox(width: spacingSmall),
+                const Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
               ],
             ),
           ),
@@ -618,7 +613,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: spacingXLarge,
         horizontal: spacingLarge,
       ),
@@ -627,7 +622,9 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.theme.subtextColor.withOpacity(0.2),
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -641,7 +638,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
             color: widget.theme.subtextColor.withOpacity(0.5),
             size: 48,
           ),
-          SizedBox(height: spacingMedium),
+          const SizedBox(height: spacingMedium),
           Text(
             'No detections yet',
             style: bodyBold.copyWith(
@@ -651,9 +648,9 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: spacingMedium),
+            padding: const EdgeInsets.symmetric(horizontal: spacingMedium),
             child: Text(
               'Start scanning to see your detection history',
               style: caption.copyWith(
@@ -671,7 +668,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
   Widget _buildNoResultsState() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         vertical: spacingXLarge,
         horizontal: spacingLarge,
       ),
@@ -680,7 +677,9 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.theme.subtextColor.withOpacity(0.2),
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -694,7 +693,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
             color: widget.theme.subtextColor.withOpacity(0.5),
             size: 48,
           ),
-          SizedBox(height: spacingMedium),
+          const SizedBox(height: spacingMedium),
           Text(
             'No $_selectedFilter detections',
             style: bodyBold.copyWith(
@@ -704,9 +703,9 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
             ),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: spacingMedium),
+            padding: const EdgeInsets.symmetric(horizontal: spacingMedium),
             child: Text(
               'Try scanning with $_selectedFilter detection mode',
               style: caption.copyWith(
@@ -724,7 +723,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
   Widget _buildErrorState() {
     final errorColor = widget.isDarkMode ? Colors.red.shade400 : Colors.red.shade700;
     return Container(
-      padding: EdgeInsets.all(spacingLarge),
+      padding: const EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
         color: errorColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(radiusLarge),
@@ -733,7 +732,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
       child: Row(
         children: [
           Icon(Icons.error_outline_rounded, color: errorColor),
-          SizedBox(width: spacingMedium),
+          const SizedBox(width: spacingMedium),
           Expanded(
             child: Text(
               'Unable to load detections',
@@ -767,7 +766,7 @@ Widget _buildDetectionCard(Map<String, dynamic> detection) {
     setState(() {
       _isRefreshing = true;
     });
-    Future.delayed(Duration(milliseconds: 600), () {
+    Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
           _isRefreshing = false;

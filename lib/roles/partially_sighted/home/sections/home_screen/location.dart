@@ -1,6 +1,5 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/location.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/widgets/location_map_widget.dart';
@@ -33,24 +32,13 @@ class LocationSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: primary.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 16,
-                  offset: Offset(0, 4),
-                ),
-              ],
-        border: isDarkMode
-            ? Border.all(color: primary.withValues(alpha: 0.2), width: 1)
-            : null,
+        boxShadow: isDarkMode ? [] : softShadow,
+        border: Border.all(
+          color: isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,24 +90,13 @@ class LocationSection extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: isDarkMode
-            ? [
-                BoxShadow(
-                  color: error.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: Offset(0, 8),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 16,
-                  offset: Offset(0, 4),
-                ),
-              ],
-        border: isDarkMode
-            ? Border.all(color: error.withValues(alpha: 0.2), width: 1)
-            : Border.all(color: error.withValues(alpha: 0.1), width: 1),
+        boxShadow: isDarkMode ? [] : softShadow,
+        border: Border.all(
+          color: isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
       ),
       child: Column(
         children: [

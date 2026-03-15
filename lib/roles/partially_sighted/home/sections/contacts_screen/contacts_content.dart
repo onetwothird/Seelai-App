@@ -382,10 +382,10 @@ class _ContactsContentState extends State<ContactsContent> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             if (_allContacts.isNotEmpty) ...[
               _buildSearchBar(),
-              SizedBox(height: spacingLarge),
+              const SizedBox(height: spacingLarge),
             ],
             isLoading
                 ? _buildLoadingState()
@@ -446,13 +446,7 @@ class _ContactsContentState extends State<ContactsContent> {
                     colors: [primary, primary.withValues(alpha: 0.8)],
                   ),
                   borderRadius: BorderRadius.circular(radiusLarge),
-                  boxShadow: [
-                    BoxShadow(
-                      color: primary.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: widget.isDarkMode ? [] : softShadow,
                 ),
                 child: Material(
                   color: Colors.transparent,
@@ -480,18 +474,10 @@ class _ContactsContentState extends State<ContactsContent> {
         borderRadius: BorderRadius.circular(radiusLarge),
         border: Border.all(
           color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.1)
-              : Colors.black.withValues(alpha: 0.06),
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
         ),
-        boxShadow: widget.isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        boxShadow: widget.isDarkMode ? [] : softShadow,
       ),
       child: TextField(
         controller: _searchController,
@@ -620,8 +606,8 @@ class _ContactsContentState extends State<ContactsContent> {
         borderRadius: BorderRadius.circular(radiusXLarge),
         border: Border.all(
           color: widget.isDarkMode 
-              ? primary.withValues(alpha: 0.2)
-              : Colors.black.withValues(alpha: 0.06),
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
         ),
       ),
       child: Column(
@@ -750,25 +736,11 @@ class _ContactsContentState extends State<ContactsContent> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: contact.color.withValues(alpha: 0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ]
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 12,
-                  offset: const Offset(0, 3),
-                ),
-              ],
+        boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
           color: widget.isDarkMode
-              ? contact.color.withValues(alpha: 0.2)
-              : Colors.black.withValues(alpha: 0.06),
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -1011,16 +983,12 @@ class _ContactsContentState extends State<ContactsContent> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: Colors.black,
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.1) 
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: contact.color.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: widget.isDarkMode ? [] : softShadow,
       ),
       child: ClipOval(
         child: hasProfileImage

@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'all_detections_screen.dart';
-import 'detection_detail_screen.dart'; // ✅ ADD THIS IMPORT
+import 'detection_detail_screen.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
@@ -197,7 +197,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                 ),
               );
             },
-            child: _buildDetectionsList(), // Renamed and modified
+            child: _buildDetectionsList(), 
           ),
         ],
       ),
@@ -246,8 +246,10 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                       border: Border.all(
                         color: isSelected
                             ? primary
-                            : widget.theme.subtextColor.withOpacity(0.2),
-                        width: 1.5,
+                            : (widget.isDarkMode 
+                                ? Colors.white.withValues(alpha: 0.05) 
+                                : Colors.black.withValues(alpha: 0.05)),
+                        width: 1,
                       ),
                     ),
                     child: Row(
@@ -279,7 +281,6 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     );
   }
 
-  // Completely removed StreamBuilder. We now use standard state.
   Widget _buildDetectionsList() {
     if (_isLoading) {
       return Center(
@@ -378,7 +379,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     }).toList();
   }
 
- Widget _buildDetectionCard(Map<String, dynamic> detection) {
+  Widget _buildDetectionCard(Map<String, dynamic> detection) {
     final type = detection['type'] as String;
     final color = detection['color'] as Color;
     final timestamp = DateTime.parse(detection['timestamp'] as String);
@@ -459,29 +460,18 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusLarge),
-              boxShadow: widget.isDarkMode
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.1),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ]
-                  : softShadow,
-              border: widget.isDarkMode
-                  ? Border.all(
-                      color: color.withValues(alpha: 0.2),
-                      width: 1,
-                    )
-                  : Border.all(
-                      color: widget.theme.subtextColor.withOpacity(0.1),
-                      width: 1,
-                    ),
+              boxShadow: widget.isDarkMode ? [] : softShadow,
+              border: Border.all(
+                color: widget.isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
+                width: 1,
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 👇 NEW: Image Thumbnail replacing the Text Chip
+                // Image Thumbnail 
                 Container(
                   width: 70,
                   height: 70,
@@ -489,7 +479,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
-                      color: color.withValues(alpha: 0.3),
+                      color: widget.isDarkMode 
+                          ? Colors.white.withValues(alpha: 0.05) 
+                          : Colors.black.withValues(alpha: 0.05),
                       width: 1,
                     ),
                   ),
@@ -523,7 +515,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                         children: [
                           Expanded(
                             child: Text(
-                              detectedLabel, // E.g., "Remote", "Lamesa"
+                              detectedLabel,
                               style: h3.copyWith(
                                 fontSize: 16,
                                 color: widget.theme.textColor,
@@ -545,7 +537,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        title, // E.g., "Object Detection"
+                        title,
                         style: caption.copyWith(
                           fontSize: 12,
                           color: color,
@@ -609,7 +601,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: primary.withValues(alpha: 0.3),
+                color: widget.isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
             ),
@@ -657,7 +651,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.theme.subtextColor.withOpacity(0.2),
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),
@@ -711,7 +707,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.theme.subtextColor.withOpacity(0.2),
+          color: widget.isDarkMode 
+              ? Colors.white.withValues(alpha: 0.05) 
+              : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
       ),

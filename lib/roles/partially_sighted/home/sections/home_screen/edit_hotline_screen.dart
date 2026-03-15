@@ -1,8 +1,8 @@
 // File: lib/roles/visually_impaired/home/sections/home_screen/edit_hotline_screen.dart
 
-import 'dart:io'; // Import for File handling
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // Import Image Picker
+import 'package:image_picker/image_picker.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';
 
@@ -25,18 +25,16 @@ class EditHotlineScreen extends StatefulWidget {
 class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final Color _primaryColor = const Color(0xFF8B5CF6);
-  final ImagePicker _picker = ImagePicker(); // Image Picker instance
+  final ImagePicker _picker = ImagePicker();
   
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   late TextEditingController _descriptionController;
   
-  // State for Image and Color
   String _selectedImageAsset = 'assets/emergency_images/pnp.png';
   Color _selectedColor = Colors.blue;
   
-  // Track custom images added during this session
   final List<String> _customImages = [];
   
   late AnimationController _animationController;
@@ -77,7 +75,6 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
     if (widget.hotline != null) {
       if (widget.hotline!.imageAsset.isNotEmpty) {
         _selectedImageAsset = widget.hotline!.imageAsset;
-        // If the loaded image isn't in our default list (and isn't empty), add it to custom list so it shows up
         bool isDefault = _availableImages.any((img) => img['path'] == _selectedImageAsset);
         if (!isDefault && !_selectedImageAsset.startsWith('assets/')) {
            _customImages.add(_selectedImageAsset);
@@ -113,7 +110,6 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
     super.dispose();
   }
 
-  // Helper to get image provider (File vs Asset)
   ImageProvider _getImageProvider(String path) {
     if (path.startsWith('assets/')) {
       return AssetImage(path);
@@ -122,7 +118,6 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
     }
   }
 
-  // Function to pick image from gallery
   Future<void> _pickImage() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -134,10 +129,11 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e'), backgroundColor: error),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e'), backgroundColor: error),
+        );
+      }
     }
   }
 
@@ -162,12 +158,10 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
+      backgroundColor: widget.theme.backgroundColor,
       extendBodyBehindAppBar: false,
       appBar: AppBar(
-        // Force white/dark background
-        backgroundColor: widget.isDarkMode ? widget.theme.cardColor : Colors.white,
-        // Remove shadow/elevation change on scroll
+        backgroundColor: widget.theme.cardColor,
         scrolledUnderElevation: 0,
         elevation: 0,
         leading: IconButton(
@@ -184,7 +178,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
         ),
       ),
       body: Container(
-        color: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
+        color: widget.theme.backgroundColor,
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: SlideTransition(
@@ -278,18 +272,18 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
         Container(
           padding: EdgeInsets.all(spacingLarge),
           decoration: BoxDecoration(
-            color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey[50],
+            color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(radiusLarge),
+            boxShadow: widget.isDarkMode ? [] : softShadow,
             border: Border.all(
               color: widget.isDarkMode 
-                  ? _selectedColor.withValues(alpha: 0.3) 
-                  : Colors.grey[200]!,
-              width: 1.5,
+                  ? Colors.white.withValues(alpha: 0.05) 
+                  : Colors.black.withValues(alpha: 0.05),
+              width: 1,
             ),
           ),
           child: Column(
             children: [
-              // PREVIEW CIRCLE
               Center(
                 child: Container(
                   width: 100,
@@ -297,22 +291,12 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                   decoration: BoxDecoration(
                     color: white,
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: _selectedColor,
-                      width: 4,
-                    ),
-                    // Use helper to display Asset or File
+                    border: Border.all(color: _selectedColor, width: 4),
                     image: DecorationImage(
                       image: _getImageProvider(_selectedImageAsset),
                       fit: BoxFit.cover,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _selectedColor.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: Offset(0, 6),
-                      ),
-                    ],
+                    boxShadow: widget.isDarkMode ? [] : softShadow,
                   ),
                 ),
               ),
@@ -330,7 +314,6 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
   }
 
   Widget _buildImageSelection() {
-    // Combine default assets and custom images
     final List<Map<String, String>> allImages = [
       ..._availableImages,
       ..._customImages.map((path) => {'path': path, 'label': 'Custom'}),
@@ -339,25 +322,19 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Select Image',
-              style: bodyBold.copyWith(
-                fontSize: 15,
-                color: widget.theme.textColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+        Text(
+          'Select Image',
+          style: bodyBold.copyWith(
+            fontSize: 15,
+            color: widget.theme.textColor,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         SizedBox(height: spacingSmall),
         Wrap(
           spacing: spacingSmall,
           runSpacing: spacingSmall,
           children: [
-            // 1. LIST OF IMAGES
             ...allImages.asMap().entries.map((entry) {
               final index = entry.key;
               final item = entry.value;
@@ -372,17 +349,13 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                 builder: (context, value, child) {
                   return Opacity(
                     opacity: value,
-                    child: Transform.scale(
-                      scale: 0.8 + (0.2 * value),
-                      child: child,
-                    ),
+                    child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
                   );
                 },
                 child: Semantics(
                   label: '$label image',
                   button: true,
                   selected: isSelected,
-                  hint: 'Double tap to select',
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -416,8 +389,6 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                 ),
               );
             }),
-
-            // 2. PLUS BUTTON (To Add More)
             Material(
               color: Colors.transparent,
               child: InkWell(
@@ -427,9 +398,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: widget.isDarkMode 
-                        ? Colors.white.withValues(alpha: 0.05) 
-                        : Colors.grey[100],
+                    color: widget.theme.backgroundColor,
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
                       color: widget.theme.subtextColor.withOpacity(0.2),
@@ -480,17 +449,13 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
               builder: (context, value, child) {
                 return Opacity(
                   opacity: value,
-                  child: Transform.scale(
-                    scale: 0.8 + (0.2 * value),
-                    child: child,
-                  ),
+                  child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
                 );
               },
               child: Semantics(
                 label: '$label color',
                 button: true,
                 selected: isSelected,
-                hint: 'Double tap to select',
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
@@ -511,19 +476,8 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                           color: isSelected ? white : Colors.transparent,
                           width: 3,
                         ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: color.withValues(alpha: 0.5),
-                                  blurRadius: 12,
-                                  spreadRadius: 2,
-                                ),
-                              ]
-                            : [],
                       ),
-                      child: isSelected
-                          ? Icon(Icons.check_rounded, color: white, size: 24)
-                          : null,
+                      child: isSelected ? Icon(Icons.check_rounded, color: white, size: 24) : null,
                     ),
                   ),
                 ),
@@ -558,26 +512,15 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
         SizedBox(height: spacingSmall),
         Container(
           decoration: BoxDecoration(
-            color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+            color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(radiusMedium),
+            boxShadow: widget.isDarkMode ? [] : softShadow,
             border: Border.all(
-              color: widget.theme.subtextColor.withOpacity(0.1),
+              color: widget.isDarkMode 
+                  ? Colors.white.withValues(alpha: 0.05) 
+                  : Colors.black.withValues(alpha: 0.05),
+              width: 1,
             ),
-            boxShadow: widget.isDarkMode
-                ? [
-                    BoxShadow(
-                      color: primary.withValues(alpha: 0.1),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
           ),
           child: TextFormField(
             controller: controller,
@@ -622,7 +565,6 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
     return Semantics(
       label: widget.hotline == null ? 'Add hotline button' : 'Save changes button',
       button: true,
-      hint: 'Double tap to save',
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -634,13 +576,6 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             decoration: BoxDecoration(
               color: _primaryColor, 
               borderRadius: BorderRadius.circular(radiusMedium),
-              boxShadow: [
-                BoxShadow(
-                  color: _primaryColor.withValues(alpha: 0.4),
-                  blurRadius: 12,
-                  offset: Offset(0, 6),
-                ),
-              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,

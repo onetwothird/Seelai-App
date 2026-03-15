@@ -1,6 +1,9 @@
 // File: lib/roles/mswd/home/home_screen.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:seelai_app/roles/mswd/home/sections/dashboard/urgent_alerts_section.dart';
 import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
@@ -8,9 +11,11 @@ import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/announcement.dart';
 import 'package:seelai_app/roles/mswd/home/sections/users/users_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/more_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/profile_content/more_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/dashboard_stats.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/quick_actions.dart';
+import 'package:seelai_app/roles/mswd/home/widgets/mswd_notifications_bottom_sheet.dart'; 
+import 'package:seelai_app/firebase/firebase_services.dart';
 
 class MSWDHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -24,16 +29,14 @@ class MSWDHomeScreen extends StatefulWidget {
   State<MSWDHomeScreen> createState() => _MSWDHomeScreenState();
 }
 
-class _MSWDHomeScreenState extends State<MSWDHomeScreen> 
-    with SingleTickerProviderStateMixin {
-  
+class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   // UI State
   bool _isDarkMode = false;
   int _selectedIndex = 0;
   
-  // Animation
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
+  // Data State for Notifications
+  int _pendingRequestsCount = 0;
+  StreamSubscription<DatabaseEvent>? _requestsSubscription;
   
   // Scroll detection for bottom nav
   final ScrollController _scrollController = ScrollController();
@@ -43,21 +46,30 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
     _initializeScrollListener();
+    _startPendingRequestsListener();
   }
 
-  void _initializeAnimations() {
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 400),
-      vsync: this,
-    );
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOutCubic),
-    );
-    
-    _animationController.forward();
+  void _startPendingRequestsListener() {
+    _requestsSubscription = databaseService.database
+        .ref('assistance_requests')
+        .orderByChild('status')
+        .equalTo('pending')
+        .onValue
+        .listen((event) {
+      if (mounted) {
+        int count = 0;
+        if (event.snapshot.exists) {
+          final map = event.snapshot.value as Map<dynamic, dynamic>;
+          count = map.length;
+        }
+        setState(() {
+          _pendingRequestsCount = count;
+        });
+      }
+    }, onError: (error) {
+      debugPrint('Error listening to pending requests: $error');
+    });
   }
 
   void _initializeScrollListener() {
@@ -96,34 +108,26 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
   }
 
   void _onNavItemTapped(int index) {
-    _animationController.reset();
     setState(() {
       _selectedIndex = index;
     });
-    _animationController.forward();
   }
-
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _requestsSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
 
-  // --- NEW: Handle Back Button Press ---
   Future<bool> _onWillPop() async {
-    // If not on Home tab (index 0), go back to Home tab first
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
-        _animationController.reset();
-        _animationController.forward();
       });
-      return false; // Prevent exit
+      return false; 
     }
 
-    // If on Home tab, show Exit Confirmation Dialog
     return (await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -131,9 +135,8 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            // Use PURPLE Theme color
-            Icon(Icons.logout_rounded, color: const Color(0xFF8B5CF6)), 
-            SizedBox(width: 10),
+            const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)), 
+            const SizedBox(width: 10),
             Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
           ],
         ),
@@ -144,17 +147,14 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.of(context).pop(true);
-              // Optional: Add logic here if you want to explicitly sign out before closing
-              // await authService.signOut(); 
             },
-            // Use PURPLE Theme color
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: Text('Exit', style: TextStyle(color: Colors.white)),
+            child: const Text('Exit', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -167,21 +167,13 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
     final screenWidth = MediaQuery.of(context).size.width;
     final adminName = widget.userData['name'] ?? 'Admin';
 
-    final theme = _isDarkMode 
-      ? _getDarkTheme() 
-      : _getLightTheme();
+    final theme = _isDarkMode ? _getDarkTheme() : _getLightTheme();
 
     return PopScope(
-      canPop: false, // Prevents the default back button so your custom logic runs
+      canPop: false, 
       onPopInvokedWithResult: (bool didPop, Object? result) async {
-        if (didPop) {
-          return; // Screen was already popped
-        }
-
-        // Run your existing _onWillPop logic
+        if (didPop) return; 
         final bool shouldPop = await _onWillPop();
-        
-        // If the logic returns true, safely pop the screen
         if (shouldPop && context.mounted) {
           Navigator.of(context).pop(result);
         }
@@ -194,27 +186,46 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
             bottom: false,
             child: Column(
               children: [
-                HeaderSection(
-                  adminName: adminName,
-                  profileImageUrl: widget.userData['profileImageUrl'] as String?,
-                  isDarkMode: _isDarkMode,
-                  onToggleDarkMode: _toggleDarkMode,
-                  onProfileTap: () {
-                    setState(() {
-                      _selectedIndex = 4;
-                    });
-                  },
-                  textColor: theme.textColor,
-                  subtextColor: theme.subtextColor,
-                ),
+                if (_selectedIndex != 4)
+                  HeaderSection(
+                    adminName: adminName,
+                    profileImageUrl: widget.userData['profileImageUrl'] as String?,
+                    isDarkMode: _isDarkMode,
+                    pendingRequestsCount: _pendingRequestsCount, 
+                    onToggleDarkMode: _toggleDarkMode,
+                    onProfileTap: () {
+                      setState(() {
+                        _selectedIndex = 4;
+                      });
+                    },
+                    onNotificationTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.85,
+                          child: MSWDNotificationsBottomSheet(
+                            adminId: widget.userData['userId'] ?? '',
+                            isDarkMode: _isDarkMode,
+                            assistanceRequestService: assistanceRequestService,
+                          ),
+                        ),
+                      );
+                    },
+                    textColor: theme.textColor,
+                    subtextColor: theme.subtextColor,
+                  ),
                 
+                // Using AnimatedSwitcher instead of manual AnimationControllers!
                 Expanded(
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: _buildMainContent(
-                      screenWidth,
-                      screenHeight,
-                      theme,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.easeInOutCubic,
+                    switchOutCurve: Curves.easeInOutCubic,
+                    child: SizedBox(
+                      key: ValueKey<int>(_selectedIndex),
+                      child: _buildMainContent(screenWidth, screenHeight, theme),
                     ),
                   ),
                 ),
@@ -249,7 +260,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
       case 0:
         content = _buildDashboardContent(width, theme);
         break;
-      
       case 1:
         content = UsersContent(
           isDarkMode: _isDarkMode,
@@ -258,16 +268,13 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           onNavigateToLocation: () => _onNavItemTapped(3),
         );
         break;
-        
       case 3:
-        // LOCATION SCREEN
         content = MswdLocationTrackingScreen(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
         );
         break;
-
       case 2:
         content = RequestsContent(
           isDarkMode: _isDarkMode,
@@ -275,7 +282,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           userData: widget.userData,
         );
         break;
-      
       case 4:
         content = MoreContent(
           userData: widget.userData,
@@ -284,59 +290,61 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
           onToggleDarkMode: _toggleDarkMode,
         );
         break;
-      
       default:
         content = _buildDashboardContent(width, theme);
     }
     
-    // Ensure map (index 3) isn't wrapped in scroll view
     if (_selectedIndex == 3) {
       return content;
     }
     
     return SingleChildScrollView(
       controller: _scrollController,
-      physics: ClampingScrollPhysics(),
+      physics: const ClampingScrollPhysics(),
       child: content,
     );
   }
 
-  /// Build dashboard content with separated sections
-  Widget _buildDashboardContent(double width, _AppTheme theme) {
+ Widget _buildDashboardContent(double width, _AppTheme theme) {
     return Padding(
       padding: EdgeInsets.only(
         left: width * 0.05,
         right: width * 0.05,
-        top: spacingLarge, // Slightly more top padding for breathing room
+        top: 16, // Reduced top padding
         bottom: 100,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. New System Stats Overview
           DashboardStats(
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
           
-          SizedBox(height: spacingLarge * 1.5),
+          const SizedBox(height: 20), // TIGHTENED GAP
 
-          // 2. New Quick Actions Row
           QuickActions(
             isDarkMode: _isDarkMode,
             theme: theme,
+            onNavigateToTab: _onNavItemTapped, 
           ),
 
-          SizedBox(height: spacingLarge * 1.5),
+          const SizedBox(height: 40), // TIGHTENED GAP
 
-          // 3. The existing Announcements Section 
-          // (It now sits perfectly below the high-level admin tools)
+          UrgentAlertsSection(
+            isDarkMode: _isDarkMode,
+            theme: theme,
+            onNavigateToTab: _onNavItemTapped,
+          ),
+
+          const SizedBox(height: 15), // TIGHTENED GAP
+
           AnnouncementSection(
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
           
-          SizedBox(height: spacingXLarge),
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -344,23 +352,22 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen>
 
   _AppTheme _getDarkTheme() {
     return _AppTheme(
-      backgroundGradient: LinearGradient(
+      backgroundGradient: const LinearGradient(
         colors: [Color(0xFF0A0E27), Color(0xFF1A1F3A), Color(0xFF2A2F4A)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         stops: [0.0, 0.5, 1.0],
       ),
       textColor: white,
-      subtextColor: Color(0xFFB0B8D4),
-      cardColor: Color(0xFF1A1F3A),
-      backgroundColor: Color(0xFF0F1429),
+      subtextColor: const Color(0xFFB0B8D4),
+      cardColor: const Color(0xFF1A1F3A),
+      backgroundColor: const Color(0xFF0F1429),
     );
   }
 
   _AppTheme _getLightTheme() {
     return _AppTheme(
-      // White Background as requested previously
-      backgroundGradient: LinearGradient(
+      backgroundGradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
         colors: [Colors.white, Colors.white],

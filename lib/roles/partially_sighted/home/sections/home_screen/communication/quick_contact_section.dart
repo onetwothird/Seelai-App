@@ -5,7 +5,6 @@ import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/com
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/voice_call_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 
-
 class QuickContactSection extends StatelessWidget {
   final bool isDarkMode;
   final dynamic theme;
@@ -30,8 +29,6 @@ class QuickContactSection extends StatelessWidget {
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
-              // Passes patient's own userData which has 'assignedCaretakers'
-              // VoiceCallScreen reads assignedCaretakers.keys.first as the receiverId
               VoiceCallScreen.startCall(context, userData);
             },
           ),
@@ -120,12 +117,13 @@ class _ContactActionState extends State<_ContactAction> with SingleTickerProvide
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               decoration: BoxDecoration(
-                color: widget.isDarkMode ? widget.theme.cardColor : Colors.white,
+                color: widget.theme.cardColor,
                 borderRadius: BorderRadius.circular(16),
+                boxShadow: widget.isDarkMode ? [] : softShadow,
                 border: Border.all(
                   color: widget.isDarkMode 
-                      ? widget.primaryColor.withValues(alpha: 0.3) 
-                      : Colors.grey.withValues(alpha: 0.2),
+                      ? Colors.white.withValues(alpha: 0.05) 
+                      : Colors.black.withValues(alpha: 0.05),
                   width: 1,
                 ),
               ),
