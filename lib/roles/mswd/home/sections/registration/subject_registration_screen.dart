@@ -23,6 +23,8 @@ class SubjectRegistrationScreen extends StatefulWidget {
 
 class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
   CameraController? _cameraController;
+  List<CameraDescription>? _cameras;
+  int _selectedCameraIndex = 0;
   bool _isCameraInitialized = false;
   bool _isUploading = false;
 
@@ -35,18 +37,32 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
   Future<void> _initializeCamera() async {
     try {
       // Get list of available cameras
-      final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
+      _cameras = await availableCameras();
+      if (_cameras == null || _cameras!.isEmpty) return;
 
-      // Use the first available camera (usually the back camera)
-      final camera = cameras.first; 
+      await _setupCameraController();
+    } catch (e) {
+      debugPrint('Error fetching cameras: $e');
+    }
+  }
 
-      _cameraController = CameraController(
-        camera,
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
+  Future<void> _setupCameraController() async {
+    if (_cameras == null || _cameras!.isEmpty) return;
 
+    // Dispose of the previous controller if switching cameras
+    if (_cameraController != null) {
+      await _cameraController!.dispose();
+    }
+
+    final camera = _cameras![_selectedCameraIndex];
+
+    _cameraController = CameraController(
+      camera,
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
+
+    try {
       await _cameraController!.initialize();
       if (mounted) {
         setState(() {
@@ -54,8 +70,20 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error initializing camera: $e');
+      debugPrint('Error initializing camera controller: $e');
     }
+  }
+
+  void _toggleCamera() {
+    // Only toggle if we have more than 1 camera and aren't currently uploading
+    if (_cameras == null || _cameras!.length < 2 || _isUploading) return;
+
+    setState(() {
+      _isCameraInitialized = false; // Show loading while switching
+      _selectedCameraIndex = (_selectedCameraIndex + 1) % _cameras!.length;
+    });
+
+    _setupCameraController();
   }
 
   @override
@@ -128,6 +156,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
           style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w700),
         ),
         centerTitle: true,
+        actions: [
+          // --- CAMERA TOGGLE BUTTON ---
+          if (_cameras != null && _cameras!.length > 1)
+            IconButton(
+              icon: Icon(Icons.flip_camera_ios, color: textColor),
+              onPressed: _isUploading ? null : _toggleCamera,
+            ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -142,7 +178,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(32),
                   color: Colors.black,
-                  border: Border.all(color: primaryColor.withValues(alpha: 0.5), width: 2),
+                  // Removed the border from here!
                 ),
                 child: _isCameraInitialized
                     ? Stack(
