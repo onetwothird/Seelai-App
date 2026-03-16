@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/home_screen/data/predefined_emergency_hotlines.dart
+// File: lib/roles/partially_sighted/home/sections/home_screen/data/predefined_emergency_hotlines.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';

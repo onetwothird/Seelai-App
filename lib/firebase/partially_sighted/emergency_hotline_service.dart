@@ -1,4 +1,4 @@
-// File: lib/firebase/visually_impaired/emergency_hotline_service.dart
+// File: lib/firebase/partially_sighted/emergency_hotline_service.dart
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

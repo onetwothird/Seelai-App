@@ -21,7 +21,7 @@ class VoiceCallScreen extends StatefulWidget {
     required this.userData,
     this.callId,
     this.isCaller = true,
-    this.callPath = 'visually_impaired_communication',
+    this.callPath = 'partially_sighted_communication',
     this.onClose,
   });
 
@@ -30,7 +30,7 @@ class VoiceCallScreen extends StatefulWidget {
     Map<String, dynamic> userData, {
     String? callId,
     bool isCaller = true,
-    String callPath = 'visually_impaired_communication',
+    String callPath = 'partially_sighted_communication',
   }) {
     OverlayEntry? overlayEntry;
     

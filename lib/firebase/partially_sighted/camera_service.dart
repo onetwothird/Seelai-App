@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/services/camera_service.dart
+// File: lib/roles/partially_sighted/services/camera_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 

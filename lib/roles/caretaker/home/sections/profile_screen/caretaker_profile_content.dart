@@ -180,7 +180,7 @@ class _ProfileContentState extends State<ProfileContent> {
                 iconColor: _colSupport,
                 onTap: () => _showInfoDialog(
                   'Privacy Policy', 
-                  'This application collects minimal data required to assist visually impaired individuals. Your location data is shared only with your assigned patients during active monitoring.'
+                  'This application collects minimal data required to assist partially sighted individuals. Your location data is shared only with your assigned patients during active monitoring.'
                 ),
               ),
               _buildSettingsTile(

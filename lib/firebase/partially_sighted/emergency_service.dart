@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/services/emergency_service.dart
+// File: lib/roles/partially_sighted/services/emergency_service.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 

@@ -318,7 +318,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
       await _mapController.clearAllRoads();
     }
     
-    final patientData = await databaseService.getUserDataByRole(patient.id, 'visually_impaired');
+    final patientData = await databaseService.getUserDataByRole(patient.id, 'partially_sighted');
     if (patientData != null && mounted) {
       setState(() {
         _selectedPatientFullData = patientData;

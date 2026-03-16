@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/home_screen.dart
+// File: lib/roles/partially_sighted/home/home_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/recent_activities/view_recent_activites.dart';
@@ -321,7 +321,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       : _getLightTheme();
 
     return IncomingCallListener(
-      userRole: 'visually_impaired',
+      userRole: 'partially_sighted',
       child: PopScope(
         canPop: false, 
         onPopInvokedWithResult: (bool didPop, Object? result) async {

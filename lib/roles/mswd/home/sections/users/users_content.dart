@@ -32,7 +32,7 @@ class _UsersContentState extends State<UsersContent>
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   
-  List<Map<String, dynamic>> _visuallyImpairedUsers = [];
+  List<Map<String, dynamic>> _partiallySightedUsers = [];
   List<Map<String, dynamic>> _caretakersUsers = [];
   List<Map<String, dynamic>> _pendingCaretakers = []; // New List for Pending
   
@@ -68,10 +68,10 @@ class _UsersContentState extends State<UsersContent>
 
   Future<void> _loadVisuallyImpairedUsers() async {
     try {
-      final users = await adminService.getUsersByRole('visually_impaired');
+      final users = await adminService.getUsersByRole('partially_sighted');
       if (mounted) {
         setState(() {
-          _visuallyImpairedUsers = users;
+          _partiallySightedUsers = users;
           _isLoadingVI = false;
         });
       }
@@ -360,12 +360,12 @@ class _UsersContentState extends State<UsersContent>
   Widget _buildVisuallyImpairedList() {
     if (_isLoadingVI) return const Center(child: CircularProgressIndicator());
 
-    final filteredUsers = _getFilteredUsers(_visuallyImpairedUsers);
+    final filteredUsers = _getFilteredUsers(_partiallySightedUsers);
 
     if (filteredUsers.isEmpty) {
       return Center(
         child: Text(
-          'No visually impaired users found',
+          'No partially sighted users found',
           style: body.copyWith(color: widget.theme.subtextColor),
         ),
       );

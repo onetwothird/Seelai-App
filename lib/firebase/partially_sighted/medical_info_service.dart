@@ -1,13 +1,13 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../database_service.dart';
 
-/// Service for managing medical information (for visually impaired users)
+/// Service for managing medical information (for partially sighted users)
 class MedicalInfoService {
   final FirebaseDatabase _database = databaseService.database;
 
   // ==================== MEDICAL INFO ====================
 
-  /// Update medical information for visually impaired user
+  /// Update medical information for partially sighted user
   Future<void> updateMedicalInfo({
     required String userId,
     List<String>? conditions,
@@ -25,7 +25,7 @@ class MedicalInfoService {
       
       updates['updatedAt'] = ServerValue.timestamp;
 
-      await _database.ref('user_info/visually_impaired/$userId').update(updates);
+      await _database.ref('user_info/partially_sighted/$userId').update(updates);
     } catch (e) {
       throw Exception('Failed to update medical info: $e');
     }
@@ -35,7 +35,7 @@ class MedicalInfoService {
   Future<Map<String, dynamic>?> getMedicalInfo(String userId) async {
     try {
       DatabaseEvent event = await _database
-          .ref('user_info/visually_impaired/$userId/medicalInfo')
+          .ref('user_info/partially_sighted/$userId/medicalInfo')
           .once();
       
       if (!event.snapshot.exists) return null;
@@ -170,7 +170,7 @@ class MedicalInfoService {
   /// Stream of medical info for real-time updates
   Stream<Map<String, dynamic>?> streamMedicalInfo(String userId) {
     return _database
-        .ref('user_info/visually_impaired/$userId/medicalInfo')
+        .ref('user_info/partially_sighted/$userId/medicalInfo')
         .onValue
         .map((event) {
       if (!event.snapshot.exists) return null;

@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/widgets/header_section.dart
+// File: lib/roles/partially_sighted/home/widgets/header_section.dart
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

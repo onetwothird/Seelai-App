@@ -127,8 +127,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                 physics: const BouncingScrollPhysics(),
                                 children: [
                                   _buildRoleCard(
-                                    id: 'visually_impaired',
-                                    title: "Visually Impaired",
+                                    id: 'partially_sighted',
+                                    title: "Partially Sighted",
                                     subtitle:
                                         "I need assistance navigating my world.",
                                     icon: Icons.visibility_off_outlined,
@@ -406,8 +406,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
   void _navigateToLogin(BuildContext context) {
     Widget? targetScreen;
     switch (_selectedRole) {
-      case 'visually_impaired':
-        targetScreen = const LoginScreenVisuallyImpaired();
+      case 'partially_sighted':
+        targetScreen = const LoginScreenPartiallySighted();
         break;
       case 'caretaker':
         targetScreen = const CaretakerLoginScreen();
@@ -425,8 +425,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
   void _navigateToSignup(BuildContext context) {
     Widget? targetScreen;
     switch (_selectedRole) {
-      case 'visually_impaired':
-        targetScreen = const VisuallyImpairedSignupScreen();
+      case 'partially_sighted':
+        targetScreen = const PartiallySightedSignupScreen();
         break;
       case 'caretaker':
         targetScreen = const CaretakerSignupScreen();

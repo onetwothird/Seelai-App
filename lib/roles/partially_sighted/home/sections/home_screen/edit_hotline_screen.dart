@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/home_screen/edit_hotline_screen.dart
+// File: lib/roles/partially_sighted/home/sections/home_screen/edit_hotline_screen.dart
 
 import 'dart:io';
 import 'package:flutter/material.dart';

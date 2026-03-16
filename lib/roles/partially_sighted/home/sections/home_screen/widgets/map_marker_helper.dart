@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/home_screen/widgets/map_marker_helper.dart
+// File: lib/roles/partially_sighted/home/sections/home_screen/widgets/map_marker_helper.dart
 
 
 import 'dart:ui' as ui;

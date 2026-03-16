@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/widgets/bottom_navigation.dart
+// File: lib/roles/partially_sighted/home/widgets/bottom_navigation.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';

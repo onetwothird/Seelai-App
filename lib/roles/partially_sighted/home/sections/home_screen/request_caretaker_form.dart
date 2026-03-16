@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/home_screen/request_caretaker_form.dart
+// File: lib/roles/partially_sighted/home/sections/home_screen/request_caretaker_form.dart
 
 
 import 'package:flutter/material.dart';

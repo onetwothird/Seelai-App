@@ -2,7 +2,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-/// Service for handling calls and messages for visually impaired users
+/// Service for handling calls and messages for partially sighted users
 class CommunicationService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -21,7 +21,7 @@ class CommunicationService {
       if (currentUserId == null) throw Exception('User not authenticated');
 
       // FIX: Use correct path structure with /calls/
-      final callId = _database.ref('visually_impaired_communication/calls').push().key ?? '';
+      final callId = _database.ref('partially_sighted_communication/calls').push().key ?? '';
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
       final callData = {
@@ -39,7 +39,7 @@ class CommunicationService {
       };
 
       // FIX: Write to /calls/$callId path
-      await _database.ref('visually_impaired_communication/calls/$callId').set(callData);
+      await _database.ref('partially_sighted_communication/calls/$callId').set(callData);
       return callData;
     } catch (e) {
       debugPrint('Error initiating call: $e');
@@ -55,7 +55,7 @@ class CommunicationService {
   }) async {
     try {
       // FIX: Use correct path
-      await _database.ref('visually_impaired_communication/calls/$callId').update({
+      await _database.ref('partially_sighted_communication/calls/$callId').update({
         'status': status,
         'duration': duration,
       });
@@ -92,7 +92,7 @@ class CommunicationService {
 
       // FIX: Query from /calls path
       DatabaseEvent event = await _database
-          .ref('visually_impaired_communication/calls')
+          .ref('partially_sighted_communication/calls')
           .orderByChild('timestamp')
           .limitToLast(limit)
           .once();
@@ -125,7 +125,7 @@ class CommunicationService {
 
     // FIX: Stream from /calls path
     return _database
-        .ref('visually_impaired_communication/calls')
+        .ref('partially_sighted_communication/calls')
         .orderByChild('receiverId')
         .equalTo(currentUserId)
         .onValue
@@ -155,7 +155,7 @@ class CommunicationService {
     try {
       if (currentUserId == null) throw Exception('User not authenticated');
 
-      final messageId = _database.ref('visually_impaired_communication/messages').push().key ?? '';
+      final messageId = _database.ref('partially_sighted_communication/messages').push().key ?? '';
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final conversationId = _generateConversationId(currentUserId!, receiverId);
 
@@ -170,7 +170,7 @@ class CommunicationService {
         'conversationId': conversationId,
       };
 
-      await _database.ref('visually_impaired_communication/messages/$messageId').set(messageData);
+      await _database.ref('partially_sighted_communication/messages/$messageId').set(messageData);
       
       // Update conversation
       await _updateConversation(
@@ -198,7 +198,7 @@ class CommunicationService {
       final conversationId = _generateConversationId(currentUserId!, otherUserId);
 
       DatabaseEvent event = await _database
-          .ref('visually_impaired_communication/messages')
+          .ref('partially_sighted_communication/messages')
           .orderByChild('conversationId')
           .equalTo(conversationId)
           .limitToLast(limit)
@@ -230,7 +230,7 @@ class CommunicationService {
     final conversationId = _generateConversationId(currentUserId!, otherUserId);
 
     return _database
-        .ref('visually_impaired_communication/messages')
+        .ref('partially_sighted_communication/messages')
         .orderByChild('conversationId')
         .equalTo(conversationId)
         .onValue
@@ -254,7 +254,7 @@ class CommunicationService {
     if (currentUserId == null) return Stream.empty();
 
     return _database
-        .ref('visually_impaired_communication/conversations')
+        .ref('partially_sighted_communication/conversations')
         .orderByChild('participant1')
         .equalTo(currentUserId)
         .onValue
@@ -283,7 +283,7 @@ class CommunicationService {
   /// Mark message as read
   Future<void> markMessageAsRead(String messageId) async {
     try {
-      await _database.ref('visually_impaired_communication/messages/$messageId').update({
+      await _database.ref('partially_sighted_communication/messages/$messageId').update({
         'isRead': true,
       });
     } catch (e) {
@@ -313,7 +313,7 @@ class CommunicationService {
       final senderName = _auth.currentUser?.displayName ?? 'Unknown';
       final receiverName = 'User'; // You might want to fetch this
 
-      await _database.ref('visually_impaired_communication/conversations/$conversationId').update({
+      await _database.ref('partially_sighted_communication/conversations/$conversationId').update({
         'participant1': currentUserId,
         'participant2': receiverId,
         'participant1Name': senderName,

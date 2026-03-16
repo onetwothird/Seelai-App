@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/recent_activities/detection_detail_screen.dart
+// File: lib/roles/partially_sighted/home/sections/recent_activities/detection_detail_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

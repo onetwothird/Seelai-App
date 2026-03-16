@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
@@ -11,16 +10,16 @@ import 'package:seelai_app/firebase/activity_logs_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class VisuallyImpairedSignupScreen extends StatefulWidget {
+class PartiallySightedSignupScreen extends StatefulWidget {
   final User? googleUser; // Captures the Google Account
 
-  const VisuallyImpairedSignupScreen({super.key, this.googleUser});
+  const PartiallySightedSignupScreen({super.key, this.googleUser});
 
   @override
-  State<VisuallyImpairedSignupScreen> createState() => _VisuallyImpairedSignupScreenState();
+  State<PartiallySightedSignupScreen> createState() => _PartiallySightedSignupScreenState();
 }
 
-class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScreen> with TickerProviderStateMixin {
+class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScreen> with TickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -112,22 +111,22 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Choose Profile Picture', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
+            const Text('Choose Profile Picture', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
             ListTile(
               leading: Icon(Icons.camera_alt, color: primary),
-              title: Text('Take Photo'),
+              title: const Text('Take Photo'),
               onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
             ),
             ListTile(
               leading: Icon(Icons.photo_library, color: primary),
-              title: Text('Gallery'),
+              title: const Text('Gallery'),
               onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
             ),
           ],
@@ -138,7 +137,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
   Future<String?> _uploadProfileImage(String userId) async {
     if (_profileImage == null) return null;
-    return await cloudinaryService.uploadProfileImage(_profileImage!, userId, 'visually_impaired');
+    return await cloudinaryService.uploadProfileImage(_profileImage!, userId, 'partially_sighted');
   }
 
   Future<void> _selectBirthdate() async {
@@ -177,10 +176,10 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(Icons.arrow_back_ios_new_rounded),
-          color: Color(0xFF1E293B),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          color: const Color(0xFF1E293B),
         ),
-        title: Text(
+        title: const Text(
           "Complete Profile",
           style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w700, fontSize: 20),
         ),
@@ -198,7 +197,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
 
           SafeArea(
             child: SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
+              physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
                 left: 24, 
                 right: 24, 
@@ -221,37 +220,41 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                               height: 120,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: Color(0xFFF1F5F9),
+                                color: const Color(0xFFF1F5F9),
                                 border: Border.all(color: Colors.black, width: 2.0),
+                                // 1. Prioritize picked image. 2. Fallback to Google image.
                                 image: _profileImage != null
                                     ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover)
-                                    : null,
+                                    : (widget.googleUser?.photoURL != null)
+                                        ? DecorationImage(image: NetworkImage(widget.googleUser!.photoURL!), fit: BoxFit.cover)
+                                        : null,
                               ),
-                              child: _profileImage == null
-                                  ? Icon(Icons.person_rounded, size: 60, color: Color(0xFFCBD5E1))
+                              // Show icon ONLY if both picked image and Google image are missing
+                              child: _profileImage == null && widget.googleUser?.photoURL == null
+                                  ? const Icon(Icons.person_rounded, size: 60, color: Color(0xFFCBD5E1))
                                   : null,
                             ),
                             Container(
-                              padding: EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: primary,
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.white, width: 2),
                               ),
-                              child: Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
                             ),
                           ],
                         ),
                       ),
                       
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
                       _buildSectionHeader("Personal Information"),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildTextField(_idNumberController, 'ID Number', Icons.badge_outlined),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildTextField(_nameController, 'Full Name', Icons.person_outline),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
@@ -260,34 +263,34 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                               (val) => setState(() => _selectedSex = val)
                             ),
                           ),
-                          SizedBox(width: 16),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
                           ),
                         ],
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildDateField(_selectedBirthdate, 'Birthdate', Icons.calendar_today_outlined, _selectBirthdate),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildTextField(_addressController, 'Address', Icons.home_outlined),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildTextField(_contactNumberController, 'Contact', Icons.phone_outlined, keyboardType: TextInputType.phone),
 
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
                       _buildSectionHeader("Medical Details"),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildDropdownField(
                         _selectedDisabilityType, _disabilityTypes, 'Category', Icons.accessible_outlined, 
                         (val) => setState(() => _selectedDisabilityType = val)
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       _buildTextField(_diagnosisController, 'Diagnosis', Icons.medical_information_outlined),
 
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
 
                       _buildSectionHeader("Account Security"),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       
                       // EMAIL IS LOCKED IF LOGGED IN VIA GOOGLE
                       _buildTextField(
@@ -298,8 +301,26 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                         readOnly: widget.googleUser != null, 
                       ),
                       
-                      SizedBox(height: 20),
-      
+                      // Only show password fields if NOT signing up with Google
+                      if (widget.googleUser == null) ...[
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          _passwordController,
+                          'Password',
+                          Icons.lock_outline,
+                          isPassword: true,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          _confirmPasswordController,
+                          'Confirm Password',
+                          Icons.lock_reset_outlined,
+                          isPassword: true,
+                          isConfirm: true,
+                        ),
+                      ],
+                      
+                      const SizedBox(height: 32),
 
                       SizedBox(
                         width: double.infinity,
@@ -314,11 +335,11 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
                           ),
                           child: Text(
                             widget.googleUser != null ? "Save & Continue" : "Create Account", 
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
                           ),
                         ),
                       ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -338,7 +359,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
       alignment: Alignment.centerLeft,
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), letterSpacing: 1.0),
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), letterSpacing: 1.0),
       ),
     );
   }
@@ -346,25 +367,25 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: readOnly ? Color(0xFFE2E8F0) : Color(0xFFF8FAFC), 
+        color: readOnly ? const Color(0xFFE2E8F0) : const Color(0xFFF8FAFC), 
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE2E8F0)), 
+        border: Border.all(color: const Color(0xFFE2E8F0)), 
       ),
       child: TextField(
         controller: ctrl,
         readOnly: readOnly,
         keyboardType: keyboardType,
         obscureText: isPassword ? (isConfirm ? _obscureConfirmPassword : _obscurePassword) : false,
-        style: TextStyle(color: readOnly ? Color(0xFF64748B) : Color(0xFF1E293B)),
+        style: TextStyle(color: readOnly ? const Color(0xFF64748B) : const Color(0xFF1E293B)),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-          prefixIcon: Icon(icon, color: Color(0xFF64748B)),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
           suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
                   (isConfirm ? _obscureConfirmPassword : _obscurePassword) ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: Color(0xFF94A3B8),
+                  color: const Color(0xFF94A3B8),
                 ),
                 onPressed: () => setState(() {
                   if (isConfirm) {
@@ -376,7 +397,7 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
               )
             : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
       ),
     );
@@ -385,22 +406,22 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
   Widget _buildDropdownField(String? val, List<String> items, String hint, IconData icon, Function(String?) changed) {
     return Container(
       decoration: BoxDecoration(
-        color: Color(0xFFF8FAFC),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonFormField<String>(
         initialValue: val,
         items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, overflow: TextOverflow.ellipsis))).toList(),
         onChanged: _isLoading ? null : changed,
-        style: TextStyle(color: Color(0xFF1E293B), fontSize: 16),
+        style: const TextStyle(color: Color(0xFF1E293B), fontSize: 16),
         isExpanded: true,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-          prefixIcon: Icon(icon, color: Color(0xFF64748B)),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
       ),
     );
@@ -410,19 +431,19 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
     return GestureDetector(
       onTap: _isLoading ? null : tap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
-          color: Color(0xFFF8FAFC),
+          color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Color(0xFFE2E8F0)),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: Color(0xFF64748B)),
-            SizedBox(width: 12),
+            Icon(icon, color: const Color(0xFF64748B)),
+            const SizedBox(width: 12),
             Text(
               date != null ? "${date.month}/${date.day}/${date.year}" : hint,
-              style: TextStyle(color: date != null ? Color(0xFF1E293B) : Color(0xFF94A3B8), fontSize: 16),
+              style: TextStyle(color: date != null ? const Color(0xFF1E293B) : const Color(0xFF94A3B8), fontSize: 16),
             ),
           ],
         ),
@@ -442,33 +463,38 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
         _addressController.text.trim().isEmpty ||
         _contactNumberController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
       return;
     }
 
     // 2. Validate passwords ONLY if they are NOT a Google User
     if (widget.googleUser == null) {
       if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter a password'), backgroundColor: error));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a password'), backgroundColor: error));
+        return;
+      }
+      if (_passwordController.text.length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: error));
         return;
       }
       if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
         return;
       }
     }
 
     int? age = int.tryParse(_ageController.text.trim());
     if (age == null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter a valid age'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid age'), backgroundColor: error));
       return;
     }
 
     setState(() => _isLoading = true);
+    
+    User? finalUser;
+    bool isNewEmailUser = false; // Flag to track if we need to clean up an orphaned account
 
     try {
-      User? finalUser;
-
       // 3. Determine Auth Flow
       if (widget.googleUser != null) {
         finalUser = widget.googleUser;
@@ -478,39 +504,51 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
           password: _passwordController.text,
         );
         finalUser = userCredential.user;
+        isNewEmailUser = true; // We just created this user in Auth
         await authService.value.updateUsername(userName: _nameController.text.trim());
       }
 
       if (finalUser == null) throw Exception("Failed to get user information.");
 
-      // 4. Upload manually selected image
+      // 4. Upload Profile Image OR use Google's existing image
       String? profileImageUrl;
       if (_profileImage != null) {
+        // Custom photo uploaded
         profileImageUrl = await _uploadProfileImage(finalUser.uid);
-      } 
-      // NOTE: Removed Google profile picture auto-sync here based on your request!
+      } else if (widget.googleUser?.photoURL != null) {
+        // Fallback to Google photo
+        profileImageUrl = widget.googleUser!.photoURL;
+      }
 
-      // 5. Create DB Entry
-      await databaseService.createUserDocument(
-        userId: finalUser.uid,
-        idNumber: _idNumberController.text.trim(),
-        name: _nameController.text.trim(),
-        sex: _selectedSex!,
-        age: age,
-        birthdate: _selectedBirthdate!,
-        disabilityType: _selectedDisabilityType!,
-        diagnosis: _diagnosisController.text.trim(),
-        address: _addressController.text.trim(),
-        contactNumber: _contactNumberController.text.trim(),
-        email: _emailController.text.trim(),
-        role: 'visually_impaired',
-      );
+      // 5. Create DB Entry (Wrapped in its own try-catch for rollback)
+      try {
+        await databaseService.createUserDocument(
+          userId: finalUser.uid,
+          idNumber: _idNumberController.text.trim(),
+          name: _nameController.text.trim(),
+          sex: _selectedSex!,
+          age: age,
+          birthdate: _selectedBirthdate!,
+          disabilityType: _selectedDisabilityType!,
+          diagnosis: _diagnosisController.text.trim(),
+          address: _addressController.text.trim(),
+          contactNumber: _contactNumberController.text.trim(),
+          email: _emailController.text.trim(),
+          role: 'partially_sighted',
+        );
+      } catch (dbError) {
+        // ROLLBACK: If DB fails, delete the auth user so they aren't permanently locked out
+        if (isNewEmailUser) {
+          await finalUser.delete();
+        }
+        throw Exception("Failed to save profile data. Please try again. ($dbError)");
+      }
 
-      // 6. Save Profile Image to DB (if they took one)
+      // 6. Save Profile Image URL to DB
       if (profileImageUrl != null) {
         await databaseService.updateUserProfile(
           userId: finalUser.uid,
-          role: 'visually_impaired',
+          role: 'partially_sighted',
           profileImageUrl: profileImageUrl,
         );
       }
@@ -519,11 +557,12 @@ class _VisuallyImpairedSignupScreenState extends State<VisuallyImpairedSignupScr
       await activityLogsService.logActivity(
         userId: finalUser.uid,
         action: 'account_created',
-        details: 'User signed up as visually_impaired',
+        details: 'User signed up as partially_sighted',
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Account Setup Complete!'), backgroundColor: primary));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account Setup Complete!'), backgroundColor: primary));
+        // You can update this Navigator pop to a pushReplacement routing to the Home Screen!
         Navigator.pop(context); 
       }
     } on FirebaseAuthException catch (e) {

@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/models/activity_model.dart
+// File: lib/roles/partially_sighted/models/activity_model.dart
 import 'package:flutter/material.dart';
 
 class ActivityModel {
