@@ -1,4 +1,4 @@
-// File: lib/firebase/visually_impaired/face_detection_service.dart
+// File: lib/firebase/partially_sighted/face_detection_service.dart
 import 'package:firebase_database/firebase_database.dart';
 import '../database_service.dart';
 
