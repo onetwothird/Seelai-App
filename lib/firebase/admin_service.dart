@@ -12,8 +12,8 @@ class AdminService {
     try {
       List<Map<String, dynamic>> allUsers = [];
       
-      // Get visually impaired users
-      DatabaseEvent viEvent = await _database.ref('user_info/visually_impaired').once();
+      // Get partially_sighted users
+      DatabaseEvent viEvent = await _database.ref('user_info/partially_sighted').once();
       if (viEvent.snapshot.exists) {
         Map<dynamic, dynamic> viMap = viEvent.snapshot.value as Map;
         viMap.forEach((key, value) {
@@ -166,7 +166,7 @@ Future<List<Map<String, dynamic>>> getPendingCaretakers() async {
     try {
       Map<String, int> stats = {
         'total': 0,
-        'visually_impaired': 0,
+        'partially_sighted': 0,
         'caretaker': 0,
         'admin': 0,
         'active': 0,
@@ -181,7 +181,7 @@ Future<List<Map<String, dynamic>>> getPendingCaretakers() async {
         String role = user['role'] ?? '';
         bool isActive = user['isActive'] ?? true;
         
-        if (role == 'visually_impaired') stats['visually_impaired'] = (stats['visually_impaired'] ?? 0) + 1;
+        if (role == 'partially_sighted') stats['partially_sighted'] = (stats['partially_sighted'] ?? 0) + 1;
         if (role == 'caretaker') stats['caretaker'] = (stats['caretaker'] ?? 0) + 1;
         if (role == 'admin') stats['admin'] = (stats['admin'] ?? 0) + 1;
         
