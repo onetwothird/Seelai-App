@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/contacts_screen/message_contact.dart
+// File: lib/roles/partially_sighted/home/sections/contacts_screen/message_contact.dart
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

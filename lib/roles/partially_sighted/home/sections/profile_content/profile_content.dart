@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/profile_content.dart
+// File: lib/roles/partially_sighted/home/sections/profile_content.dart
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -583,7 +583,7 @@ class _ProfileContentState extends State<ProfileContent> {
 
                       await databaseService.updateUserProfile(
                         userId: userId,
-                        role: 'visually_impaired',
+                        role: 'partially_sighted',
                         name: _nameController.text.trim(),
                         address: _addressController.text.trim(),
                         contactNumber: _contactController.text.trim(),

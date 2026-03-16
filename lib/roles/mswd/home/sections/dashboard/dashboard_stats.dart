@@ -44,14 +44,14 @@ class _DashboardStatsState extends State<DashboardStats> {
 
         final stats = snapshot.data ?? {
           'total': 0,
-          'visually_impaired': 0,
+          'partially_sighted': 0,
           'caretaker': 0,
           'admin': 0,
           'active': 0,
           'inactive': 0,
         };
 
-        final int viCount = stats['visually_impaired'] ?? 0;
+        final int viCount = stats['partially_sighted'] ?? 0;
         final int caretakerCount = stats['caretaker'] ?? 0;
         final int totalUsers = stats['total'] ?? 0;
         final int activeUsers = stats['active'] ?? 0;

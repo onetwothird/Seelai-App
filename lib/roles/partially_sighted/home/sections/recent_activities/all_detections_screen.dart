@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/recent_activities/all_detections_screen.dart
+// File: lib/roles/partially_sighted/home/sections/recent_activities/all_detections_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';

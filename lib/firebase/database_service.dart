@@ -17,8 +17,8 @@ class DatabaseService {
   // Helper method to get the correct path based on role
   String getUserPath(String role, String userId) {
     switch (role) {
-      case 'visually_impaired':
-        return 'user_info/visually_impaired/$userId';
+      case 'partially_sighted':
+        return 'user_info/partially_sighted/$userId';
       case 'caretaker':
         return 'user_info/caretaker/$userId';
       case 'admin':
@@ -79,11 +79,11 @@ class DatabaseService {
             DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
         userData['address'] = address ?? '';
         userData['contactNumber'] = contactNumber ?? '';
-      } else if (role == 'visually_impaired') {
+      } else if (role == 'partially_sighted') {
         if (idNumber == null || sex == null || birthdate == null || 
             disabilityType == null || diagnosis == null || 
             address == null || contactNumber == null) {
-          throw Exception('All fields are required for visually impaired users');
+          throw Exception('All fields are required for partially sighted users');
         }
         userData['idNumber'] = idNumber;
         userData['sex'] = sex;
@@ -107,7 +107,7 @@ class DatabaseService {
   Future<Map<String, dynamic>?> getUserData(String userId) async {
     try {
       List<String> rolePaths = [
-        'user_info/visually_impaired/$userId',
+        'user_info/partially_sighted/$userId',
         'user_info/caretaker/$userId',
         'user_info/mswd/$userId',
       ];

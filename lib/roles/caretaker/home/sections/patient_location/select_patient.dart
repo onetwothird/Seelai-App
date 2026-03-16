@@ -92,7 +92,7 @@ class _SelectPatientState extends State<SelectPatient> {
             try {
               var userData = await databaseService.getUserDataByRole(
                 patient.id, 
-                'visually_impaired'
+                'partially_sighted'
               );
               if (userData != null && userData['profileImageUrl'] != null) {
                 String imageUrl = userData['profileImageUrl'] as String;

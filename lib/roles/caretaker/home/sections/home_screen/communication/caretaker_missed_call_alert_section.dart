@@ -105,7 +105,7 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
     return StreamBuilder<List<Map<String, dynamic>>>(
       // Listens to calls from the Patient path!
       stream: callTrackingService.streamMissedCalls(
-        path: 'visually_impaired_communication', 
+        path: 'partially_sighted_communication', 
         userId: widget.caretakerId,
       ),
       builder: (context, snapshot) {
@@ -200,7 +200,7 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                           color: widget.isDarkMode ? Colors.white70 : const Color(0xFF991B1B),
                         ),
                         onPressed: () => callTrackingService.clearMissedCalls(
-                          path: 'visually_impaired_communication', 
+                          path: 'partially_sighted_communication', 
                           callIds: callIdsToDismiss,
                         ),
                       ),

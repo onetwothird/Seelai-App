@@ -1,4 +1,4 @@
-// File: lib/firebase/visually_impaired/user_activity_service.dart
+// File: lib/firebase/partially_sighted/user_activity_service.dart
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import '../database_service.dart';

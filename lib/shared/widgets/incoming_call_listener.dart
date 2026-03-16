@@ -41,7 +41,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     if (currentUserId == null) return;
 
     String listenPath = widget.userRole == 'caretaker' 
-        ? 'visually_impaired_communication' 
+        ? 'partially_sighted_communication' 
         : 'caretaker_communication';
 
     _callSubscription = callTrackingService
@@ -83,7 +83,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     _isDialogShowing = true;
     _currentRingingCallId = callId;
 
-    String callerRole = widget.userRole == 'caretaker' ? 'visually_impaired' : 'caretaker';
+    String callerRole = widget.userRole == 'caretaker' ? 'partially_sighted' : 'caretaker';
     Map<String, dynamic>? callerData = await databaseService.getUserDataByRole(callerId, callerRole);
     
     String callerName = callerData?['name'] ?? 'Unknown Caller';

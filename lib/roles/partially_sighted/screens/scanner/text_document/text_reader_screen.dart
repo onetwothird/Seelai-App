@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/screens/scanner/text_document/text_reader_screen.dart
+// File: lib/roles/partially_sighted/screens/scanner/text_document/text_reader_screen.dart
 
 import 'dart:async';
 import 'dart:io';

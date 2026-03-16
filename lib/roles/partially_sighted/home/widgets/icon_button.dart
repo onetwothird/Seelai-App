@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/widgets/icon_button.dart
+// File: lib/roles/partially_sighted/home/widgets/icon_button.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';

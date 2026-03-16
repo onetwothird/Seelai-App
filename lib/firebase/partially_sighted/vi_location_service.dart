@@ -1,10 +1,9 @@
-// File: lib/roles/visually_impaired/services/vi_location_service.dart
+// File: lib/roles/partially_sighted/services/vi_location_service.dart
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
 
-/// Location service for visually impaired users
 class VILocationService {
   StreamSubscription<Position>? _positionStream;
   Position? _currentPosition;

@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/screens/scanner/mode_selection_screen.dart
+// File: lib/roles/partially_sighted/screens/scanner/mode_selection_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';

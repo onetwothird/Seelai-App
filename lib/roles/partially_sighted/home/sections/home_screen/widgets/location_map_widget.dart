@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/home_screen/widgets/location_map_widget.dart
+// File: lib/roles/partially_sighted/home/sections/home_screen/widgets/location_map_widget.dart
 
 import 'dart:ui'; // ADDED: For frosted glass blur effect
 import 'package:flutter/material.dart';

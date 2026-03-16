@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/contacts_screen/contact_model.dart
+// File: lib/roles/partially_sighted/home/sections/contacts_screen/contact_model.dart
 import 'package:flutter/material.dart';
 
 class ContactModel {

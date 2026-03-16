@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/home/sections/contacts_screen/contacts_content.dart
+// File: lib/roles/partially_sighted/home/sections/contacts_screen/contacts_content.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';

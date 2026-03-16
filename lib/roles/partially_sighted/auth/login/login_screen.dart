@@ -10,14 +10,14 @@ import 'package:seelai_app/firebase/activity_logs_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class LoginScreenVisuallyImpaired extends StatefulWidget {
-  const LoginScreenVisuallyImpaired({super.key});
+class LoginScreenPartiallySighted extends StatefulWidget {
+  const LoginScreenPartiallySighted({super.key});
 
   @override
-  State<LoginScreenVisuallyImpaired> createState() => _LoginScreenVisuallyImpairedState();
+  State<LoginScreenPartiallySighted> createState() => _LoginScreenPartiallySightedState();
 }
 
-class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaired> with TickerProviderStateMixin {
+class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighted> with TickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -286,7 +286,7 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => VisuallyImpairedSignupScreen(),
+                                      builder: (context) => PartiallySightedSignupScreen(),
                                     ),
                                   );
                                 },
@@ -444,11 +444,11 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
         // USER EXISTS IN DB: Proceed with normal login routing
         String userRole = userData['role'] ?? '';
         
-        if (userRole != 'visually_impaired') {
+        if (userRole != 'partially_sighted') {
           await authService.value.signOut();
-          if (!mounted) return; // FIXED: Add mounted guard
+          if (!mounted) return; 
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('This account is not registered as a Partial User'), backgroundColor: error),
+            SnackBar(content: Text('This account is not registered as a Partially Sighted User'), backgroundColor: error),
           );
           return;
         }
@@ -467,7 +467,7 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
           hasCaretaker = assignedCaretakers.isNotEmpty;
         }
         
-        if (!mounted) return; // FIXED: Add mounted guard
+        if (!mounted) return; 
         
         if (hasCaretaker) {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VisuallyImpairedHomeScreen(userData: userData)));
@@ -486,7 +486,7 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => VisuallyImpairedSignupScreen(googleUser: userCredential.user),
+            builder: (context) => PartiallySightedSignupScreen(googleUser: userCredential.user),
           ),
         );
         
@@ -537,10 +537,10 @@ class _LoginScreenVisuallyImpairedState extends State<LoginScreenVisuallyImpaire
       if (userData != null) {
         String userRole = userData['role'] ?? '';
         
-        if (userRole != 'visually_impaired') {
+        if (userRole != 'partially_sighted') {
           await authService.value.signOut();
           if (!mounted) return; // FIXED: Add mounted guard
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('This account is not registered as a User'), backgroundColor: error));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('This account is not registered as a Partially Sighted User'), backgroundColor: error));
           return;
         }
         

@@ -92,7 +92,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       if (!mounted) return;
 
       Map<String, Map<String, dynamic>> newLocations = {};
-      await _processUserLocations(locationsData['patients'] ?? [], 'visually_impaired', newLocations);
+      await _processUserLocations(locationsData['patients'] ?? [], 'partially_sighted', newLocations);
       await _processUserLocations(locationsData['caretakers'] ?? [], 'caretaker', newLocations);
 
       if (mounted) {
@@ -167,7 +167,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         final userType = entry.value['userType'] ?? '';
         final isActive = mswdLocationTrackingService.isLocationRecent(entry.value);
         if (_showOnlyActive && !isActive) return false;
-        if (_selectedFilter == 'patients' && userType != 'visually_impaired') return false;
+        if (_selectedFilter == 'patients' && userType != 'partially_sighted') return false;
         if (_selectedFilter == 'caretakers' && userType != 'caretaker') return false;
         return true;
       }).toList();
@@ -215,7 +215,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           final isActive = mswdLocationTrackingService.isLocationRecent(location);
           final userType = location['userType'] ?? '';
           
-          Color ringColor = userType == 'visually_impaired' ? Colors.redAccent : Colors.blueAccent;
+          Color ringColor = userType == 'partially_sighted' ? Colors.redAccent : Colors.blueAccent;
           if (!isActive) ringColor = Colors.grey;
 
           // 1. Download Image Bytes first
@@ -614,7 +614,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     final usersList = _userLocations.values.where((loc) {
        final userType = loc['userType'];
        if (_showOnlyActive && !mswdLocationTrackingService.isLocationRecent(loc)) return false;
-       if (_selectedFilter == 'patients' && userType != 'visually_impaired') return false;
+       if (_selectedFilter == 'patients' && userType != 'partially_sighted') return false;
        if (_selectedFilter == 'caretakers' && userType != 'caretaker') return false;
        return true;
     }).toList();

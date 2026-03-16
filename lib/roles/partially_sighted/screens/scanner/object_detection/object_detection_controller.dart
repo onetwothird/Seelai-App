@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/models/object_detection_controller.dart
+// File: lib/roles/partially_sighted/models/object_detection_controller.dart
 
 import 'dart:async';
 import 'dart:io';

@@ -1,8 +1,8 @@
-// File: lib/firebase/visually_impaired/emergency_contacts_service.dart
+// File: lib/firebase/partially_sighted/emergency_contacts_service.dart
 import 'package:firebase_database/firebase_database.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 
-/// Service for managing emergency contacts for visually impaired users
+/// Service for managing emergency contacts for partially sighted users
 class EmergencyContactsService {
   final FirebaseDatabase _database = databaseService.database;
 
@@ -19,7 +19,7 @@ class EmergencyContactsService {
     try {
       // Generate unique contact ID
       final contactRef = _database
-          .ref('user_info/visually_impaired/$userId/emergencyContacts')
+          .ref('user_info/partially_sighted/$userId/emergencyContacts')
           .push();
       
       final contactId = contactRef.key!;
@@ -61,7 +61,7 @@ class EmergencyContactsService {
       if (profileImageUrl != null) updates['profileImageUrl'] = profileImageUrl;
 
       await _database
-          .ref('user_info/visually_impaired/$userId/emergencyContacts/$contactId')
+          .ref('user_info/partially_sighted/$userId/emergencyContacts/$contactId')
           .update(updates);
     } catch (e) {
       throw Exception('Failed to update emergency contact: $e');
@@ -75,7 +75,7 @@ class EmergencyContactsService {
   }) async {
     try {
       await _database
-          .ref('user_info/visually_impaired/$userId/emergencyContacts/$contactId')
+          .ref('user_info/partially_sighted/$userId/emergencyContacts/$contactId')
           .remove();
     } catch (e) {
       throw Exception('Failed to remove emergency contact: $e');
@@ -86,7 +86,7 @@ class EmergencyContactsService {
   Future<List<Map<String, dynamic>>> getEmergencyContacts(String userId) async {
     try {
       DatabaseEvent event = await _database
-          .ref('user_info/visually_impaired/$userId/emergencyContacts')
+          .ref('user_info/partially_sighted/$userId/emergencyContacts')
           .once();
 
       if (!event.snapshot.exists) return [];
@@ -109,7 +109,7 @@ class EmergencyContactsService {
   /// Stream emergency contacts (real-time updates)
   Stream<List<Map<String, dynamic>>> streamEmergencyContacts(String userId) {
     return _database
-        .ref('user_info/visually_impaired/$userId/emergencyContacts')
+        .ref('user_info/partially_sighted/$userId/emergencyContacts')
         .onValue
         .map((event) {
       if (!event.snapshot.exists) return [];
@@ -134,7 +134,7 @@ class EmergencyContactsService {
   }) async {
     try {
       DatabaseEvent event = await _database
-          .ref('user_info/visually_impaired/$userId/emergencyContacts/$contactId')
+          .ref('user_info/partially_sighted/$userId/emergencyContacts/$contactId')
           .once();
 
       if (!event.snapshot.exists) return null;

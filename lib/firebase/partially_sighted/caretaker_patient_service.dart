@@ -17,11 +17,11 @@ class CaretakerPatientService {
       await _database.ref('user_info/caretaker/$caretakerId/assignedPatients/$patientId').set(true);
       
       // Add caretaker to patient's list
-      await _database.ref('user_info/visually_impaired/$patientId/assignedCaretakers/$caretakerId').set(true);
+      await _database.ref('user_info/partially_sighted/$patientId/assignedCaretakers/$caretakerId').set(true);
       
       // Update timestamps
       await _database.ref('user_info/caretaker/$caretakerId/updatedAt').set(ServerValue.timestamp);
-      await _database.ref('user_info/visually_impaired/$patientId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('user_info/partially_sighted/$patientId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
       throw Exception('Failed to assign caretaker: $e');
     }
@@ -37,11 +37,11 @@ class CaretakerPatientService {
       await _database.ref('user_info/caretaker/$caretakerId/assignedPatients/$patientId').remove();
       
       // Remove caretaker from patient's list
-      await _database.ref('user_info/visually_impaired/$patientId/assignedCaretakers/$caretakerId').remove();
+      await _database.ref('user_info/partially_sighted/$patientId/assignedCaretakers/$caretakerId').remove();
       
       // Update timestamps
       await _database.ref('user_info/caretaker/$caretakerId/updatedAt').set(ServerValue.timestamp);
-      await _database.ref('user_info/visually_impaired/$patientId/updatedAt').set(ServerValue.timestamp);
+      await _database.ref('user_info/partially_sighted/$patientId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
       throw Exception('Failed to remove caretaker: $e');
     }
@@ -59,7 +59,7 @@ class CaretakerPatientService {
       List<Map<String, dynamic>> patients = [];
 
       for (String patientId in patientIdsMap.keys) {
-        Map<String, dynamic>? patientData = await databaseService.getUserDataByRole(patientId, 'visually_impaired');
+        Map<String, dynamic>? patientData = await databaseService.getUserDataByRole(patientId, 'partially_sighted');
         if (patientData != null) {
           patients.add({...patientData, 'userId': patientId});
         }
@@ -74,7 +74,7 @@ class CaretakerPatientService {
   /// Get all caretakers assigned to a patient
   Future<List<Map<String, dynamic>>> getPatientCaretakers(String patientId) async {
     try {
-      Map<String, dynamic>? patientData = await databaseService.getUserDataByRole(patientId, 'visually_impaired');
+      Map<String, dynamic>? patientData = await databaseService.getUserDataByRole(patientId, 'partially_sighted');
       if (patientData == null) return [];
 
       Map<dynamic, dynamic>? caretakerIdsMap = patientData['assignedCaretakers'] as Map?;
@@ -107,7 +107,7 @@ class CaretakerPatientService {
       List<Map<String, dynamic>> patients = [];
 
       for (String patientId in patientIdsMap.keys) {
-        Map<String, dynamic>? patientData = await databaseService.getUserDataByRole(patientId, 'visually_impaired');
+        Map<String, dynamic>? patientData = await databaseService.getUserDataByRole(patientId, 'partially_sighted');
         if (patientData != null) {
           patients.add({...patientData, 'userId': patientId});
         }
@@ -120,7 +120,7 @@ class CaretakerPatientService {
   /// Stream of patient's caretakers for real-time updates
   Stream<List<Map<String, dynamic>>> streamPatientCaretakers(String patientId) {
     return _database
-        .ref('user_info/visually_impaired/$patientId/assignedCaretakers')
+        .ref('user_info/partially_sighted/$patientId/assignedCaretakers')
         .onValue
         .asyncMap((event) async {
       if (!event.snapshot.exists) return [];

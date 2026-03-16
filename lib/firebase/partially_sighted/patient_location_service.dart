@@ -1,4 +1,4 @@
-// File: lib/firebase/visually_impaired/patient_location_service.dart
+// File: lib/firebase/partially_sighted/patient_location_service.dart
 // ignore_for_file: deprecated_member_use
 
 import 'package:geolocator/geolocator.dart';
@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
 
-/// Service for visually impaired users to share their location with caretakers
 class PatientLocationService {
   Timer? _locationUpdateTimer;
   StreamSubscription<Position>? _positionStream;

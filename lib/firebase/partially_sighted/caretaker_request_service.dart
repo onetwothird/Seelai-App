@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/services/caretaker_request_service.dart
+// File: lib/roles/partially_sighted/services/caretaker_request_service.dart
 import 'package:flutter/foundation.dart';
 
 class CaretakerRequestService {
