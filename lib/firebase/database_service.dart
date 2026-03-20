@@ -72,7 +72,7 @@ class DatabaseService {
         userData['birthdate'] = birthdate?.toIso8601String() ?? 
             DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
         userData['address'] = address ?? '';
-        userData['approved'] = approved ?? false; // ✅ Caretaker needs approval
+        userData['approved'] = approved ?? false; 
       } else if (role == 'admin') {
         userData['department'] = department ?? '';
         userData['sex'] = sex ?? 'Not Specified';
