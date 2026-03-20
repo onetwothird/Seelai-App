@@ -23,6 +23,8 @@ class DatabaseService {
         return 'user_info/caretaker/$userId';
       case 'admin':
         return 'user_info/mswd/$userId';
+      case 'superadmin':                                
+        return 'user_info/superadmin/$userId';          
       default:
         throw Exception('Invalid role: $role');
     }
@@ -30,7 +32,6 @@ class DatabaseService {
 
   // ==================== USER MANAGEMENT ====================
 
-  /// Create a new user document in Realtime Database
   Future<void> createUserDocument({
     required String userId,
     required String name,
