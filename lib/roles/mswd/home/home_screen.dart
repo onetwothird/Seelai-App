@@ -37,9 +37,10 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   bool _isDarkMode = false;
   int _selectedIndex = 0;
   
-  // Data State for Notifications
+  // Data State for Notifications & Dashboard
   int _pendingRequestsCount = 0;
   StreamSubscription<DatabaseEvent>? _requestsSubscription;
+  late Future<Map<String, int>> _dashboardStatsFuture; // Cached future to prevent reloading
   
   // Scroll detection for bottom nav
   final ScrollController _scrollController = ScrollController();
@@ -51,6 +52,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     super.initState();
     _initializeScrollListener();
     _startPendingRequestsListener();
+    _dashboardStatsFuture = adminService.getUserStatistics(); // Load stats ONCE here
   }
 
   void _startPendingRequestsListener() {
@@ -281,6 +283,16 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                     duration: const Duration(milliseconds: 300),
                     switchInCurve: Curves.easeInOutCubic,
                     switchOutCurve: Curves.easeInOutCubic,
+                    // FIX: This forces the incoming child to align to the top, preventing the mid-screen jump!
+                    layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                      return Stack(
+                        alignment: Alignment.topCenter, 
+                        children: <Widget>[
+                          ...previousChildren,
+                          if (currentChild != null) currentChild,
+                        ],
+                      );
+                    },
                     child: SizedBox(
                       key: ValueKey<int>(_selectedIndex),
                       child: _buildMainContent(screenWidth, screenHeight, theme),
@@ -377,6 +389,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           DashboardStats(
             isDarkMode: _isDarkMode,
             theme: theme,
+            statsFuture: _dashboardStatsFuture, // Pass the cached future down!
           ),
           
           const SizedBox(height: 20),
@@ -442,7 +455,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   // =========================================================================
 
   void _showAddOptionsBottomSheet(BuildContext context) {
-    // Your exact primary color
     final Color primaryColor = const Color(0xFF8B5CF6);
 
     showModalBottomSheet(
@@ -466,7 +478,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Tiny drag handle pill at the top
               Container(
                 width: 40,
                 height: 4,
@@ -494,7 +505,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
               ),
               const SizedBox(height: 32),
               
-              // Option 1: Caretaker Face
               _buildAddOptionCard(
                 icon: Icons.face_retouching_natural_rounded,
                 title: 'Caretaker Face',
@@ -519,7 +529,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
               
               const SizedBox(height: 16),
               
-              // Option 2: Object
               _buildAddOptionCard(
                 icon: Icons.view_in_ar_rounded, 
                 title: 'New Object',
@@ -548,7 +557,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       },
     );
   }
-  // Helper widget for the beautiful cards
+
   Widget _buildAddOptionCard({
     required IconData icon,
     required String title,
