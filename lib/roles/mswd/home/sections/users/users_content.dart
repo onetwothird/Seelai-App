@@ -150,23 +150,19 @@ class _UsersContentState extends State<UsersContent>
     return SingleChildScrollView(
       controller: widget.scrollController,
       physics: const ClampingScrollPhysics(),
-      padding: EdgeInsets.only(
-        left: width * 0.05,
-        right: width * 0.05,
-        top: spacingMedium,
-        bottom: 100,
-      ),
+      // 1. Match the exact padding from requests_content
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(),
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: 32), // Match spacing
           _buildSearchBar(),
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: 24),
           _buildTabBar(width),
-          SizedBox(height: spacingLarge),
-          _buildTabContent(), // Refactored to switch statement
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: 24),
+          _buildTabContent(),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -185,30 +181,26 @@ class _UsersContentState extends State<UsersContent>
     }
   }
 
-  Widget _buildHeader() {
-    return Row(
+Widget _buildHeader() {
+    // 2. Removed the Row/Expanded wrapper and matched the typography
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'User Management',
-                style: h2.copyWith(
-                  fontSize: 24,
-                  color: widget.theme.textColor,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Manage all registered users',
-                style: body.copyWith(
-                  color: widget.theme.subtextColor,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+        Text(
+          'User Management',
+          style: h2.copyWith(
+            color: widget.theme.textColor,
+            fontSize: 28, // Increased from 24 to match Assistance Log
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5, // Added letter spacing match
+          ),
+        ),
+        const SizedBox(height: 8), // Matched spacing
+        Text(
+          'Manage all registered users',
+          style: body.copyWith(
+            color: widget.theme.subtextColor,
+            fontSize: 15, // Increased from 13
           ),
         ),
       ],
