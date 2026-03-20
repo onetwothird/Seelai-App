@@ -3,41 +3,32 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/firebase/admin_service.dart';
 
-class DashboardStats extends StatefulWidget {
+class DashboardStats extends StatelessWidget {
   final bool isDarkMode;
   final dynamic theme;
+  final Future<Map<String, int>> statsFuture;
 
   const DashboardStats({
     super.key,
     required this.isDarkMode,
     required this.theme,
+    required this.statsFuture,
   });
-
-  @override
-  State<DashboardStats> createState() => _DashboardStatsState();
-}
-
-class _DashboardStatsState extends State<DashboardStats> {
-  late Future<Map<String, int>> _statsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _statsFuture = adminService.getUserStatistics();
-  }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, int>>(
-      future: _statsFuture, 
+      future: statsFuture, 
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20.0),
-              child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+          // FIX: Giving the loader a fixed height prevents the UI from jumping
+          return Container(
+            height: 350, 
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(
+              color: Color(0xFF8B5CF6),
+              strokeWidth: 3.5,
             ),
           );
         }
@@ -62,13 +53,13 @@ class _DashboardStatsState extends State<DashboardStats> {
             Text(
               'System Overview',
               style: h3.copyWith(
-                fontSize: 20, // Slightly smaller header
-                color: widget.theme.textColor,
+                fontSize: 20, 
+                color: theme.textColor,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 12), // Reduced gap
+            const SizedBox(height: 12), 
 
             // KPI Cards Grid - Top Row
             Row(
@@ -81,7 +72,7 @@ class _DashboardStatsState extends State<DashboardStats> {
                     color: const Color(0xFF3B82F6),
                   ),
                 ),
-                const SizedBox(width: 10), // Tighter gap between cards
+                const SizedBox(width: 10), 
                 Expanded(
                   child: _buildKpiCard(
                     title: 'Active Now',
@@ -92,7 +83,7 @@ class _DashboardStatsState extends State<DashboardStats> {
                 ),
               ],
             ),
-            const SizedBox(height: 10), // Tighter gap between rows
+            const SizedBox(height: 10), 
             
             // KPI Cards Grid - Bottom Row
             Row(
@@ -117,23 +108,23 @@ class _DashboardStatsState extends State<DashboardStats> {
               ],
             ),
 
-            const SizedBox(height: 16), // Reduced gap
+            const SizedBox(height: 16), 
 
-            // Main Line Chart - Dramatically reduced height
+            // Main Line Chart 
             _buildChartContainer(
               title: 'Activity Trend',
               subtitle: '7-day user engagement',
-              height: 140, // Reduced from 280
+              height: 140, 
               child: _buildLineChart(),
             ),
 
-            const SizedBox(height: 16), // Reduced gap
+            const SizedBox(height: 16), 
 
-            // Bar Chart - Dramatically reduced height
+            // Bar Chart 
             _buildChartContainer(
               title: 'Role Distribution',
               subtitle: 'Active vs total accounts',
-              height: 130, // Reduced from 220
+              height: 130, 
               child: _buildBarChart(viCount, caretakerCount, stats['admin'] ?? 0),
             ),
           ],
@@ -152,13 +143,13 @@ class _DashboardStatsState extends State<DashboardStats> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12), // Tighter padding
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12), 
       decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(14), // Slightly smaller radius
-        boxShadow: widget.isDarkMode ? [] : softShadow,
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(14), 
+        boxShadow: isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode
+          color: isDarkMode
               ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
@@ -169,20 +160,20 @@ class _DashboardStatsState extends State<DashboardStats> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(8), // Smaller icon background
+            padding: const EdgeInsets.all(8), 
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 20), // Smaller icon
+            child: Icon(icon, color: color, size: 20), 
           ),
           const SizedBox(height: 10),
           Text(
             value,
             textAlign: TextAlign.center,
             style: h2.copyWith(
-              fontSize: 24, // Smaller font (was 32)
-              color: widget.theme.textColor,
+              fontSize: 24, 
+              color: theme.textColor,
               fontWeight: FontWeight.w800,
               height: 1.0, 
             ),
@@ -192,8 +183,8 @@ class _DashboardStatsState extends State<DashboardStats> {
             title,
             textAlign: TextAlign.center,
             style: caption.copyWith(
-              fontSize: 11, // Smaller font (was 13)
-              color: widget.theme.subtextColor,
+              fontSize: 11, 
+              color: theme.subtextColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -213,13 +204,13 @@ class _DashboardStatsState extends State<DashboardStats> {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16), // Reduced from 20
+      padding: const EdgeInsets.all(16), 
       decoration: BoxDecoration(
-        color: widget.theme.cardColor,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: widget.isDarkMode ? [] : softShadow,
+        boxShadow: isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode
+          color: isDarkMode
               ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
@@ -233,11 +224,11 @@ class _DashboardStatsState extends State<DashboardStats> {
             children: [
               Text(
                 title,
-                style: bodyBold.copyWith(color: widget.theme.textColor, fontSize: 14), // Smaller title
+                style: bodyBold.copyWith(color: theme.textColor, fontSize: 14), 
               ),
               Text(
                 subtitle,
-                style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 10), // Smaller subtitle moved to row
+                style: caption.copyWith(color: theme.subtextColor, fontSize: 10), 
               ),
             ],
           ),
@@ -248,7 +239,6 @@ class _DashboardStatsState extends State<DashboardStats> {
     );
   }
 
-  // Charts remain exactly the same structurally, but will inherit the smaller container constraints
   Widget _buildLineChart() {
     return LineChart(
       LineChartData(
@@ -257,7 +247,7 @@ class _DashboardStatsState extends State<DashboardStats> {
           drawVerticalLine: false,
           horizontalInterval: 25,
           getDrawingHorizontalLine: (value) {
-            return FlLine(color: widget.theme.subtextColor.withValues(alpha: 0.1), strokeWidth: 1, dashArray: [5, 5]);
+            return FlLine(color: theme.subtextColor.withValues(alpha: 0.1), strokeWidth: 1, dashArray: [5, 5]);
           },
         ),
         titlesData: FlTitlesData(
@@ -270,11 +260,11 @@ class _DashboardStatsState extends State<DashboardStats> {
               reservedSize: 22,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S']; // Abbreviated to save space
+                const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S']; 
                 if (value.toInt() >= 0 && value.toInt() < days.length) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 6.0),
-                    child: Text(days[value.toInt()], style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text(days[value.toInt()], style: caption.copyWith(color: theme.subtextColor, fontSize: 10, fontWeight: FontWeight.bold)),
                   );
                 }
                 return const Text('');
@@ -285,9 +275,9 @@ class _DashboardStatsState extends State<DashboardStats> {
             sideTitles: SideTitles(
               showTitles: true,
               interval: 50,
-              reservedSize: 28, // Smaller reserve space
+              reservedSize: 28, 
               getTitlesWidget: (value, meta) {
-                return Text(value.toInt().toString(), style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 10));
+                return Text(value.toInt().toString(), style: caption.copyWith(color: theme.subtextColor, fontSize: 10));
               },
             ),
           ),
@@ -299,7 +289,7 @@ class _DashboardStatsState extends State<DashboardStats> {
             spots: const [FlSpot(0, 30), FlSpot(1, 45), FlSpot(2, 35), FlSpot(3, 80), FlSpot(4, 65), FlSpot(5, 90), FlSpot(6, 75)],
             isCurved: true,
             color: const Color(0xFF3B82F6),
-            barWidth: 2.5, // Thinner line
+            barWidth: 2.5, 
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
@@ -315,7 +305,7 @@ class _DashboardStatsState extends State<DashboardStats> {
     );
   }
 
-Widget _buildBarChart(int vi, int ct, int admin) {
+  Widget _buildBarChart(int vi, int ct, int admin) {
     return BarChart(
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
@@ -326,9 +316,8 @@ Widget _buildBarChart(int vi, int ct, int admin) {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: 32, // Increased to fit the two-line text
+              reservedSize: 32, 
               getTitlesWidget: (double value, TitleMeta meta) {
-                // Using \n to stack "Partially Sighted" so it doesn't overlap
                 final titles = ['Partially\nSighted', 'Caretaker', 'MSWD']; 
                 return Padding(
                   padding: const EdgeInsets.only(top: 6.0),
@@ -336,10 +325,10 @@ Widget _buildBarChart(int vi, int ct, int admin) {
                     titles[value.toInt()], 
                     textAlign: TextAlign.center,
                     style: caption.copyWith(
-                      color: widget.theme.subtextColor, 
-                      fontSize: 9, // Slightly smaller to ensure it fits
+                      color: theme.subtextColor, 
+                      fontSize: 9, 
                       fontWeight: FontWeight.bold,
-                      height: 1.1, // Tighter line height
+                      height: 1.1, 
                     ),
                   ),
                 );
