@@ -1,3 +1,5 @@
+// File: lib/roles/partially_sighted/auth/signup/signup_screen.dart
+
 import 'dart:io';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
@@ -40,11 +42,11 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  String? _selectedSex;
+  String? _selectedGender; // UPDATED to Gender
   String? _selectedDisabilityType;
   DateTime? _selectedBirthdate;
 
-  final List<String> _sexOptions = ['Male', 'Female'];
+  final List<String> _genderOptions = ['Male', 'Female', 'Rather Not Say']; // UPDATED Options
   final List<String> _disabilityTypes = [
     'Category 1: Moderate (20/70 – 20/200)',
     'Category 2: Severe (20/200 – 20/400)',
@@ -255,20 +257,26 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                       const SizedBox(height: 16),
                       _buildTextField(_nameController, 'Full Name', Icons.person_outline),
                       const SizedBox(height: 16),
+                      
+                      // RESPONSIVE AGE & GENDER ROW (Aligned with Caretaker/MSWD format)
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            child: _buildDropdownField(
-                              _selectedSex, _sexOptions, 'Sex', Icons.wc_outlined, 
-                              (val) => setState(() => _selectedSex = val)
-                            ),
+                            flex: 2, // Age on the left with smaller flex
+                            child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                            flex: 3, // Gender on the right with larger flex
+                            child: _buildDropdownField(
+                              _selectedGender, _genderOptions, 'Gender', Icons.wc_outlined, 
+                              (val) => setState(() => _selectedGender = val)
+                            ),
                           ),
                         ],
                       ),
+                      
                       const SizedBox(height: 16),
                       _buildDateField(_selectedBirthdate, 'Birthdate', Icons.calendar_today_outlined, _selectBirthdate),
                       const SizedBox(height: 16),
@@ -403,6 +411,7 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
     );
   }
 
+  // UPDATED RESPONSIVE DROPDOWN FIELD
   Widget _buildDropdownField(String? val, List<String> items, String hint, IconData icon, Function(String?) changed) {
     return Container(
       decoration: BoxDecoration(
@@ -411,11 +420,14 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonFormField<String>(
+        isExpanded: true, // Crucial for responsiveness
         initialValue: val,
-        items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, overflow: TextOverflow.ellipsis))).toList(),
+        items: items.map((i) => DropdownMenuItem(
+          value: i, 
+          child: Text(i, overflow: TextOverflow.ellipsis) // Added TextOverflow protection
+        )).toList(),
         onChanged: _isLoading ? null : changed,
         style: const TextStyle(color: Color(0xFF1E293B), fontSize: 16),
-        isExpanded: true,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
@@ -455,7 +467,7 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
     // 1. STRICT VALIDATION: All fields except password must be filled out
     if (_idNumberController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||
-        _selectedSex == null ||
+        _selectedGender == null ||            // Validating new Gender selection
         _ageController.text.trim().isEmpty ||
         _selectedBirthdate == null ||
         _selectedDisabilityType == null ||
@@ -526,7 +538,7 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           userId: finalUser.uid,
           idNumber: _idNumberController.text.trim(),
           name: _nameController.text.trim(),
-          sex: _selectedSex!,
+          sex: _selectedGender!, // Stored in DB as 'sex' mapping
           age: age,
           birthdate: _selectedBirthdate!,
           disabilityType: _selectedDisabilityType!,
@@ -562,7 +574,6 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account Setup Complete!'), backgroundColor: primary));
-        // You can update this Navigator pop to a pushReplacement routing to the Home Screen!
         Navigator.pop(context); 
       }
     } on FirebaseAuthException catch (e) {
