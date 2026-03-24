@@ -109,19 +109,23 @@ class _RequestsContentState extends State<RequestsContent> {
 
     return SingleChildScrollView(
       controller: widget.scrollController,
+      physics: const AlwaysScrollableScrollPhysics(), // Keeping our previous fix!
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+       children: [
           _buildHeader(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
           _buildQuickStats(),
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
           _buildSearchAndFilter(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           _buildFilterChips(),
           const SizedBox(height: 24),
           _buildRequestList(),
+          
+          // ADD THIS TEMPORARILY TO TEST THE SCROLL:
+          const SizedBox(height: 800), 
         ],
       ),
     );
@@ -179,17 +183,17 @@ class _RequestsContentState extends State<RequestsContent> {
     );
   }
 
-  Widget _buildSummaryCard({
+ Widget _buildSummaryCard({
     required String title,
     required String count,
     required IconData icon,
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14), // Slimmer padding
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16), // Slightly tighter radius
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
           color: widget.isDarkMode 
@@ -198,50 +202,55 @@ class _RequestsContentState extends State<RequestsContent> {
           width: 1,
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Row( // Changed from Column to Row
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(height: 12),
-          Text(
-            count,
-            style: h2.copyWith(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: widget.theme.textColor,
-              height: 1.0,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, // Left align text
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  count,
+                  style: h2.copyWith(
+                    fontSize: 22, // Slightly smaller
+                    fontWeight: FontWeight.bold,
+                    color: widget.theme.textColor,
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  style: caption.copyWith(
+                    color: widget.theme.subtextColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis, // Prevents text wrapping issues
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: caption.copyWith(
-              color: widget.theme.subtextColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSearchAndFilter() {
+ Widget _buildSearchAndFilter() {
     return Container(
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16), // Matched radius to the stats cards
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
           color: widget.isDarkMode 
@@ -252,21 +261,22 @@ class _RequestsContentState extends State<RequestsContent> {
       ),
       child: TextField(
         controller: _searchController,
-        style: body.copyWith(color: widget.theme.textColor),
+        style: body.copyWith(color: widget.theme.textColor, fontSize: 14),
         onChanged: (v) => setState(() => _searchQuery = v),
         decoration: InputDecoration(
+          isDense: true, // Makes the TextField more compact internally
           hintText: 'Search patients or requests...',
-          hintStyle: body.copyWith(color: widget.theme.subtextColor.withOpacity(0.7)),
+          hintStyle: body.copyWith(color: widget.theme.subtextColor.withOpacity(0.7), fontSize: 14),
           prefixIcon: Padding(
-            padding: const EdgeInsets.only(left: 16, right: 12),
-            child: Icon(Icons.search_rounded, color: widget.theme.subtextColor),
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            child: Icon(Icons.search_rounded, color: widget.theme.subtextColor, size: 20),
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 40),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12), // Reduced from 18
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.close_rounded, color: widget.theme.subtextColor),
+                  icon: Icon(Icons.close_rounded, color: widget.theme.subtextColor, size: 18),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
