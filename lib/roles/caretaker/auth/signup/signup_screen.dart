@@ -1,3 +1,5 @@
+// File: lib/roles/caretaker/auth/signup/signup_screen.dart
+
 import 'dart:io';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
@@ -37,6 +39,8 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
   final TextEditingController _relationshipController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+
+  String? _selectedGender; // ADDED GENDER STATE
 
   @override
   void initState() {
@@ -225,7 +229,23 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                       const SizedBox(height: 16),
                       _buildTextField(_nameController, 'Full Name', Icons.person_outline),
                       const SizedBox(height: 16),
-                      _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                      
+                      // RESPONSIVE AGE & GENDER ROW
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2, // Smaller flex for Age
+                            child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 3, // Larger flex for Gender to prevent text cramming
+                            child: _buildGenderDropdown(),
+                          ),
+                        ],
+                      ),
+                      
                       const SizedBox(height: 16),
                       _buildTextField(_phoneController, 'Phone Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
                       const SizedBox(height: 16),
@@ -304,6 +324,40 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
     );
   }
 
+  // UPDATED RESPONSIVE GENDER DROPDOWN
+  Widget _buildGenderDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC), 
+        borderRadius: BorderRadius.circular(16), 
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: DropdownButtonFormField<String>(
+        isExpanded: true, // Prevents layout overflow issues
+        initialValue: _selectedGender,
+        icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
+        decoration: const InputDecoration(
+          hintText: 'Gender',
+          hintStyle: TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(Icons.wc_outlined, color: Color(0xFF64748B)),
+          border: InputBorder.none, 
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
+        items: ['Male', 'Female', 'Rather not Say']
+            .map((sex) => DropdownMenuItem(
+                  value: sex, 
+                  child: Text(
+                    sex, 
+                    style: const TextStyle(color: Color(0xFF1E293B)),
+                    overflow: TextOverflow.ellipsis, // Elegantly truncates text on tiny screens
+                  )
+                ))
+            .toList(),
+        onChanged: (val) => setState(() => _selectedGender = val),
+      ),
+    );
+  }
+
   Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
     return Container(
       decoration: BoxDecoration(
@@ -347,6 +401,7 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
     // 1. STRICT VALIDATION: All fields except password must be filled out
     if (_nameController.text.trim().isEmpty || 
         _ageController.text.trim().isEmpty || 
+        _selectedGender == null ||            // Enforced Gender Validation
         _emailController.text.trim().isEmpty || 
         _phoneController.text.trim().isEmpty || 
         _relationshipController.text.trim().isEmpty) {
@@ -415,6 +470,7 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
           role: 'caretaker',
           phone: _phoneController.text.trim(),
           relationship: _relationshipController.text.trim(),
+          sex: _selectedGender, // Save Gender mapping
           approved: false, // Pending MSWD verification
         );
       } catch (dbError) {
