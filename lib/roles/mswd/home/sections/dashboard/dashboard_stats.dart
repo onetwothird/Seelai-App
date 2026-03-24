@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:seelai_app/themes/constants.dart';
 
-class DashboardStats extends StatelessWidget {
+class DashboardStats extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final Future<Map<String, int>> statsFuture;
@@ -17,12 +17,19 @@ class DashboardStats extends StatelessWidget {
   });
 
   @override
+  State<DashboardStats> createState() => _DashboardStatsState();
+}
+
+class _DashboardStatsState extends State<DashboardStats> {
+  // 0 = Activity Trend, 1 = Role Distribution
+  int _selectedChartIndex = 0; 
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, int>>(
-      future: statsFuture, 
+      future: widget.statsFuture, 
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // FIX: Giving the loader a fixed height prevents the UI from jumping
           return Container(
             height: 350, 
             alignment: Alignment.center,
@@ -54,7 +61,7 @@ class DashboardStats extends StatelessWidget {
               'System Overview',
               style: h3.copyWith(
                 fontSize: 20, 
-                color: theme.textColor,
+                color: widget.theme.textColor,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
@@ -110,23 +117,8 @@ class DashboardStats extends StatelessWidget {
 
             const SizedBox(height: 16), 
 
-            // Main Line Chart 
-            _buildChartContainer(
-              title: 'Activity Trend',
-              subtitle: '7-day user engagement',
-              height: 140, 
-              child: _buildLineChart(),
-            ),
-
-            const SizedBox(height: 16), 
-
-            // Bar Chart 
-            _buildChartContainer(
-              title: 'Role Distribution',
-              subtitle: 'Active vs total accounts',
-              height: 130, 
-              child: _buildBarChart(viCount, caretakerCount, stats['admin'] ?? 0),
-            ),
+            // Tabbed Charts Section (Saves a ton of space!)
+            _buildTabbedChartContainer(viCount, caretakerCount, stats['admin'] ?? 0),
           ],
         );
       },
@@ -145,11 +137,11 @@ class DashboardStats extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12), 
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(14), 
-        boxShadow: isDarkMode ? [] : softShadow,
+        boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: isDarkMode
+          color: widget.isDarkMode
               ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
@@ -173,7 +165,7 @@ class DashboardStats extends StatelessWidget {
             textAlign: TextAlign.center,
             style: h2.copyWith(
               fontSize: 24, 
-              color: theme.textColor,
+              color: widget.theme.textColor,
               fontWeight: FontWeight.w800,
               height: 1.0, 
             ),
@@ -184,7 +176,7 @@ class DashboardStats extends StatelessWidget {
             textAlign: TextAlign.center,
             style: caption.copyWith(
               fontSize: 11, 
-              color: theme.subtextColor,
+              color: widget.theme.subtextColor,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -194,23 +186,18 @@ class DashboardStats extends StatelessWidget {
   }
 
   // ==========================================
-  // WIDGET: Compact Chart Container
+  // WIDGET: Tabbed Chart Container
   // ==========================================
-  Widget _buildChartContainer({
-    required String title,
-    required String subtitle,
-    required double height,
-    required Widget child,
-  }) {
+  Widget _buildTabbedChartContainer(int viCount, int caretakerCount, int adminCount) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16), 
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: isDarkMode ? [] : softShadow,
+        boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: isDarkMode
+          color: widget.isDarkMode
               ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
@@ -219,35 +206,74 @@ class DashboardStats extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: bodyBold.copyWith(color: theme.textColor, fontSize: 14), 
-              ),
-              Text(
-                subtitle,
-                style: caption.copyWith(color: theme.subtextColor, fontSize: 10), 
-              ),
-            ],
+          // Segmented Control (Tabs)
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: widget.theme.backgroundColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Expanded(child: _buildTabButton(0, 'Activity Trend')),
+                Expanded(child: _buildTabButton(1, 'Roles')),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(height: height, child: child),
+          const SizedBox(height: 24),
+          
+          // Dynamic Chart Display
+          SizedBox(
+            height: 140, // Fixed height so the container doesn't jump
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _selectedChartIndex == 0
+                  ? _buildLineChart(key: const ValueKey('line'))
+                  : _buildBarChart(viCount, caretakerCount, adminCount, key: const ValueKey('bar')),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildLineChart() {
+  Widget _buildTabButton(int index, String title) {
+    final isSelected = _selectedChartIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedChartIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? widget.theme.cardColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected && !widget.isDarkMode
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))]
+              : [],
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: bodyBold.copyWith(
+              fontSize: 12,
+              color: isSelected ? widget.theme.textColor : widget.theme.subtextColor,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLineChart({Key? key}) {
     return LineChart(
+      key: key,
       LineChartData(
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
           horizontalInterval: 25,
           getDrawingHorizontalLine: (value) {
-            return FlLine(color: theme.subtextColor.withValues(alpha: 0.1), strokeWidth: 1, dashArray: [5, 5]);
+            return FlLine(color: widget.theme.subtextColor.withValues(alpha: 0.1), strokeWidth: 1, dashArray: [5, 5]);
           },
         ),
         titlesData: FlTitlesData(
@@ -264,7 +290,7 @@ class DashboardStats extends StatelessWidget {
                 if (value.toInt() >= 0 && value.toInt() < days.length) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 6.0),
-                    child: Text(days[value.toInt()], style: caption.copyWith(color: theme.subtextColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text(days[value.toInt()], style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 10, fontWeight: FontWeight.bold)),
                   );
                 }
                 return const Text('');
@@ -277,7 +303,7 @@ class DashboardStats extends StatelessWidget {
               interval: 50,
               reservedSize: 28, 
               getTitlesWidget: (value, meta) {
-                return Text(value.toInt().toString(), style: caption.copyWith(color: theme.subtextColor, fontSize: 10));
+                return Text(value.toInt().toString(), style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 10));
               },
             ),
           ),
@@ -305,8 +331,9 @@ class DashboardStats extends StatelessWidget {
     );
   }
 
-  Widget _buildBarChart(int vi, int ct, int admin) {
+  Widget _buildBarChart(int vi, int ct, int admin, {Key? key}) {
     return BarChart(
+      key: key,
       BarChartData(
         alignment: BarChartAlignment.spaceAround,
         maxY: (vi > ct ? vi : ct).toDouble() + 5,
@@ -325,7 +352,7 @@ class DashboardStats extends StatelessWidget {
                     titles[value.toInt()], 
                     textAlign: TextAlign.center,
                     style: caption.copyWith(
-                      color: theme.subtextColor, 
+                      color: widget.theme.subtextColor, 
                       fontSize: 9, 
                       fontWeight: FontWeight.bold,
                       height: 1.1, 
