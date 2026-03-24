@@ -1,3 +1,5 @@
+// File: lib/roles/mswd/auth/signup/signup_screen.dart
+
 import 'dart:io';
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
@@ -11,7 +13,7 @@ import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class MSWDSignupScreen extends StatefulWidget {
-  final User? googleUser; // Added to capture Google Account
+  final User? googleUser; // Captures Google Account
 
   const MSWDSignupScreen({super.key, this.googleUser});
 
@@ -33,10 +35,13 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _idNumberController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController(); 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _departmentController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  
+  String? _selectedGender; 
 
   @override
   void initState() {
@@ -70,6 +75,7 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     _nameController.dispose();
     _idNumberController.dispose();
     _ageController.dispose();
+    _phoneController.dispose(); 
     _emailController.dispose();
     _departmentController.dispose();
     _passwordController.dispose();
@@ -174,14 +180,12 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle, color: const Color(0xFFF1F5F9),
                                 border: Border.all(color: Colors.black, width: 2.0), 
-                                // 1. Prioritize picked image. 2. Fallback to Google image.
                                 image: _profileImage != null
                                     ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover)
                                     : (widget.googleUser?.photoURL != null)
                                         ? DecorationImage(image: NetworkImage(widget.googleUser!.photoURL!), fit: BoxFit.cover)
                                         : null,
                               ),
-                              // Show icon ONLY if both picked image and Google image are missing
                               child: _profileImage == null && widget.googleUser?.photoURL == null
                                   ? const Icon(Icons.person_rounded, size: 60, color: Color(0xFFCBD5E1))
                                   : null,
@@ -203,7 +207,25 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                       const SizedBox(height: 16),
                       _buildTextField(_idNumberController, 'Staff ID Number', Icons.badge_outlined),
                       const SizedBox(height: 16),
-                      _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                      _buildTextField(_phoneController, 'Phone Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
+                      const SizedBox(height: 16),
+                      
+                      // RESPONSIVE AGE & GENDER ROW
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 2, // Slightly smaller flex to give space to Gender text
+                            child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 3, // Larger flex for Gender
+                            child: _buildGenderDropdown(),
+                          ),
+                        ],
+                      ),
+                      
                       const SizedBox(height: 16),
                       _buildTextField(_departmentController, 'Department', Icons.business_outlined),
                       
@@ -213,7 +235,7 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                       const SizedBox(height: 16),
                       _buildTextField(
                         _emailController, 
-                        'Work Email', 
+                        'Email', 
                         Icons.email_outlined, 
                         keyboardType: TextInputType.emailAddress,
                         readOnly: widget.googleUser != null, // Lock email if Google user
@@ -277,6 +299,40 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     );
   }
 
+  // UPDATED RESPONSIVE GENDER DROPDOWN
+  Widget _buildGenderDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC), 
+        borderRadius: BorderRadius.circular(16), 
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: DropdownButtonFormField<String>(
+        isExpanded: true, // Crucial for responsiveness on smaller screens
+        initialValue: _selectedGender,
+        icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
+        decoration: const InputDecoration(
+          hintText: 'Gender',
+          hintStyle: TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(Icons.wc_outlined, color: Color(0xFF64748B)),
+          border: InputBorder.none, 
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
+        items: ['Male', 'Female', 'Rather not Say'] // Aligned choices with caretaker
+            .map((sex) => DropdownMenuItem(
+                  value: sex, 
+                  child: Text(
+                    sex, 
+                    style: const TextStyle(color: Color(0xFF1E293B)),
+                    overflow: TextOverflow.ellipsis, // Added overflow protection
+                  )
+                ))
+            .toList(),
+        onChanged: (val) => setState(() => _selectedGender = val),
+      ),
+    );
+  }
+
   Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
     return Container(
       decoration: BoxDecoration(
@@ -318,6 +374,8 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     if (_nameController.text.trim().isEmpty || 
         _idNumberController.text.trim().isEmpty ||
         _ageController.text.trim().isEmpty || 
+        _phoneController.text.trim().isEmpty ||
+        _selectedGender == null ||              // Gender Validation is enforced here
         _emailController.text.trim().isEmpty || 
         _departmentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
@@ -384,6 +442,8 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
           age: age, 
           email: _emailController.text.trim(),
           department: _departmentController.text.trim(),
+          contactNumber: _phoneController.text.trim(), 
+          sex: _selectedGender, // Pushing the required gender selection                        
           role: 'admin', 
         );
       } catch (dbError) {
