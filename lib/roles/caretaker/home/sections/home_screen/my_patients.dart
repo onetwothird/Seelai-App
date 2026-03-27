@@ -313,24 +313,20 @@ class _PatientCard extends StatelessWidget {
             children: [
               _buildSmallActionButton(
                 icon: Icons.call_rounded,
-                color: const Color(0xFF10B981), // Emerald Green
+                color: primaryPurple,
+                isDarkMode: isDarkMode, // Pass dark mode flag
                 onTap: () {
-                  // Close bottom sheet if open so we go back to Home Screen
                   if (isBottomSheet) Navigator.pop(context); 
-                  
-                  // Launch Call as Floating Overlay
                   CaretakerVoiceCallScreen.startCall(context, patient);
                 },
               ),
               const SizedBox(width: 12),
               _buildSmallActionButton(
                 icon: Icons.videocam_rounded,
-                color: const Color(0xFF3B82F6), // Azure Blue
+                color: primaryPurple,
+                isDarkMode: isDarkMode, // Pass dark mode flag
                 onTap: () {
-                  // Close bottom sheet if open so we go back to Home Screen
                   if (isBottomSheet) Navigator.pop(context); 
-                  
-                  // Launch Call as Floating Overlay
                   CaretakerVideoCallScreen.startCall(context, patient);
                 },
               ),
@@ -345,6 +341,7 @@ class _PatientCard extends StatelessWidget {
   Widget _buildSmallActionButton({
     required IconData icon,
     required Color color,
+    required bool isDarkMode,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -352,14 +349,16 @@ class _PatientCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(6), 
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          // Set to white in light mode, transparent in dark mode
+          color: isDarkMode ? Colors.transparent : Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          // Slightly increased border alpha (0.4) so it pops nicely against the white background
+          border: Border.all(color: color.withValues(alpha: 0.4)),
         ),
         child: Icon(
           icon,
           size: 16, 
-          color: color,
+          color: color, // Icon stays purple
         ),
       ),
     );
