@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:seelai_app/themes/constants.dart';
 
 class DashboardStats extends StatefulWidget {
   final bool isDarkMode;
@@ -59,14 +58,14 @@ class _DashboardStatsState extends State<DashboardStats> {
           children: [
             Text(
               'System Overview',
-              style: h3.copyWith(
+              style: TextStyle(
                 fontSize: 20, 
                 color: widget.theme.textColor,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 12), 
+            const SizedBox(height: 16), 
 
             // KPI Cards Grid - Top Row
             Row(
@@ -74,42 +73,50 @@ class _DashboardStatsState extends State<DashboardStats> {
                 Expanded(
                   child: _buildKpiCard(
                     title: 'Total Users',
+                    subtitle: 'All registered',
+                    bottomLabel: 'TOTAL',
                     value: totalUsers.toString(),
-                    icon: Icons.people_alt_rounded,
-                    color: const Color(0xFF3B82F6),
+                    backgroundIcon: Icons.people_outline_rounded,
+                    color: const Color(0xFF60A5FA), // Soft Sky Blue
                   ),
                 ),
-                const SizedBox(width: 10), 
+                const SizedBox(width: 12), 
                 Expanded(
                   child: _buildKpiCard(
                     title: 'Active Now',
+                    subtitle: 'Currently online',
+                    bottomLabel: 'ONLINE',
                     value: activeUsers.toString(),
-                    icon: Icons.local_fire_department_rounded,
-                    color: const Color(0xFF10B981),
+                    backgroundIcon: Icons.local_fire_department_outlined,
+                    color: const Color(0xFF34D399), // Soft Mint Green
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10), 
+            const SizedBox(height: 12), 
             
             // KPI Cards Grid - Bottom Row
             Row(
               children: [
                 Expanded(
                   child: _buildKpiCard(
-                    title: 'Partially Sighted',
+                    title: 'Visually Impaired',
+                    subtitle: 'Registered clients',
+                    bottomLabel: 'USERS',
                     value: viCount.toString(),
-                    icon: Icons.visibility_off_rounded,
-                    color: const Color(0xFF8B5CF6),
+                    backgroundIcon: Icons.visibility_off_outlined,
+                    color: const Color(0xFF8B5CF6), // Primary Purple
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildKpiCard(
                     title: 'Caretakers',
+                    subtitle: 'Assigned helpers',
+                    bottomLabel: 'USERS',
                     value: caretakerCount.toString(),
-                    icon: Icons.volunteer_activism_rounded,
-                    color: const Color(0xFFF59E0B),
+                    backgroundIcon: Icons.volunteer_activism_outlined,
+                    color: const Color(0xFFF5A623), // Soft Peach/Orange
                   ),
                 ),
               ],
@@ -126,58 +133,115 @@ class _DashboardStatsState extends State<DashboardStats> {
   }
 
   // ==========================================
-  // WIDGET: Compact KPI Card
+  // WIDGET: Compact KPI Card (Updated Design)
   // ==========================================
   Widget _buildKpiCard({
     required String title,
+    required String subtitle,
+    required String bottomLabel,
     required String value,
-    required IconData icon,
+    required IconData backgroundIcon,
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12), 
+      height: 140, // Fixed height to ensure consistency across the grid
+      clipBehavior: Clip.hardEdge, 
       decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(14), 
-        boxShadow: widget.isDarkMode ? [] : softShadow,
+        color: color.withValues(alpha: 0.05), // Extremely subtle background tint
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDarkMode
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.05),
-          width: 1,
+          color: color.withValues(alpha: 0.15), // Very light border to define the card
         ),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8), 
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 20), 
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            textAlign: TextAlign.center,
-            style: h2.copyWith(
-              fontSize: 24, 
-              color: widget.theme.textColor,
-              fontWeight: FontWeight.w800,
-              height: 1.0, 
+          // Large watermark icon, pushed slightly off-screen
+          Positioned(
+            right: -15,
+            bottom: -10,
+            child: Icon(
+              backgroundIcon,
+              size: 110,
+              color: color.withValues(alpha: 0.12),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: caption.copyWith(
-              fontSize: 11, 
-              color: widget.theme.subtextColor,
-              fontWeight: FontWeight.w600,
+          
+          // Foreground Content
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Top section: Title, Subtitle, and Ellipsis
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: widget.theme.textColor,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis, // Prevents text overflow if device is narrow
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: widget.theme.subtextColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.more_horiz_rounded,
+                      color: widget.theme.subtextColor,
+                      size: 20,
+                    ),
+                  ],
+                ),
+
+                // Bottom section: Label and Main Value (Centered relative to each other)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center, // <-- Changed to center here
+                  children: [
+                    Text(
+                      bottomLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: widget.theme.subtextColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2, 
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 26,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -194,12 +258,18 @@ class _DashboardStatsState extends State<DashboardStats> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: widget.isDarkMode ? [] : softShadow,
+        borderRadius: BorderRadius.circular(20), // Matched to 20 for consistency
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
         border: Border.all(
           color: widget.isDarkMode
               ? Colors.white.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.05),
+              : Colors.black.withValues(alpha: 0.04),
           width: 1,
         ),
       ),
@@ -254,8 +324,9 @@ class _DashboardStatsState extends State<DashboardStats> {
         child: Center(
           child: Text(
             title,
-            style: bodyBold.copyWith(
+            style: TextStyle(
               fontSize: 12,
+              fontWeight: FontWeight.bold,
               color: isSelected ? widget.theme.textColor : widget.theme.subtextColor,
             ),
           ),
@@ -290,7 +361,7 @@ class _DashboardStatsState extends State<DashboardStats> {
                 if (value.toInt() >= 0 && value.toInt() < days.length) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 6.0),
-                    child: Text(days[value.toInt()], style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                    child: Text(days[value.toInt()], style: TextStyle(color: widget.theme.subtextColor, fontSize: 10, fontWeight: FontWeight.bold)),
                   );
                 }
                 return const Text('');
@@ -303,7 +374,7 @@ class _DashboardStatsState extends State<DashboardStats> {
               interval: 50,
               reservedSize: 28, 
               getTitlesWidget: (value, meta) {
-                return Text(value.toInt().toString(), style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 10));
+                return Text(value.toInt().toString(), style: TextStyle(color: widget.theme.subtextColor, fontSize: 10));
               },
             ),
           ),
@@ -314,14 +385,14 @@ class _DashboardStatsState extends State<DashboardStats> {
           LineChartBarData(
             spots: const [FlSpot(0, 30), FlSpot(1, 45), FlSpot(2, 35), FlSpot(3, 80), FlSpot(4, 65), FlSpot(5, 90), FlSpot(6, 75)],
             isCurved: true,
-            color: const Color(0xFF3B82F6),
+            color: const Color(0xFF60A5FA), // Matched to pastel blue
             barWidth: 2.5, 
             isStrokeCapRound: true,
             dotData: const FlDotData(show: false),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: [const Color(0xFF3B82F6).withValues(alpha: 0.3), const Color(0xFF3B82F6).withValues(alpha: 0.0)],
+                colors: [const Color(0xFF60A5FA).withValues(alpha: 0.3), const Color(0xFF60A5FA).withValues(alpha: 0.0)],
                 begin: Alignment.topCenter, end: Alignment.bottomCenter,
               ),
             ),
@@ -351,7 +422,7 @@ class _DashboardStatsState extends State<DashboardStats> {
                   child: Text(
                     titles[value.toInt()], 
                     textAlign: TextAlign.center,
-                    style: caption.copyWith(
+                    style: TextStyle(
                       color: widget.theme.subtextColor, 
                       fontSize: 9, 
                       fontWeight: FontWeight.bold,
@@ -370,8 +441,8 @@ class _DashboardStatsState extends State<DashboardStats> {
         borderData: FlBorderData(show: false),
         barGroups: [
           BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: vi.toDouble(), color: const Color(0xFF8B5CF6), width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]),
-          BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: ct.toDouble(), color: const Color(0xFF10B981), width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]),
-          BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: admin.toDouble(), color: const Color(0xFFF59E0B), width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]),
+          BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: ct.toDouble(), color: const Color(0xFFF5A623), width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]),
+          BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: admin.toDouble(), color: const Color(0xFF60A5FA), width: 16, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))]),
         ],
       ),
     );
