@@ -42,19 +42,23 @@ class OverviewSection extends StatelessWidget {
           children: [
             Expanded(
               child: _buildGridCard(
-                icon: Icons.people_rounded,
-                label: 'Patients',
+                backgroundIcon: Icons.group_outlined,
+                title: 'Patients',
+                subtitle: 'Total registered',
+                bottomLabel: 'TOTAL',
                 value: totalPatients.toString(),
-                baseColor: primary, // Your brand color
+                baseColor: primary,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildGridCard(
-                icon: Icons.pending_actions_rounded,
-                label: 'Pending',
+                backgroundIcon: Icons.assignment_outlined, 
+                title: 'Pending',
+                subtitle: 'Awaiting review',
+                bottomLabel: 'REQUESTS',
                 value: pendingRequests.toString(),
-                baseColor: const Color(0xFFF59E0B), // Orange
+                baseColor: const Color(0xFFF5A623),
               ),
             ),
           ],
@@ -64,19 +68,23 @@ class OverviewSection extends StatelessWidget {
           children: [
             Expanded(
               child: _buildGridCard(
-                icon: Icons.touch_app_rounded,
-                label: 'In Progress',
+                backgroundIcon: Icons.touch_app_outlined,
+                title: 'In Progress',
+                subtitle: 'Active sessions',
+                bottomLabel: 'ONGOING',
                 value: activeRequests.toString(),
-                baseColor: const Color(0xFF3B82F6), // Blue
+                baseColor: const Color(0xFF60A5FA),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildGridCard(
-                icon: Icons.check_circle_rounded,
-                label: 'Completed',
+                backgroundIcon: Icons.task_alt_outlined,
+                title: 'Completed',
+                subtitle: 'Finished tasks',
+                bottomLabel: 'TOTAL',
                 value: completedRequests.toString(),
-                baseColor: const Color(0xFF10B981), // Green
+                baseColor: const Color(0xFF34D399),
               ),
             ),
           ],
@@ -86,72 +94,109 @@ class OverviewSection extends StatelessWidget {
   }
 
   Widget _buildGridCard({
-    required IconData icon,
-    required String label,
+    required IconData backgroundIcon,
+    required String title,
+    required String subtitle,
+    required String bottomLabel,
     required String value,
     required Color baseColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      height: 140, 
+      clipBehavior: Clip.hardEdge, 
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: baseColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDarkMode 
-              ? baseColor.withValues(alpha: 0.2) 
-              : Colors.black.withValues(alpha: 0.03),
+          color: baseColor.withValues(alpha: 0.15), 
         ),
-        boxShadow: isDarkMode ? [] : [
-          BoxShadow(
-            color: baseColor.withValues(alpha: 0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
-      child: Column(
-        // Main alignment to center items within the Column
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
         children: [
-          Row(
-            // Also center the icon container horizontally
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: baseColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: baseColor, size: 22),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          // Wrap the text in Center to be doubly sure, and set textAlign
-          Center(
-            child: Text(
-              isLoading ? '-' : value,
-              textAlign: TextAlign.center, // Center numerical alignment
-              style: TextStyle(
-                fontSize: 28,
-                color: theme.textColor,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1,
-                height: 1.0,
-              ),
+          Positioned(
+            right: -15,
+            bottom: -10,
+            child: Icon(
+              backgroundIcon,
+              size: 110,
+              color: baseColor.withValues(alpha: 0.12),
             ),
           ),
-          const SizedBox(height: 8),
-          Center(
-            child: Text(
-              label,
-              textAlign: TextAlign.center, // Center label alignment
-              style: TextStyle(
-                fontSize: 13,
-                color: theme.subtextColor,
-                fontWeight: FontWeight.w600,
-              ),
+          
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: theme.textColor,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: theme.subtextColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.more_horiz_rounded,
+                      color: theme.subtextColor,
+                      size: 20,
+                    ),
+                  ],
+                ),
+
+                // This section aligns the number to the horizontal center of the bottomLabel
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center, // Center the number relative to label
+                  children: [
+                    Text(
+                      bottomLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.subtextColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2, 
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isLoading ? '-' : value,
+                      style: TextStyle(
+                        fontSize: 26,
+                        color: theme.textColor,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
