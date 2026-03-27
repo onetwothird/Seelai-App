@@ -1,5 +1,3 @@
-// File: lib/roles/partially_sighted/home/sections/home_screen/communication/missed_call_alert_section.dart
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
@@ -19,10 +17,13 @@ class MissedCallAlertSection extends StatefulWidget {
 
 class _MissedCallAlertSectionState extends State<MissedCallAlertSection> {
   final Map<String, String> _callerNamesCache = {};
+  
+  // Initial position for the floating widget (Top Right)
+  Offset _position = const Offset(300, 100);
+  bool _isPositionInitialized = false;
 
   Future<void> _fetchCallerName(String callerId) async {
     if (_callerNamesCache.containsKey(callerId)) return;
-
     final userData = await databaseService.getUserData(callerId);
     if (mounted && userData != null) {
       setState(() {
@@ -41,174 +42,295 @@ class _MissedCallAlertSectionState extends State<MissedCallAlertSection> {
     return '${diff.inDays}d ago';
   }
 
-  // The beautiful Empty State to match the screenshot!
-  Widget _buildEmptyState() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: widget.isDarkMode ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: widget.isDarkMode ? const Color(0xFF334155) : const Color(0xFFF8FAFC),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.check_circle_outline_rounded,
-              color: widget.isDarkMode ? Colors.white54 : const Color(0xFF64748B),
-              size: 24,
-            ),
+  // Opens a Bottom Sheet to display the missed calls list
+  void _openMissedCallsSheet(String currentUserId) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            // Shadow removed here
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'No Missed Calls',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: widget.isDarkMode ? Colors.white : const Color(0xFF1E293B),
-                  ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: widget.isDarkMode ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'You\'re all caught up!',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: widget.isDarkMode ? Colors.white70 : const Color(0xFF64748B),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Text(
+                    'Missed Calls',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: widget.isDarkMode ? Colors.white : Colors.black87,
+                      letterSpacing: -0.5,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              StreamBuilder<List<Map<String, dynamic>>>(
+                stream: callTrackingService.streamMissedCalls(
+                  path: 'caretaker_communication', 
+                  userId: currentUserId,
                 ),
-              ],
-            ),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 48,
+                            color: widget.isDarkMode ? Colors.white38 : Colors.black26,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            "You're all caught up!",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final missedCalls = snapshot.data!;
+                  Map<String, List<Map<String, dynamic>>> groupedMissedCalls = {};
+
+                  for (var callData in missedCalls) {
+                    String callerId = callData['callerId'] ?? 'Unknown';
+                    if (!groupedMissedCalls.containsKey(callerId)) {
+                      groupedMissedCalls[callerId] = [];
+                    }
+                    groupedMissedCalls[callerId]!.add(callData);
+                  }
+
+                  return Column(
+                    children: groupedMissedCalls.entries.map((entry) {
+                      final callerId = entry.key;
+                      final callsList = entry.value;
+                      
+                      if (!_callerNamesCache.containsKey(callerId)) {
+                        _fetchCallerName(callerId);
+                      }
+                      
+                      final latestCall = callsList.first;
+                      final count = callsList.length;
+                      final timeString = _formatTimestamp(latestCall['timestamp'] as int);
+                      final callerName = _callerNamesCache[callerId] ?? 'Loading...';
+                      final isVideo = latestCall['type'] == 'video';
+                      final callIdsToDismiss = callsList.map((c) => c['callId'] as String).toList();
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          // Shadow removed here
+                          border: Border.all(
+                            color: widget.isDarkMode 
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.3) 
+                                : const Color(0xFFFEE2E2), 
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isVideo ? Icons.missed_video_call_rounded : Icons.phone_missed_rounded,
+                                  color: const Color(0xFFEF4444),
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      count > 1 
+                                          ? '$count Missed Calls' 
+                                          : 'Missed ${isVideo ? 'Video' : 'Voice'} Call',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: widget.isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'From $callerName • $timeString',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: widget.isDarkMode ? Colors.white70 : const Color(0xFF64748B),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: widget.isDarkMode ? Colors.white10 : const Color(0xFFF1F5F9),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: IconButton(
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    size: 20,
+                                    color: widget.isDarkMode ? Colors.white70 : const Color(0xFF64748B),
+                                  ),
+                                  onPressed: () {
+                                    callTrackingService.clearMissedCalls(
+                                      path: 'caretaker_communication', 
+                                      callIds: callIdsToDismiss,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // FIX: Securely grab the current user ID straight from the database service!
     final currentUserId = databaseService.currentUserId;
-    if (currentUserId == null || currentUserId.isEmpty) return _buildEmptyState();
+    if (currentUserId == null || currentUserId.isEmpty) return const SizedBox.shrink();
+
+    // Safely initialize the widget position to the right edge of the screen
+    if (!_isPositionInitialized) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _position = Offset(MediaQuery.of(context).size.width - 80, 150);
+          _isPositionInitialized = true;
+        });
+      });
+    }
 
     return StreamBuilder<List<Map<String, dynamic>>>(
-      // The Patient listens to calls coming FROM the Caretaker path
       stream: callTrackingService.streamMissedCalls(
         path: 'caretaker_communication', 
         userId: currentUserId,
       ),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyState();
+          return const SizedBox.shrink(); 
         }
 
         final missedCalls = snapshot.data!;
-        Map<String, List<Map<String, dynamic>>> groupedMissedCalls = {};
+        final callCount = missedCalls.length;
 
-        for (var callData in missedCalls) {
-          String callerId = callData['callerId'] ?? 'Unknown';
-          if (!groupedMissedCalls.containsKey(callerId)) {
-            groupedMissedCalls[callerId] = [];
-          }
-          groupedMissedCalls[callerId]!.add(callData);
-        }
+        return Positioned(
+          left: _position.dx,
+          top: _position.dy,
+          child: GestureDetector(
+            onPanUpdate: (details) {
+              setState(() {
+                final screenWidth = MediaQuery.of(context).size.width;
+                final screenHeight = MediaQuery.of(context).size.height;
+                
+                double newX = _position.dx + details.delta.dx;
+                double newY = _position.dy + details.delta.dy;
 
-        return Column(
-          children: groupedMissedCalls.entries.map((entry) {
-            final callerId = entry.key;
-            final callsList = entry.value;
-            
-            if (!_callerNamesCache.containsKey(callerId)) {
-              _fetchCallerName(callerId);
-            }
-            
-            final latestCall = callsList.first;
-            final count = callsList.length;
-            final timeString = _formatTimestamp(latestCall['timestamp'] as int);
-            final callerName = _callerNamesCache[callerId] ?? 'Loading...';
-            final isVideo = latestCall['type'] == 'video';
-            final callIdsToDismiss = callsList.map((c) => c['callId'] as String).toList();
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(
-                color: widget.isDarkMode ? const Color(0xFF3F1616) : const Color(0xFFFEF2F2),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFFEF4444).withValues(alpha: widget.isDarkMode ? 0.3 : 0.2),
-                ),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          isVideo ? Icons.missed_video_call_rounded : Icons.phone_missed_rounded,
-                          color: const Color(0xFFEF4444),
-                          size: 24,
-                        ),
+                _position = Offset(
+                  newX.clamp(0.0, screenWidth - 70.0), 
+                  newY.clamp(0.0, screenHeight - 200.0), 
+                );
+              });
+            },
+            onTap: () => _openMissedCallsSheet(currentUserId),
+            child: SizedBox(
+              width: 70, 
+              height: 70,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // MAIN WHITE BUBBLE
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: widget.isDarkMode ? Colors.white12 : const Color(0xFFFEE2E2),
+                        width: 1.5,
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              count > 1 
-                                  ? '$count Missed Calls' 
-                                  : 'Missed ${isVideo ? 'Video' : 'Voice'} Call',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: widget.isDarkMode ? Colors.white : const Color(0xFF7F1D1D),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'From $callerName • $timeString',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: widget.isDarkMode ? Colors.white70 : const Color(0xFF991B1B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.close_rounded,
-                          color: widget.isDarkMode ? Colors.white70 : const Color(0xFF991B1B),
-                        ),
-                        onPressed: () => callTrackingService.clearMissedCalls(
-                          path: 'caretaker_communication', 
-                          callIds: callIdsToDismiss,
-                        ),
-                      ),
-                    ],
+                      // Shadow removed here
+                    ),
+                    child: const Icon(
+                      Icons.phone_missed_rounded,
+                      color: Color(0xFFEF4444), 
+                      size: 28,
+                    ),
                   ),
-                ),
+                  
+                  // NOTIFICATION BADGE
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444), 
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                          width: 2.5, 
+                        ),
+                        // Shadow removed here
+                      ),
+                      child: Text(
+                        '$callCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  )
+                ],
               ),
-            );
-          }).toList(),
+            ),
+          ),
         );
       },
     );
