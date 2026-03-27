@@ -1,12 +1,10 @@
-// File: lib/roles/caretaker/home/sections/home_screen/home_content.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'communication/caretaker_missed_call_alert_section.dart';
+
 // Import the separated components
 import 'overview.dart';
 import 'announcement.dart';
@@ -151,14 +149,6 @@ class _HomeContentState extends State<HomeContent> {
         children: [
           // Dynamic Alert Banner
           if (_pendingRequests > 0) _buildUrgentAlert(),
-          
-          // FIX: Pass the Caretaker ID securely and use 'widget.' to fix the crash
-          if (_caretakerId != null)
-            CaretakerMissedCallAlertSection(
-              caretakerId: _caretakerId!,
-              isDarkMode: widget.isDarkMode,
-              theme: widget.theme,
-            ),
 
           // Stats Grid
           OverviewSection(
