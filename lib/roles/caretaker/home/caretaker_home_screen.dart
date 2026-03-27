@@ -1,5 +1,3 @@
-// File: lib/roles/caretaker/home/home_screen.dart
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart'; 
@@ -17,11 +15,15 @@ import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
-// Add the new import for the bottom sheet
+
+// IMPORT FOR THE BOTTOM SHEET
 import 'package:seelai_app/roles/caretaker/home/widgets/notifications_bottom_sheet.dart';
 
-// NEW IMPORT FOR THE GLOBAL CALL LISTENER
+// IMPORT FOR THE GLOBAL CALL LISTENER
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
+
+// NEW IMPORT FOR THE FLOATING MISSED CALL SECTION
+import 'package:seelai_app/roles/caretaker/home/sections/home_screen/communication/caretaker_missed_call_alert_section.dart';
 
 class CaretakerHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -76,7 +78,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     _requestService = RequestService();
   }
 
-  // ==================== FIX: ROBUST ID HANDLING ====================
   void _setupGlobalRequestStream() {
     // 1. Get Nullable ID
     String? rawId = FirebaseAuth.instance.currentUser?.uid;
@@ -114,7 +115,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       }
     });
   }
-  // ================================================================
 
   Future<void> _startLocationTracking() async {
     try {
@@ -248,7 +248,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     super.dispose();
   }
 
-  // --- NEW: Handle Back Button Press ---
   Future<bool> _onWillPop() async {
     // If not on Home tab (index 0), go back to Home tab first
     if (_selectedIndex != 0) {
@@ -286,8 +285,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           ElevatedButton(
             onPressed: () async {
               Navigator.of(context).pop(true);
-              // Optional: Add logic here if you want to explicitly sign out before closing
-              // await authService.signOut(); 
             },
             // Use PURPLE Theme color
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
@@ -308,21 +305,18 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       ? _getDarkTheme() 
       : _getLightTheme();
 
-    // WRAP EVERYTHING IN THE LISTENER
     return IncomingCallListener(
-      userRole: 'caretaker', // Correct role for this screen
+      userRole: 'caretaker', 
       child: PopScope(
-        canPop: false, // Prevents the default back button behavior so we can run custom logic
+        canPop: false, 
         onPopInvokedWithResult: (bool didPop, Object? result) async {
           if (didPop) {
-            return; // The screen was already successfully popped
+            return; 
           }
 
-          // Run your existing _onWillPop logic here
           final bool shouldPop = await _onWillPop();
           
           if (shouldPop && context.mounted) {
-            // If your logic says we should pop, execute the pop manually
             Navigator.of(context).pop(result);
           }
         },
@@ -332,57 +326,68 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             decoration: BoxDecoration(gradient: theme.backgroundGradient),
             child: SafeArea(
               bottom: false,
-              child: Column(
+              child: Stack( // <-- Wrapped Column in a Stack here
                 children: [
-                  // THIS CONDITION HIDES THE HEADER ON THE PROFILE TAB (INDEX 3)
-                  if (_selectedIndex != 3)
-                    HeaderSection(
-                      caretakerName: caretakerName,
-                      profileImageUrl: widget.userData['profileImageUrl'] as String?, 
-                      isDarkMode: _isDarkMode,
-                      pendingRequestsCount: _pendingRequestsCount,
-                      onToggleDarkMode: _toggleDarkMode,
-                      onProfileTap: () {
-                        setState(() {
-                          _selectedIndex = 3; 
-                        });
-                      },
-                      onNotificationTap: () {
-                        // 1. Safely grab the Caretaker's ID
-                        String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
-                                                widget.userData['userId'] ?? 
-                                                widget.userData['uid'];
-                                                
-                        if (currentUserId == null) return;
+                  Column(
+                    children: [
+                      // THIS CONDITION HIDES THE HEADER ON THE PROFILE TAB (INDEX 3)
+                      if (_selectedIndex != 3)
+                        HeaderSection(
+                          caretakerName: caretakerName,
+                          profileImageUrl: widget.userData['profileImageUrl'] as String?, 
+                          isDarkMode: _isDarkMode,
+                          pendingRequestsCount: _pendingRequestsCount,
+                          onToggleDarkMode: _toggleDarkMode,
+                          onProfileTap: () {
+                            setState(() {
+                              _selectedIndex = 3; 
+                            });
+                          },
+                          onNotificationTap: () {
+                            // 1. Safely grab the Caretaker's ID
+                            String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
+                                                    widget.userData['userId'] ?? 
+                                                    widget.userData['uid'];
+                                                    
+                            if (currentUserId == null) return;
 
-                        // 2. Trigger the Facebook-style bottom sheet
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true, 
-                          backgroundColor: Colors.transparent, 
-                          builder: (context) => SizedBox(
-                            height: screenHeight * 0.85, 
-                            child: NotificationsBottomSheet(
-                              caretakerId: currentUserId,
-                              isDarkMode: _isDarkMode,
-                              requestService: _requestService, 
-                            ),
+                            // 2. Trigger the Facebook-style bottom sheet
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true, 
+                              backgroundColor: Colors.transparent, 
+                              builder: (context) => SizedBox(
+                                height: screenHeight * 0.85, 
+                                child: NotificationsBottomSheet(
+                                  caretakerId: currentUserId,
+                                  isDarkMode: _isDarkMode,
+                                  requestService: _requestService, 
+                                ),
+                              ),
+                            );
+                          },
+                          textColor: theme.textColor,
+                          subtextColor: theme.subtextColor,
+                        ),
+                      
+                      Expanded(
+                        child: FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: _buildMainContent(
+                            screenWidth,
+                            screenHeight,
+                            theme,
                           ),
-                        );
-                      },
-                      textColor: theme.textColor,
-                      subtextColor: theme.subtextColor,
-                    ),
-                  
-                  Expanded(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: _buildMainContent(
-                        screenWidth,
-                        screenHeight,
-                        theme,
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+
+                  // --- NEW DRAGGABLE MISSED CALL WIDGET ---
+                  CaretakerMissedCallAlertSection(
+                    caretakerId: FirebaseAuth.instance.currentUser?.uid ?? widget.userData['userId'] ?? widget.userData['uid'] ?? '',
+                    isDarkMode: _isDarkMode,
+                    theme: theme,
                   ),
                 ],
               ),
@@ -413,7 +418,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
  Widget _buildMainContent(double width, double height, _AppTheme theme) {
     // Use IndexedStack to keep the state of all tabs alive in the background!
-    // This entirely prevents the "Loading" flash when switching menus.
     return IndexedStack(
       index: _selectedIndex,
       children: [
@@ -447,7 +451,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           scrollController: _scrollController,
           onRequestCountChange: (count) {
             if (_pendingRequestsCount != count) {
-              // addPostFrameCallback ensures we don't call setState while the widget is currently building
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   setState(() {
