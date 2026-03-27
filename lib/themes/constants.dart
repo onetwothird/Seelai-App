@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 // Refined pastel color palette with accessibility in mind
-const primary = Color(0xFF7C3AED); // Vibrant purple
+const primary = Color(0xFF7C3AED); // Vibrant modern purple
 const primaryLight = Color(0xFFA78BFA); // Light purple
 const primaryDark = Color(0xFF6D28D9);
+const modernPurpleLight = Color(0xFFEDE9FE); // Ultra-light purple for tinted card backgrounds
 const secondary = Color(0xFFEC4899); // Pink accent
 const accent = Color(0xFF14B8A6); // Teal
 const accentLight = Color(0xFF5EEAD4);
@@ -48,28 +49,28 @@ const softGradient = LinearGradient(
   end: Alignment.bottomCenter,
 );
 
-// Typography - Using Poppins-inspired styling
+// Typography - Chunky & Bold for the modern aesthetic
 const h1 = TextStyle(
   fontSize: 34,
-  fontWeight: FontWeight.w700,
+  fontWeight: FontWeight.w900, // Maximum boldness
   color: black,
-  letterSpacing: -0.8,
+  letterSpacing: -1.0, // Tighter tracking
   height: 1.2,
 );
 
 const h2 = TextStyle(
   fontSize: 26,
-  fontWeight: FontWeight.w600,
+  fontWeight: FontWeight.w800, // Extra bold
   color: black,
-  letterSpacing: -0.5,
+  letterSpacing: -0.8,
   height: 1.3,
 );
 
 const h3 = TextStyle(
   fontSize: 20,
-  fontWeight: FontWeight.w600,
+  fontWeight: FontWeight.w800, // Extra bold
   color: black,
-  letterSpacing: -0.3,
+  letterSpacing: -0.5,
   height: 1.4,
 );
 
@@ -77,14 +78,14 @@ const body = TextStyle(
   fontSize: 16,
   color: grey,
   height: 1.6,
-  fontWeight: FontWeight.w400,
+  fontWeight: FontWeight.w500, // Slightly heavier for better legibility
   letterSpacing: 0.1,
 );
 
 const bodyBold = TextStyle(
   fontSize: 16,
-  fontWeight: FontWeight.w600,
-  color: grey,
+  fontWeight: FontWeight.w700, // Heavy weight to stand out
+  color: black, // Darker color to pop against backgrounds
   height: 1.6,
   letterSpacing: 0.1,
 );
@@ -92,30 +93,24 @@ const bodyBold = TextStyle(
 const caption = TextStyle(
   fontSize: 14,
   color: greyLight,
-  fontWeight: FontWeight.w500,
+  fontWeight: FontWeight.w600, // Bolder captions
   letterSpacing: 0.2,
 );
 
 const small = TextStyle(
   fontSize: 12,
   color: greyLight,
-  fontWeight: FontWeight.w500,
+  fontWeight: FontWeight.w600,
   letterSpacing: 0.3,
 );
 
 // Refined shadow system for depth
 const softShadow = [
   BoxShadow(
-    color: Color(0x0F7C3AED),
-    blurRadius: 20,
-    offset: Offset(0, 4),
-    spreadRadius: -2,
-  ),
-  BoxShadow(
-    color: Color(0x0A000000),
-    blurRadius: 10,
-    offset: Offset(0, 2),
-    spreadRadius: -2,
+    color: Color(0x0A7C3AED), // Very subtle purple tint
+    blurRadius: 24,
+    offset: Offset(0, 8),
+    spreadRadius: -4,
   ),
 ];
 
@@ -173,11 +168,12 @@ const cardShadow = [
   ),
 ];
 
-// Border radius values
-const radiusSmall = 12.0;
-const radiusMedium = 16.0;
-const radiusLarge = 20.0;
-const radiusXLarge = 24.0;
+// Border radius values - Bubbly / Pill-like
+const radiusSmall = 16.0; // Bumped up
+const radiusMedium = 24.0; // Ideal for inner cards/buttons
+const radiusLarge = 32.0; // Ideal for main wrapper cards
+const radiusXLarge = 40.0;
+const radiusPill = 100.0; // Added for completely round buttons/badges
 
 // Spacing values
 const spacingXSmall = 4.0;
