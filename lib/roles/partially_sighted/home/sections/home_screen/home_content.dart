@@ -9,7 +9,6 @@ import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/ann
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/request_caretaker.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/emergency_hotline.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/quick_contact_section.dart';
-import 'communication/missed_call_alert_section.dart';
 
 class HomeContent extends StatelessWidget {
   final CameraService cameraService;
@@ -44,13 +43,7 @@ class HomeContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. MISSED CALLS (Removed userId requirement)
-          MissedCallAlertSection(
-            isDarkMode: isDarkMode,
-            theme: theme,
-          ),
-
-
+         
           // 2. QUICK CONTACT
           QuickContactSection(
             isDarkMode: isDarkMode,
