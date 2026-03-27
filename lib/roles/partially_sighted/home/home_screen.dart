@@ -1,5 +1,3 @@
-// File: lib/roles/partially_sighted/home/home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/recent_activities/view_recent_activites.dart';
 import 'dart:async';
@@ -25,6 +23,9 @@ import 'package:seelai_app/roles/partially_sighted/home/widgets/notifications_bo
 
 // IMPORT FOR THE GLOBAL CALL LISTENER
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
+
+// NEW IMPORT FOR THE FLOATING MISSED CALL SECTION
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/missed_call_alert_section.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -394,35 +395,45 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
             decoration: BoxDecoration(gradient: theme.backgroundGradient),
             child: SafeArea(
               bottom: false,
-              child: Column(
+              child: Stack( // <-- Wrapped Column in a Stack here
                 children: [
-                  if (_selectedIndex != 4)
-                    HeaderSection(
-                      userName: userName,
-                      profileImageUrl: widget.userData['profileImageUrl'] as String?,
-                      isDarkMode: _isDarkMode,
-                      onVoiceAssistant: _activateVoiceAssistant,
-                      onToggleDarkMode: _toggleDarkMode,
-                      onNotificationTap: _openNotifications,
-                      onProfileTap: () {
-                        setState(() {
-                          _selectedIndex = 4;
-                        });
-                      },
-                      textColor: theme.textColor,
-                      subtextColor: theme.subtextColor,
-                      unreadNotificationCount: _unreadNotificationCount,
-                    ),
-                  
-                  Expanded(
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: _buildMainContent(
-                        screenWidth,
-                        screenHeight,
-                        theme,
+                  Column(
+                    children: [
+                      if (_selectedIndex != 4)
+                        HeaderSection(
+                          userName: userName,
+                          profileImageUrl: widget.userData['profileImageUrl'] as String?,
+                          isDarkMode: _isDarkMode,
+                          onVoiceAssistant: _activateVoiceAssistant,
+                          onToggleDarkMode: _toggleDarkMode,
+                          onNotificationTap: _openNotifications,
+                          onProfileTap: () {
+                            setState(() {
+                              _selectedIndex = 4;
+                            });
+                          },
+                          textColor: theme.textColor,
+                          subtextColor: theme.subtextColor,
+                          unreadNotificationCount: _unreadNotificationCount,
+                        ),
+                      
+                      Expanded(
+                        child: FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: _buildMainContent(
+                            screenWidth,
+                            screenHeight,
+                            theme,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
+                  ),
+                  
+                  // --- NEW DRAGGABLE MISSED CALL WIDGET ---
+                  MissedCallAlertSection(
+                    isDarkMode: _isDarkMode,
+                    theme: theme,
                   ),
                 ],
               ),
