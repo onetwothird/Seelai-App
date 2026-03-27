@@ -1,5 +1,3 @@
-// File: lib/roles/partially_sighted/home/sections/home_screen/communication/quick_contact_section.dart
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/video_call_screen.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/screens/voice_call_screen.dart';
@@ -24,8 +22,9 @@ class QuickContactSection extends StatelessWidget {
         Expanded(
           child: _ContactAction(
             title: 'Voice Call',
+            subtitle: 'Tap to start',
             icon: Icons.call_rounded,
-            primaryColor: const Color(0xFF10B981),
+            primaryColor: const Color.fromARGB(255, 124, 58, 237),
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
@@ -37,8 +36,9 @@ class QuickContactSection extends StatelessWidget {
         Expanded(
           child: _ContactAction(
             title: 'Video Call',
+            subtitle: 'Tap to start',
             icon: Icons.videocam_rounded,
-            primaryColor: const Color(0xFF3B82F6),
+            primaryColor: const Color.fromARGB(255, 124, 58, 237),
             isDarkMode: isDarkMode,
             theme: theme,
             onTap: () {
@@ -53,6 +53,7 @@ class QuickContactSection extends StatelessWidget {
 
 class _ContactAction extends StatefulWidget {
   final String title;
+  final String subtitle;
   final IconData icon;
   final Color primaryColor;
   final bool isDarkMode;
@@ -61,6 +62,7 @@ class _ContactAction extends StatefulWidget {
 
   const _ContactAction({
     required this.title,
+    required this.subtitle,
     required this.icon,
     required this.primaryColor,
     required this.isDarkMode,
@@ -111,47 +113,59 @@ class _ContactActionState extends State<_ContactAction> with SingleTickerProvide
               });
               widget.onTap();
             },
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             splashColor: widget.primaryColor.withValues(alpha: 0.1),
             highlightColor: Colors.transparent,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
-                color: widget.theme.cardColor,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: widget.isDarkMode ? [] : softShadow,
+                // Clean white background for light mode, standard card color for dark mode
+                color: widget.isDarkMode 
+                    ? const Color(0xFF1A1F3A) 
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(20), 
+                // Subtle border to define the shape just like the reference image
                 border: Border.all(
                   color: widget.isDarkMode 
-                      ? Colors.white.withValues(alpha: 0.05) 
+                      ? Colors.white12 
                       : Colors.black.withValues(alpha: 0.05),
-                  width: 1,
+                  width: 1.5,
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center, 
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: widget.primaryColor.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      widget.icon,
-                      size: 20,
-                      color: widget.primaryColor,
-                    ),
+                  Icon(
+                    widget.icon,
+                    size: 24, 
+                    color: widget.primaryColor,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 8), 
                   Flexible(
-                    child: Text(
-                      widget.title,
-                      style: bodyBold.copyWith(
-                        fontSize: 14,
-                        color: widget.theme.textColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: bodyBold.copyWith(
+                            fontSize: 15,
+                            color: widget.theme.textColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2), 
+                        Text(
+                          widget.subtitle,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: widget.theme.textColor.withValues(alpha: 0.5),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
                 ],
