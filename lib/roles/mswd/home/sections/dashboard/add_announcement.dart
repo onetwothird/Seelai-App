@@ -62,9 +62,9 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: widget.theme.backgroundColor,
+      backgroundColor: Colors.white, // Changed to white
       appBar: AppBar(
-        backgroundColor: widget.theme.cardColor,
+        backgroundColor: Colors.white, // Changed to white
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
@@ -107,7 +107,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                       child: Container(
                         padding: EdgeInsets.all(spacingMedium),
                         decoration: BoxDecoration(
-                          color: widget.theme.cardColor,
+                          color: Colors.white, // Changed to white
                           borderRadius: BorderRadius.circular(radiusMedium),
                           border: Border.all(
                             color: widget.theme.subtextColor.withOpacity(0.2),
@@ -150,7 +150,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                       child: Container(
                         padding: EdgeInsets.all(spacingMedium),
                         decoration: BoxDecoration(
-                          color: widget.theme.cardColor,
+                          color: Colors.white, // Changed to white
                           borderRadius: BorderRadius.circular(radiusMedium),
                           border: Border.all(
                             color: widget.theme.subtextColor.withOpacity(0.2),
@@ -203,7 +203,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
             SizedBox(height: spacingSmall),
             Container(
               decoration: BoxDecoration(
-                color: widget.theme.cardColor,
+                color: Colors.white, // Changed to white
                 borderRadius: BorderRadius.circular(radiusMedium),
                 border: Border.all(
                   color: widget.theme.subtextColor.withOpacity(0.2),
@@ -216,7 +216,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                   isExpanded: true,
                   padding: EdgeInsets.symmetric(horizontal: spacingMedium),
                   borderRadius: BorderRadius.circular(radiusMedium),
-                  dropdownColor: widget.theme.cardColor,
+                  dropdownColor: Colors.white, // Changed to white
                   style: body.copyWith(color: widget.theme.textColor),
                   icon: Icon(Icons.arrow_drop_down, color: widget.theme.textColor),
                   items: [
@@ -288,7 +288,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
               Container(
                 constraints: BoxConstraints(maxHeight: 300),
                 decoration: BoxDecoration(
-                  color: widget.theme.cardColor,
+                  color: Colors.white, // Changed to white
                   borderRadius: BorderRadius.circular(radiusMedium),
                   border: Border.all(
                     color: widget.theme.subtextColor.withOpacity(0.2),
@@ -421,7 +421,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                   color: widget.theme.subtextColor.withOpacity(0.5),
                 ),
                 filled: true,
-                fillColor: widget.theme.cardColor,
+                fillColor: Colors.white, // Changed to white
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
                   borderSide: BorderSide(
@@ -463,7 +463,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                   color: widget.theme.subtextColor.withOpacity(0.5),
                 ),
                 filled: true,
-                fillColor: widget.theme.cardColor,
+                fillColor: Colors.white, // Changed to white
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
                   borderSide: BorderSide(
@@ -529,7 +529,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: widget.theme.cardColor,
+          backgroundColor: Colors.white, // Changed to white
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusLarge),
           ),
@@ -569,7 +569,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                       decoration: BoxDecoration(
                         color: isSelected 
                             ? primary.withValues(alpha: 0.1)
-                            : widget.theme.backgroundColor,
+                            : Colors.white, // Changed to white
                         borderRadius: BorderRadius.circular(radiusMedium),
                         border: Border.all(
                           color: isSelected 
@@ -643,7 +643,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: widget.theme.cardColor,
+          backgroundColor: Colors.white, // Changed to white
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusLarge),
           ),
