@@ -1,4 +1,4 @@
-
+// File: lib/roles/caretaker/home/sections/requests_screen/requests_content.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -171,7 +171,6 @@ class _RequestsContentState extends State<RequestsContent>
       await _initializeCaretakerId();
       return;
     }
-    // The stream updates automatically, but we simulate a refresh feel
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
@@ -185,7 +184,6 @@ class _RequestsContentState extends State<RequestsContent>
       return Center(child: CircularProgressIndicator(color: primary));
     }
 
-    // Using CustomScrollView to handle the passed scrollController effectively
     return RefreshIndicator(
       onRefresh: _refreshRequests,
       color: primary,
@@ -193,29 +191,20 @@ class _RequestsContentState extends State<RequestsContent>
         controller: widget.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // 1. Stats Section
           SliverPadding(
             padding: EdgeInsets.fromLTRB(20, spacingMedium, 20, spacingMedium),
             sliver: SliverToBoxAdapter(
               child: _buildMinimalStats(),
             ),
           ),
-
-          // 2. Custom Tabs
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: SliverToBoxAdapter(
               child: _buildMinimalTabs(),
             ),
           ),
-
-          // 3. Spacing
           const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-          // 4. Request List or Empty State
-          _buildRequestListSliver(),
-
-          // 5. Bottom Padding
+          SliverToBoxAdapter(child: _buildRequestListContainer()),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
@@ -225,33 +214,60 @@ class _RequestsContentState extends State<RequestsContent>
   // ==================== UI COMPONENTS ====================
 
   Widget _buildMinimalStats() {
-    return Row(
+    final int totalRequests = _pendingRequests.length + _activeRequests.length + _completedRequests.length;
+
+    return Column(
       children: [
-        Expanded(
-          child: _buildStatItem(
-            count: _pendingRequests.length,
-            label: 'Pending',
-            color: Colors.orange,
-            icon: Icons.notifications_active_rounded,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                count: totalRequests,
+                title: 'Total',
+                subtitle: 'All requests',
+                bottomLabel: 'TOTAL',
+                baseColor: primary,
+                backgroundIcon: Icons.all_inbox_outlined,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatItem(
+                count: _pendingRequests.length,
+                title: 'Pending',
+                subtitle: 'Awaiting review',
+                bottomLabel: 'REQUESTS',
+                baseColor: const Color(0xFFF5A623),
+                backgroundIcon: Icons.assignment_outlined,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatItem(
-            count: _activeRequests.length,
-            label: 'Active',
-            color: Colors.blue,
-            icon: Icons.run_circle_rounded,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatItem(
-            count: _completedRequests.length,
-            label: 'Done',
-            color: Colors.green,
-            icon: Icons.task_alt_rounded,
-          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                count: _activeRequests.length,
+                title: 'In Progress',
+                subtitle: 'Active sessions',
+                bottomLabel: 'ONGOING',
+                baseColor: const Color(0xFF60A5FA),
+                backgroundIcon: Icons.touch_app_outlined,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatItem(
+                count: _completedRequests.length,
+                title: 'Completed',
+                subtitle: 'Finished tasks',
+                bottomLabel: 'TOTAL',
+                baseColor: const Color(0xFF34D399),
+                backgroundIcon: Icons.task_alt_outlined,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -259,40 +275,107 @@ class _RequestsContentState extends State<RequestsContent>
 
   Widget _buildStatItem({
     required int count,
-    required String label,
-    required Color color,
-    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String bottomLabel,
+    required Color baseColor,
+    required IconData backgroundIcon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      height: 140, 
+      clipBehavior: Clip.hardEdge, 
       decoration: BoxDecoration(
-        color: widget.isDarkMode 
-            ? color.withValues(alpha: 0.15) 
-            : color.withValues(alpha: 0.08),
+        color: baseColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDarkMode ? Colors.transparent : color.withValues(alpha: 0.1),
-          width: 1,
+          color: baseColor.withValues(alpha: 0.15), 
         ),
       ),
-      child: Column(
+      child: Stack(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: widget.theme.textColor,
+          Positioned(
+            right: -15,
+            bottom: -10,
+            child: Icon(
+              backgroundIcon,
+              size: 110,
+              color: baseColor.withValues(alpha: 0.12),
             ),
           ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: widget.theme.subtextColor,
+          
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: widget.theme.textColor,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: widget.theme.subtextColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.more_horiz_rounded,
+                      color: widget.theme.subtextColor,
+                      size: 20,
+                    ),
+                  ],
+                ),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      bottomLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: widget.theme.subtextColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2, 
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      count.toString(),
+                      style: TextStyle(
+                        fontSize: 26,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -307,7 +390,7 @@ class _RequestsContentState extends State<RequestsContent>
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(25),
         border: Border.all(
-          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05),
+          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
         ),
       ),
       child: TabBar(
@@ -315,17 +398,10 @@ class _RequestsContentState extends State<RequestsContent>
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(25),
           color: primary,
-          boxShadow: [
-            BoxShadow(
-              color: primary.withValues(alpha: 0.3),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         labelColor: Colors.white,
         unselectedLabelColor: widget.theme.subtextColor,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: -0.2),
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         padding: const EdgeInsets.all(4),
@@ -338,7 +414,7 @@ class _RequestsContentState extends State<RequestsContent>
     );
   }
 
-  Widget _buildRequestListSliver() {
+  Widget _buildRequestListContainer() {
     List<RequestModel> currentRequests;
     switch (_tabController.index) {
       case 0: currentRequests = _pendingRequests; break;
@@ -348,48 +424,45 @@ class _RequestsContentState extends State<RequestsContent>
     }
 
     if (currentRequests.isEmpty) {
-      return SliverToBoxAdapter(
-        child: SizedBox(
-          height: 300,
-          child: _buildEmptyState(),
-        ),
+      return SizedBox(
+        height: 300,
+        child: _buildEmptyState(),
       );
     }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          final request = currentRequests[index];
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-            child: _buildMinimalRequestCard(request),
-          );
-        },
-        childCount: currentRequests.length,
-      ),
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: currentRequests.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+          child: _buildMinimalRequestCard(currentRequests[index]),
+        );
+      },
     );
   }
 
   Widget _buildMinimalRequestCard(RequestModel request) {
     final priorityColor = request.getPriorityColor();
     final cachedImage = _profileImageCache[request.patientId];
+    final Color primaryPurple = const Color(0xFF8B5CF6);
 
     return Container(
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: widget.isDarkMode
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
         border: Border.all(
-          color: widget.isDarkMode ? Colors.white10 : Colors.transparent,
+          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
         ),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Material(
         color: Colors.transparent,
@@ -403,7 +476,6 @@ class _RequestsContentState extends State<RequestsContent>
                   request: request,
                   isDarkMode: widget.isDarkMode,
                   requestService: widget.requestService,
-                  // PASS CACHED IMAGE HERE FOR HERO ANIMATION
                   preloadedProfileImage: cachedImage, 
                 ),
               ),
@@ -416,17 +488,22 @@ class _RequestsContentState extends State<RequestsContent>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // === UPDATED: WRAP WITH HERO FOR ANIMATION ===
                     Hero(
-                      tag: 'avatar_${request.id}', // Must match Details Screen tag
+                      tag: 'avatar_${request.id}', 
                       child: Container(
-                        width: 50,
-                        height: 50,
+                        width: 48,
+                        height: 48,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: widget.isDarkMode ? Colors.white10 : Colors.grey[200],
-                          border: Border.all(color: Colors.black, width: 1), 
+                          color: (cachedImage != null && cachedImage.isNotEmpty)
+                              ? (widget.isDarkMode ? Colors.white10 : Colors.white)
+                              : primaryPurple.withValues(alpha: 0.1), 
+                          border: Border.all(
+                            color: primaryPurple.withValues(alpha: 0.2), 
+                            width: 1.5,
+                          ), 
                           image: cachedImage != null
                               ? DecorationImage(
                                   image: NetworkImage(cachedImage),
@@ -435,13 +512,12 @@ class _RequestsContentState extends State<RequestsContent>
                               : null,
                         ),
                         child: cachedImage == null
-                            ? Icon(Icons.person, color: Colors.grey[400])
+                            ? Icon(Icons.person_rounded, color: primaryPurple, size: 24)
                             : null,
                       ),
                     ),
                     const SizedBox(width: 12),
                     
-                    // Name and Type
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -452,17 +528,19 @@ class _RequestsContentState extends State<RequestsContent>
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: widget.theme.textColor,
+                              letterSpacing: -0.3,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(request.getIcon(), size: 12, color: widget.theme.subtextColor),
+                              Icon(request.getIcon(), size: 14, color: widget.theme.subtextColor),
                               const SizedBox(width: 4),
                               Text(
                                 request.requestType,
                                 style: TextStyle(
                                   fontSize: 13,
+                                  fontWeight: FontWeight.w500,
                                   color: widget.theme.subtextColor,
                                 ),
                               ),
@@ -472,9 +550,8 @@ class _RequestsContentState extends State<RequestsContent>
                       ),
                     ),
 
-                    // Priority Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: priorityColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -483,7 +560,8 @@ class _RequestsContentState extends State<RequestsContent>
                         request.priority.name.toUpperCase(),
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
                           color: priorityColor,
                         ),
                       ),
@@ -491,44 +569,61 @@ class _RequestsContentState extends State<RequestsContent>
                   ],
                 ),
                 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 
-                // Message Preview
                 Text(
                   request.message,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
-                    color: widget.theme.textColor.withOpacity(0.8),
+                    color: widget.theme.textColor.withOpacity(0.85),
                     height: 1.4,
                   ),
                 ),
                 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 
-                // Footer (Time & Location)
                 Row(
                   children: [
-                    Icon(Icons.access_time, size: 14, color: widget.theme.subtextColor),
-                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.access_time_rounded, size: 14, color: widget.theme.subtextColor),
+                    ),
+                    const SizedBox(width: 6),
                     Text(
                       _getTimeAgo(request.timestamp),
                       style: TextStyle(
                         fontSize: 12,
+                        fontWeight: FontWeight.w600,
                         color: widget.theme.subtextColor,
                       ),
                     ),
                     if (request.location != null) ...[
-                      const SizedBox(width: 12),
-                      Icon(Icons.location_on, size: 14, color: Colors.green[400]),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Location Attached',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green[400],
-                          fontWeight: FontWeight.w500,
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.location_on_rounded, size: 12, color: Colors.green[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Location',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.green[600],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -573,21 +668,30 @@ class _RequestsContentState extends State<RequestsContent>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 60, color: widget.theme.subtextColor.withOpacity(0.3)),
-          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.03),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 48, color: widget.theme.subtextColor.withOpacity(0.5)),
+          ),
+          const SizedBox(height: 20),
           Text(
             title,
             style: TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
               color: widget.theme.textColor,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             sub,
             style: TextStyle(
               fontSize: 14,
+              fontWeight: FontWeight.w500,
               color: widget.theme.subtextColor,
             ),
           ),
@@ -601,18 +705,23 @@ class _RequestsContentState extends State<RequestsContent>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 48, color: Colors.red[300]),
+          Icon(Icons.error_outline_rounded, size: 48, color: Colors.red[300]),
           const SizedBox(height: 16),
           Text(
             _error ?? 'Something went wrong',
-            style: TextStyle(color: widget.theme.subtextColor),
+            style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.w500),
           ),
+          const SizedBox(height: 8),
           TextButton(
             onPressed: () {
               setState(() { _isLoading = true; _error = null; });
               _initializeCaretakerId();
             },
-            child: const Text('Try Again', style: TextStyle(color: primary)),
+            style: TextButton.styleFrom(
+              backgroundColor: primary.withValues(alpha: 0.1),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Try Again', style: TextStyle(color: primary, fontWeight: FontWeight.bold)),
           )
         ],
       ),
