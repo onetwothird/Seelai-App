@@ -1,3 +1,5 @@
+// File: lib/roles/caretaker/home/sections/home_screen/home_content.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -188,23 +190,30 @@ class _HomeContentState extends State<HomeContent> {
   Widget _buildUrgentAlert() {
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20), // Slightly more breathing room
       decoration: BoxDecoration(
         color: widget.isDarkMode ? const Color(0xFF450a0a) : const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20), // Matched to the new 20px standard
         border: Border.all(
-          color: widget.isDarkMode ? const Color(0xFF7f1d1d) : const Color(0xFFFECACA),
+          color: widget.isDarkMode ? const Color(0xFF7f1d1d) : const Color(0xFFEF4444).withValues(alpha: 0.2), // Softer border
         ),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.05), // Very subtle red glow/shadow
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10), // Larger icon hit area
             decoration: BoxDecoration(
               color: const Color(0xFFEF4444).withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 24),
+            child: const Icon(Icons.notification_important_rounded, color: Color(0xFFEF4444), size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -215,8 +224,9 @@ class _HomeContentState extends State<HomeContent> {
                   'Action Required',
                   style: TextStyle(
                     color: widget.isDarkMode ? const Color(0xFFFCA5A5) : const Color(0xFF991B1B),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontWeight: FontWeight.w800, // Matched header font weights
+                    letterSpacing: -0.3,
+                    fontSize: 16,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -224,12 +234,15 @@ class _HomeContentState extends State<HomeContent> {
                   'You have $_pendingRequests pending assistance request(s).',
                   style: TextStyle(
                     color: widget.isDarkMode ? const Color(0xFFFECACA) : const Color(0xFF7F1D1D),
+                    fontWeight: FontWeight.w500,
                     fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
+          // Added a small indicator to draw the eye to the action
+          Icon(Icons.arrow_forward_ios_rounded, size: 14, color: const Color(0xFFEF4444).withValues(alpha: 0.5)),
         ],
       ),
     );
