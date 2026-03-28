@@ -1,7 +1,6 @@
 // File: lib/roles/mswd/home/sections/requests/request_details.dart
 
 import 'package:flutter/material.dart';
-import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:intl/intl.dart';
 
@@ -36,7 +35,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     }
   }
 
-  // Local helper for icon to prevent dependency on model methods
   IconData _getRequestIcon(String type) {
     final t = type.toLowerCase();
     if (t.contains('medical') || t.contains('health')) return Icons.medical_services_rounded;
@@ -46,20 +44,19 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Icons.assignment_rounded;
   }
 
-  // Local helper for priority color to prevent dependency on model methods
   Color _getPriorityColor(dynamic priority) {
     final p = priority.toString().toLowerCase();
-    if (p.contains('emergency')) return Colors.red;
-    if (p.contains('high')) return Colors.orange;
-    if (p.contains('medium')) return Colors.blue;
-    if (p.contains('low')) return Colors.green;
+    if (p.contains('emergency')) return const Color(0xFFEF4444);
+    if (p.contains('high')) return const Color(0xFFF5A623);
+    if (p.contains('medium')) return const Color(0xFF3B82F6);
+    if (p.contains('low')) return const Color(0xFF10B981);
     return Colors.grey;
   }
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isDarkMode ? const Color(0xFF0F1429) : Colors.white;
-    final fallbackColor = const Color(0xFF8B5CF6); // Default primary purple
+    final bgColor = widget.theme.backgroundGradient.colors.last; 
+    final fallbackColor = const Color(0xFF8B5CF6); 
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -132,10 +129,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.black, 
+                color: widget.isDarkMode ? Colors.white30 : Colors.black, 
                 width: 1.5
               ),
-              boxShadow: [
+              boxShadow: widget.isDarkMode ? [] : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
@@ -157,10 +154,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         const SizedBox(height: 16),
         Text(
           widget.request.patientName,
-          style: h2.copyWith(
+          style: TextStyle(
             fontSize: 24,
             color: widget.theme.textColor,
-            fontWeight: FontWeight.w800,
+            fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
           ),
         ),
@@ -168,11 +165,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.location_on, size: 14, color: widget.theme.subtextColor),
+            Icon(Icons.location_on_rounded, size: 14, color: widget.theme.subtextColor),
             const SizedBox(width: 4),
             Text(
               widget.request.location != null ? 'Location Attached' : 'No Location',
-              style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 13),
+              style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -188,10 +185,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        borderRadius: BorderRadius.circular(20), // 20px
+        border: Border.all(
+          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+        ),
+        boxShadow: widget.isDarkMode ? [] : [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -236,31 +236,32 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, size: 20, color: color),
+          child: Icon(icon, size: 24, color: color),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
           value,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
             color: isBold ? color : widget.theme.textColor,
           ),
         ),
+        const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(fontSize: 10, color: widget.theme.subtextColor),
+          style: TextStyle(fontSize: 11, color: widget.theme.subtextColor, fontWeight: FontWeight.w500),
         ),
       ],
     );
   }
 
-  Widget _buildVerticalDivider() => Container(height: 30, width: 1, color: widget.theme.subtextColor.withOpacity(0.2));
+  Widget _buildVerticalDivider() => Container(height: 40, width: 1, color: widget.theme.subtextColor.withValues(alpha: 0.15));
 
   Widget _buildMessageBubble() {
     return Column(
@@ -274,12 +275,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFEEF2F6),
+            color: widget.isDarkMode ? Colors.white10 : const Color(0xFFF3F4F6),
             borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(20),
+              topLeft: Radius.circular(20), // 20px
               topRight: Radius.circular(20),
               bottomRight: Radius.circular(20),
-              bottomLeft: Radius.circular(4),
+              bottomLeft: Radius.circular(6), // Slightly rounded tail
             ),
           ),
           child: Text(
@@ -311,19 +312,32 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: widget.theme.cardColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20), // 20px
             border: Border.all(
-              color: hasCaretaker ? primaryColor.withValues(alpha: 0.3) : widget.theme.subtextColor.withValues(alpha: 0.2),
+              color: hasCaretaker ? primaryColor.withValues(alpha: 0.3) : (widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
+              width: hasCaretaker ? 1.5 : 1.0,
             ),
+            boxShadow: widget.isDarkMode ? [] : [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
           child: hasCaretaker
               ? Row(
                   children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundImage: (img != null && img.isNotEmpty) ? NetworkImage(img) : null,
-                      backgroundColor: primaryColor.withValues(alpha: 0.1),
-                      child: (img == null || img.isEmpty) ? Icon(Icons.person, color: primaryColor) : null,
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: primaryColor.withValues(alpha: 0.1),
+                        border: Border.all(color: primaryColor.withValues(alpha: 0.2), width: 1.5),
+                        image: (img != null && img.isNotEmpty) ? DecorationImage(image: NetworkImage(img), fit: BoxFit.cover) : null,
+                      ),
+                      child: (img == null || img.isEmpty) ? Icon(Icons.person_rounded, color: primaryColor) : null,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -332,24 +346,37 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         children: [
                           Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: widget.theme.textColor)),
                           const SizedBox(height: 2),
-                          const Text('Assigned Caretaker', style: TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold)),
+                          const Text('Assigned Caretaker', style: TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.phone_in_talk_rounded),
-                      color: primaryColor,
-                      onPressed: () {}, 
+                    Container(
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.phone_in_talk_rounded, size: 20),
+                        color: primaryColor,
+                        onPressed: () {}, 
+                      ),
                     ),
                   ],
                 )
               : Row(
                   children: [
-                    Icon(Icons.person_search_rounded, color: widget.theme.subtextColor, size: 30),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? Colors.white10 : Colors.grey[100],
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.person_search_rounded, color: widget.theme.subtextColor, size: 24),
+                    ),
                     const SizedBox(width: 16),
                     Text(
                       'No caretaker assigned yet',
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -359,8 +386,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   Widget _buildTimelineSection(Color primaryColor) {
-    // Safely extract optional times if they exist on the model, otherwise fallback to null.
-    // In Dart, you can safely attempt to access dynamic properties if you aren't sure they are strictly typed.
     DateTime? responseTime;
     DateTime? completedTime;
     
@@ -375,10 +400,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           child: Text('TIMELINE', style: _sectionHeaderStyle()),
         ),
         Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: widget.theme.cardColor,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20), // 20px
+            border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
+            boxShadow: widget.isDarkMode ? [] : [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              )
+            ],
           ),
           child: Column(
             children: [
@@ -417,7 +450,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     bool isTop = false,
     bool isBottom = false,
   }) {
-    final color = isActive ? primaryColor : widget.theme.subtextColor.withOpacity(0.3);
+    final color = isActive ? primaryColor : widget.theme.subtextColor.withValues(alpha: 0.3);
     
     return IntrinsicHeight(
       child: Row(
@@ -429,11 +462,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               children: [
                 if (!isTop) Expanded(child: Container(width: 2, color: color)),
                 Container(
-                  width: 12, height: 12,
+                  width: 14, height: 14, // Slightly larger dot
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isActive ? primaryColor : Colors.transparent,
-                    border: Border.all(color: color, width: 2),
+                    color: isActive ? primaryColor : widget.theme.cardColor,
+                    border: Border.all(color: color, width: 2.5),
                   ),
                 ),
                 if (!isBottom) Expanded(child: Container(width: 2, color: color)),
@@ -451,20 +484,22 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                   Text(
                     title,
                     style: TextStyle(
-                      fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
                       color: isActive ? widget.theme.textColor : widget.theme.subtextColor,
-                      fontSize: 14,
+                      fontSize: 15,
+                      letterSpacing: -0.3,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   if (time != null)
                     Text(
                       DateFormat('MMM dd, hh:mm a').format(time),
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 11),
+                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 12, fontWeight: FontWeight.w500),
                     )
                   else if (isActive)
                      Text(
-                      'Just updated', // Fallback string if time is null but status is active
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 11),
+                      'Just updated', 
+                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 12, fontWeight: FontWeight.w500),
                     ),
                 ],
               ),
@@ -480,16 +515,23 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+        color: const Color(0xFF3B82F6).withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20), // 20px
+        border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.map_rounded, color: Colors.blue),
-          SizedBox(width: 12),
-          Expanded(child: Text('GPS Location Available', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold))),
-          Icon(Icons.arrow_forward_rounded, color: Colors.blue, size: 18),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.map_rounded, color: Color(0xFF3B82F6), size: 20),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(child: Text('GPS Location Available', style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold))),
+          const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF3B82F6), size: 14),
         ],
       ),
     );
@@ -499,15 +541,14 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (widget.request.status == RequestStatus.pending) {
       return SizedBox(
         width: double.infinity,
+        height: 56, // Enforced height
         child: ElevatedButton(
           onPressed: () {},
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryColor,
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 8,
-            shadowColor: primaryColor.withValues(alpha: 0.4),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // Buttons generally look best at 16
+            elevation: 0, 
           ),
           child: const Text('Assign Caretaker', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ),
@@ -553,11 +594,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Color _getStatusColor(RequestStatus status) {
     switch (status) {
-      case RequestStatus.pending: return Colors.orange;
-      case RequestStatus.accepted: return Colors.blue;
-      case RequestStatus.inProgress: return Colors.purple;
-      case RequestStatus.completed: return Colors.green;
-      case RequestStatus.declined: return Colors.red;
+      case RequestStatus.pending: return const Color(0xFFF5A623);
+      case RequestStatus.accepted: return const Color(0xFF3B82F6);
+      case RequestStatus.inProgress: return const Color(0xFF8B5CF6);
+      case RequestStatus.completed: return const Color(0xFF10B981);
+      case RequestStatus.declined: return const Color(0xFFEF4444);
     }
   }
 
