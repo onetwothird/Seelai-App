@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'; // NEW IMPORT REQUIRED FOR SCROLL DIRECTION
 import 'package:firebase_auth/firebase_auth.dart'; 
 import 'package:geolocator/geolocator.dart'; 
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/caretaker_home_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/home/widgets/header_section.dart';
+import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_header_section.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patients_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/requests_content.dart';
@@ -57,17 +58,14 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  // Scroll detection
-  final ScrollController _scrollController = ScrollController();
+  // Scroll Navigation State
   bool _isNavVisible = true;
-  double _lastScrollPosition = 0;
 
   @override
   void initState() {
     super.initState();
     _initializeServices();
     _initializeAnimations();
-    _initializeScrollListener();
     _startLocationTracking();
     _setupGlobalRequestStream();
   }
@@ -191,35 +189,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     _animationController.forward();
   }
 
-  void _initializeScrollListener() {
-    _scrollController.addListener(_handleScroll);
-  }
-
-  void _handleScroll() {
-    final currentScroll = _scrollController.position.pixels;
-    final scrollDelta = currentScroll - _lastScrollPosition;
-    
-    const scrollThreshold = 10.0;
-    
-    if (scrollDelta.abs() > scrollThreshold) {
-      final shouldShow = scrollDelta < 0;
-      
-      if (shouldShow != _isNavVisible) {
-        setState(() {
-          _isNavVisible = shouldShow;
-        });
-      }
-      
-      _lastScrollPosition = currentScroll;
-    }
-    
-    if (currentScroll <= 0 && !_isNavVisible) {
-      setState(() {
-        _isNavVisible = true;
-      });
-    }
-  }
-
   void _toggleDarkMode() {
     setState(() {
       _isDarkMode = !_isDarkMode;
@@ -243,7 +212,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   @override
   void dispose() {
     _animationController.dispose();
-    _scrollController.dispose();
     _requestsSubscription?.cancel();
     super.dispose();
   }
@@ -295,11 +263,10 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     )) ?? false;
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final caretakerName = widget.userData['name'] ?? 'Caretaker';
 
     final theme = _isDarkMode 
       ? _getDarkTheme() 
@@ -326,70 +293,33 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             decoration: BoxDecoration(gradient: theme.backgroundGradient),
             child: SafeArea(
               bottom: false,
-              child: Stack( // <-- Wrapped Column in a Stack here
-                children: [
-                  Column(
-                    children: [
-                      // THIS CONDITION HIDES THE HEADER ON THE PROFILE TAB (INDEX 3)
-                      if (_selectedIndex != 3)
-                        HeaderSection(
-                          caretakerName: caretakerName,
-                          profileImageUrl: widget.userData['profileImageUrl'] as String?, 
-                          isDarkMode: _isDarkMode,
-                          pendingRequestsCount: _pendingRequestsCount,
-                          onToggleDarkMode: _toggleDarkMode,
-                          onProfileTap: () {
-                            setState(() {
-                              _selectedIndex = 3; 
-                            });
-                          },
-                          onNotificationTap: () {
-                            // 1. Safely grab the Caretaker's ID
-                            String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
-                                                    widget.userData['userId'] ?? 
-                                                    widget.userData['uid'];
-                                                    
-                            if (currentUserId == null) return;
-
-                            // 2. Trigger the Facebook-style bottom sheet
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true, 
-                              backgroundColor: Colors.transparent, 
-                              builder: (context) => SizedBox(
-                                height: screenHeight * 0.85, 
-                                child: NotificationsBottomSheet(
-                                  caretakerId: currentUserId,
-                                  isDarkMode: _isDarkMode,
-                                  requestService: _requestService, 
-                                ),
-                              ),
-                            );
-                          },
-                          textColor: theme.textColor,
-                          subtextColor: theme.subtextColor,
-                        ),
-                      
-                      Expanded(
-                        child: FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: _buildMainContent(
-                            screenWidth,
-                            screenHeight,
-                            theme,
-                          ),
-                        ),
+              child: NotificationListener<UserScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.direction == ScrollDirection.forward) {
+                    if (!_isNavVisible) setState(() => _isNavVisible = true);
+                  } else if (notification.direction == ScrollDirection.reverse) {
+                    if (_isNavVisible) setState(() => _isNavVisible = false);
+                  }
+                  return false; 
+                },
+                child: Stack(
+                  children: [
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: _buildMainContent(
+                        screenWidth,
+                        screenHeight,
+                        theme,
                       ),
-                    ],
-                  ),
+                    ),
 
-                  // --- NEW DRAGGABLE MISSED CALL WIDGET ---
-                  CaretakerMissedCallAlertSection(
-                    caretakerId: FirebaseAuth.instance.currentUser?.uid ?? widget.userData['userId'] ?? widget.userData['uid'] ?? '',
-                    isDarkMode: _isDarkMode,
-                    theme: theme,
-                  ),
-                ],
+                    CaretakerMissedCallAlertSection(
+                      caretakerId: FirebaseAuth.instance.currentUser?.uid ?? widget.userData['userId'] ?? widget.userData['uid'] ?? '',
+                      isDarkMode: _isDarkMode,
+                      theme: theme,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -416,22 +346,66 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     );
   }
 
- Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    // Use IndexedStack to keep the state of all tabs alive in the background!
+  Widget _buildMainContent(double width, double height, _AppTheme theme) {
+    // Helper to build the header inside the scrollable content
+    Widget buildScrollableHeader() {
+      final caretakerName = widget.userData['name'] ?? 'Caretaker';
+      return HeaderSection(
+        caretakerName: caretakerName,
+        profileImageUrl: widget.userData['profileImageUrl'] as String?, 
+        isDarkMode: _isDarkMode,
+        pendingRequestsCount: _pendingRequestsCount,
+        onToggleDarkMode: _toggleDarkMode,
+        onProfileTap: () {
+          setState(() {
+            _selectedIndex = 3; 
+          });
+        },
+        onNotificationTap: () {
+          String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
+                                  widget.userData['userId'] ?? 
+                                  widget.userData['uid'];
+                                  
+          if (currentUserId == null) return;
+
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true, 
+            backgroundColor: Colors.transparent, 
+            builder: (context) => SizedBox(
+              height: height * 0.85, 
+              child: NotificationsBottomSheet(
+                caretakerId: currentUserId,
+                isDarkMode: _isDarkMode,
+                requestService: _requestService, 
+              ),
+            ),
+          );
+        },
+        textColor: theme.textColor,
+        subtextColor: theme.subtextColor,
+      );
+    }
+
     return IndexedStack(
       index: _selectedIndex,
       children: [
-        // Index 0
+        // Index 0: Home Content (Header added inside ScrollView)
         SingleChildScrollView(
-          controller: _scrollController,
-          physics: const ClampingScrollPhysics(),
-          child: HomeContent(
-            isDarkMode: _isDarkMode,
-            theme: theme,
-            userData: widget.userData,
-            onNotificationUpdate: _updateNotification,
-            requestService: _requestService,
-            locationService: _locationService,
+          physics: const ClampingScrollPhysics(), 
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildScrollableHeader(),
+              HomeContent(
+                isDarkMode: _isDarkMode,
+                theme: theme,
+                userData: widget.userData,
+                onNotificationUpdate: _updateNotification,
+                requestService: _requestService,
+                locationService: _locationService,
+              ),
+            ],
           ),
         ),
         // Index 1
@@ -439,7 +413,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
-          scrollController: _scrollController, 
           locationService: _locationService,
         ),
         // Index 2
@@ -448,7 +421,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           theme: theme,
           userData: widget.userData,
           requestService: _requestService,
-          scrollController: _scrollController,
           onRequestCountChange: (count) {
             if (_pendingRequestsCount != count) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -463,8 +435,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         ),
         // Index 3
         SingleChildScrollView(
-          controller: _scrollController,
-          physics: const ClampingScrollPhysics(),
+          physics: const ClampingScrollPhysics(), 
           child: ProfileContent(
             userData: widget.userData,
             isDarkMode: _isDarkMode,
