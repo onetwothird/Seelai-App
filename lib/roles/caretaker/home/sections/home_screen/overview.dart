@@ -28,15 +28,7 @@ class OverviewSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Overview',
-          style: TextStyle(
-            fontSize: 20,
-            color: theme.textColor,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5,
-          ),
-        ),
+        
         const SizedBox(height: 16),
         Row(
           children: [
