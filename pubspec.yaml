@@ -74,11 +74,17 @@ flutter:
     - assets/icons/light-dark.json
     - assets/video/sample_vid.mp4
     - assets/seelai-icons/
+    - assets/onboarding_icons/
+    - assets/seelai_app_logo/
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/profile/seelaii.png"
+
+  image_path: "assets/seelai_app_logo/seelai_app_logo.png"
+
+  adaptive_icon_background: "#8B5CF6"
+  adaptive_icon_foreground: "assets/seelai_app_logo/seelai_app_logo.png"
 
 flutter_native_splash:
   color: "#FAF5FF"
