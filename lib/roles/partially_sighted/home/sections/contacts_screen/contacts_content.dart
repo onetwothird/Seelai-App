@@ -28,6 +28,9 @@ class ContactsContent extends StatefulWidget {
 }
 
 class _ContactsContentState extends State<ContactsContent> {
+  // Brand Colors
+  final Color _primaryColor = const Color(0xFF7C3AED);
+
   StreamSubscription? _caretakersSubscription;
   StreamSubscription? _emergencyContactsSubscription;
   
@@ -38,13 +41,23 @@ class _ContactsContentState extends State<ContactsContent> {
   bool _isLoadingEmergency = true;
   String? _error;
   String? _patientId;
-  String _searchQuery = '';
+  final String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+
+  // 0 = All, 1 = Caretakers, 2 = SOS
+  int _selectedFilterIndex = 0; 
 
   @override
   void initState() {
     super.initState();
     _initializePatientId();
+  }
+
+  // Helper to safely extract the first name from user data
+  String _getFirstName() {
+    final name = widget.userData['name'] as String? ?? 'User';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    return parts.isNotEmpty ? parts.first : 'User';
   }
 
   Future<void> _initializePatientId() async {
@@ -93,7 +106,7 @@ class _ContactsContentState extends State<ContactsContent> {
                 isEmergencyContact: false,
                 isCaretaker: true,
                 avatar: Icons.favorite_rounded,
-                color: primary,
+                color: _primaryColor,
                 profileImageUrl: caretaker['profileImageUrl'] as String?,
               );
             }).toList();
@@ -191,11 +204,21 @@ class _ContactsContentState extends State<ContactsContent> {
   List<ContactModel> get _allContacts => [..._caretakerContacts, ..._emergencyContacts];
 
   List<ContactModel> get _filteredContacts {
+    List<ContactModel> baseList = _allContacts;
+    
+    // Filter by Pill (All, Caretakers, SOS)
+    if (_selectedFilterIndex == 1) {
+      baseList = _caretakerContacts;
+    } else if (_selectedFilterIndex == 2) {
+      baseList = _emergencyContacts;
+    }
+
+    // Search query filter
     if (_searchQuery.isEmpty) {
-      return _allContacts;
+      return baseList;
     }
     
-    return _allContacts.where((contact) {
+    return baseList.where((contact) {
       return contact.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
              contact.relationship.toLowerCase().contains(_searchQuery.toLowerCase()) ||
              contact.phoneNumber.contains(_searchQuery);
@@ -371,29 +394,49 @@ class _ContactsContentState extends State<ContactsContent> {
 
     return RefreshIndicator(
       onRefresh: _refreshContacts,
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: width * 0.05,
-          right: width * 0.05,
-          top: spacingMedium,
-          bottom: 100,
-        ),
+      color: _primaryColor,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeader(),
-            const SizedBox(height: spacingLarge),
-            if (_allContacts.isNotEmpty) ...[
-              _buildSearchBar(),
-              const SizedBox(height: spacingLarge),
-            ],
-            isLoading
-                ? _buildLoadingState()
-                : _error != null && _allContacts.isEmpty
-                    ? _buildErrorState()
-                    : _allContacts.isEmpty
-                        ? _buildEmptyState()
-                        : _buildContactsList(),
+            Padding(
+              padding: EdgeInsets.only(
+                left: width * 0.05,
+                right: width * 0.05,
+                top: spacingLarge,
+              ),
+              child: _buildHeader(),
+            ),
+            const SizedBox(height: spacingMedium),
+            
+            // Edge-to-edge Mascot Banner with Bubble
+            _buildMascotBanner(),
+            
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: spacingMedium),
+                  
+                  // Filter Pills replacing search bar
+                  if (_allContacts.isNotEmpty) _buildFilterTabs(),
+                  
+                  const SizedBox(height: spacingLarge),
+                  
+                  isLoading
+                      ? _buildLoadingState()
+                      : _error != null && _allContacts.isEmpty
+                          ? _buildErrorState()
+                          : _allContacts.isEmpty
+                              ? _buildEmptyState()
+                              : _buildContactsList(),
+                              
+                  const SizedBox(height: 100), // Bottom padding
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -401,109 +444,231 @@ class _ContactsContentState extends State<ContactsContent> {
   }
 
   Widget _buildHeader() {
-    final caretakerCount = _caretakerContacts.length;
-    final emergencyCount = _emergencyContacts.length;
-    final totalCount = caretakerCount + emergencyCount;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'My Contacts',
-                    style: h2.copyWith(
-                      fontSize: 26,
-                      color: widget.theme.textColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    totalCount == 0
-                        ? 'No contacts yet'
-                        : '$totalCount contact${totalCount != 1 ? 's' : ''}'
-                          '${caretakerCount > 0 ? ' • $caretakerCount caretaker${caretakerCount != 1 ? 's' : ''}' : ''}',
-                    style: body.copyWith(
-                      color: widget.theme.subtextColor,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            Text(
+              'Contacts',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: widget.theme.textColor,
+                letterSpacing: -0.5,
               ),
             ),
-            Semantics(
-              label: 'Add new contact button',
-              button: true,
-              hint: 'Double tap to add a new emergency contact',
+            InkWell(
+              onTap: _showAddContactDialog,
+              borderRadius: BorderRadius.circular(20),
               child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [primary, primary.withValues(alpha: 0.8)],
-                  ),
-                  borderRadius: BorderRadius.circular(radiusLarge),
-                  boxShadow: widget.isDarkMode ? [] : softShadow,
+                  color: _primaryColor.withValues(alpha: widget.isDarkMode ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _showAddContactDialog,
-                    borderRadius: BorderRadius.circular(radiusLarge),
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Icon(Icons.add_rounded, color: white, size: 24),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, color: _primaryColor, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Add Contact',
+                      style: TextStyle(
+                        color: _primaryColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ],
         ),
+        const SizedBox(height: 4),
+        Text(
+          'Manage your network and SOS',
+          style: TextStyle(
+            fontSize: 14,
+            color: widget.theme.subtextColor,
+          ),
+        ),
+        const SizedBox(height: 4),
       ],
     );
   }
 
-  Widget _buildSearchBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05)
-              : Colors.black.withValues(alpha: 0.05),
-        ),
-        boxShadow: widget.isDarkMode ? [] : softShadow,
-      ),
-      child: TextField(
-        controller: _searchController,
-        style: body.copyWith(color: widget.theme.textColor),
-        onChanged: (value) => setState(() => _searchQuery = value),
-        decoration: InputDecoration(
-          hintText: 'Search contacts...',
-          hintStyle: body.copyWith(color: widget.theme.subtextColor),
-          prefixIcon: Icon(
-            Icons.search_rounded,
-            color: widget.theme.subtextColor,
-            size: 22,
+ Widget _buildMascotBanner() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Edge-to-edge gradient background strictly tied to the top
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                  _primaryColor.withValues(alpha: 0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
           ),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.clear_rounded, color: widget.theme.subtextColor),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: spacingMedium,
-            vertical: spacingMedium,
+        ),
+        
+        // Mascot and Speech Bubble
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width * 0.06,
+            // Notice: Removed vertical padding so the mascot touches the exact top of the gradient!
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Mascot Figure
+             Image.asset(
+                        'assets/seelai-icons/seelai2.png',
+                        width: 90,
+                        height: 105,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            color: primary.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.smart_toy_outlined,
+                            color: primary,
+                            size: 36,
+                          ),
+                        ),
+                      ),
+              
+              // Speech Bubble Tail (Pointing left, aligned to mouth)
+              Container(
+                margin: const EdgeInsets.only(bottom: 40), // Adjusted to connect perfectly
+                child: CustomPaint(
+                  size: const Size(12, 16),
+                  painter: _TailPainter(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                  ),
+                ),
+              ),
+
+              // Speech Bubble Content - Conversational text
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: widget.isDarkMode ? [] : [
+                      BoxShadow(
+                        color: _primaryColor.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // Keep it compact
+                    children: [
+                      Text(
+                        'Seelai',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _primaryColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Hello, ${_getFirstName()}! You have ${_caretakerContacts.length} caretaker${_caretakerContacts.length != 1 ? 's' : ''} and ${_emergencyContacts.length} SOS contact${_emergencyContacts.length != 1 ? 's' : ''} in your network.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: widget.isDarkMode
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : Colors.black87,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  // Pill Filters mimicking the "All, Debit, Credit" style
+  Widget _buildFilterTabs() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(child: _buildFilterPill('All', 0)),
+          const SizedBox(width: 10),
+          Expanded(child: _buildFilterPill('Caretakers', 1)),
+          const SizedBox(width: 10),
+          Expanded(child: _buildFilterPill('SOS', 2)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterPill(String label, int index) {
+    bool isSelected = _selectedFilterIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilterIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? _primaryColor : widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(24), // Pill shape
+          border: Border.all(
+            color: isSelected 
+                ? _primaryColor 
+                : (widget.isDarkMode ? Colors.white10 : Colors.black12),
+            width: 1.5,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: _primaryColor.withValues(alpha: 0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ] : [],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : widget.theme.subtextColor,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            fontSize: 13,
+            letterSpacing: 0.3,
           ),
         ),
       ),
@@ -516,8 +681,8 @@ class _ContactsContentState extends State<ContactsContent> {
         padding: const EdgeInsets.symmetric(vertical: 80),
         child: Column(
           children: [
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(primary),
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
               strokeWidth: 3,
             ),
             const SizedBox(height: spacingLarge),
@@ -581,7 +746,7 @@ class _ContactsContentState extends State<ContactsContent> {
               icon: const Icon(Icons.refresh_rounded),
               label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
+                backgroundColor: _primaryColor,
                 foregroundColor: white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: spacingXLarge,
@@ -600,6 +765,7 @@ class _ContactsContentState extends State<ContactsContent> {
 
   Widget _buildEmptyState() {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(spacingXLarge * 1.5),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
@@ -617,8 +783,8 @@ class _ContactsContentState extends State<ContactsContent> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  primary.withValues(alpha: 0.2),
-                  primary.withValues(alpha: 0.1),
+                  _primaryColor.withValues(alpha: 0.2),
+                  _primaryColor.withValues(alpha: 0.1),
                 ],
               ),
               shape: BoxShape.circle,
@@ -626,7 +792,7 @@ class _ContactsContentState extends State<ContactsContent> {
             child: Icon(
               Icons.contacts_rounded,
               size: 64,
-              color: primary.withValues(alpha: 0.5),
+              color: _primaryColor.withValues(alpha: 0.5),
             ),
           ),
           const SizedBox(height: spacingLarge),
@@ -658,31 +824,23 @@ class _ContactsContentState extends State<ContactsContent> {
   Widget _buildContactsList() {
     final filteredContacts = _filteredContacts;
     
-    if (filteredContacts.isEmpty && _searchQuery.isNotEmpty) {
+    if (filteredContacts.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 60),
           child: Column(
             children: [
               Icon(
-                Icons.search_off_rounded,
+                Icons.filter_list_off_rounded,
                 size: 64,
                 color: widget.theme.subtextColor.withValues(alpha: 0.3),
               ),
               const SizedBox(height: spacingLarge),
               Text(
-                'No contacts found',
+                'No contacts in this category',
                 style: bodyBold.copyWith(
                   color: widget.theme.textColor,
                   fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: spacingSmall),
-              Text(
-                'Try a different search term',
-                style: body.copyWith(
-                  color: widget.theme.subtextColor,
-                  fontSize: 14,
                 ),
               ),
             ],
@@ -698,18 +856,18 @@ class _ContactsContentState extends State<ContactsContent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (caretakers.isNotEmpty) ...[
-          _buildSectionLabel('My Caretakers', primary),
+          if (_selectedFilterIndex == 0) _buildSectionLabel('My Caretakers', _primaryColor),
           const SizedBox(height: spacingMedium),
           ...caretakers.map((contact) => Padding(
             padding: const EdgeInsets.only(bottom: spacingMedium),
             child: _buildContactCard(contact),
           )),
-          if (emergencyContacts.isNotEmpty)
+          if (emergencyContacts.isNotEmpty && _selectedFilterIndex == 0)
             const SizedBox(height: spacingLarge),
         ],
 
         if (emergencyContacts.isNotEmpty) ...[
-          _buildSectionLabel('Emergency Contacts', error),
+          if (_selectedFilterIndex == 0) _buildSectionLabel('Emergency Contacts', error),
           const SizedBox(height: spacingMedium),
           ...emergencyContacts.map((contact) => Padding(
             padding: const EdgeInsets.only(bottom: spacingMedium),
@@ -723,10 +881,10 @@ class _ContactsContentState extends State<ContactsContent> {
   Widget _buildSectionLabel(String title, Color color) {
     return Text(
       title,
-      style: bodyBold.copyWith(
-        fontSize: 14,
+      style: TextStyle(
+        fontSize: 16,
         color: widget.theme.textColor,
-        fontWeight: FontWeight.w600,
+        fontWeight: FontWeight.bold,
       ),
     );
   }
@@ -736,7 +894,13 @@ class _ContactsContentState extends State<ContactsContent> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
-        boxShadow: widget.isDarkMode ? [] : softShadow,
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
         border: Border.all(
           color: widget.isDarkMode
               ? Colors.white.withValues(alpha: 0.05)
@@ -948,7 +1112,7 @@ class _ContactsContentState extends State<ContactsContent> {
             const SizedBox(height: spacingLarge),
             if (!contact.isCaretaker)
               ListTile(
-                leading: const Icon(Icons.edit_rounded, color: primary),
+                leading: Icon(Icons.edit_rounded, color: _primaryColor),
                 title: Text('Edit Contact', style: body.copyWith(color: widget.theme.textColor)),
                 onTap: () {
                   Navigator.pop(bottomSheetContext);
@@ -988,7 +1152,9 @@ class _ContactsContentState extends State<ContactsContent> {
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
-        boxShadow: widget.isDarkMode ? [] : softShadow,
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)
+        ],
       ),
       child: ClipOval(
         child: hasProfileImage
@@ -997,13 +1163,13 @@ class _ContactsContentState extends State<ContactsContent> {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Color(0xFF9333EA), // Purple
-                          Color(0xFF7C3AED), // Darker purple
+                          _primaryColor, 
+                          _primaryColor.withValues(alpha: 0.8),
                         ],
                       ),
                     ),
@@ -1015,18 +1181,13 @@ class _ContactsContentState extends State<ContactsContent> {
                   );
                 },
                 loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) {
-                    return child;
-                  }
+                  if (loadingProgress == null) return child;
                   return Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF9333EA), // Purple
-                          Color(0xFF7C3AED), // Darker purple
-                        ],
+                        colors: [_primaryColor, _primaryColor.withValues(alpha: 0.8)],
                       ),
                     ),
                     child: Center(
@@ -1043,23 +1204,40 @@ class _ContactsContentState extends State<ContactsContent> {
                 },
               )
             : Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF9333EA), // Purple
-                      Color(0xFF7C3AED), // Darker purple
-                    ],
+                    colors: [_primaryColor, _primaryColor.withValues(alpha: 0.8)],
                   ),
                 ),
-                child: Icon(
-                  contact.avatar,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                child: Icon(contact.avatar, color: Colors.white, size: 28),
               ),
       ),
     );
   }
+}
+
+// Custom Painter to draw the speech bubble tail pointing to the mascot
+class _TailPainter extends CustomPainter {
+  final Color color;
+
+  _TailPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path();
+    
+    // Draw a triangle pointing to the left
+    path.moveTo(size.width, 0); // Top right corner
+    path.lineTo(0, size.height / 2); // Pointing left (middle)
+    path.lineTo(size.width, size.height); // Bottom right corner
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

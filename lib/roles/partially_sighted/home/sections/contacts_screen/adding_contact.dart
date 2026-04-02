@@ -27,6 +27,9 @@ class _AddContactDialogState extends State<AddContactDialog> {
   final TextEditingController _relationshipController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  
+  // Brand Color
+  final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
   void dispose() {
@@ -36,7 +39,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
     super.dispose();
   }
 
-Future<void> _addContact() async {
+  Future<void> _addContact() async {
     if (_formKey.currentState!.validate()) {
       try {
         await emergencyContactsService.addEmergencyContact(
@@ -46,19 +49,17 @@ Future<void> _addContact() async {
           relationship: _relationshipController.text,
         );
 
-        // GUARD: Check if the widget is still in the tree before proceeding
         if (!mounted) return;
 
         widget.onContactAdded?.call();
         Navigator.pop(context);
       } catch (e) {
-        // GUARD: Check if the widget is still mounted before showing the error
         if (!mounted) return;
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to add contact: $e'),
-            backgroundColor: error, // Assuming 'error' is defined in your constants
+            backgroundColor: error, 
           ),
         );
       }
@@ -91,7 +92,7 @@ Future<void> _addContact() async {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: primary, width: 2),
+          borderSide: BorderSide(color: _primaryColor, width: 2), // Now uses purple
         ),
         filled: true,
         fillColor: widget.isDarkMode 
@@ -169,7 +170,7 @@ Future<void> _addContact() async {
         ElevatedButton(
           onPressed: _addContact,
           style: ElevatedButton.styleFrom(
-            backgroundColor: primary,
+            backgroundColor: _primaryColor, // Now uses purple
             foregroundColor: white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(radiusMedium),

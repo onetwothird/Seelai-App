@@ -1,6 +1,5 @@
 // File: lib/roles/caretaker/home/sections/patients_screen/patients_content.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
@@ -36,6 +35,9 @@ class PatientsContent extends StatefulWidget {
 }
 
 class _PatientsContentState extends State<PatientsContent> {
+  // Brand Colors - Vibrant Purple
+  final Color _primaryColor = const Color(0xFF7C3AED);
+
   StreamSubscription? _patientsSubscription;
   List<PatientModel> _patients = [];
   bool _isLoading = true;
@@ -48,6 +50,13 @@ class _PatientsContentState extends State<PatientsContent> {
   void initState() {
     super.initState();
     _initializeCaretakerId();
+  }
+
+  // Helper to safely extract the first name from user data
+  String _getFirstName() {
+    final name = widget.userData['name'] as String? ?? 'Caretaker';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    return parts.isNotEmpty ? parts.first : 'Caretaker';
   }
 
   Future<void> _initializeCaretakerId() async {
@@ -93,7 +102,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 disabilityType: patientData['disabilityType'] ?? 'Not specified',
                 contactNumber: patientData['contactNumber'] ?? patientData['phone'] ?? 'N/A',
                 address: patientData['address'] ?? 'No address',
-                isOnline: false, // You might want to hook this up to real presence data
+                isOnline: false, // Hook this up to real presence data if needed
                 lastActive: DateTime.now(),
                 profileImageUrl: patientData['profileImageUrl'] as String?,
               );
@@ -129,7 +138,7 @@ class _PatientsContentState extends State<PatientsContent> {
     }
     
     setState(() => _isLoading = true);
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
     
     if (mounted) {
       setState(() => _isLoading = false);
@@ -151,37 +160,52 @@ class _PatientsContentState extends State<PatientsContent> {
 
     return RefreshIndicator(
       onRefresh: _refreshPatients,
+      color: _primaryColor,
       child: SingleChildScrollView(
         controller: widget.scrollController, 
-        physics: AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.only(
-          left: width * 0.05,
-          right: width * 0.05,
-          top: spacingMedium,
-          bottom: 100,
-        ),
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
-            _buildHeader(),
+            Padding(
+              padding: EdgeInsets.only(
+                left: width * 0.05,
+                right: width * 0.05,
+                top: spacingLarge,
+              ),
+              child: _buildHeader(),
+            ),
+            const SizedBox(height: spacingMedium),
             
-            SizedBox(height: spacingLarge),
+            // Edge-to-edge Mascot Banner with Bubble
+            _buildMascotBanner(),
             
-            // Search Bar (only show if there are patients)
-            if (_patients.isNotEmpty) ...[
-              _buildSearchBar(),
-              SizedBox(height: spacingLarge),
-            ],
-            
-            // Content
-            _isLoading && _patients.isEmpty
-                ? _buildLoadingState()
-                : _error != null && _patients.isEmpty
-                    ? _buildErrorState()
-                    : _patients.isEmpty
-                        ? _buildEmptyState()
-                        : _buildPatientsList(),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: spacingMedium),
+                  
+                  // Search Bar (only show if there are patients)
+                  if (_patients.isNotEmpty) ...[
+                    _buildSearchBar(),
+                    const SizedBox(height: spacingLarge),
+                  ],
+                  
+                  // Content
+                  _isLoading && _patients.isEmpty
+                      ? _buildLoadingState()
+                      : _error != null && _patients.isEmpty
+                          ? _buildErrorState()
+                          : _patients.isEmpty
+                              ? _buildEmptyState()
+                              : _buildPatientsList(),
+                              
+                  const SizedBox(height: 100), // Bottom padding
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -189,40 +213,134 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   Widget _buildHeader() {
-    final onlineCount = _patients.where((p) => p.isOnline).length;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'My Patients',
-                    style: h2.copyWith(
-                      fontSize: 26,
-                      color: widget.theme.textColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    _patients.isEmpty 
-                      ? 'No patients yet'
-                      : '${_patients.length} patient${_patients.length != 1 ? 's' : ''}'
-                        '${onlineCount > 0 ? ' • $onlineCount online' : ''}',
-                    style: body.copyWith(
-                      color: widget.theme.subtextColor,
-                      fontSize: 14,
-                    ),
-                  ),
+        Text(
+          'My Patients',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            color: widget.theme.textColor,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Manage and monitor your paired users',
+          style: TextStyle(
+            fontSize: 14,
+            color: widget.theme.subtextColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMascotBanner() {
+    final onlineCount = _patients.where((p) => p.isOnline).length;
+    final totalCount = _patients.length;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Edge-to-edge gradient background strictly tied to the top
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                  _primaryColor.withValues(alpha: 0.0),
                 ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
-          ],
+          ),
+        ),
+        
+        // Mascot and Speech Bubble
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width * 0.05,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Mascot Figure
+              Image.asset(
+                'assets/seelai-icons/seelai2.png',
+                height: 120, // Slightly reduced to fit better
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 100, width: 100,
+                  alignment: Alignment.bottomCenter,
+                  child: Icon(Icons.image_not_supported, color: widget.theme.subtextColor),
+                ),
+              ),
+              
+              // Speech Bubble Tail (Pointing left, aligned to mouth)
+              Container(
+                margin: const EdgeInsets.only(bottom: 40), // Adjusted to connect perfectly
+                child: CustomPaint(
+                  size: const Size(12, 16),
+                  painter: _TailPainter(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                  ),
+                ),
+              ),
+
+              // Speech Bubble Content - Conversational text
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: widget.isDarkMode ? [] : [
+                      BoxShadow(
+                        color: _primaryColor.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // Keep it compact
+                    children: [
+                      Text(
+                        'Seelai',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _primaryColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Hello, ${_getFirstName()}! You are currently caring for $totalCount patient${totalCount != 1 ? 's' : ''}${totalCount > 0 ? ', with $onlineCount online right now.' : '.'}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: widget.isDarkMode
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : Colors.black87,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -244,7 +362,7 @@ class _PatientsContentState extends State<PatientsContent> {
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 8,
-                offset: Offset(0, 2),
+                offset: const Offset(0, 2),
               ),
             ],
       ),
@@ -270,7 +388,7 @@ class _PatientsContentState extends State<PatientsContent> {
               )
             : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             horizontal: spacingMedium,
             vertical: spacingMedium,
           ),
@@ -282,14 +400,14 @@ class _PatientsContentState extends State<PatientsContent> {
   Widget _buildLoadingState() {
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 80),
+        padding: const EdgeInsets.symmetric(vertical: 80),
         child: Column(
           children: [
             CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(primary),
+              valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
               strokeWidth: 3,
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             Text(
               'Loading patients...',
               style: body.copyWith(
@@ -305,11 +423,11 @@ class _PatientsContentState extends State<PatientsContent> {
   Widget _buildErrorState() {
     return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.all(spacingXLarge),
+              padding: const EdgeInsets.all(spacingXLarge),
               decoration: BoxDecoration(
                 color: error.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -320,7 +438,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 color: error.withValues(alpha: 0.5),
               ),
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             Text(
               'Failed to load patients',
               style: bodyBold.copyWith(
@@ -328,7 +446,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 fontSize: 18,
               ),
             ),
-            SizedBox(height: spacingSmall),
+            const SizedBox(height: spacingSmall),
             Text(
               _error ?? 'An error occurred',
               style: body.copyWith(
@@ -337,7 +455,7 @@ class _PatientsContentState extends State<PatientsContent> {
               ),
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             ElevatedButton.icon(
               onPressed: () {
                 setState(() {
@@ -346,12 +464,12 @@ class _PatientsContentState extends State<PatientsContent> {
                 });
                 _initializeCaretakerId();
               },
-              icon: Icon(Icons.refresh_rounded),
-              label: Text('Try Again'),
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try Again'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
+                backgroundColor: _primaryColor,
                 foregroundColor: white,
-                padding: EdgeInsets.symmetric(
+                padding: const EdgeInsets.symmetric(
                   horizontal: spacingXLarge,
                   vertical: spacingMedium,
                 ),
@@ -368,25 +486,26 @@ class _PatientsContentState extends State<PatientsContent> {
 
   Widget _buildEmptyState() {
     return Container(
-      padding: EdgeInsets.all(spacingXLarge * 1.5),
+      width: double.infinity,
+      padding: const EdgeInsets.all(spacingXLarge * 1.5),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
         border: Border.all(
           color: widget.isDarkMode 
-            ? primary.withValues(alpha: 0.2)
+            ? _primaryColor.withValues(alpha: 0.2)
             : Colors.black.withValues(alpha: 0.06),
         ),
       ),
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.all(spacingXLarge),
+            padding: const EdgeInsets.all(spacingXLarge),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  primary.withValues(alpha: 0.2),
-                  primary.withValues(alpha: 0.1),
+                  _primaryColor.withValues(alpha: 0.2),
+                  _primaryColor.withValues(alpha: 0.1),
                 ],
               ),
               shape: BoxShape.circle,
@@ -394,10 +513,10 @@ class _PatientsContentState extends State<PatientsContent> {
             child: Icon(
               Icons.people_outline_rounded,
               size: 64,
-              color: primary.withValues(alpha: 0.5),
+              color: _primaryColor.withValues(alpha: 0.5),
             ),
           ),
-          SizedBox(height: spacingLarge),
+          const SizedBox(height: spacingLarge),
           Text(
             'No patients yet',
             style: bodyBold.copyWith(
@@ -405,9 +524,9 @@ class _PatientsContentState extends State<PatientsContent> {
               fontSize: 18,
             ),
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               'When visually impaired users select you as their caretaker, they will appear here automatically',
               style: body.copyWith(
@@ -430,7 +549,7 @@ class _PatientsContentState extends State<PatientsContent> {
     if (filteredPatients.isEmpty && _searchQuery.isNotEmpty) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 60),
+          padding: const EdgeInsets.symmetric(vertical: 60),
           child: Column(
             children: [
               Icon(
@@ -438,7 +557,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 size: 64,
                 color: widget.theme.subtextColor.withOpacity(0.3),
               ),
-              SizedBox(height: spacingLarge),
+              const SizedBox(height: spacingLarge),
               Text(
                 'No patients found',
                 style: bodyBold.copyWith(
@@ -446,7 +565,7 @@ class _PatientsContentState extends State<PatientsContent> {
                   fontSize: 16,
                 ),
               ),
-              SizedBox(height: spacingSmall),
+              const SizedBox(height: spacingSmall),
               Text(
                 'Try a different search term',
                 style: body.copyWith(
@@ -463,7 +582,7 @@ class _PatientsContentState extends State<PatientsContent> {
     return Column(
       children: filteredPatients.map((patient) {
         return Padding(
-          padding: EdgeInsets.only(bottom: spacingMedium),
+          padding: const EdgeInsets.only(bottom: spacingMedium),
           child: _buildPatientCard(patient),
         );
       }).toList(),
@@ -478,21 +597,21 @@ class _PatientsContentState extends State<PatientsContent> {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: primary.withValues(alpha: 0.1),
+                  color: _primaryColor.withValues(alpha: 0.1),
                   blurRadius: 16,
-                  offset: Offset(0, 6),
+                  offset: const Offset(0, 6),
                 ),
               ]
             : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 12,
-                  offset: Offset(0, 3),
+                  offset: const Offset(0, 3),
                 ),
               ],
         border: Border.all(
           color: widget.isDarkMode
-              ? primary.withValues(alpha: 0.2)
+              ? _primaryColor.withValues(alpha: 0.2)
               : Colors.black.withValues(alpha: 0.06),
           width: 1,
         ),
@@ -514,7 +633,7 @@ class _PatientsContentState extends State<PatientsContent> {
           },
           borderRadius: BorderRadius.circular(radiusXLarge),
           child: Padding(
-            padding: EdgeInsets.all(spacingLarge),
+            padding: const EdgeInsets.all(spacingLarge),
             child: Column(
               children: [
                 Row(
@@ -543,14 +662,13 @@ class _PatientsContentState extends State<PatientsContent> {
                           ),
                       ],
                     ),
-                    SizedBox(width: spacingMedium),
+                    const SizedBox(width: spacingMedium),
                     
                     // Main Info Column
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // FIXED: Add text overflow handling to Name
                           Text(
                             patient.name,
                             style: bodyBold.copyWith(
@@ -561,19 +679,19 @@ class _PatientsContentState extends State<PatientsContent> {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: 6),
+                          const SizedBox(height: 6),
                           
                           // Tags Row
                           Row(
                             children: [
                               // Age Tag
                               Container(
-                                padding: EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   horizontal: spacingSmall,
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: primary.withValues(alpha: 0.15),
+                                  color: _primaryColor.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(radiusSmall),
                                 ),
                                 child: Row(
@@ -582,26 +700,26 @@ class _PatientsContentState extends State<PatientsContent> {
                                     Icon(
                                       Icons.cake_rounded,
                                       size: 12,
-                                      color: primary,
+                                      color: _primaryColor,
                                     ),
-                                    SizedBox(width: 4),
+                                    const SizedBox(width: 4),
                                     Text(
                                       '${patient.age} y/o',
                                       style: caption.copyWith(
                                         fontSize: 12,
-                                        color: primary,
+                                        color: _primaryColor,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                              SizedBox(width: spacingSmall),
+                              const SizedBox(width: spacingSmall),
                               
-                              // FIXED: Wrapped Disability Tag in Flexible to prevent overflow
+                              // Disability Tag
                               Flexible(
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
+                                  padding: const EdgeInsets.symmetric(
                                     horizontal: spacingSmall,
                                     vertical: 4,
                                   ),
@@ -612,12 +730,12 @@ class _PatientsContentState extends State<PatientsContent> {
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.visibility_off_rounded,
                                         size: 12,
                                         color: accent,
                                       ),
-                                      SizedBox(width: 4),
+                                      const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
                                           patient.disabilityType,
@@ -639,7 +757,7 @@ class _PatientsContentState extends State<PatientsContent> {
                           
                           // Address Row
                           if (patient.address != null && patient.address != 'No address') ...[
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
                             Row(
                               children: [
                                 Icon(
@@ -647,7 +765,7 @@ class _PatientsContentState extends State<PatientsContent> {
                                   size: 14,
                                   color: widget.theme.subtextColor,
                                 ),
-                                SizedBox(width: 4),
+                                const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     patient.address!,
@@ -676,9 +794,9 @@ class _PatientsContentState extends State<PatientsContent> {
                   ],
                 ),
                 
-                SizedBox(height: spacingMedium),
+                const SizedBox(height: spacingMedium),
                 Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
-                SizedBox(height: spacingMedium),
+                const SizedBox(height: spacingMedium),
                 
                 // Quick Actions
                 Row(
@@ -691,12 +809,12 @@ class _PatientsContentState extends State<PatientsContent> {
                         onTap: () => callPatient(context, patientName: patient.name),
                       ),
                     ),
-                    SizedBox(width: spacingSmall),
+                    const SizedBox(width: spacingSmall),
                     Expanded(
                       child: _buildActionButton(
                         icon: Icons.message_rounded,
                         label: 'Message',
-                        color: primary,
+                        color: _primaryColor,
                         isOutlined: true,
                         onTap: () => messagePatient(context, patientName: patient.name),
                       ),
@@ -725,7 +843,7 @@ class _PatientsContentState extends State<PatientsContent> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(radiusMedium),
         child: Container(
-          padding: EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
             border: isOutlined ? Border.all(color: color, width: 1.5) : null,
             borderRadius: BorderRadius.circular(radiusMedium),
@@ -738,7 +856,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 size: 18,
                 color: isOutlined ? color : white,
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Text(
                 label,
                 style: bodyBold.copyWith(
@@ -753,14 +871,11 @@ class _PatientsContentState extends State<PatientsContent> {
     );
   }
 
-  // In patients_content.dart
-
   Widget _buildProfileAvatar(PatientModel patient) {
     final hasProfileImage = patient.profileImageUrl != null && 
                             patient.profileImageUrl!.isNotEmpty;
 
     return Hero(
-      // Ensure IDs are unique! If multiple patients have ID "1", this animation breaks.
       tag: 'patient_avatar_${patient.id}',
       child: Material(
         color: Colors.transparent,
@@ -771,10 +886,11 @@ class _PatientsContentState extends State<PatientsContent> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: Colors.black,
+              color: widget.isDarkMode 
+                ? Colors.white.withValues(alpha: 0.1) 
+                : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
-            // Important: Background color ensures no transparency issues during flight
             color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[200],
           ),
           child: ClipOval(
@@ -782,7 +898,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 ? Image.network(
                     patient.profileImageUrl!,
                     fit: BoxFit.cover,
-                    // Use standard error/loading builders
                     errorBuilder: (context, error, stackTrace) => _buildAvatarPlaceholder(),
                     loadingBuilder: (context, child, loadingProgress) {
                        if (loadingProgress == null) return child;
@@ -796,10 +911,9 @@ class _PatientsContentState extends State<PatientsContent> {
     );
   }
 
-  // Helper for cleaner code and consistent placeholder
   Widget _buildAvatarPlaceholder({bool isLoading = false}) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -811,12 +925,36 @@ class _PatientsContentState extends State<PatientsContent> {
       ),
       child: Center(
         child: isLoading 
-          ? Padding(
+          ? const Padding(
               padding: EdgeInsets.all(12),
               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
             )
-          : Icon(Icons.person_rounded, color: Colors.white, size: 32),
+          : const Icon(Icons.person_rounded, color: Colors.white, size: 32),
       ),
     );
   }
+}
+
+// Custom Painter to draw the speech bubble tail pointing to the mascot
+class _TailPainter extends CustomPainter {
+  final Color color;
+
+  _TailPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path();
+    
+    // Draw a triangle pointing to the left
+    path.moveTo(size.width, 0); // Top right corner
+    path.lineTo(0, size.height / 2); // Pointing left (middle)
+    path.lineTo(size.width, size.height); // Bottom right corner
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

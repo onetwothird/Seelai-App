@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/auth/login/login_screen.dart';
 import 'package:seelai_app/roles/partially_sighted/auth/signup/signup_screen.dart';
@@ -59,9 +58,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
       backgroundColor: Colors.white, // Clean white background
       body: Stack(
         children: [
-          // REMOVED: Ambient Background Glows to keep it white only.
-
-          // 2. MAIN CONTENT
+          // MAIN CONTENT
           SafeArea(
             child: Column(
               children: [
@@ -102,7 +99,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                               "Who is using\nSeelai?",
                               style: TextStyle(
                                 fontSize: 32,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: FontWeight.w900,
                                 height: 1.1,
                                 letterSpacing: -1.0,
                                 color: Color(0xFF1E293B),
@@ -115,7 +112,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                 fontSize: 16,
                                 height: 1.5,
                                 color: Color(0xFF64748B),
-                                fontWeight: FontWeight.w400,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
 
@@ -132,7 +129,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                     subtitle:
                                         "I need assistance navigating my world.",
                                     icon: Icons.visibility_off_outlined,
-                                    color: _primaryColor, // Unified Color
+                                    color: _primaryColor, 
                                   ),
                                   const SizedBox(height: 16),
                                   _buildRoleCard(
@@ -140,7 +137,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                     title: "Caretaker / Family",
                                     subtitle: "I want to support a loved one.",
                                     icon: Icons.favorite_border_rounded,
-                                    color: _primaryColor, // Unified Color
+                                    color: _primaryColor, 
                                   ),
                                   const SizedBox(height: 16),
                                   _buildRoleCard(
@@ -149,7 +146,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                     subtitle:
                                         "I manage cases and support services.",
                                     icon: Icons.badge_outlined,
-                                    color: _primaryColor, // Unified Color
+                                    color: _primaryColor, 
                                   ),
                                   const SizedBox(height: 100),
                                 ],
@@ -165,7 +162,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
             ),
           ),
 
-          // 3. Floating Button
+          // Floating Continue Button
           Positioned(
             bottom: 0,
             left: 0,
@@ -191,12 +188,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                       ? null
                       : () => _showAuthBottomSheet(context),
                   style: ElevatedButton.styleFrom(
-                    // Unified color
                     backgroundColor: _primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 18),
-                      elevation: 8,
-                      shadowColor: _primaryColor.withValues(alpha: 0.4),
+                    elevation: 8,
+                    shadowColor: _primaryColor.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -206,7 +202,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     "Continue",
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
@@ -231,20 +227,20 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
       onTap: () => setState(() => _selectedRole = id),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
+        curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade100,
-            width: isSelected ? 2 : 1,
+            color: isSelected ? color : Colors.grey.shade200,
+            width: isSelected ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
               color: isSelected
                   ? color.withValues(alpha: 0.15)
-                  : Colors.grey.withValues(alpha: 0.05),
+                  : Colors.black.withValues(alpha: 0.02),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -261,7 +257,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
               child: Icon(
                 icon,
                 color: isSelected ? Colors.white : const Color(0xFF64748B),
-                size: 28,
+                size: 24,
               ),
             ),
             const SizedBox(width: 16),
@@ -272,8 +268,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
                       color: isSelected
                           ? const Color(0xFF0F172A)
                           : const Color(0xFF334155),
@@ -307,9 +304,6 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
   }
 
   void _showAuthBottomSheet(BuildContext context) {
-    // Use the unified primary color
-    final activeColor = _primaryColor;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -323,39 +317,47 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(32.0),
+          padding: const EdgeInsets.fromLTRB(32, 16, 32, 40), // Adjusted padding
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start, // Left aligned text
             children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
+              // Drag indicator
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 32),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: activeColor.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.lock_person_rounded,
-                    size: 32, color: activeColor),
+              
+              // Clean Typography Header (No Icon)
+              const Text(
+                "Let's get you in",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                  color: Color(0xFF1E293B),
+                )
               ),
-              const SizedBox(height: 24),
-              const Text("Let's get you in",
-                  style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF1E293B))),
               const SizedBox(height: 8),
-              const Text("Log in or create a new account to continue.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF64748B), fontSize: 15)),
-              const SizedBox(height: 32),
+              const Text(
+                "Log in or create a new account to continue.",
+                style: TextStyle(
+                  color: Color(0xFF64748B), 
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                )
+              ),
+              
+              const SizedBox(height: 36),
+              
+              // Buttons
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -367,12 +369,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E293B),
                     foregroundColor: Colors.white,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),
                   child: const Text("Log In",
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -392,10 +395,10 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   ),
                   child: const Text("Create Account",
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
             ],
           ),
         ),

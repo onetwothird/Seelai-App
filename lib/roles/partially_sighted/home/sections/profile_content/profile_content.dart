@@ -87,10 +87,10 @@ class _ProfileContentState extends State<ProfileContent> {
           Text(
             'Profile & Settings',
             style: TextStyle(
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
-              color: widget.theme.textColor,
-              letterSpacing: -0.5,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: widget.theme.textColor,
+            letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 32),

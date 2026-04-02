@@ -1,12 +1,13 @@
-// File: lib/roles/mswd/home/home_screen.dart
+// File: lib/roles/mswd/home/mswd_home_screen.dart
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'; // NEW IMPORT REQUIRED FOR SCROLL DIRECTION
 import 'package:firebase_database/firebase_database.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/urgent_alerts_section.dart';
 import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/mswd/home/widgets/header_section.dart';
+import 'package:seelai_app/roles/mswd/home/widgets/mswd_header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/announcement.dart';
 import 'package:seelai_app/roles/mswd/home/sections/users/users_content.dart';
@@ -40,17 +41,14 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   // Data State for Notifications & Dashboard
   int _pendingRequestsCount = 0;
   StreamSubscription<DatabaseEvent>? _requestsSubscription;
-  late Future<Map<String, int>> _dashboardStatsFuture; // Cached future to prevent reloading
+  late Future<Map<String, int>> _dashboardStatsFuture; 
   
-  // Scroll detection for bottom nav
-  final ScrollController _scrollController = ScrollController();
+  // Scroll Navigation State
   bool _isNavVisible = true;
-  double _lastScrollPosition = 0;
 
   @override
   void initState() {
     super.initState();
-    _initializeScrollListener();
     _startPendingRequestsListener();
     _dashboardStatsFuture = adminService.getUserStatistics(); // Load stats ONCE here
   }
@@ -77,35 +75,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     });
   }
 
-  void _initializeScrollListener() {
-    _scrollController.addListener(_handleScroll);
-  }
-
-  void _handleScroll() {
-    final currentScroll = _scrollController.position.pixels;
-    final scrollDelta = currentScroll - _lastScrollPosition;
-    
-    const scrollThreshold = 10.0;
-    
-    if (scrollDelta.abs() > scrollThreshold) {
-      final shouldShow = scrollDelta < 0;
-      
-      if (shouldShow != _isNavVisible) {
-        setState(() {
-          _isNavVisible = shouldShow;
-        });
-      }
-      
-      _lastScrollPosition = currentScroll;
-    }
-    
-    if (currentScroll <= 0 && !_isNavVisible) {
-      setState(() {
-        _isNavVisible = true;
-      });
-    }
-  }
-
   void _toggleDarkMode() {
     setState(() {
       _isDarkMode = !_isDarkMode;
@@ -121,7 +90,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   @override
   void dispose() {
     _requestsSubscription?.cancel();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -170,8 +138,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final adminName = widget.userData['name'] ?? 'Admin';
-
+    
     final theme = _isDarkMode ? _getDarkTheme() : _getLightTheme();
 
     return PopScope(
@@ -193,11 +160,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                 height: 56,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: const Color(0xFF8B5CF6), // Clean solid purple
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
@@ -212,24 +175,24 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                   child: InkWell(
                     borderRadius: BorderRadius.circular(28),
                     onTap: () => _showAddOptionsBottomSheet(context),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 0),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.center_focus_strong_rounded,
                             color: Colors.white, 
                             size: 22
                           ),
-                          const SizedBox(width: 10),
-                          const Text(
+                          SizedBox(width: 10),
+                          Text(
                             'Add Face/Object',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.5,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.3,
                             ),
                           ),
                         ],
@@ -245,61 +208,34 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           decoration: BoxDecoration(gradient: theme.backgroundGradient),
           child: SafeArea(
             bottom: false,
-            child: Column(
-              children: [
-                if (_selectedIndex != 4)
-                  HeaderSection(
-                    adminName: adminName,
-                    profileImageUrl: widget.userData['profileImageUrl'] as String?,
-                    isDarkMode: _isDarkMode,
-                    pendingRequestsCount: _pendingRequestsCount, 
-                    onToggleDarkMode: _toggleDarkMode,
-                    onProfileTap: () {
-                      setState(() {
-                        _selectedIndex = 4;
-                      });
-                    },
-                    onNotificationTap: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => SizedBox(
-                          height: MediaQuery.of(context).size.height * 0.85,
-                          child: MSWDNotificationsBottomSheet(
-                            adminId: widget.userData['userId'] ?? '',
-                            isDarkMode: _isDarkMode,
-                            assistanceRequestService: assistanceRequestService,
-                          ),
-                        ),
-                      );
-                    },
-                    textColor: theme.textColor,
-                    subtextColor: theme.subtextColor,
-                  ),
-                
-                Expanded(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    switchInCurve: Curves.easeInOutCubic,
-                    switchOutCurve: Curves.easeInOutCubic,
-                    // FIX: This forces the incoming child to align to the top, preventing the mid-screen jump!
-                    layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                      return Stack(
-                        alignment: Alignment.topCenter, 
-                        children: <Widget>[
-                          ...previousChildren,
-                          if (currentChild != null) currentChild,
-                        ],
-                      );
-                    },
-                    child: SizedBox(
-                      key: ValueKey<int>(_selectedIndex),
-                      child: _buildMainContent(screenWidth, screenHeight, theme),
-                    ),
-                  ),
+            // --- ADDED NOTIFICATION LISTENER FOR SCROLLING ---
+            child: NotificationListener<UserScrollNotification>(
+              onNotification: (notification) {
+                if (notification.direction == ScrollDirection.forward) {
+                  if (!_isNavVisible) setState(() => _isNavVisible = true);
+                } else if (notification.direction == ScrollDirection.reverse) {
+                  if (_isNavVisible) setState(() => _isNavVisible = false);
+                }
+                return false; 
+              },
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeInOutCubic,
+                switchOutCurve: Curves.easeInOutCubic,
+                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                  return Stack(
+                    alignment: Alignment.topCenter, 
+                    children: <Widget>[
+                      ...previousChildren,
+                      ?currentChild,
+                    ],
+                  );
+                },
+                child: SizedBox(
+                  key: ValueKey<int>(_selectedIndex),
+                  child: _buildMainContent(screenWidth, screenHeight, theme),
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -324,11 +260,50 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
+    // Helper to build the header inside the scrollable content
+    Widget buildScrollableHeader() {
+      final adminName = widget.userData['name'] ?? 'Admin';
+      return HeaderSection(
+        adminName: adminName,
+        profileImageUrl: widget.userData['profileImageUrl'] as String?,
+        isDarkMode: _isDarkMode,
+        pendingRequestsCount: _pendingRequestsCount, 
+        onToggleDarkMode: _toggleDarkMode,
+        onProfileTap: () {
+          setState(() {
+            _selectedIndex = 4;
+          });
+        },
+        onNotificationTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (context) => SizedBox(
+              height: MediaQuery.of(context).size.height * 0.85,
+              child: MSWDNotificationsBottomSheet(
+                adminId: widget.userData['userId'] ?? '',
+                isDarkMode: _isDarkMode,
+                assistanceRequestService: assistanceRequestService,
+              ),
+            ),
+          );
+        },
+        textColor: theme.textColor,
+        subtextColor: theme.subtextColor,
+      );
+    }
+
     Widget content;
     
     switch (_selectedIndex) {
       case 0:
-        content = _buildDashboardContent(width, theme);
+        content = Column(
+          children: [
+            buildScrollableHeader(),
+            _buildDashboardContent(width, theme),
+          ],
+        );
         break;
       case 1:
         content = UsersContent(
@@ -361,16 +336,21 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         );
         break;
       default:
-        content = _buildDashboardContent(width, theme);
+        content = Column(
+          children: [
+            buildScrollableHeader(),
+            _buildDashboardContent(width, theme),
+          ],
+        );
     }
     
+    // Map screen doesn't need to be scrollable
     if (_selectedIndex == 3) {
       return content;
     }
     
     return SingleChildScrollView(
-      controller: _scrollController,
-      physics: const ClampingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(), 
       child: content,
     );
   }
@@ -381,7 +361,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         left: width * 0.05,
         right: width * 0.05,
         top: 16, 
-        bottom: 100,
+        bottom: 120, // Extra padding to avoid overlapping with FAB
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,7 +369,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           DashboardStats(
             isDarkMode: _isDarkMode,
             theme: theme,
-            statsFuture: _dashboardStatsFuture, // Pass the cached future down!
+            statsFuture: _dashboardStatsFuture, 
           ),
           
           const SizedBox(height: 20),
@@ -463,95 +443,94 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       isScrollControlled: true,
       builder: (BuildContext bc) {
         return Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
           decoration: BoxDecoration(
             color: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: _isDarkMode ? Colors.white24 : Colors.black12,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'What would you like to add?',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: _isDarkMode ? Colors.white : Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Register a new subject for detection',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: _isDarkMode ? Colors.white54 : Colors.black54,
-                ),
-              ),
-              const SizedBox(height: 32),
-              
-              _buildAddOptionCard(
-                icon: Icons.face_retouching_natural_rounded,
-                title: 'Caretaker Face',
-                subtitle: 'Scan and register a new trusted person',
-                gradientColors: [
-                  primaryColor, 
-                  primaryColor.withValues(alpha: 0.8)
-                ], 
-                onTap: () {
-                  Navigator.pop(bc);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SubjectRegistrationScreen(
-                        isDarkMode: _isDarkMode,
-                        subjectType: SubjectType.face,
-                      ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Drag Handle
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: _isDarkMode ? Colors.white24 : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  );
-                },
-              ),
-              
-              const SizedBox(height: 16),
-              
-              _buildAddOptionCard(
-                icon: Icons.view_in_ar_rounded, 
-                title: 'New Object',
-                subtitle: 'Scan an everyday item for detection',
-                gradientColors: [
-                  primaryColor.withValues(alpha: 0.8), 
-                  primaryColor.withValues(alpha: 0.6)
-                ], 
-                onTap: () {
-                  Navigator.pop(bc);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SubjectRegistrationScreen(
-                        isDarkMode: _isDarkMode,
-                        subjectType: SubjectType.object,
+                  ),
+                ),
+                
+                // Header Text
+                Text(
+                  'Add New Registry',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: _isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Select the type of subject you want to scan for the visually impaired user.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: _isDarkMode ? Colors.white60 : const Color(0xFF64748B),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                
+                // Caretaker Face Card
+                _buildAddOptionCard(
+                  icon: Icons.face_retouching_natural_rounded,
+                  title: 'Caretaker Face',
+                  subtitle: 'Scan and register a new trusted person',
+                  primaryColor: primaryColor, 
+                  onTap: () {
+                    Navigator.pop(bc);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubjectRegistrationScreen(
+                          isDarkMode: _isDarkMode,
+                          subjectType: SubjectType.face,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-            ],
+                    );
+                  },
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // New Object Card
+                _buildAddOptionCard(
+                  icon: Icons.view_in_ar_rounded, 
+                  title: 'New Object',
+                  subtitle: 'Scan an everyday item for detection',
+                  primaryColor: const Color(0xFF3B82F6), // Blue to differentiate
+                  onTap: () {
+                    Navigator.pop(bc);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubjectRegistrationScreen(
+                          isDarkMode: _isDarkMode,
+                          subjectType: SubjectType.object,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         );
       },
@@ -562,7 +541,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     required IconData icon,
     required String title,
     required String subtitle,
-    required List<Color> gradientColors,
+    required Color primaryColor,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -571,32 +550,29 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: _isDarkMode ? const Color(0xFF0F1429) : const Color(0xFFF8FAFC),
+          color: _isDarkMode ? const Color(0xFF0F1429) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: _isDarkMode ? Colors.white12 : Colors.black.withValues(alpha: 0.05),
+            color: _isDarkMode ? Colors.white10 : Colors.grey.shade200,
           ),
+          boxShadow: _isDarkMode ? [] : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
+            // Soft tinted icon container
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: gradientColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: primaryColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: gradientColors[0].withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
-              child: Icon(icon, color: Colors.white, size: 28),
+              child: Icon(icon, color: primaryColor, size: 28),
             ),
             const SizedBox(width: 20),
             Expanded(
@@ -607,24 +583,27 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                     title,
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: _isDarkMode ? Colors.white : Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.3,
+                      color: _isDarkMode ? Colors.white : const Color(0xFF1E293B),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
                     style: TextStyle(
-                      fontSize: 12,
-                      color: _isDarkMode ? Colors.white60 : Colors.black54,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: _isDarkMode ? Colors.white60 : const Color(0xFF64748B),
                     ),
                   ),
                 ],
               ),
             ),
             Icon(
-              Icons.chevron_right_rounded,
-              color: _isDarkMode ? Colors.white38 : Colors.black26,
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: _isDarkMode ? Colors.white38 : Colors.grey.shade400,
             ),
           ],
         ),
