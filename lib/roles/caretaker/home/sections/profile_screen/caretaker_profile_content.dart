@@ -75,12 +75,12 @@ class _ProfileContentState extends State<ProfileContent> {
           // ==================== PAGE HEADER ====================
           Text(
             'Profile & Settings',
-            style: TextStyle(
-              fontSize: 21,
-              fontWeight: FontWeight.bold,
-              color: widget.theme.textColor,
-              letterSpacing: -0.5,
-            ),
+           style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            color: widget.theme.textColor,
+            letterSpacing: -0.5,
+          ),
           ),
           const SizedBox(height: 32),
 

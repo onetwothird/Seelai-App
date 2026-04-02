@@ -1,4 +1,7 @@
+// File: lib/roles/partially_sighted/home/home_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'; 
 import 'package:seelai_app/roles/partially_sighted/home/sections/recent_activities/view_recent_activites.dart';
 import 'dart:async';
 import 'package:seelai_app/themes/constants.dart';
@@ -14,17 +17,9 @@ import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/roles/partially_sighted/screens/scanner/mode_selection_screen.dart';
-
-// NEW IMPORT FOR REGISTRATION SCREEN
 import 'package:seelai_app/roles/partially_sighted/home/sections/registration/subject_registration_screen.dart';
-
-// IMPORT FOR THE NOTIFICATIONS BOTTOM SHEET
 import 'package:seelai_app/roles/partially_sighted/home/widgets/notifications_bottom_sheet.dart'; 
-
-// IMPORT FOR THE GLOBAL CALL LISTENER
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
-
-// NEW IMPORT FOR THE FLOATING MISSED CALL SECTION
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/missed_call_alert_section.dart';
 
 class VisuallyImpairedHomeScreen extends StatefulWidget {
@@ -56,8 +51,7 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  List<ScrollController> _scrollControllers = [];
-  List<double> _lastScrollPositions = [];
+  // Scroll Navigation State
   bool _isNavVisible = true;
   
   // Stream subscription
@@ -68,15 +62,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     super.initState();
     _initializeServices();
     _initializeAnimations();
-    
-    // Initialize a scroll controller and position tracker for each tab
-    _lastScrollPositions = List.filled(5, 0.0);
-    _scrollControllers = List.generate(5, (index) {
-      final controller = ScrollController();
-      controller.addListener(() => _handleScroll(controller, index));
-      return controller;
-    });
-
     _requestPermissionsAndInitialize();
     _setupRequestListener();
   }
@@ -126,35 +111,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     });
   }
 
-  void _handleScroll(ScrollController controller, int index) {
-    if (!controller.hasClients || _lastScrollPositions.isEmpty) return;
-    
-    if (index != _selectedIndex) return;
-
-    final currentScroll = controller.position.pixels;
-    final scrollDelta = currentScroll - _lastScrollPositions[index];
-    
-    const scrollThreshold = 10.0;
-    
-    if (scrollDelta.abs() > scrollThreshold) {
-      final shouldShow = scrollDelta < 0;
-      
-      if (shouldShow != _isNavVisible) {
-        setState(() {
-          _isNavVisible = shouldShow;
-        });
-      }
-      
-      _lastScrollPositions[index] = currentScroll;
-    }
-    
-    if (currentScroll <= 0 && !_isNavVisible) {
-      setState(() {
-        _isNavVisible = true;
-      });
-    }
-  }
-
   Future<void> _requestPermissionsAndInitialize() async {
     final result = await _permissionService.requestAllPermissions();
     
@@ -177,10 +133,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     _accessibilityService.announce(
       _isDarkMode ? 'Dark mode enabled' : 'Light mode enabled'
     );
-  }
-
-  void _activateVoiceAssistant() {
-    _accessibilityService.announce('Voice assistant activated. Listening...');
   }
 
   void _openNotifications() {
@@ -252,9 +204,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
   void dispose() {
     _cameraService.dispose();
     _animationController.dispose();
-    for (var controller in _scrollControllers) {
-      controller.dispose();
-    }
     _requestsSubscription?.cancel();
     super.dispose();
   }
@@ -302,24 +251,31 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     )) ?? false;
   }
 
+  Widget _buildHeader(_AppTheme theme, String userName) {
+    return HeaderSection(
+      userName: userName,
+      profileImageUrl: widget.userData['profileImageUrl'] as String?,
+      isDarkMode: _isDarkMode,
+      onToggleDarkMode: _toggleDarkMode,
+      onNotificationTap: _openNotifications,
+      onProfileTap: () {
+        setState(() {
+          _selectedIndex = 4;
+        });
+      },
+      textColor: theme.textColor,
+      subtextColor: theme.subtextColor,
+      unreadNotificationCount: _unreadNotificationCount,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_scrollControllers.isEmpty) {
-      _lastScrollPositions = List.filled(5, 0.0);
-      _scrollControllers = List.generate(5, (index) {
-        final controller = ScrollController();
-        controller.addListener(() => _handleScroll(controller, index));
-        return controller;
-      });
-    }
-
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
     final userName = widget.userData['name'] ?? 'User';
 
-    final theme = _isDarkMode 
-      ? _getDarkTheme() 
-      : _getLightTheme();
+    final theme = _isDarkMode ? _getDarkTheme() : _getLightTheme();
 
     return IncomingCallListener(
       userRole: 'partially_sighted',
@@ -337,9 +293,8 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
         child: Scaffold(
           extendBody: true,
           
-          // --- FLOATING ACTION BUTTON ---
           floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-          floatingActionButton: _isNavVisible && _selectedIndex != 2 // Hides when opening scanner (index 2)
+          floatingActionButton: _isNavVisible && _selectedIndex != 2 
               ? Container(
                   height: 56,
                   margin: const EdgeInsets.only(bottom: 16),
@@ -395,47 +350,32 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
             decoration: BoxDecoration(gradient: theme.backgroundGradient),
             child: SafeArea(
               bottom: false,
-              child: Stack( // <-- Wrapped Column in a Stack here
-                children: [
-                  Column(
-                    children: [
-                      if (_selectedIndex != 4)
-                        HeaderSection(
-                          userName: userName,
-                          profileImageUrl: widget.userData['profileImageUrl'] as String?,
-                          isDarkMode: _isDarkMode,
-                          onVoiceAssistant: _activateVoiceAssistant,
-                          onToggleDarkMode: _toggleDarkMode,
-                          onNotificationTap: _openNotifications,
-                          onProfileTap: () {
-                            setState(() {
-                              _selectedIndex = 4;
-                            });
-                          },
-                          textColor: theme.textColor,
-                          subtextColor: theme.subtextColor,
-                          unreadNotificationCount: _unreadNotificationCount,
-                        ),
-                      
-                      Expanded(
-                        child: FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: _buildMainContent(
-                            screenWidth,
-                            screenHeight,
-                            theme,
-                          ),
-                        ),
+              child: NotificationListener<UserScrollNotification>(
+                onNotification: (notification) {
+                  if (notification.direction == ScrollDirection.forward) {
+                    if (!_isNavVisible) setState(() => _isNavVisible = true);
+                  } else if (notification.direction == ScrollDirection.reverse) {
+                    if (_isNavVisible) setState(() => _isNavVisible = false);
+                  }
+                  return false; 
+                },
+                child: Stack(
+                  children: [
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: _buildMainContent(
+                        screenWidth,
+                        screenHeight,
+                        theme,
+                        userName,
                       ),
-                    ],
-                  ),
-                  
-                  // --- NEW DRAGGABLE MISSED CALL WIDGET ---
-                  MissedCallAlertSection(
-                    isDarkMode: _isDarkMode,
-                    theme: theme,
-                  ),
-                ],
+                    ),
+                    MissedCallAlertSection(
+                      isDarkMode: _isDarkMode,
+                      theme: theme,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -460,45 +400,57 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
     );
   }
 
-  Widget _buildMainContent(double width, double height, _AppTheme theme) {
+  Widget _buildMainContent(double width, double height, _AppTheme theme, String userName) {
     final userId = widget.userData['uid'] as String? ?? '';
     
     return IndexedStack(
       index: _selectedIndex,
       children: [
+        // Tab 0: Home Content
         SingleChildScrollView(
-          controller: _scrollControllers[0],
           physics: const ClampingScrollPhysics(),
-          child: HomeContent(
-            cameraService: _cameraService,
-            permissionService: _permissionService,
-            isDarkMode: _isDarkMode,
-            theme: theme,
-            onNotificationUpdate: _updateNotification,
-            userData: widget.userData,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(theme, userName),
+              HomeContent(
+                cameraService: _cameraService,
+                permissionService: _permissionService,
+                isDarkMode: _isDarkMode,
+                theme: theme,
+                onNotificationUpdate: _updateNotification,
+                userData: widget.userData,
+              ),
+            ],
           ),
         ),
-        SingleChildScrollView(
-          controller: _scrollControllers[1],
-          physics: const ClampingScrollPhysics(),
-          child: ContactsContent(
-            isDarkMode: _isDarkMode,
-            theme: theme,
-            userData: widget.userData,
-          ),
+        
+        // Tab 1: Contacts Content - REMOVED SingleChildScrollView wrappers to fix scrolling!
+        ContactsContent(
+          isDarkMode: _isDarkMode,
+          theme: theme,
+          userData: widget.userData,
         ),
+        
+        // Tab 2: Scanner 
         const SizedBox.shrink(),
+        
+        // Tab 3: Recent Activities
         SingleChildScrollView(
-          controller: _scrollControllers[3],
           physics: const ClampingScrollPhysics(),
-          child: ViewRecentActivities(
-            isDarkMode: _isDarkMode,
-            theme: theme,
-            userId: userId, 
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ViewRecentActivities(
+                isDarkMode: _isDarkMode,
+                theme: theme,
+                userId: userId, 
+              ),
+            ],
           ),
         ),
+        // Tab 4: Profile Content 
         SingleChildScrollView(
-          controller: _scrollControllers[4],
           physics: const ClampingScrollPhysics(),
           child: ProfileContent(
             userData: widget.userData,
@@ -538,10 +490,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
       cardColor: white,
     );
   }
-
-  // =========================================================================
-  // ADD OPTIONS BOTTOM SHEET METHODS
-  // =========================================================================
 
   void _showAddOptionsBottomSheet(BuildContext context) {
     final Color primaryColor = const Color(0xFF8B5CF6);
@@ -594,7 +542,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               ),
               const SizedBox(height: 32),
               
-              // Option 1: Caretaker Face
               _buildAddOptionCard(
                 icon: Icons.face_retouching_natural_rounded,
                 title: 'Caretaker Face',
@@ -619,7 +566,6 @@ class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen>
               
               const SizedBox(height: 16),
               
-              // Option 2: Object
               _buildAddOptionCard(
                 icon: Icons.view_in_ar_rounded, 
                 title: 'New Object',

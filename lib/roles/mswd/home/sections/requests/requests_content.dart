@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
+import 'package:seelai_app/themes/constants.dart';
 import 'dart:async';
 
 class RequestsContent extends StatefulWidget {
@@ -25,6 +26,9 @@ class RequestsContent extends StatefulWidget {
 }
 
 class _RequestsContentState extends State<RequestsContent> {
+  // Brand Colors
+  final Color _primaryColor = const Color(0xFF7C3AED);
+
   int _selectedFilterIndex = 0;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -47,6 +51,13 @@ class _RequestsContentState extends State<RequestsContent> {
   void initState() {
     super.initState();
     _loadRequests();
+  }
+
+  // Helper to safely extract the first name from user data
+  String _getFirstName() {
+    final name = widget.userData['name'] as String? ?? 'Admin';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    return parts.isNotEmpty ? parts.first : 'Admin';
   }
 
   @override
@@ -106,24 +117,44 @@ class _RequestsContentState extends State<RequestsContent> {
     if (_isLoading) return _buildLoading();
     if (_error != null) return _buildError();
 
+    final width = MediaQuery.of(context).size.width;
+
     return SingleChildScrollView(
       controller: widget.scrollController,
       physics: const AlwaysScrollableScrollPhysics(), 
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-       children: [
-          _buildHeader(),
-          const SizedBox(height: 20),
-          _buildQuickStats(),
-          const SizedBox(height: 24),
-          _buildSearchAndFilter(),
-          const SizedBox(height: 20),
-          _buildFilterChips(),
-          const SizedBox(height: 24),
-          _buildRequestList(),
+        children: [
+          Padding(
+            padding: EdgeInsets.only(
+              left: width * 0.05,
+              right: width * 0.05,
+              top: spacingLarge,
+            ),
+            child: _buildHeader(),
+          ),
+          const SizedBox(height: spacingMedium),
           
-          const SizedBox(height: 800), 
+          // Edge-to-edge Mascot Banner with Bubble
+          _buildMascotBanner(),
+          
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 20),
+                _buildQuickStats(),
+                const SizedBox(height: 24),
+                _buildSearchAndFilter(),
+                const SizedBox(height: 20),
+                _buildFilterChips(),
+                const SizedBox(height: 24),
+                _buildRequestList(),
+                const SizedBox(height: 120), // Bottom padding
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -137,8 +168,8 @@ class _RequestsContentState extends State<RequestsContent> {
           'Assistance Log',
           style: TextStyle(
             color: widget.theme.textColor,
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
           ),
         ),
@@ -147,8 +178,117 @@ class _RequestsContentState extends State<RequestsContent> {
           'Manage and track community requests',
           style: TextStyle(
             color: widget.theme.subtextColor,
-            fontSize: 15,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMascotBanner() {
+    final pendingCount = _allRequests.where((r) => r.status == RequestStatus.pending).length;
+    final emergencyCount = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed).length;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Edge-to-edge gradient background strictly tied to the top
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                  _primaryColor.withValues(alpha: 0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ),
+        
+        // Mascot and Speech Bubble
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width * 0.05,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Mascot Figure
+              Image.asset(
+                'assets/seelai-icons/seelai4.png',
+                height: 120, 
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 100, width: 100,
+                  alignment: Alignment.bottomCenter,
+                  child: Icon(Icons.image_not_supported, color: widget.theme.subtextColor),
+                ),
+              ),
+              
+              // Speech Bubble Tail (Pointing left, aligned to mouth)
+              Container(
+                margin: const EdgeInsets.only(bottom: 40), 
+                child: CustomPaint(
+                  size: const Size(12, 16),
+                  painter: _TailPainter(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                  ),
+                ),
+              ),
+
+              // Speech Bubble Content - Conversational Format
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: widget.isDarkMode ? [] : [
+                      BoxShadow(
+                        color: _primaryColor.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, 
+                    children: [
+                      Text(
+                        'Seelai',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _primaryColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Hello, ${_getFirstName()}! You currently have $pendingCount pending request${pendingCount != 1 ? 's' : ''} and $emergencyCount active emergenc${emergencyCount != 1 ? 'ies' : 'y'} to review.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: widget.isDarkMode
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : Colors.black87,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -184,7 +324,6 @@ class _RequestsContentState extends State<RequestsContent> {
     );
   }
 
-  // UPDATED TO MATCH OVERVIEW.DART AESTHETIC
   Widget _buildSummaryCard({
     required String title,
     required String subtitle,
@@ -197,7 +336,7 @@ class _RequestsContentState extends State<RequestsContent> {
       clipBehavior: Clip.hardEdge, 
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(20), // 20px radius
+        borderRadius: BorderRadius.circular(20), 
         border: Border.all(
           color: color.withValues(alpha: 0.15), 
         ),
@@ -283,11 +422,11 @@ class _RequestsContentState extends State<RequestsContent> {
     );
   }
 
- Widget _buildSearchAndFilter() {
+  Widget _buildSearchAndFilter() {
     return Container(
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(20), // Matched to 20
+        borderRadius: BorderRadius.circular(20), 
         boxShadow: widget.isDarkMode ? [] : [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
@@ -316,7 +455,7 @@ class _RequestsContentState extends State<RequestsContent> {
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 40),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16), // A bit more breathing room
+          contentPadding: const EdgeInsets.symmetric(vertical: 16), 
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
                   icon: Icon(Icons.close_rounded, color: widget.theme.subtextColor, size: 18),
@@ -407,7 +546,7 @@ class _RequestsContentState extends State<RequestsContent> {
         padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(20), // 20px
+          borderRadius: BorderRadius.circular(20), 
           border: Border.all(
             color: widget.isDarkMode 
                 ? Colors.white10 
@@ -485,7 +624,7 @@ class _RequestsContentState extends State<RequestsContent> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: widget.theme.cardColor,
-            borderRadius: BorderRadius.circular(20), // Matched to 20px
+            borderRadius: BorderRadius.circular(20), 
             border: Border.all(
               color: isEmergency 
                   ? Colors.red.withValues(alpha: 0.4) 
@@ -681,4 +820,28 @@ class _RequestsContentState extends State<RequestsContent> {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
   }
+}
+
+// Custom Painter to draw the speech bubble tail pointing to the mascot
+class _TailPainter extends CustomPainter {
+  final Color color;
+
+  _TailPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path();
+    
+    // Draw a triangle pointing to the left
+    path.moveTo(size.width, 0); 
+    path.lineTo(0, size.height / 2); 
+    path.lineTo(size.width, size.height); 
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -80,13 +80,13 @@ class _MoreContentState extends State<MoreContent> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Admin Profile & Settings',
+                'Profile & Settings',
                 style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                  color: widget.theme.textColor,
-                  letterSpacing: -0.5,
-                ),
+                color: widget.theme.textColor,
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
               ),
             ],
           ),

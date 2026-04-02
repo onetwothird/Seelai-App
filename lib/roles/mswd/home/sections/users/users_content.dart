@@ -27,6 +27,9 @@ class UsersContent extends StatefulWidget {
 
 class _UsersContentState extends State<UsersContent>
     with SingleTickerProviderStateMixin {
+  // Brand Colors - Vibrant Purple
+  final Color _primaryColor = const Color(0xFF7C3AED);
+
   late TabController _tabController;
   int _selectedTab = 0;
   String _searchQuery = '';
@@ -34,7 +37,7 @@ class _UsersContentState extends State<UsersContent>
   
   List<Map<String, dynamic>> _partiallySightedUsers = [];
   List<Map<String, dynamic>> _caretakersUsers = [];
-  List<Map<String, dynamic>> _pendingCaretakers = []; // New List for Pending
+  List<Map<String, dynamic>> _pendingCaretakers = []; 
   
   bool _isLoadingVI = true;
   bool _isLoadingCT = true;
@@ -43,7 +46,6 @@ class _UsersContentState extends State<UsersContent>
   @override
   void initState() {
     super.initState();
-    // CHANGED: Increased length to 3 to accommodate the "Requests" tab
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       setState(() {
@@ -51,6 +53,13 @@ class _UsersContentState extends State<UsersContent>
       });
     });
     _loadUsers();
+  }
+
+  // Helper to safely extract the first name from user data
+  String _getFirstName() {
+    final name = widget.userData['name'] as String? ?? 'Admin';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    return parts.isNotEmpty ? parts.first : 'Admin';
   }
 
   @override
@@ -63,7 +72,7 @@ class _UsersContentState extends State<UsersContent>
   Future<void> _loadUsers() async {
     await _loadVisuallyImpairedUsers();
     await _loadCaretakersUsers();
-    await _loadPendingCaretakers(); // Load pending
+    await _loadPendingCaretakers(); 
   }
 
   Future<void> _loadVisuallyImpairedUsers() async {
@@ -82,11 +91,9 @@ class _UsersContentState extends State<UsersContent>
 
   Future<void> _loadCaretakersUsers() async {
     try {
-      // We load all caretakers, then filter for APPROVED ones
       final users = await adminService.getUsersByRole('caretaker');
       if (mounted) {
         setState(() {
-          // Only show approved caretakers in the main list
           _caretakersUsers = users.where((u) => u['approved'] == true).toList();
           _isLoadingCT = false;
         });
@@ -98,7 +105,6 @@ class _UsersContentState extends State<UsersContent>
 
   Future<void> _loadPendingCaretakers() async {
     try {
-      // Use the specific service method for pending
       final users = await adminService.getPendingCaretakers();
       if (mounted) {
         setState(() {
@@ -134,73 +140,192 @@ class _UsersContentState extends State<UsersContent>
           theme: widget.theme,
           selectedUser: user,
           onViewLocation: widget.onNavigateToLocation,
-          // Callback to refresh list when returning (in case a user was approved)
           onDataChanged: _loadUsers,
         ),
       ),
     );
-    // Reload users when coming back
     _loadUsers(); 
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
-    return SingleChildScrollView(
-      controller: widget.scrollController,
-      physics: const ClampingScrollPhysics(),
-      // 1. Match the exact padding from requests_content
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 120),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 32), // Match spacing
-          _buildSearchBar(),
-          const SizedBox(height: 24),
-          _buildTabBar(width),
-          const SizedBox(height: 24),
-          _buildTabContent(),
-          const SizedBox(height: 24),
-        ],
+    return RefreshIndicator(
+      onRefresh: _loadUsers,
+      color: _primaryColor,
+      child: SingleChildScrollView(
+        controller: widget.scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                left: width * 0.05,
+                right: width * 0.05,
+                top: spacingLarge,
+              ),
+              child: _buildHeader(),
+            ),
+            const SizedBox(height: spacingMedium),
+            
+            // Edge-to-edge Mascot Banner with Bubble
+            _buildMascotBanner(),
+            
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: spacingMedium),
+                  
+                  _buildSearchBar(),
+                  const SizedBox(height: 24),
+                  
+                  _buildTabBar(width),
+                  const SizedBox(height: 24),
+                  
+                  _buildTabContent(),
+                  
+                  const SizedBox(height: 120), // Bottom padding
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildTabContent() {
-    switch (_selectedTab) {
-      case 0:
-        return _buildVisuallyImpairedList();
-      case 1:
-        return _buildCaretakersList();
-      case 2:
-        return _buildPendingList();
-      default:
-        return const SizedBox();
-    }
-  }
-
-Widget _buildHeader() {
-    // 2. Removed the Row/Expanded wrapper and matched the typography
+  Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'User Management',
-          style: h2.copyWith(
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
             color: widget.theme.textColor,
-            fontSize: 28, // Increased from 24 to match Assistance Log
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.5, // Added letter spacing match
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 8), // Matched spacing
+        const SizedBox(height: 4),
         Text(
           'Manage all registered users',
-          style: body.copyWith(
+          style: TextStyle(
+            fontSize: 14,
             color: widget.theme.subtextColor,
-            fontSize: 15, // Increased from 13
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMascotBanner() {
+    int totalUsers = _partiallySightedUsers.length + _caretakersUsers.length;
+    int pendingCount = _pendingCaretakers.length;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Edge-to-edge gradient background strictly tied to the top
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                  _primaryColor.withValues(alpha: 0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        ),
+        
+        // Mascot and Speech Bubble
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: MediaQuery.of(context).size.width * 0.05,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Mascot Figure
+              Image.asset(
+                'assets/seelai-icons/seelai2.png',
+                height: 120, 
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 100, width: 100,
+                  alignment: Alignment.bottomCenter,
+                  child: Icon(Icons.image_not_supported, color: widget.theme.subtextColor),
+                ),
+              ),
+              
+              // Speech Bubble Tail (Pointing left, aligned to mouth)
+              Container(
+                margin: const EdgeInsets.only(bottom: 40), 
+                child: CustomPaint(
+                  size: const Size(12, 16),
+                  painter: _TailPainter(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                  ),
+                ),
+              ),
+
+              // Speech Bubble Content - Conversational text
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: widget.isDarkMode ? [] : [
+                      BoxShadow(
+                        color: _primaryColor.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
+                      )
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // Keep it compact
+                    children: [
+                      Text(
+                        'Seelai',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: _primaryColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Hello, ${_getFirstName()}! We have $totalUsers registered user${totalUsers != 1 ? 's' : ''} across the platform${pendingCount > 0 ? ', and $pendingCount pending approval' : ''}.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: widget.isDarkMode
+                              ? Colors.white.withValues(alpha: 0.85)
+                              : Colors.black87,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -249,7 +374,7 @@ Widget _buildHeader() {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
+          contentPadding: const EdgeInsets.symmetric(
             horizontal: spacingMedium,
             vertical: spacingMedium,
           ),
@@ -267,7 +392,7 @@ Widget _buildHeader() {
         boxShadow: widget.isDarkMode
             ? [
                 BoxShadow(
-                  color: primary.withValues(alpha: 0.1),
+                  color: _primaryColor.withValues(alpha: 0.1),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -280,12 +405,12 @@ Widget _buildHeader() {
                 ),
               ],
         border: widget.isDarkMode
-            ? Border.all(color: primary.withValues(alpha: 0.2), width: 1)
+            ? Border.all(color: _primaryColor.withValues(alpha: 0.2), width: 1)
             : Border.all(color: Colors.black.withValues(alpha: 0.06), width: 1),
       ),
       child: Row(
         children: [
-          _buildTab(0, Icons.visibility_off_rounded, 'Patients', primary),
+          _buildTab(0, Icons.visibility_off_rounded, 'Patients', _primaryColor),
           _buildTab(1, Icons.favorite_rounded, 'Caretakers', accent),
           _buildTab(2, Icons.verified_user_rounded, 'Requests', Colors.orange),
         ],
@@ -304,7 +429,7 @@ Widget _buildHeader() {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOutCubic,
-          padding: EdgeInsets.symmetric(vertical: spacingMedium),
+          padding: const EdgeInsets.symmetric(vertical: spacingMedium),
           decoration: BoxDecoration(
             gradient: isSelected
                 ? LinearGradient(
@@ -323,7 +448,7 @@ Widget _buildHeader() {
                   ]
                 : [],
           ),
-          child: Column( // Changed Row to Column for small screens, or keep Row if space permits
+          child: Column( 
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
@@ -335,7 +460,7 @@ Widget _buildHeader() {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 10, // Slightly smaller to fit 3 tabs
+                  fontSize: 10, 
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected ? white : widget.theme.subtextColor,
                 ),
@@ -349,16 +474,32 @@ Widget _buildHeader() {
     );
   }
 
+  Widget _buildTabContent() {
+    switch (_selectedTab) {
+      case 0:
+        return _buildVisuallyImpairedList();
+      case 1:
+        return _buildCaretakersList();
+      case 2:
+        return _buildPendingList();
+      default:
+        return const SizedBox();
+    }
+  }
+
   Widget _buildVisuallyImpairedList() {
-    if (_isLoadingVI) return const Center(child: CircularProgressIndicator());
+    if (_isLoadingVI) return Center(child: Padding(padding: const EdgeInsets.all(40), child: CircularProgressIndicator(color: _primaryColor)));
 
     final filteredUsers = _getFilteredUsers(_partiallySightedUsers);
 
     if (filteredUsers.isEmpty) {
       return Center(
-        child: Text(
-          'No partially sighted users found',
-          style: body.copyWith(color: widget.theme.subtextColor),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 40),
+          child: Text(
+            'No partially sighted users found',
+            style: body.copyWith(color: widget.theme.subtextColor),
+          ),
         ),
       );
     }
@@ -367,7 +508,7 @@ Widget _buildHeader() {
       children: List.generate(
         filteredUsers.length,
         (index) => Padding(
-          padding: EdgeInsets.only(bottom: spacingMedium),
+          padding: const EdgeInsets.only(bottom: spacingMedium),
           child: _buildUserCard(filteredUsers[index]),
         ),
       ),
@@ -375,15 +516,18 @@ Widget _buildHeader() {
   }
 
   Widget _buildCaretakersList() {
-    if (_isLoadingCT) return const Center(child: CircularProgressIndicator());
+    if (_isLoadingCT) return Center(child: Padding(padding: const EdgeInsets.all(40), child: CircularProgressIndicator(color: _primaryColor)));
 
     final filteredCaretakers = _getFilteredUsers(_caretakersUsers);
 
     if (filteredCaretakers.isEmpty) {
       return Center(
-        child: Text(
-          'No approved caretakers found',
-          style: body.copyWith(color: widget.theme.subtextColor),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 40),
+          child: Text(
+            'No approved caretakers found',
+            style: body.copyWith(color: widget.theme.subtextColor),
+          ),
         ),
       );
     }
@@ -392,7 +536,7 @@ Widget _buildHeader() {
       children: List.generate(
         filteredCaretakers.length,
         (index) => Padding(
-          padding: EdgeInsets.only(bottom: spacingMedium),
+          padding: const EdgeInsets.only(bottom: spacingMedium),
           child: _buildCaretakerCard(filteredCaretakers[index], isPending: false),
         ),
       ),
@@ -400,7 +544,7 @@ Widget _buildHeader() {
   }
 
   Widget _buildPendingList() {
-    if (_isLoadingPending) return const Center(child: CircularProgressIndicator());
+    if (_isLoadingPending) return Center(child: Padding(padding: const EdgeInsets.all(40), child: CircularProgressIndicator(color: _primaryColor)));
 
     final filteredPending = _getFilteredUsers(_pendingCaretakers);
 
@@ -408,7 +552,7 @@ Widget _buildHeader() {
       return Center(
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 40),
             Icon(Icons.check_circle_outline_rounded, size: 48, color: widget.theme.subtextColor.withOpacity(0.5)),
             const SizedBox(height: 8),
             Text(
@@ -424,16 +568,14 @@ Widget _buildHeader() {
       children: List.generate(
         filteredPending.length,
         (index) => Padding(
-          padding: EdgeInsets.only(bottom: spacingMedium),
+          padding: const EdgeInsets.only(bottom: spacingMedium),
           child: _buildCaretakerCard(filteredPending[index], isPending: true),
         ),
       ),
     );
   }
 
- Widget _buildUserCard(Map<String, dynamic> user) {
-    // ... [Logic for User Card - Same as previous, kept brief for focus] ...
-    // Note: Copied from your original file, no logic changes needed here
+  Widget _buildUserCard(Map<String, dynamic> user) {
     final profileImageUrl = user['profileImageUrl'] as String?;
     final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
 
@@ -443,7 +585,7 @@ Widget _buildHeader() {
         borderRadius: BorderRadius.circular(radiusXLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: widget.isDarkMode
-            ? Border.all(color: primary.withValues(alpha: 0.2), width: 1)
+            ? Border.all(color: _primaryColor.withValues(alpha: 0.2), width: 1)
             : Border.all(color: Colors.black.withValues(alpha: 0.06), width: 1),
       ),
       child: Material(
@@ -452,7 +594,7 @@ Widget _buildHeader() {
           onTap: () => _navigateToProfile(user),
           borderRadius: BorderRadius.circular(radiusXLarge),
           child: Padding(
-            padding: EdgeInsets.all(spacingLarge),
+            padding: const EdgeInsets.all(spacingLarge),
             child: Row(
               children: [
                 // Avatar
@@ -464,11 +606,11 @@ Widget _buildHeader() {
                   ),
                   child: ClipOval(
                     child: hasProfileImage
-                        ? Image.network(profileImageUrl, fit: BoxFit.cover, errorBuilder: (_,_,_) => _buildDefaultAvatarText(user['name'] ?? 'U', primary))
-                        : _buildDefaultAvatarText(user['name'] ?? 'U', primary),
+                        ? Image.network(profileImageUrl, fit: BoxFit.cover, errorBuilder: (_,_,_) => _buildDefaultAvatarText(user['name'] ?? 'U', _primaryColor))
+                        : _buildDefaultAvatarText(user['name'] ?? 'U', _primaryColor),
                   ),
                 ),
-                SizedBox(width: spacingMedium),
+                const SizedBox(width: spacingMedium),
                 // Info
                 Expanded(
                   child: Column(
@@ -516,7 +658,7 @@ Widget _buildHeader() {
           onTap: () => _navigateToProfile(caretaker),
           borderRadius: BorderRadius.circular(radiusXLarge),
           child: Padding(
-            padding: EdgeInsets.all(spacingLarge),
+            padding: const EdgeInsets.all(spacingLarge),
             child: Column(
               children: [
                 Row(
@@ -541,7 +683,7 @@ Widget _buildHeader() {
                             : _buildDefaultAvatarText(caretaker['name'] ?? 'U', color),
                       ),
                     ),
-                    SizedBox(width: spacingMedium),
+                    const SizedBox(width: spacingMedium),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,4 +760,28 @@ Widget _buildHeader() {
       ),
     );
   }
+}
+
+// Custom Painter to draw the speech bubble tail pointing to the mascot
+class _TailPainter extends CustomPainter {
+  final Color color;
+
+  _TailPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path();
+    
+    // Draw a triangle pointing to the left
+    path.moveTo(size.width, 0); // Top right corner
+    path.lineTo(0, size.height / 2); // Pointing left (middle)
+    path.lineTo(size.width, size.height); // Bottom right corner
+    path.close();
+    
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

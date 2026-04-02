@@ -1,7 +1,6 @@
 // File: lib/roles/mswd/home/widgets/bottom_navigation.dart
 
 import 'package:flutter/material.dart';
-import 'package:seelai_app/themes/constants.dart';
 
 class MSWDBottomNavigation extends StatelessWidget {
   final int selectedIndex;
@@ -19,84 +18,100 @@ class MSWDBottomNavigation extends StatelessWidget {
     required this.subtextColor,
   });
 
+  // The vibrant purple from your Continue button
+  final Color _activeColor = const Color(0xFF8B5CF6);
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 360;
-    final isMediumScreen = screenWidth < 400;
+    
+    // Pure white or dark card color for the navigation bar
+    final bgColor = isDarkMode ? const Color(0xFF1A1F3A) : Colors.white;
     
     return Container(
-      padding: EdgeInsets.symmetric(
-        vertical: isSmallScreen ? 8 : 12, 
-        horizontal: isSmallScreen ? 4 : 8,
-      ),
+      // No margin, fills the bottom edge-to-edge
       decoration: BoxDecoration(
-        color: isDarkMode ? Color(0xFF1A1F3A) : white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(24), 
         ),
         boxShadow: [
           BoxShadow(
             color: isDarkMode
-                ? primary.withValues(alpha: 0.2)
-                : Colors.black.withValues(alpha: 0.1),
-            blurRadius: 24,
-            offset: Offset(0, -4),
-            spreadRadius: 0,
+                ? Colors.black.withValues(alpha: 0.4)
+                : Colors.black.withValues(alpha: 0.04), // Very soft shadow blending upward
+            blurRadius: 30,
+            offset: const Offset(0, -5),
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen, isMediumScreen),
-          _buildNavItem(1, Icons.people_rounded, 'Users', isSmallScreen, isMediumScreen),
-          _buildCenterTrackButton(isSmallScreen, isMediumScreen),
-          _buildNavItem(2, Icons.assignment_rounded, 'Requests', isSmallScreen, isMediumScreen),
-          _buildNavItem(4, Icons.menu_rounded, 'More', isSmallScreen, isMediumScreen),
-        ],
+      child: SafeArea(
+        top: false, 
+        child: Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 8, left: 8, right: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen),
+              _buildNavItem(1, Icons.people_alt_rounded, 'Users', isSmallScreen),
+              _buildCenterTrackButton(isSmallScreen),
+              _buildNavItem(2, Icons.assignment_rounded, 'Requests', isSmallScreen),
+              _buildNavItem(4, Icons.menu_rounded, 'More', isSmallScreen),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildCenterTrackButton(bool isSmallScreen, bool isMediumScreen) {
+  // Center Track Button with the large circular outline
+  Widget _buildCenterTrackButton(bool isSmallScreen) {
     final isSelected = selectedIndex == 3;
     
     return GestureDetector(
       onTap: () => onItemTapped(3),
+      behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedContainer(
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeInOutCubic,
-            padding: EdgeInsets.all(isSmallScreen ? 12 : (isMediumScreen ? 14 : 16)),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            width: isSmallScreen ? 56 : 64,
+            height: isSmallScreen ? 56 : 64,
             decoration: BoxDecoration(
-              color: isDarkMode ? Color(0xFF1A1F3A) : white,
               shape: BoxShape.circle,
-              border: Border.all(
-                width: isSmallScreen ? 2.5 : 3,
-                color: primary,
-              ),
+              // Solid color if selected, transparent if inactive
+              color: isSelected ? _activeColor : Colors.transparent,
+              border: isSelected 
+                  ? null 
+                  : Border.all(
+                      color: _activeColor, // Thick solid border
+                      width: 2.5,
+                    ),
+              boxShadow: isSelected && !isDarkMode ? [
+                BoxShadow(
+                  color: _activeColor.withValues(alpha: 0.4),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                )
+              ] : [],
             ),
             child: Icon(
-              Icons.location_pin,
-              size: isSmallScreen ? 24 : (isMediumScreen ? 27 : 30),
-              color: primary,
+              Icons.location_on_rounded,
+              size: isSmallScreen ? 28 : 32,
+              color: isSelected ? Colors.white : _activeColor, // Matches border when inactive
             ),
           ),
-          SizedBox(height: isSmallScreen ? 4 : 6),
+          const SizedBox(height: 6),
           Text(
             'Track',
             style: TextStyle(
               fontSize: isSmallScreen ? 10 : 11,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected
-                  ? (isDarkMode ? white : primary)
-                  : (isDarkMode
-                      ? subtextColor.withValues(alpha: 0.6)
-                      : grey.withValues(alpha: 0.7)),
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? _activeColor : const Color(0xFF94A3B8),
               letterSpacing: 0.2,
             ),
           ),
@@ -105,23 +120,21 @@ class MSWDBottomNavigation extends StatelessWidget {
     );
   }
 
+  // Standardized Squarish Nav Items
   Widget _buildNavItem(
     int index, 
     IconData icon, 
     String label, 
     bool isSmallScreen, 
-    bool isMediumScreen,
     {int badgeCount = 0}
   ) {
     final isSelected = selectedIndex == index;
     
     return GestureDetector(
       onTap: () => onItemTapped(index),
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: isSmallScreen ? 8 : (isMediumScreen ? 10 : spacingMedium),
-          vertical: isSmallScreen ? 4 : spacingSmall,
-        ),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: isSmallScreen ? 56 : 64,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -129,64 +142,55 @@ class MSWDBottomNavigation extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 AnimatedContainer(
-                  duration: Duration(milliseconds: 300),
-                  curve: Curves.easeInOutCubic,
-                  padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  width: isSmallScreen ? 46 : 52,
+                  height: isSmallScreen ? 46 : 52,
                   decoration: BoxDecoration(
-                    gradient: isSelected ? primaryGradient : null,
-                    color: isSelected
-                        ? null
-                        : (isDarkMode
-                            ? Colors.white.withValues(alpha: 0.05)
-                            : Colors.grey.withValues(alpha: 0.1)),
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: primary.withValues(alpha: 0.4),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                              spreadRadius: -2,
-                            ),
-                          ]
-                        : [],
+                    color: isSelected 
+                        ? _activeColor // Solid purple when active
+                        : (isDarkMode ? Colors.white10 : const Color(0xFFF1F5F9)), // Soft light grey when inactive
+                    borderRadius: BorderRadius.circular(18), // Squarish rounded corners
+                    boxShadow: isSelected && !isDarkMode ? [
+                      BoxShadow(
+                        color: _activeColor.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      )
+                    ] : [],
                   ),
                   child: Icon(
                     icon,
-                    size: isSmallScreen ? 20 : (isMediumScreen ? 22 : 24),
-                    color: isSelected
-                        ? white
-                        : isDarkMode
-                            ? subtextColor
-                            : grey,
+                    size: isSmallScreen ? 24 : 26,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B), // Slate grey icon when inactive
                   ),
                 ),
                 
-                // Badge
+                // Optional Badge
                 if (badgeCount > 0)
                   Positioned(
                     right: -4,
                     top: -4,
                     child: Container(
-                      padding: EdgeInsets.all(badgeCount > 9 ? 4 : 6),
+                      padding: EdgeInsets.all(badgeCount > 9 ? 3 : 4),
                       decoration: BoxDecoration(
-                        color: error,
+                        color: const Color(0xFFEF4444),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isDarkMode ? Color(0xFF1A1F3A) : white,
-                          width: 2,
+                          color: isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                          width: 2.0,
                         ),
                       ),
-                      constraints: BoxConstraints(
+                      constraints: const BoxConstraints(
                         minWidth: 18,
                         minHeight: 18,
                       ),
                       child: Text(
                         badgeCount > 99 ? '99+' : badgeCount.toString(),
-                        style: TextStyle(
-                          color: white,
+                        style: const TextStyle(
+                          color: Colors.white,
                           fontSize: 9,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -194,19 +198,17 @@ class MSWDBottomNavigation extends StatelessWidget {
                   ),
               ],
             ),
-            SizedBox(height: isSmallScreen ? 4 : 6),
+            const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
-                fontSize: isSmallScreen ? 9 : (isMediumScreen ? 10 : 11),
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? (isDarkMode ? white : primary)
-                    : (isDarkMode
-                        ? subtextColor.withValues(alpha: 0.6)
-                        : grey.withValues(alpha: 0.7)),
+                fontSize: isSmallScreen ? 10 : 11,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? _activeColor : const Color(0xFF94A3B8), // Slate grey text when inactive
                 letterSpacing: 0.2,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

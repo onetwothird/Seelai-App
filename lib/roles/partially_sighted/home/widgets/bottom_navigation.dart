@@ -1,7 +1,6 @@
 // File: lib/roles/partially_sighted/home/widgets/bottom_navigation.dart
 
 import 'package:flutter/material.dart';
-import 'package:seelai_app/themes/constants.dart';
 
 class CustomBottomNavigation extends StatelessWidget {
   final int selectedIndex;
@@ -19,59 +18,60 @@ class CustomBottomNavigation extends StatelessWidget {
     required this.subtextColor,
   });
 
+  // The vibrant purple from the new design
+  final Color _activeColor = const Color(0xFF8B5CF6);
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 360;
-    final isMediumScreen = screenWidth < 400;
+    
+    // Pure white or dark card color for the navigation bar
+    final bgColor = isDarkMode ? const Color(0xFF1A1F3A) : Colors.white;
     
     return Semantics(
       label: 'Bottom navigation bar',
       child: Container(
-        padding: EdgeInsets.symmetric(
-          vertical: isSmallScreen ? 8 : 12, 
-          horizontal: isSmallScreen ? 4 : 8,
-        ),
+        // No margin, fills the bottom edge-to-edge
         decoration: BoxDecoration(
-          color: isDarkMode ? Color(0xFF1A1F3A) : white,
-          borderRadius: BorderRadius.circular(24),
+          color: bgColor,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(24), 
+          ),
           boxShadow: [
             BoxShadow(
-              color: isDarkMode 
-                ? primary.withValues(alpha: 0.2)
-                : Colors.black.withValues(alpha: 0.1),
-              blurRadius: 24,
-              offset: Offset(0, 8),
-              spreadRadius: -4,
+              color: isDarkMode
+                  ? Colors.black.withValues(alpha: 0.4)
+                  : Colors.black.withValues(alpha: 0.04), // Very soft shadow blending upward
+              blurRadius: 30,
+              offset: const Offset(0, -5),
             ),
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Expanded(
-              child: _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen, isMediumScreen),
+        child: SafeArea(
+          top: false, 
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 8, left: 8, right: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly, 
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildNavItem(0, Icons.home_rounded, 'Home', isSmallScreen),
+                _buildNavItem(1, Icons.contacts_rounded, 'Contacts', isSmallScreen),
+                _buildCenterScannerButton(isSmallScreen),
+                _buildNavItem(3, Icons.history_rounded, 'Recent', isSmallScreen),
+                _buildNavItem(4, Icons.person_rounded, 'Profile', isSmallScreen),
+              ],
             ),
-            Expanded(
-              child: _buildNavItem(1, Icons.contacts_rounded, 'Contacts', isSmallScreen, isMediumScreen),
-            ),
-            Expanded(
-              child: _buildCenterScannerButton(isSmallScreen, isMediumScreen),
-            ),
-            Expanded(
-              child: _buildNavItem(3, Icons.history_rounded, 'Recent', isSmallScreen, isMediumScreen),
-            ),
-            Expanded(
-              child: _buildNavItem(4, Icons.person_rounded, 'Profile', isSmallScreen, isMediumScreen),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCenterScannerButton(bool isSmallScreen, bool isMediumScreen) {
-    final isSelected = selectedIndex == 2;
+  // Center Scanner Button with the large circular outline
+  Widget _buildCenterScannerButton(bool isSmallScreen) {
+    final isSelected = selectedIndex == 2; 
     
     return Semantics(
       label: 'Scanner tab',
@@ -80,36 +80,46 @@ class CustomBottomNavigation extends StatelessWidget {
       hint: 'Double tap to open object detection scanner',
       child: GestureDetector(
         onTap: () => onItemTapped(2),
+        behavior: HitTestBehavior.opaque,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedContainer(
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeInOutCubic,
-              padding: EdgeInsets.all(isSmallScreen ? 12 : (isMediumScreen ? 14 : 16)),
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+              width: isSmallScreen ? 56 : 64,
+              height: isSmallScreen ? 56 : 64,
               decoration: BoxDecoration(
-                color: isDarkMode ? Color(0xFF1A1F3A) : white,
                 shape: BoxShape.circle,
-                border: Border.all(
-                  width: isSmallScreen ? 2.5 : 3,
-                  color: primary,
-                ),
+                // Solid color if selected, transparent if inactive
+                color: isSelected ? _activeColor : Colors.transparent,
+                border: isSelected 
+                    ? null 
+                    : Border.all(
+                        color: _activeColor, // Thick solid border
+                        width: 2.5,
+                      ),
+                boxShadow: isSelected && !isDarkMode ? [
+                  BoxShadow(
+                    color: _activeColor.withValues(alpha: 0.4),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  )
+                ] : [],
               ),
               child: Icon(
                 Icons.qr_code_scanner_rounded,
-                size: isSmallScreen ? 24 : (isMediumScreen ? 27 : 30),
-                color: primary,
+                size: isSmallScreen ? 28 : 32,
+                color: isSelected ? Colors.white : _activeColor, 
               ),
             ),
-            SizedBox(height: isSmallScreen ? 4 : 6),
+            const SizedBox(height: 6),
             Text(
               'Scan',
               style: TextStyle(
                 fontSize: isSmallScreen ? 10 : 11,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected 
-                  ? (isDarkMode ? white : primary)
-                  : (isDarkMode ? subtextColor.withValues(alpha: 0.6) : grey.withValues(alpha: 0.7)),
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? _activeColor : const Color(0xFF94A3B8),
                 letterSpacing: 0.2,
               ),
             ),
@@ -119,7 +129,13 @@ class CustomBottomNavigation extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label, bool isSmallScreen, bool isMediumScreen) {
+  // Standardized Squarish Nav Items
+  Widget _buildNavItem(
+    int index, 
+    IconData icon, 
+    String label, 
+    bool isSmallScreen, 
+  ) {
     final isSelected = selectedIndex == index;
     
     return Semantics(
@@ -129,56 +145,47 @@ class CustomBottomNavigation extends StatelessWidget {
       hint: 'Double tap to navigate to $label',
       child: GestureDetector(
         onTap: () => onItemTapped(index),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isSmallScreen ? 8 : (isMediumScreen ? 10 : spacingMedium),
-            vertical: isSmallScreen ? 4 : spacingSmall,
-          ),
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: isSmallScreen ? 56 : 64,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedContainer(
-                duration: Duration(milliseconds: 300),
-                curve: Curves.easeInOutCubic,
-                padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                width: isSmallScreen ? 46 : 52,
+                height: isSmallScreen ? 46 : 52,
                 decoration: BoxDecoration(
-                  gradient: isSelected ? primaryGradient : null,
                   color: isSelected 
-                    ? null 
-                    : (isDarkMode 
-                        ? Colors.white.withValues(alpha: 0.05) 
-                        : Colors.grey.withValues(alpha: 0.1)),
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: primary.withValues(alpha: 0.4),
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                          spreadRadius: -2,
-                        ),
-                      ]
-                    : [],
+                      ? _activeColor // Solid purple when active
+                      : (isDarkMode ? Colors.white10 : const Color(0xFFF1F5F9)), // Soft light grey when inactive
+                  borderRadius: BorderRadius.circular(18), // Squarish rounded corners
+                  boxShadow: isSelected && !isDarkMode ? [
+                    BoxShadow(
+                      color: _activeColor.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    )
+                  ] : [],
                 ),
                 child: Icon(
                   icon,
-                  size: isSmallScreen ? 20 : (isMediumScreen ? 22 : 24),
-                  color: isSelected 
-                    ? white 
-                    : isDarkMode ? subtextColor : grey,
+                  size: isSmallScreen ? 24 : 26,
+                  color: isSelected ? Colors.white : const Color(0xFF64748B), // Slate grey icon when inactive
                 ),
               ),
-              SizedBox(height: isSmallScreen ? 4 : 6),
+              const SizedBox(height: 6),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: isSmallScreen ? 9 : (isMediumScreen ? 10 : 11),
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected 
-                    ? (isDarkMode ? white : primary)
-                    : (isDarkMode ? subtextColor.withValues(alpha: 0.6) : grey.withValues(alpha: 0.7)),
+                  fontSize: isSmallScreen ? 10 : 11,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? _activeColor : const Color(0xFF94A3B8), // Slate grey text when inactive
                   letterSpacing: 0.2,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
