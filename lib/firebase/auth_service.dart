@@ -7,17 +7,14 @@ ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
 class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   
-  // FIX 1: Use the singleton instance instead of the constructor
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance; 
   
-  // FIX 2: Track initialization state
   bool _isGoogleSignInInitialized = false;
 
   User? get currentUser => firebaseAuth.currentUser;
 
   Stream<User?> get authStateChanges => firebaseAuth.authStateChanges();
 
-  // Helper to ensure Google Sign-In is initialized exactly once
   Future<void> _ensureGoogleSignInInitialized() async {
     if (!_isGoogleSignInInitialized) {
       await _googleSignIn.initialize(
@@ -30,24 +27,15 @@ class AuthService {
   Future<UserCredential?> signInWithGoogle() async {
     try {
       await _ensureGoogleSignInInitialized();
-
-      // FIX 3: Use authenticate() instead of signIn()
-      // Note: This method throws an exception if the user cancels, it does not return null.
       final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
-      
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
-
-      // FIX 4: Retrieve tokens correctly. 
-      // 'accessToken' is removed from googleAuth. We can usually rely on idToken for Firebase.
-      // If you specifically need the accessToken, you now get it via authorizationClient.
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: null, // Usually not needed if idToken is present for Firebase
+        accessToken: null, 
         idToken: googleAuth.idToken,
       );
 
       return await firebaseAuth.signInWithCredential(credential);
     } catch (e) {
-      // FIX 5: Catch cancellation or errors explicitly since authenticate() throws
       debugPrint('Google Sign-In failed or cancelled: $e');
       return null;
     }
