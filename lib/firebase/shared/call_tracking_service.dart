@@ -6,7 +6,6 @@ import '../firebase_services.dart';
 class CallTrackingService {
   final FirebaseDatabase _database = databaseService.database;
 
-  /// Initiates a call in Firebase and returns the callId
   Future<String> initiateCall({
     required String callerId,
     required String receiverId,
@@ -28,7 +27,6 @@ class CallTrackingService {
     }
   }
 
-  /// Update the status of an ongoing call (e.g., accept, reject, end)
   Future<void> updateCallStatus({
     required String path,
     required String callId,
