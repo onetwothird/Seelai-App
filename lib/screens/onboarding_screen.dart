@@ -76,14 +76,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     top: 0,
                     left: 0,
                     right: 0,
-                    // Changed from 0.80 to 0.70. 
-                    // This forces the image to zoom out perfectly to show the full magnifying glass!
                     height: size.height * 0.70, 
                     child: Image.asset(
                       _onboardingData[index]["image"]!,
-                      fit: BoxFit.cover, 
-                      // Pushes the character down slightly so it doesn't float too high
-                      alignment: const Alignment(0, 0.2), 
+                      fit: BoxFit.cover, // Keep cover to maintain the full background look
+                      // CHANGED: x changed from 0 to 1.0 to anchor to the right edge
+                      alignment: const Alignment(0.6, 0.5), 
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(child: Icon(Icons.broken_image, size: 50));
                       },
