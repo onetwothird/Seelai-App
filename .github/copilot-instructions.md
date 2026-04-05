@@ -6,7 +6,7 @@ Seelai is a Flutter mobile app for visually impaired users, featuring real-time 
 ## Architecture
 - **State Management**: Minimal; uses `ValueNotifier` for auth (e.g., `authService` in `lib/firebase/auth_service.dart`). No global providers.
 - **Data Flow**: Services in `lib/firebase/` handle Firebase operations. Role-specific services save detection results to Realtime DB with activity logging.
-- **ML Integration**: Controllers in `lib/roles/visually_impaired/screens/scanner/` use `FlutterVision` for YOLO inference on camera streams. Models loaded from `assets/` (e.g., `assets/object_model/seelai-objects.tflite`).
+- **ML Integration**: Controllers in `lib/roles/partially_sighted/screens/scanner/` use `FlutterVision` for YOLO inference on camera streams. Models loaded from `assets/` (e.g., `assets/object_model/seelai-objects.tflite`).
 - **UI Structure**: Role-based screens in `lib/roles/{role}/screens/`. Navigation via role selection post-auth.
 
 ## Key Patterns
@@ -36,4 +36,4 @@ Seelai is a Flutter mobile app for visually impaired users, featuring real-time 
 - **Stream Management**: Properly stop camera streams in `dispose()` to prevent crashes.
 - **Firebase Refs**: Use `databaseService.database.ref()` for consistent DB access.
 
-Reference: `README.md` for features; `pubspec.yaml` for deps; `lib/firebase/visually_impaired/object_detection_service.dart` for data persistence patterns.
+Reference: `README.md` for features; `pubspec.yaml` for deps; `lib/firebase/partially_sighted/object_detection_service.dart` for data persistence patterns.
