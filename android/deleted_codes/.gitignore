@@ -1,7 +1,7 @@
 {
   "rules": {
     "user_info": {
-      "visually_impaired": {
+      "partially_sighted": {
         "$uid": {
           ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $uid).val() === true",
           ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
@@ -27,7 +27,7 @@
       "caretaker": {
         ".read": "auth != null",
         "$uid": {
-          ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/visually_impaired/' + auth.uid + '/assignedCaretakers/' + $uid).val() === true",
+          ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/partially_sighted/' + auth.uid + '/assignedCaretakers/' + $uid).val() === true",
           ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
           "assignedPatients": {
             "$patientId": {
@@ -59,7 +59,7 @@
       }
     },
     "user_locations": {
-      "visually_impaired": {
+      "partially_sighted": {
         ".indexOn": ["timestamp", "lastUpdated"],
         "$patientId": {
           ".read": "$patientId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $patientId).val() === true",
