@@ -21,7 +21,7 @@ class LocationTrackingService {
   }) async {
     try {
       final timestamp = DateTime.now();
-      await _database.ref('user_locations/visually_impaired/$patientId').set({
+      await _database.ref('user_locations/partially_sighted/$patientId').set({
         'latitude': latitude,
         'longitude': longitude,
         'accuracy': accuracy,
@@ -46,7 +46,7 @@ class LocationTrackingService {
   Future<Map<String, dynamic>?> getPatientLocation(String patientId) async {
     try {
       final snapshot = await _database
-          .ref('user_locations/visually_impaired/$patientId')
+          .ref('user_locations/partially_sighted/$patientId')
           .once();
 
       if (snapshot.snapshot.exists) {
@@ -64,7 +64,7 @@ class LocationTrackingService {
   /// Stream patient location updates (real-time)
   Stream<Map<String, dynamic>?> trackPatientLocation(String patientId) {
     return _database
-        .ref('user_locations/visually_impaired/$patientId')
+        .ref('user_locations/partially_sighted/$patientId')
         .onValue
         .map((event) {
       if (event.snapshot.exists) {
@@ -196,7 +196,7 @@ class LocationTrackingService {
       final cutoffTime = DateTime.now().subtract(duration).millisecondsSinceEpoch;
       
       final snapshot = await _database
-          .ref('user_locations/visually_impaired/$patientId')
+          .ref('user_locations/partially_sighted/$patientId')
           .orderByChild('lastUpdateMillis')
           .startAt(cutoffTime)
           .once();
