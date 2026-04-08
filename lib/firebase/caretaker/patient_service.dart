@@ -26,7 +26,7 @@ class PatientService {
     try {
       final patientData = await _databaseService.getUserDataByRole(
         patientId,
-        'visually_impaired',
+        'partially_sighted',
       );
       
       if (patientData != null) {
