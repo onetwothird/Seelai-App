@@ -1,6 +1,4 @@
-
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 class LoadingOverlay extends StatefulWidget {
   final String message;
@@ -65,17 +63,36 @@ class _LoadingOverlayState extends State<LoadingOverlay>
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
-        color: Colors.black.withValues(alpha: 0.7),
+        // CHANGED HERE: Set to white instead of black. 
+        // Use Colors.white.withValues(alpha: 0.8) if you want it semi-transparent.
+        color: Colors.white,
         child: Center(
-          child: SizedBox(
-            width: 400,
-            height: 400,
-            child: Lottie.asset(
-              'assets/icons/Seelai.json',
-              fit: BoxFit.contain,
-              repeat: true,
-              animate: true,
-            ),
+          // Wrapped in a Column so we can display the message below the animation
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 400,
+                height: 400,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai_loaders.gif',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              // ADDED HERE: Actually displaying the message string
+              if (widget.message.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  widget.message,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87, // Dark text to contrast the white background
+                    decoration: TextDecoration.none, // Ensures no yellow underlines from missing Scaffold
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ),

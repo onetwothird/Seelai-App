@@ -1,7 +1,7 @@
 {
   "rules": {
     "user_info": {
-      "visually_impaired": {
+      "partially_sighted": {
         ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || auth != null",
         "$uid": {
           ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/caretaker/' + auth.uid + '/assignedPatients/' + $uid).val() === true",
@@ -23,7 +23,7 @@
       "caretaker": {
         ".read": "auth != null",
         "$uid": {
-          ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/visually_impaired/' + auth.uid + '/assignedCaretakers/' + $uid).val() === true",
+          ".read": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/partially_sighted/' + auth.uid + '/assignedCaretakers/' + $uid).val() === true",
           ".write": "$uid === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
           "assignedPatients": {
             "$patientId": {
@@ -87,7 +87,7 @@
     },
     "user_locations": {
       ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin'",
-      "visually_impaired": {
+      "partially_sighted": {
         ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || auth != null",
         ".indexOn": ["timestamp", "lastUpdated", "lastUpdateMillis"],
         "$patientId": {
@@ -100,7 +100,7 @@
         ".read": "root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || auth != null",
         ".indexOn": ["timestamp", "lastUpdated", "lastUpdateMillis"],
         "$caretakerId": {
-          ".read": "$caretakerId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/visually_impaired/' + auth.uid + '/assignedCaretakers/' + $caretakerId).val() === true",
+          ".read": "$caretakerId === auth.uid || root.child('user_info/mswd/' + auth.uid + '/role').val() === 'admin' || root.child('user_info/partially_sighted/' + auth.uid + '/assignedCaretakers/' + $caretakerId).val() === true",
           ".write": "$caretakerId === auth.uid",
           ".validate": "newData.hasChildren(['latitude', 'longitude', 'timestamp', 'accuracy'])"
         }
@@ -180,7 +180,7 @@
         }
       }
     },
-    "visually_impaired_communication": {
+    "partially_sighted_communication": {
       "calls": {
         ".read": "auth != null",
         ".write": "auth != null",

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
+// Note: Removed 'package:lottie/lottie.dart' since it's a GIF
 import 'package:seelai_app/screens/onboarding_screen.dart';
 
 class AnimatedSplashScreenWidget extends StatefulWidget {
@@ -64,17 +64,17 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // The background of the screen itself is explicitly set to white here
       backgroundColor: Colors.white, 
       body: FadeTransition(
         opacity: _fadeAnimation,
         child: Center(
-          child: Lottie.asset(
-            'assets/icons/Seelai.json',
-            width: 400,
-            height: 400,
+          // Swapped Lottie.asset for Image.asset to properly handle .gif files
+          child: Image.asset(
+            'assets/seelai-icons/seelai_loaders.gif',
+            width: 500,
+            height: 1000,
             fit: BoxFit.contain,
-            repeat: true,
-            animate: true,
           ),
         ),
       ),

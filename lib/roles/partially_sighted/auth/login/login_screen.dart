@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:seelai_app/roles/partially_sighted/caretaker/caretaker_selection_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/partially_sighted/auth/signup/signup_screen.dart';
@@ -66,38 +65,31 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
       body: Stack(
         children: [
           // 1. Top Section: Hero Animation
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: size.height * 0.45, 
-            child: SafeArea(
-              child: Center(
-                child: Container(
-                  width: size.width * 0.9,
-                  padding: EdgeInsets.all(10),
-                  child: Lottie.asset(
-                    'assets/icons/Seelai.json',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
+         Positioned(
+          top: -60, // Try -60, -80, or -100 to pull it up more
+          left: 0,
+          right: 0,
+          height: (size.height * 0.40) + 60, // Remember to add that exact amount back here
+          child: Image.asset(
+            'assets/seelai-icons/seelai_model.gif',
+            fit: BoxFit.cover, 
           ),
-
-          // 2. Back Button
+        ),
+         // 2. Back Button (High Contrast & Clear UX)
           Positioned(
             top: 50,
             left: 20,
-            child: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back_ios_new_rounded),
-              color: const Color(0xFF1E293B),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: EdgeInsets.all(12),
-                elevation: 0,
-                side: BorderSide(color: Colors.grey.shade200),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3), // Semi-transparent dark circle
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                color: Colors.white, // Crisp white arrow
+                iconSize: 22,
+                tooltip: 'Go back', // Good for accessibility screen readers!
               ),
             ),
           ),
@@ -319,7 +311,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
 
           if (_isLoading)
             LoadingOverlay(
-              message: 'Please wait...',
+              message: '',
               isVisible: _isLoading,
             ),
         ],
@@ -470,7 +462,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
         if (!mounted) return; 
         
         if (hasCaretaker) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VisuallyImpairedHomeScreen(userData: userData)));
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => PartiallySightedHomeScreen(userData: userData)));
           Future.delayed(Duration(milliseconds: 500), () {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));
@@ -561,7 +553,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
         if (!mounted) return; // FIXED: Add mounted guard
         
         if (hasCaretaker) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => VisuallyImpairedHomeScreen(userData: userData)));
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => PartiallySightedHomeScreen(userData: userData)));
           Future.delayed(Duration(milliseconds: 500), () {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));

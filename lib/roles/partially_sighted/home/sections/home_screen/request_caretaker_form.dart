@@ -1,9 +1,10 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/request_caretaker_form.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:http/http.dart' as http; // ADDED
+import 'dart:convert'; // ADDED
 
 class RequestCaretakerForm extends StatefulWidget {
   final String userName;
@@ -127,12 +128,9 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: false,
-      // Set scaffold background color to match container
       backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
       appBar: AppBar(
-        // Force the AppBar background to be the same as the scaffold/container
         backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
-        // This prevents the color change when scrolling
         scrolledUnderElevation: 0,
         elevation: 0,
         leading: IconButton(
@@ -548,6 +546,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
     );
   }
 
+  // ==================== HTTP PING LOGIC HERE ====================
   Future<void> _handleSubmit() async {
     if (_selectedType == null) return;
 
@@ -566,6 +565,29 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
             : 'User needs $_selectedType',
         priority: _selectedPriority.toLowerCase(),
       );
+
+      // --- NEW HTTP PING LOGIC ---
+      if (success && (_selectedPriority.toLowerCase() == 'high' || _selectedPriority.toLowerCase() == 'emergency')) {
+        try {
+          // IMPORTANT: Replace this URL with your actual Render.com URL
+          final url = Uri.parse('https://seelai-alarm-server.onrender.com/trigger-alarm');
+          
+          http.post(
+            url,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'caretakerId': widget.caretakerId,
+              'patientName': widget.userName,
+              'priority': _selectedPriority.toLowerCase(),
+            }),
+          ).then((response) {
+            debugPrint("Alarm Server Response: ${response.statusCode}");
+          });
+        } catch (e) {
+          debugPrint("Failed to ping alarm server: $e");
+        }
+      }
+      // ----------------------------
 
       if (success) {
         await _userActivityService.logCaretakerRequest(

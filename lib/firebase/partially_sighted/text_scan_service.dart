@@ -19,7 +19,7 @@ class TextScanService {
     Map<String, dynamic>? metadata,
   }) async {
     try {
-      debugPrint('🔄 Attempting to save scanned text for user: $userId');
+      debugPrint('Attempting to save scanned text for user: $userId');
       
       // Create reference
       final scanRef = _database.ref('scanned_texts/$userId').push();
@@ -30,7 +30,7 @@ class TextScanService {
         return false;
       }
       
-      debugPrint('📝 Generated scan ID: $scanId');
+      debugPrint('Generated scan ID: $scanId');
       
       // Prepare data
       final scanData = {
@@ -51,7 +51,7 @@ class TextScanService {
       // Save to Firebase
       await scanRef.set(scanData);
       
-      debugPrint('✅ Successfully saved to Firebase at: scanned_texts/$userId/$scanId');
+      debugPrint('Successfully saved to Firebase at: scanned_texts/$userId/$scanId');
       debugPrint('   Text length: ${scannedText.length} characters');
       debugPrint('   Blocks: $textBlockCount');
       
@@ -77,7 +77,7 @@ class TextScanService {
     int limit = 50,
   }) async {
     try {
-      debugPrint('🔍 Fetching scanned texts for user: $userId');
+      debugPrint('Fetching scanned texts for user: $userId');
       
       final snapshot = await _database
           .ref('scanned_texts/$userId')
@@ -86,7 +86,7 @@ class TextScanService {
           .once();
 
       if (!snapshot.snapshot.exists) {
-        debugPrint('ℹ️ No scanned texts found for user: $userId');
+        debugPrint('No scanned texts found for user: $userId');
         return [];
       }
 
@@ -112,10 +112,10 @@ class TextScanService {
         return bTime.compareTo(aTime);
       });
 
-      debugPrint('✅ Retrieved ${texts.length} scanned texts');
+      debugPrint('Retrieved ${texts.length} scanned texts');
       return texts;
     } catch (e) {
-      debugPrint('❌ Error getting scanned texts: $e');
+      debugPrint('Error getting scanned texts: $e');
       return [];
     }
   }
@@ -174,7 +174,7 @@ class TextScanService {
           .once();
 
       if (!snapshot.snapshot.exists) {
-        debugPrint('ℹ️ Scanned text not found: $scanId');
+        debugPrint('Scanned text not found: $scanId');
         return null;
       }
 
@@ -197,10 +197,10 @@ class TextScanService {
           .ref('scanned_texts/$userId/$scanId')
           .remove();
       
-      debugPrint('✅ Scanned text deleted: $scanId');
+      debugPrint('Scanned text deleted: $scanId');
       return true;
     } catch (e) {
-      debugPrint('❌ Error deleting scanned text: $e');
+      debugPrint('Error deleting scanned text: $e');
       return false;
     }
   }
@@ -212,10 +212,10 @@ class TextScanService {
           .ref('scanned_texts/$userId')
           .remove();
       
-      debugPrint('✅ All scanned texts cleared for user: $userId');
+      debugPrint('All scanned texts cleared for user: $userId');
       return true;
     } catch (e) {
-      debugPrint('❌ Error clearing all scanned texts: $e');
+      debugPrint('Error clearing all scanned texts: $e');
       return false;
     }
   }
@@ -234,10 +234,10 @@ class TextScanService {
               .remove();
         }
         
-        debugPrint('✅ Cleared ${toDelete.length} old scanned texts');
+        debugPrint('Cleared ${toDelete.length} old scanned texts');
       }
     } catch (e) {
-      debugPrint('❌ Error clearing old scanned texts: $e');
+      debugPrint('Error clearing old scanned texts: $e');
     }
   }
 
@@ -265,10 +265,10 @@ class TextScanService {
           .ref('scanned_texts/$userId/$scanId')
           .update(updates);
 
-      debugPrint('✅ Scanned text updated: $scanId');
+      debugPrint('Scanned text updated: $scanId');
       return true;
     } catch (e) {
-      debugPrint('❌ Error updating scanned text: $e');
+      debugPrint('Error updating scanned text: $e');
       return false;
     }
   }
@@ -351,7 +351,7 @@ class TextScanService {
 
       return filteredTexts;
     } catch (e) {
-      debugPrint('❌ Error getting texts by date range: $e');
+      debugPrint('Error getting texts by date range: $e');
       return [];
     }
   }
@@ -371,7 +371,7 @@ class TextScanService {
 
       return filteredTexts;
     } catch (e) {
-      debugPrint('❌ Error getting texts by source type: $e');
+      debugPrint('Error getting texts by source type: $e');
       return [];
     }
   }
@@ -422,7 +422,7 @@ class TextScanService {
 
       return allTexts;
     } catch (e) {
-      debugPrint('❌ Error getting all scanned texts: $e');
+      debugPrint('Error getting all scanned texts: $e');
       return [];
     }
   }
@@ -446,9 +446,9 @@ class TextScanService {
         'createdAt': DateTime.now().toIso8601String(),
       });
       
-      debugPrint('📋 Activity logged: $action');
+      debugPrint('Activity logged: $action');
     } catch (e) {
-      debugPrint('⚠️ Error logging to activity_logs: $e');
+      debugPrint('Error logging to activity_logs: $e');
     }
   }
 
@@ -479,12 +479,12 @@ class TextScanService {
       final isConnected = snapshot.snapshot.value as bool? ?? false;
       
       debugPrint(isConnected 
-          ? '✅ Firebase connection: OK' 
-          : '❌ Firebase connection: FAILED');
+          ? 'Firebase connection: OK' 
+          : 'Firebase connection: FAILED');
       
       return isConnected;
     } catch (e) {
-      debugPrint('❌ Firebase connection test error: $e');
+      debugPrint('Error testing Firebase connection: $e');
       return false;
     }
   }

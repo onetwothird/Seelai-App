@@ -1,7 +1,6 @@
 // File: lib/roles/caretaker/auth/login/login_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/caretaker/home/caretaker_home_screen.dart';
@@ -67,37 +66,37 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
       body: Stack(
         children: [
           // 1. Top Section: Hero Animation
+           Positioned(
+          top: -60, // Try -60, -80, or -100 to pull it up more
+          left: 0,
+          right: 0,
+          height: (size.height * 0.40) + 60, // Remember to add that exact amount back here
+          child: Image.asset(
+            'assets/seelai-icons/seelai_model.gif',
+            fit: BoxFit.cover, 
+          ),
+        ),
+
+          // 2. Back Button (High Contrast & Clear UX)
           Positioned(
-            top: 0, left: 0, right: 0,
-            height: size.height * 0.45,
-            child: SafeArea(
-              child: Center(
-                child: Container(
-                  width: size.width * 0.9,
-                  padding: const EdgeInsets.all(10),
-                  child: Lottie.asset('assets/icons/Seelai.json', fit: BoxFit.contain),
-                ),
+            top: 50,
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3), // Semi-transparent dark circle
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                color: Colors.white, // Crisp white arrow
+                iconSize: 22,
+                tooltip: 'Go back', 
               ),
             ),
           ),
 
-          // 2. Back Button
-          Positioned(
-            top: 50, left: 20,
-            child: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
-              color: const Color(0xFF1E293B),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.all(12),
-                elevation: 0,
-                side: BorderSide(color: Colors.grey.shade200),
-              ),
-            ),
-          ),
-
-          // 3. Bottom Section: White Card
+          // 3. Bottom Section: The Card
           Align(
             alignment: Alignment.bottomCenter,
             child: FadeTransition(
@@ -109,18 +108,37 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(40), topRight: Radius.circular(40)),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 30, offset: const Offset(0, -10))],
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(40), 
+                      topRight: Radius.circular(40),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05), 
+                        blurRadius: 30, 
+                        offset: const Offset(0, -10),
+                      ),
+                    ],
                   ),
                   child: Stack(
                     children: [
                       // Background Texture
                       Positioned.fill(
                         child: ClipRRect(
-                          borderRadius: const BorderRadius.only(topLeft: Radius.circular(40), topRight: Radius.circular(40)),
-                          child: Opacity(opacity: 0.08, child: Image.asset('assets/images/eye background.jpg', fit: BoxFit.cover)),
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(40), 
+                            topRight: Radius.circular(40),
+                          ),
+                          child: Opacity(
+                            opacity: 0.08, 
+                            child: Image.asset(
+                              'assets/images/eye background.jpg', 
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                       ),
+                      
                       // Content
                       SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
@@ -128,21 +146,54 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("Welcome, Caretaker!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, color: Color(0xFF1E293B), letterSpacing: -0.5)),
+                            const Text(
+                              "Welcome, Caretaker!", 
+                              style: TextStyle(
+                                fontSize: 28, 
+                                fontWeight: FontWeight.w800, 
+                                color: Color(0xFF1E293B), 
+                                letterSpacing: -0.5,
+                              ),
+                            ),
                             const SizedBox(height: 8),
-                            const Text("Sign in to manage and support your patients.", style: TextStyle(fontSize: 16, color: Color(0xFF64748B), fontWeight: FontWeight.w400)),
+                            const Text(
+                              "Sign in to manage and support your patients.", 
+                              style: TextStyle(
+                                fontSize: 16, 
+                                color: Color(0xFF64748B), 
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
                             
                             const SizedBox(height: 32),
                             
-                            _buildTextField(controller: _emailController, hint: "Email address", icon: Icons.email_outlined),
+                            // Standard Login Fields
+                            _buildTextField(
+                              controller: _emailController, 
+                              hint: "Email address", 
+                              icon: Icons.email_outlined,
+                            ),
+                            
                             const SizedBox(height: 20),
-                            _buildTextField(controller: _passwordController, hint: "Password", icon: Icons.lock_outline_rounded, isPassword: true),
+                            
+                            _buildTextField(
+                              controller: _passwordController, 
+                              hint: "Password", 
+                              icon: Icons.lock_outline_rounded, 
+                              isPassword: true,
+                            ),
                             
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: _isLoading ? null : _showForgotPasswordDialog,
-                                child: Text("Forgot password?", style: TextStyle(color: brandColor, fontWeight: FontWeight.w600)),
+                                child: Text(
+                                  "Forgot password?", 
+                                  style: TextStyle(
+                                    color: brandColor, 
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
                             ),
                             
@@ -157,9 +208,17 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                                   backgroundColor: brandColor,
                                   foregroundColor: Colors.white,
                                   elevation: 0,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
-                                child: const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                                child: const Text(
+                                  "Sign In", 
+                                  style: TextStyle(
+                                    fontSize: 16, 
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                               ),
                             ),
                             
@@ -219,13 +278,24 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                             
                             Center(
                               child: TextButton(
-                                onPressed: _isLoading ? null : () => Navigator.push(context, MaterialPageRoute(builder: (context) => const CaretakerSignupScreen())),
+                                onPressed: _isLoading ? null : () {
+                                  Navigator.push(
+                                    context, 
+                                    MaterialPageRoute(builder: (context) => const CaretakerSignupScreen()),
+                                  );
+                                },
                                 child: RichText(
                                   text: TextSpan(
                                     style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
                                     children: [
                                       const TextSpan(text: "Don't have an account? "),
-                                      TextSpan(text: "Sign Up", style: TextStyle(color: brandColor, fontWeight: FontWeight.bold)),
+                                      TextSpan(
+                                        text: "Sign Up", 
+                                        style: TextStyle(
+                                          color: brandColor, 
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -240,13 +310,20 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
               ),
             ),
           ),
-          if (_isLoading) LoadingOverlay(message: 'Signing In', isVisible: _isLoading),
+          if (_isLoading) LoadingOverlay(message: '', isVisible: _isLoading),
         ],
       ),
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon, bool isPassword = false}) {
+  // --- Widgets ---
+
+  Widget _buildTextField({
+    required TextEditingController controller, 
+    required String hint, 
+    required IconData icon, 
+    bool isPassword = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
@@ -263,7 +340,10 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
           prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
           suffixIcon: isPassword
               ? IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: const Color(0xFF94A3B8)),
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, 
+                    color: const Color(0xFF94A3B8),
+                  ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 )
               : null,
@@ -274,65 +354,72 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
     );
   }
 
- void _showForgotPasswordDialog() {
-  final TextEditingController emailController = TextEditingController();
+  void _showForgotPasswordDialog() {
+    // FIXED: Save parent context
+    final parentContext = context;
+    final TextEditingController emailController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (dialogContext) {
-      return AlertDialog(
-        title: const Text('Reset Password'),
-        content: TextField(
-          controller: emailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: const InputDecoration(
-            hintText: 'Enter your email',
-            prefixIcon: Icon(Icons.email_outlined),
+    showDialog(
+      context: parentContext,
+      // FIXED: Rename builder context
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              hintText: 'Enter your email',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final email = emailController.text.trim();
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final email = emailController.text.trim();
 
-              if (email.isEmpty) {
-                Navigator.pop(dialogContext);
-                return;
-              }
+                if (email.isEmpty) {
+                  Navigator.pop(dialogContext);
+                  if (parentContext.mounted) {
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
+                      const SnackBar(content: Text('Please enter your email'), backgroundColor: error),
+                    );
+                  }
+                  return;
+                }
 
-              Navigator.pop(dialogContext);
+                try {
+                  await authService.value.sendPasswordResetEmail(email: email);
+                  
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
 
-              final messenger = ScaffoldMessenger.of(context);
+                  if (!parentContext.mounted) return;
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(content: Text('Password reset email sent!'), backgroundColor: success),
+                  );
+                } catch (e) {
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+                  
+                  if (!parentContext.mounted) return;
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error),
+                  );
+                }
+              },
+              child: const Text('Send'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-              try {
-                await authService.value
-                    .sendPasswordResetEmail(email: email);
-
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Password reset email sent!'),
-                    backgroundColor: success,
-                  ),
-                );
-              } catch (e) {
-                messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Failed to send reset email'),
-                  ),
-                );
-              }
-            },
-            child: const Text('Send'),
-          ),
-        ],
-      );
-    },
-  );
-}
   // ==================== GOOGLE LOGIN LOGIC ====================
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
@@ -350,9 +437,10 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
       if (userData != null) {
         if (userData['role'] != 'caretaker') {
           await authService.value.signOut();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error));
-          }
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error),
+          );
           return;
         }
 
@@ -360,10 +448,9 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
 
         if (!isApproved) {
           await authService.value.signOut();
-          if (mounted) {
-            _showPendingVerificationDialog();
-            setState(() => _isLoading = false);
-          }
+          if (!mounted) return;
+          _showPendingVerificationDialog();
+          setState(() => _isLoading = false);
           return;
         }
 
@@ -373,33 +460,35 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
           details: 'Caretaker logged in via Google',
         );
         
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
-          );
-        }
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
+        );
       } else {
         // User not in DB, route to Signup
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CaretakerSignupScreen(googleUser: userCredential.user),
-            ),
-          );
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Almost there! Please complete your profile.'), 
-              backgroundColor: primary,
-              duration: Duration(seconds: 4),
-            ),
-          );
-        }
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CaretakerSignupScreen(googleUser: userCredential.user),
+          ),
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Almost there! Please complete your profile.'), 
+            backgroundColor: primary,
+            duration: Duration(seconds: 4),
+          ),
+        );
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -408,7 +497,15 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
   // ==================== STANDARD LOGIN LOGIC ====================
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error),
+      );
+      return;
+    }
+    if (!_emailController.text.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address'), backgroundColor: error),
+      );
       return;
     }
 
@@ -428,10 +525,9 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
 
         if (!isApproved) {
           await authService.value.signOut();
-          if (mounted) {
-            _showPendingVerificationDialog();
-            setState(() => _isLoading = false);
-          }
+          if (!mounted) return;
+          _showPendingVerificationDialog();
+          setState(() => _isLoading = false);
           return;
         }
 
@@ -441,20 +537,46 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
           details: 'Caretaker logged in',
         );
         
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
-          );
-        }
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
+        );
       } else {
         await authService.value.signOut();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error));
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error),
+        );
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed'), backgroundColor: error));
+      String errorMessage = 'An error occurred';
+      
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found with this email';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Wrong password';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (e.code == 'user-disabled') {
+        errorMessage = 'Account disabled';
+      } else if (e.code == 'too-many-requests') {
+        errorMessage = 'Too many attempts. Try again later';
+      } else {
+        errorMessage = e.message ?? 'Login failed';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: error),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -1,5 +1,6 @@
 // File: lib/roles/partially_sighted/home/sections/recent_activities/view_recent_activites.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
@@ -29,6 +30,87 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
   final int maxDisplayedDetections = 5;
   String _selectedFilter = 'All';
   bool _isRefreshing = false;
+  bool _isLoading = true;
+
+  // State lists for our real-time data
+  List<Map<String, dynamic>> _faces = [];
+  List<Map<String, dynamic>> _objects = [];
+  List<Map<String, dynamic>> _texts = [];
+  List<Map<String, dynamic>> _allDetections = [];
+
+  // Subscriptions to clean up when we leave the screen
+  StreamSubscription? _facesSub;
+  StreamSubscription? _objectsSub;
+  StreamSubscription? _textsSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupRealtimeStreams();
+  }
+
+  // ✅ THE FIX: We listen to the streams exactly once when the widget loads
+  void _setupRealtimeStreams() {
+    // 1. Listen to Faces
+    _facesSub = faceDetectionService.streamDetectedFaces(widget.userId).listen((faces) {
+      _faces = faces.map((face) => {
+        ...face,
+        'type': 'face',
+        'icon': Icons.face_rounded,
+        'color': _primaryColor,
+      }).toList();
+      _combineAndSortDetections();
+    });
+
+    // 2. Listen to Objects
+    _objectsSub = objectDetectionService.streamDetectedObjects(widget.userId).listen((objects) {
+      _objects = objects.map((obj) => {
+        ...obj,
+        'type': 'object',
+        'icon': Icons.search_rounded,
+        'color': Colors.green,
+      }).toList();
+      _combineAndSortDetections();
+    });
+
+    // 3. Listen to Texts
+    _textsSub = textScanService.streamScannedTexts(widget.userId).listen((texts) {
+      _texts = texts.map((text) => {
+        ...text,
+        'type': 'text',
+        'icon': Icons.document_scanner_rounded,
+        'color': Colors.orange,
+      }).toList();
+      _combineAndSortDetections();
+    });
+  }
+
+  // Merges the three lists together and sorts them by date
+  void _combineAndSortDetections() {
+    final combined = [..._faces, ..._objects, ..._texts];
+    
+    combined.sort((a, b) {
+      final aTime = DateTime.parse(a['timestamp'] as String);
+      final bTime = DateTime.parse(b['timestamp'] as String);
+      return bTime.compareTo(aTime); // Newest first
+    });
+
+    if (mounted) {
+      setState(() {
+        _allDetections = combined;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    // Prevent memory leaks by canceling streams when leaving the screen
+    _facesSub?.cancel();
+    _objectsSub?.cancel();
+    _textsSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,18 +179,19 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
           
           const SizedBox(height: spacingLarge),
           
-          // Shared Stream for both Banner (stats) and List
-          StreamBuilder<List<Map<String, dynamic>>>(
-            key: ValueKey(_selectedFilter),
-            stream: _getCombinedDetectionsStream(),
-            builder: (context, snapshot) {
-              final allDetections = snapshot.data ?? [];
-
-              return Column(
+          // Show loader if waiting for Firebase, otherwise show content
+          _isLoading 
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(spacingLarge),
+                  child: CircularProgressIndicator(color: _primaryColor),
+                ),
+              )
+            : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Edge-to-edge Mascot Banner with Bubble
-                  _buildMascotBanner(allDetections),
+                  _buildMascotBanner(_allDetections),
                   
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: width * 0.06),
@@ -139,15 +222,14 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                               ),
                             );
                           },
-                          child: _buildDetectionsList(snapshot, allDetections),
+                          // We pass our state list directly now! No StreamBuilder needed!
+                          child: _buildDetectionsList(_allDetections),
                         ),
                       ],
                     ),
                   ),
                 ],
-              );
-            },
-          ),
+              ),
         ],
       ),
     );
@@ -337,20 +419,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     );
   }
 
-  Widget _buildDetectionsList(AsyncSnapshot<List<Map<String, dynamic>>> snapshot, List<Map<String, dynamic>> allDetections) {
-    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(spacingLarge),
-          child: CircularProgressIndicator(color: _primaryColor),
-        ),
-      );
-    }
-
-    if (snapshot.hasError) {
-      return _buildErrorState();
-    }
-
+  Widget _buildDetectionsList(List<Map<String, dynamic>> allDetections) {
     if (allDetections.isEmpty) {
       return _buildEmptyState();
     }
@@ -365,6 +434,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     final hasMoreDetections = filteredDetections.length > maxDisplayedDetections;
 
     return Column(
+      key: ValueKey(_selectedFilter), // Forces animation when switching tabs
       children: [
         ...displayedDetections.asMap().entries.map((entry) {
           final index = entry.key;
@@ -410,60 +480,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
           ),
       ],
     );
-  }
-
-  Stream<List<Map<String, dynamic>>> _getCombinedDetectionsStream() async* {
-    await for (final _ in Stream.periodic(const Duration(milliseconds: 500))) {
-      try {
-        final List<Map<String, dynamic>> allDetections = [];
-
-        if (_selectedFilter == 'All' || _selectedFilter == 'Faces') {
-          final faces = await faceDetectionService.getDetectedFaces(widget.userId, limit: 50);
-          allDetections.addAll(faces.map((face) {
-            return {
-              ...face,
-              'type': 'face',
-              'icon': Icons.face_rounded,
-              'color': _primaryColor, // Updated to match brand purple
-            };
-          }));
-        }
-
-        if (_selectedFilter == 'All' || _selectedFilter == 'Objects') {
-          final objects = await objectDetectionService.getDetectedObjects(widget.userId, limit: 50);
-          allDetections.addAll(objects.map((obj) {
-            return {
-              ...obj,
-              'type': 'object',
-              'icon': Icons.search_rounded,
-              'color': Colors.green,
-            };
-          }));
-        }
-
-        if (_selectedFilter == 'All' || _selectedFilter == 'Text') {
-          final texts = await textScanService.getScannedTexts(widget.userId, limit: 50);
-          allDetections.addAll(texts.map((text) {
-            return {
-              ...text,
-              'type': 'text',
-              'icon': Icons.document_scanner_rounded,
-              'color': Colors.orange,
-            };
-          }));
-        }
-
-        allDetections.sort((a, b) {
-          final aTime = DateTime.parse(a['timestamp'] as String);
-          final bTime = DateTime.parse(b['timestamp'] as String);
-          return bTime.compareTo(aTime);
-        });
-
-        yield allDetections;
-      } catch (e) {
-        yield [];
-      }
-    }
   }
 
   List<Map<String, dynamic>> _filterDetections(List<Map<String, dynamic>> detections) {
@@ -846,30 +862,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     );
   }
 
-  Widget _buildErrorState() {
-    final errorColor = widget.isDarkMode ? Colors.red.shade400 : Colors.red.shade700;
-    return Container(
-      padding: const EdgeInsets.all(spacingLarge),
-      decoration: BoxDecoration(
-        color: errorColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(radiusLarge),
-        border: Border.all(color: errorColor.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline_rounded, color: errorColor),
-          const SizedBox(width: spacingMedium),
-          Expanded(
-            child: Text(
-              'Unable to load detections',
-              style: body.copyWith(color: widget.theme.textColor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   String _getTimeAgo(DateTime timestamp) {
     Duration difference = DateTime.now().difference(timestamp);
 
@@ -892,6 +884,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     setState(() {
       _isRefreshing = true;
     });
+    
+    // With pure streams, we don't need to manually re-fetch here
+    // But we keep the UI animation to acknowledge the user's tap
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {

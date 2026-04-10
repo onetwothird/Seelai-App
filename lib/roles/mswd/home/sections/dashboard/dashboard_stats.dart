@@ -92,7 +92,7 @@ class _DashboardStatsState extends State<DashboardStats> {
               children: [
                 Expanded(
                   child: _buildKpiCard(
-                    title: 'Visually Impaired',
+                    title: 'Partially Sighted',
                     subtitle: 'Registered clients',
                     bottomLabel: 'USERS',
                     value: viCount.toString(),

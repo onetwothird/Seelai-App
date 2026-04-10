@@ -2,13 +2,13 @@
   <img src="https://raw.githubusercontent.com/onetwothird/Seelai/main/seelai/assets/images/preview.png" alt="Seelai App Preview" width="600;" />
 </p>
 
-<h1 align="center">👁️‍🗨️ Seelai: A Mobile Assistant for Visually Impaired Individuals</h1>
+<h1 align="center">👁️‍🗨️ Seelai: A Mobile Assistant for Partially Sighted Individuals</h1>
 
 ## 📖 Description
 
-**Seelai** is a mobile assistant application designed to enhance the daily lives of **visually impaired individuals**.  
+**Seelai** is a mobile assistant application designed to enhance the daily lives of **partially sighted users**.  
 It leverages the **YOLO Algorithm** and **TensorFlow Lite** for real-time **object detection**, and integrates **voice interaction** for accessible and intuitive user experiences.  
-The system includes three main user roles — **Visually Impaired User**, **Caretaker**, and **MSDWD Admin** — to ensure safety, assistance, and efficient management.
+The system includes three main user roles — **Partially Sighted Userr**, **Caretaker**, and **MSDWD Admin** — to ensure safety, assistance, and efficient management.
 
 ---
 
@@ -29,8 +29,8 @@ The system includes three main user roles — **Visually Impaired User**, **Care
 
 - 🔍 **Real-time Object Detection** using YOLO and TensorFlow Lite  
 - 🎙️ **Voice Assistance** for user interaction and feedback  
-- 📍 **Location Tracking** for caretakers to monitor visually impaired users  
-- 🧭 **Role-based System** (Visually Impaired, Caretaker, MSDWD Admin)  
+- 📍 **Location Tracking** for caretakers to monitor partially sighted users  
+- 🧭 **Role-based System** (Partially Sighted, Caretaker, MSDWD Admin)  
 - 📱 **User-friendly Interface** optimized for accessibility and simplicity  
 - ☁️ **Cloud-based Data Storage and Management**
 
@@ -75,13 +75,13 @@ To set up and run **Seelai** on your local environment:
 
 ## 📱 User Roles
 
-👩‍🦯 Visually Impaired User
+👩‍🦯 Partially Sighted User
 
 Uses object detection and voice feedback to assist in navigation and object recognition.
 
 🧑‍🤝‍🧑 Caretaker
 
-Monitors and tracks the real-time location of visually impaired users for safety and assistance.
+Monitors and tracks the real-time location of partially sighted users for safety and assistance.
 
 🏢 MSDWD Admin
 

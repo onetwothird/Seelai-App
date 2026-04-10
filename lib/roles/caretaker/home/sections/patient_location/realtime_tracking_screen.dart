@@ -278,21 +278,15 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   }
 
   Future<void> _initializeCaretakerId() async {
-    String? caretakerId = widget.userData['uid'] as String?;
-    
-    if (caretakerId == null || caretakerId.isEmpty) {
-      final user = FirebaseAuth.instance.currentUser;
-      caretakerId = user?.uid;
+    // FORCE the app to use the authenticated user's ID
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      if (mounted) {
+        setState(() {
+          _caretakerId = user.uid;
+        });
+      }
     }
-    
-    if (caretakerId == null || caretakerId.isEmpty) {
-      setState(() {});
-      return;
-    }
-
-    setState(() {
-      _caretakerId = caretakerId;
-    });
   }
 
   @override

@@ -1,16 +1,18 @@
 // File: lib/roles/caretaker/home/widgets/header_section.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 // The new vibrant modern purple requested
 const primary = Color(0xFF7C3AED);
 
-class HeaderSection extends StatelessWidget {
+class HeaderSection extends StatefulWidget {
   final String caretakerName;
   final String? profileImageUrl;
   final bool isDarkMode;
   final int pendingRequestsCount;
+  final int activeRequestsCount; // Added this so you can track active ones too!
   final VoidCallback onToggleDarkMode;
   final VoidCallback? onProfileTap;
   final VoidCallback? onNotificationTap;
@@ -23,6 +25,7 @@ class HeaderSection extends StatelessWidget {
     this.profileImageUrl,
     required this.isDarkMode,
     required this.pendingRequestsCount,
+    this.activeRequestsCount = 0, // Defaults to 0 so it won't break your existing Home Screen
     required this.onToggleDarkMode,
     this.onProfileTap,
     this.onNotificationTap,
@@ -30,10 +33,48 @@ class HeaderSection extends StatelessWidget {
     required this.subtextColor,
   });
 
+  @override
+  State<HeaderSection> createState() => _HeaderSectionState();
+}
+
+class _HeaderSectionState extends State<HeaderSection> {
+  // State to handle the temporary "mark as read" double check animation
+  bool _showDoubleCheck = false;
+  
+  // Animation State
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startMessageTimer();
+  }
+
+  @override
+  void dispose() {
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startMessageTimer() {
+    // Cycle through alert messages every 4 seconds
+    _messageTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        final messagesCount = _getMascotMessages().length;
+        if (messagesCount > 1) {
+          setState(() {
+            _currentMessageIndex = (_currentMessageIndex + 1) % messagesCount;
+          });
+        }
+      }
+    });
+  }
+
   // Helper to safely extract the first name
   String _getFirstName() {
-    if (caretakerName.isEmpty) return 'Caretaker';
-    final parts = caretakerName.trim().split(RegExp(r'\s+'));
+    if (widget.caretakerName.isEmpty) return 'Caretaker';
+    final parts = widget.caretakerName.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : 'Caretaker';
   }
 
@@ -44,6 +85,51 @@ class HeaderSection extends StatelessWidget {
     return 'Good evening';
   }
 
+  // Helper to generate a list of dynamic mascot messages to cycle through
+  List<String> _getMascotMessages() {
+    List<String> messages = [];
+
+    if (widget.pendingRequestsCount > 0) {
+      messages.add('Hello, ${_getFirstName()}! You have ${widget.pendingRequestsCount} pending request(s). Tap the bell icon to check them out.');
+      messages.add('Action Required: You have pending alerts waiting for your response.');
+    }
+    
+    if (widget.activeRequestsCount > 0) {
+      messages.add('Reminder: You currently have ${widget.activeRequestsCount} active request(s) in progress.');
+    }
+
+    // If there are no pending or active requests, cycle between these friendly messages
+    if (messages.isEmpty) {
+      messages.add('Hello, ${_getFirstName()}! You\'re all caught up. I\'m here to help you manage your paired users.');
+      messages.add('Did you know? You can toggle dark mode using the moon icon in the top right!');
+    }
+
+    return messages;
+  }
+
+  void _handleNotificationTap() {
+    // Show the double check animation if there were pending requests
+    if (widget.pendingRequestsCount > 0) {
+      setState(() {
+        _showDoubleCheck = true;
+      });
+
+      // Revert back to the normal bell after 2 seconds
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          setState(() {
+            _showDoubleCheck = false;
+          });
+        }
+      });
+    }
+    
+    // Trigger the parent screen's callback
+    if (widget.onNotificationTap != null) {
+      widget.onNotificationTap!();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -51,10 +137,15 @@ class HeaderSection extends StatelessWidget {
     final formattedDate = DateFormat('EEEE, MMMM d').format(now).toUpperCase();
 
     // Soft backgrounds for the buttons
-    final Color buttonBgColor = isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC);
+    final Color buttonBgColor = widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC);
     
     // Theme's primary color for the icons
     final Color iconTint = primary; 
+    
+    // Fetch the list of messages and determine which one to show right now
+    final messages = _getMascotMessages();
+    final safeIndex = _currentMessageIndex % messages.length;
+    final displayMessage = messages[safeIndex];
 
     return Semantics(
       label: 'Header section. ${_getGreeting()}, ${_getFirstName()}. Today is $formattedDate',
@@ -69,61 +160,67 @@ class HeaderSection extends StatelessWidget {
               children: [
                 // Theme Toggle
                 Semantics(
-                  label: isDarkMode ? 'Dark mode is on' : 'Light mode is on',
+                  label: widget.isDarkMode ? 'Dark mode is on' : 'Light mode is on',
                   hint: 'Double tap to toggle theme mode',
                   button: true,
                   child: _buildActionButton(
-                    icon: isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                    icon: widget.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
                     bgColor: buttonBgColor,
                     iconColor: iconTint,
-                    onTap: onToggleDarkMode,
+                    onTap: widget.onToggleDarkMode,
                   ),
                 ),
                 const SizedBox(width: 8),
                 
                 // Notifications
                 Semantics(
-                  label: pendingRequestsCount > 0 
-                    ? 'Notifications. You have $pendingRequestsCount pending request${pendingRequestsCount > 1 ? 's' : ''}' 
+                  label: widget.pendingRequestsCount > 0 
+                    ? 'Notifications. You have ${widget.pendingRequestsCount} pending request${widget.pendingRequestsCount > 1 ? 's' : ''}' 
                     : 'Notifications',
                   hint: 'Double tap to view notifications',
                   button: true,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      // The Bell (or Double Check) Button
                       _buildActionButton(
-                        icon: Icons.notifications_none_rounded,
+                        icon: _showDoubleCheck 
+                            ? Icons.done_all_rounded // Double check icon
+                            : (widget.pendingRequestsCount > 0 
+                                ? Icons.notifications_active_rounded // Ringing bell
+                                : Icons.notifications_none_rounded), // Empty bell
                         bgColor: buttonBgColor,
-                        iconColor: iconTint,
-                        onTap: onNotificationTap,
+                        iconColor: _showDoubleCheck ? Colors.green : iconTint,
+                        onTap: _handleNotificationTap,
                       ),
-                      if (pendingRequestsCount > 0)
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        top: 0, 
-                        child: Container(
-                          decoration: BoxDecoration(
-                              color: const Color(0xFFEF4444), // Red notification badge
+                      
+                      // The proper top-right Notification Badge
+                      if (widget.pendingRequestsCount > 0 && !_showDoubleCheck)
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444), // Red badge
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                                color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
                                 width: 2,
                               ),
                             ),
                             constraints: const BoxConstraints(
-                              minWidth: 18,
-                              minHeight: 18,
+                              minWidth: 20,
+                              minHeight: 20,
                             ),
                             child: Center(
                               child: Text(
-                                pendingRequestsCount > 9 
+                                widget.pendingRequestsCount > 9 
                                     ? '9+' 
-                                    : pendingRequestsCount.toString(),
+                                    : widget.pendingRequestsCount.toString(),
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w900,
                                   height: 1,
                                 ),
@@ -142,7 +239,7 @@ class HeaderSection extends StatelessWidget {
                   hint: 'Double tap to view profile',
                   button: true,
                   child: GestureDetector(
-                    onTap: onProfileTap,
+                    onTap: widget.onProfileTap,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
@@ -158,7 +255,7 @@ class HeaderSection extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
-                              color: subtextColor.withValues(alpha: 0.9),
+                              color: widget.subtextColor.withValues(alpha: 0.9),
                             ),
                           )
                         ],
@@ -184,7 +281,7 @@ class HeaderSection extends StatelessWidget {
                     formattedDate,
                     style: TextStyle(
                       fontSize: 12,
-                      color: subtextColor.withValues(alpha: 0.8),
+                      color: widget.subtextColor.withValues(alpha: 0.8),
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.5,
                     ),
@@ -200,7 +297,7 @@ class HeaderSection extends StatelessWidget {
                           text: '${_getGreeting()}, ',
                           style: TextStyle(
                             fontSize: 26,
-                            color: textColor.withValues(alpha: 0.9),
+                            color: widget.textColor.withValues(alpha: 0.9),
                             fontWeight: FontWeight.w500,
                             letterSpacing: -0.5,
                           ),
@@ -209,7 +306,7 @@ class HeaderSection extends StatelessWidget {
                           text: '${_getFirstName()}!',
                           style: TextStyle(
                             fontSize: 26,
-                            color: textColor,
+                            color: widget.textColor,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
                           ),
@@ -238,17 +335,17 @@ class HeaderSection extends StatelessWidget {
                   top: 0, 
                   child: Container(
                     decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        primary.withValues(alpha: isDarkMode ? 0.25 : 0.15),
-                        primary.withValues(alpha: 0.0),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+                      gradient: LinearGradient(
+                        colors: [
+                          primary.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                          primary.withValues(alpha: 0.0),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
                     ),
                   ),
                 ),
-              ),
                 
                 // Mascot and Bubble Content
                 Padding(
@@ -285,7 +382,7 @@ class HeaderSection extends StatelessWidget {
                         child: CustomPaint(
                           size: const Size(12, 16),
                           painter: _TailPainter(
-                            color: isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                            color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
                           ),
                         ),
                       ),
@@ -296,11 +393,11 @@ class HeaderSection extends StatelessWidget {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                            color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.05),
+                                color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               ),
@@ -309,25 +406,46 @@ class HeaderSection extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Seelai',
+                              // Conditional styling: turns red if there are pending alerts
+                              Text(
+                                widget.pendingRequestsCount > 0 ? 'Seelai Alert' : 'Seelai',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
-                                  color: primary,
+                                  color: widget.pendingRequestsCount > 0 
+                                      ? (widget.isDarkMode ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626)) 
+                                      : primary,
                                   letterSpacing: 0.5,
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                'Hello, ${_getFirstName()}! I\'m here to help you manage your paired users and pending requests.',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDarkMode
-                                      ? Colors.white.withValues(alpha: 0.85)
-                                      : Colors.black87,
-                                  height: 1.4,
+                              
+                              // The Animated Text Switcher
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 400),
+                                transitionBuilder: (Widget child, Animation<double> animation) {
+                                  return FadeTransition(
+                                    opacity: animation,
+                                    child: SlideTransition(
+                                      position: Tween<Offset>(
+                                        begin: const Offset(0.0, 0.2), // Slides up slightly
+                                        end: Offset.zero,
+                                      ).animate(animation),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  displayMessage,
+                                  key: ValueKey<String>(displayMessage), // Important for AnimatedSwitcher
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : Colors.black87,
+                                    height: 1.4,
+                                  ),
                                 ),
                               ),
                             ],
@@ -354,11 +472,12 @@ class HeaderSection extends StatelessWidget {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: bgColor,
-          shape: BoxShape.circle, // Circular buttons to match the screenshot
+          shape: BoxShape.circle,
         ),
         child: Icon(
           icon,

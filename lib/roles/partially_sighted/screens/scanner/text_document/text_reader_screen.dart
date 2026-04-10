@@ -48,8 +48,14 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
   void initState() {
     super.initState();
     _initializeTts();
-    _announceMode();
-    _startContinuousDetection();
+    
+    // Wait for the UI to finish building before starting heavy operations or SnackBar calls
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _announceMode();
+        _startContinuousDetection();
+      }
+    });
   }
 
   @override
@@ -69,46 +75,56 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     
     _flutterTts.setCompletionHandler(() {
       if (mounted) {
-        setState(() {
-          _isReading = false;
-          _readingCompleted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _isReading = false;
+              _readingCompleted = true;
+            });
+          }
         });
       }
     });
     
     _flutterTts.setStartHandler(() {
       if (mounted) {
-        setState(() {
-          _isReading = true;
-          _readingCompleted = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _isReading = true;
+              _readingCompleted = false;
+            });
+          }
         });
       }
     });
     
     _flutterTts.setErrorHandler((msg) {
       if (mounted) {
-        setState(() {
-          _isReading = false;
-          _readingCompleted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _isReading = false;
+              _readingCompleted = true;
+            });
+          }
         });
       }
     });
   }
 
   void _announceMode() {
-    Future.delayed(Duration(milliseconds: 500), () {
-      if (mounted) {
-        _flutterTts.speak('Text reading mode activated. Point camera at text.');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Text reading mode activated - Point camera at text'),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    });
+    if (mounted) {
+      _flutterTts.speak('Text reading mode activated. Point camera at text.');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Text reading mode activated - Point camera at text'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _startContinuousDetection() async {

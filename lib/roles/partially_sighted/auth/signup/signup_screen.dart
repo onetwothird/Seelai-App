@@ -42,17 +42,19 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
-  String? _selectedGender; // UPDATED to Gender
+  String? _selectedGender; 
   String? _selectedDisabilityType;
   DateTime? _selectedBirthdate;
 
-  final List<String> _genderOptions = ['Male', 'Female', 'Rather Not Say']; // UPDATED Options
+  final List<String> _genderOptions = ['Male', 'Female', 'Rather Not Say']; 
+  
+  // Updated with WHO Classifications and functional descriptions
   final List<String> _disabilityTypes = [
-    'Category 1: Moderate (20/70 – 20/200)',
-    'Category 2: Severe (20/200 – 20/400)',
-    'Category 3: Profound (< 20/400 or visual field ≤ 10°)',
-    'Category 4: Near Total (counting fingers ≤ 1m, light perception)',
-    'Category 5: Total (no light perception)',
+    'Near Normal (Struggles with small print)',
+    'Moderate (Needs magnifiers to read)',
+    'Severe / Legally Blind (Faces are blurry close up)',
+    'Profound (Relies heavily on audio/cane)',
+    'Near Total (Can only see light or hand motion)',
   ];
 
   @override
@@ -156,6 +158,63 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
     if (picked != null) setState(() => _selectedBirthdate = picked);
   }
 
+  // --- Informational Dialog for Disability Categories ---
+  void _showCategoryInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent, // Prevents Material 3 tinting
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          title: const Text(
+            "Which category am I?",
+            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+          ),
+          content: const SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _CategoryItem(
+                  title: "Near Normal (20/30 to 20/60)",
+                  description: "You have slight difficulty with fine details, like reading small print or street signs, even with normal glasses.",
+                ),
+                SizedBox(height: 16),
+                _CategoryItem(
+                  title: "Moderate (20/70 to 20/160)",
+                  description: "You likely need strong magnifiers to read. Navigating is generally fine, but recognizing faces from across a room is difficult.",
+                ),
+                SizedBox(height: 16),
+                _CategoryItem(
+                  title: "Severe (20/200 to 20/400)",
+                  description: "This is the threshold for legal blindness. You cannot read standard print. You can see shapes and large objects, but faces are very blurry even up close.",
+                ),
+                SizedBox(height: 16),
+                _CategoryItem(
+                  title: "Profound (20/500 to 20/1000)",
+                  description: "You rely heavily on screen readers and mobility aids (like a white cane). You might only be able to see very large, high-contrast letters extremely close to your face.",
+                ),
+                SizedBox(height: 16),
+                _CategoryItem(
+                  title: "Near Total (≤ 5° field)",
+                  description: "You cannot see shapes. You can only tell if a room is light or dark, or if someone is waving their hand right in front of your eyes.",
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Got it", style: TextStyle(color: primary, fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -224,14 +283,12 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                                 shape: BoxShape.circle,
                                 color: const Color(0xFFF1F5F9),
                                 border: Border.all(color: Colors.black, width: 2.0),
-                                // 1. Prioritize picked image. 2. Fallback to Google image.
                                 image: _profileImage != null
                                     ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover)
                                     : (widget.googleUser?.photoURL != null)
                                         ? DecorationImage(image: NetworkImage(widget.googleUser!.photoURL!), fit: BoxFit.cover)
                                         : null,
                               ),
-                              // Show icon ONLY if both picked image and Google image are missing
                               child: _profileImage == null && widget.googleUser?.photoURL == null
                                   ? const Icon(Icons.person_rounded, size: 60, color: Color(0xFFCBD5E1))
                                   : null,
@@ -258,17 +315,16 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                       _buildTextField(_nameController, 'Full Name', Icons.person_outline),
                       const SizedBox(height: 16),
                       
-                      // RESPONSIVE AGE & GENDER ROW (Aligned with Caretaker/MSWD format)
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            flex: 2, // Age on the left with smaller flex
+                            flex: 2, 
                             child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            flex: 3, // Gender on the right with larger flex
+                            flex: 3, 
                             child: _buildDropdownField(
                               _selectedGender, _genderOptions, 'Gender', Icons.wc_outlined, 
                               (val) => setState(() => _selectedGender = val)
@@ -286,8 +342,20 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
 
                       const SizedBox(height: 32),
 
-                      _buildSectionHeader("Medical Details"),
+                      Row(
+                        children: [
+                          Expanded(child: _buildSectionHeader("Medical Details")),
+                          IconButton(
+                            icon: Icon(Icons.help_outline, color: primary),
+                            onPressed: _showCategoryInfoDialog,
+                            tooltip: 'Help me choose',
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
+                      
                       _buildDropdownField(
                         _selectedDisabilityType, _disabilityTypes, 'Category', Icons.accessible_outlined, 
                         (val) => setState(() => _selectedDisabilityType = val)
@@ -300,7 +368,6 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                       _buildSectionHeader("Account Security"),
                       const SizedBox(height: 16),
                       
-                      // EMAIL IS LOCKED IF LOGGED IN VIA GOOGLE
                       _buildTextField(
                         _emailController, 
                         'Email', 
@@ -309,7 +376,6 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                         readOnly: widget.googleUser != null, 
                       ),
                       
-                      // Only show password fields if NOT signing up with Google
                       if (widget.googleUser == null) ...[
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -354,13 +420,11 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
               ),
             ),
           ),
-          if (_isLoading) LoadingOverlay(message: 'Creating Account', isVisible: _isLoading),
+          if (_isLoading) LoadingOverlay(message: '', isVisible: _isLoading),
         ],
       ),
     );
   }
-
-  // --- Components ---
 
   Widget _buildSectionHeader(String title) {
     return Align(
@@ -411,7 +475,6 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
     );
   }
 
-  // UPDATED RESPONSIVE DROPDOWN FIELD
   Widget _buildDropdownField(String? val, List<String> items, String hint, IconData icon, Function(String?) changed) {
     return Container(
       decoration: BoxDecoration(
@@ -420,11 +483,11 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonFormField<String>(
-        isExpanded: true, // Crucial for responsiveness
+        isExpanded: true,
         initialValue: val,
         items: items.map((i) => DropdownMenuItem(
           value: i, 
-          child: Text(i, overflow: TextOverflow.ellipsis) // Added TextOverflow protection
+          child: Text(i, overflow: TextOverflow.ellipsis) 
         )).toList(),
         onChanged: _isLoading ? null : changed,
         style: const TextStyle(color: Color(0xFF1E293B), fontSize: 16),
@@ -464,10 +527,9 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
   }
 
   Future<void> _handleSignup() async {
-    // 1. STRICT VALIDATION: All fields except password must be filled out
     if (_idNumberController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||
-        _selectedGender == null ||            // Validating new Gender selection
+        _selectedGender == null ||            
         _ageController.text.trim().isEmpty ||
         _selectedBirthdate == null ||
         _selectedDisabilityType == null ||
@@ -479,7 +541,6 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
       return;
     }
 
-    // 2. Validate passwords ONLY if they are NOT a Google User
     if (widget.googleUser == null) {
       if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a password'), backgroundColor: error));
@@ -504,10 +565,9 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
     setState(() => _isLoading = true);
     
     User? finalUser;
-    bool isNewEmailUser = false; // Flag to track if we need to clean up an orphaned account
+    bool isNewEmailUser = false; 
 
     try {
-      // 3. Determine Auth Flow
       if (widget.googleUser != null) {
         finalUser = widget.googleUser;
       } else {
@@ -516,29 +576,25 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           password: _passwordController.text,
         );
         finalUser = userCredential.user;
-        isNewEmailUser = true; // We just created this user in Auth
+        isNewEmailUser = true; 
         await authService.value.updateUsername(userName: _nameController.text.trim());
       }
 
       if (finalUser == null) throw Exception("Failed to get user information.");
 
-      // 4. Upload Profile Image OR use Google's existing image
       String? profileImageUrl;
       if (_profileImage != null) {
-        // Custom photo uploaded
         profileImageUrl = await _uploadProfileImage(finalUser.uid);
       } else if (widget.googleUser?.photoURL != null) {
-        // Fallback to Google photo
         profileImageUrl = widget.googleUser!.photoURL;
       }
 
-      // 5. Create DB Entry (Wrapped in its own try-catch for rollback)
       try {
         await databaseService.createUserDocument(
           userId: finalUser.uid,
           idNumber: _idNumberController.text.trim(),
           name: _nameController.text.trim(),
-          sex: _selectedGender!, // Stored in DB as 'sex' mapping
+          sex: _selectedGender!, 
           age: age,
           birthdate: _selectedBirthdate!,
           disabilityType: _selectedDisabilityType!,
@@ -549,14 +605,12 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           role: 'partially_sighted',
         );
       } catch (dbError) {
-        // ROLLBACK: If DB fails, delete the auth user so they aren't permanently locked out
         if (isNewEmailUser) {
           await finalUser.delete();
         }
         throw Exception("Failed to save profile data. Please try again. ($dbError)");
       }
 
-      // 6. Save Profile Image URL to DB
       if (profileImageUrl != null) {
         await databaseService.updateUserProfile(
           userId: finalUser.uid,
@@ -565,7 +619,6 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         );
       }
 
-      // 7. Log Activity
       await activityLogsService.logActivity(
         userId: finalUser.uid,
         action: 'account_created',
@@ -583,5 +636,40 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+}
+
+// Helper widget for clean, justified, and readable list items
+class _CategoryItem extends StatelessWidget {
+  final String title;
+  final String description;
+
+  const _CategoryItem({required this.title, required this.description});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+            color: Color(0xFF334155),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          description,
+          textAlign: TextAlign.justify,
+          style: const TextStyle(
+            height: 1.5,
+            fontSize: 14,
+            color: Color(0xFF64748B),
+          ),
+        ),
+      ],
+    );
   }
 }

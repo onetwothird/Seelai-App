@@ -528,7 +528,7 @@ class _PatientsContentState extends State<PatientsContent> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'When visually impaired users select you as their caretaker, they will appear here automatically',
+              'When partially sighted users select you as their caretaker, they will appear here automatically',
               style: body.copyWith(
                 color: widget.theme.subtextColor,
                 fontSize: 14,

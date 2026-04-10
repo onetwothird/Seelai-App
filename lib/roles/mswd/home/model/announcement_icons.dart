@@ -14,8 +14,6 @@ class AnnouncementIcon {
   });
 }
 
-/// Available announcement icons with their labels
-/// Icons are specifically chosen for MSWD announcements to caretakers and visually impaired individuals
 final List<AnnouncementIcon> announcementIcons = [
   // General Announcements
   AnnouncementIcon(
