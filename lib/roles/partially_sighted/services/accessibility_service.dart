@@ -1,5 +1,5 @@
 
-// File: lib/roles/visually_impaired/services/accessibility_service.dart
+// File: lib/roles/partially_sighted/services/accessibility_service.dart
 import 'package:flutter/foundation.dart';
 
 class AccessibilityService {

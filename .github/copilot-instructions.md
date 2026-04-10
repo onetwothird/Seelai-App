@@ -1,7 +1,7 @@
 # Seelai App - AI Coding Assistant Instructions
 
 ## Project Overview
-Seelai is a Flutter mobile app for visually impaired users, featuring real-time object detection via YOLO/TensorFlow Lite, voice assistance, and role-based access (Visually Impaired User, Caretaker, MSDWD Admin). Backend uses Firebase for auth, database, storage, and messaging.
+Seelai is a Flutter mobile app for visually impaired users, featuring real-time object detection via YOLO/TensorFlow Lite, voice assistance, and role-based access (Partially Sighted User, Caretaker, MSDWD Admin). Backend uses Firebase for auth, database, storage, and messaging.
 
 ## Architecture
 - **State Management**: Minimal; uses `ValueNotifier` for auth (e.g., `authService` in `lib/firebase/auth_service.dart`). No global providers.

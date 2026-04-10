@@ -478,7 +478,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Select the type of subject you want to scan for the visually impaired user.',
+                  'Select the type of subject you want to scan for the partially sighted user.',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

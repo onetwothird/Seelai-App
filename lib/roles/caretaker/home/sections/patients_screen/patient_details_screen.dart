@@ -42,7 +42,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     try {
       final data = await databaseService.getUserDataByRole(
         widget.patient.id,
-        'visually_impaired',
+        'partially_sighted',
       );
       if (mounted) {
         setState(() {

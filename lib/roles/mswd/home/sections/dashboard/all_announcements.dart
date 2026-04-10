@@ -206,7 +206,7 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
     switch (audience) {
       case 'Caretakers':
         return Icons.volunteer_activism_rounded;
-      case 'Visually Impaired':
+      case 'Partially Sighted':
         return Icons.visibility_off_rounded;
       case 'Specific Users':
         return Icons.person_rounded;

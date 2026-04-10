@@ -231,12 +231,12 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                       ),
                     ),
                     DropdownMenuItem(
-                      value: 'Visually Impaired',
+                      value: 'Partially Sighted',
                       child: Row(
                         children: [
                           Icon(Icons.visibility_off_rounded, color: Color(0xFF9C27B0), size: 20),
                           SizedBox(width: spacingSmall),
-                          Text('Visually Impaired'),
+                          Text('Partially Sighted'),
                         ],
                       ),
                     ),
@@ -324,8 +324,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                               final userRole = user['role'] as String? ?? 'Unknown Role';
                               final isSelected = selectedUserIds.contains(userId);
                               
-                              // Filter: Only show Caretakers and Visually Impaired
-                              if (userRole != 'Caretakers' && userRole != 'Visually Impaired') {
+                              if (userRole != 'Caretakers' && userRole != 'Partially Sighted') {
                                 return const SizedBox.shrink();
                               }
                               

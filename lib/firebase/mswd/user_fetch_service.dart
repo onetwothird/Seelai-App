@@ -9,10 +9,9 @@ import '../database_service.dart';
 class UserFetchService {
   final FirebaseDatabase _database = databaseService.database;
 
-  /// Get all visually impaired users
-  Future<List<Map<String, dynamic>>> getVisuallyImpairedUsers() async {
+  Future<List<Map<String, dynamic>>> getPartiallySightedUsers() async {
     try {
-      DatabaseEvent event = await _database.ref('user_info/visually_impaired').once();
+      DatabaseEvent event = await _database.ref('user_info/partially_sighted').once();
       
       if (!event.snapshot.exists) return [];
       
@@ -22,13 +21,13 @@ class UserFetchService {
       usersMap.forEach((key, value) {
         Map<String, dynamic> userData = Map<String, dynamic>.from(value as Map);
         userData['userId'] = key;
-        userData['role'] = 'Visually Impaired';
+        userData['role'] = 'Partially Sighted';
         users.add(userData);
       });
       
       return users;
     } catch (e) {
-      print('Error fetching visually impaired users: $e');
+      print('Error fetching partially sightedusers: $e');
       return [];
     }
   }
@@ -57,13 +56,13 @@ class UserFetchService {
     }
   }
 
-  /// Get all users (both visually impaired and caretakers)
+  /// Get all users (both partially sighted and caretakers)
   Future<List<Map<String, dynamic>>> getAllAppUsers() async {
     try {
       List<Map<String, dynamic>> allUsers = [];
       
-      // Get visually impaired users
-      List<Map<String, dynamic>> viUsers = await getVisuallyImpairedUsers();
+      // Get partially sighted users
+      List<Map<String, dynamic>> viUsers = await getPartiallySightedUsers();
       allUsers.addAll(viUsers);
       
       // Get caretaker users

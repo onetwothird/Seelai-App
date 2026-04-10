@@ -1,6 +1,4 @@
-
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/mswd/home/mswd_home_screen.dart';
@@ -67,37 +65,31 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
         children: [
           // 1. Top Section: Hero Animation
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: size.height * 0.45,
-            child: SafeArea(
-              child: Center(
-                child: Container(
-                  width: size.width * 0.9, 
-                  padding: const EdgeInsets.all(10),
-                  child: Lottie.asset(
-                    'assets/icons/Seelai.json',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-            ),
+          top: -60, // Try -60, -80, or -100 to pull it up more
+          left: 0,
+          right: 0,
+          height: (size.height * 0.40) + 60, // Remember to add that exact amount back here
+          child: Image.asset(
+            'assets/seelai-icons/seelai_model.gif',
+            fit: BoxFit.cover, 
           ),
+        ),
 
-          // 2. Back Button
+          // 2. Back Button (High Contrast & Clear UX)
           Positioned(
             top: 50,
             left: 20,
-            child: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
-              color: const Color(0xFF1E293B),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
-                padding: const EdgeInsets.all(12),
-                elevation: 0,
-                side: BorderSide(color: Colors.grey.shade200),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3), // Semi-transparent dark circle
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                color: Colors.white, // Crisp white arrow
+                iconSize: 22,
+                tooltip: 'Go back', 
               ),
             ),
           ),
@@ -294,7 +286,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                                   text: TextSpan(
                                     style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
                                     children: [
-                                      const TextSpan(text: "New staff? "),
+                                      const TextSpan(text: "Don't have an account? "),
                                       TextSpan(
                                         text: "Register",
                                         style: TextStyle(
@@ -319,7 +311,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
 
           if (_isLoading)
             LoadingOverlay(
-              message: 'Signing In',
+              message: '',
               isVisible: _isLoading,
             ),
         ],

@@ -308,7 +308,7 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
               ),
             ),
           ),
-          if (_isLoading) LoadingOverlay(message: 'Creating Account', isVisible: _isLoading),
+          if (_isLoading) LoadingOverlay(message: '', isVisible: _isLoading),
         ],
       ),
     );

@@ -1,4 +1,4 @@
-// File: lib/roles/visually_impaired/services/permission_service.dart
+// File: lib/roles/partially_sighted/services/permission_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 

@@ -174,7 +174,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => VisuallyImpairedHomeScreen(
+            builder: (context) => PartiallySightedHomeScreen(
               userData: updatedUserData,
             ),
           ),
@@ -205,7 +205,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => VisuallyImpairedHomeScreen(
+        builder: (context) => PartiallySightedHomeScreen(
           userData: widget.userData,
         ),
       ),

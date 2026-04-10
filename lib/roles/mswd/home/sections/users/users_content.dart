@@ -70,12 +70,12 @@ class _UsersContentState extends State<UsersContent>
   }
 
   Future<void> _loadUsers() async {
-    await _loadVisuallyImpairedUsers();
+    await _loadPartiallySightedUsers();
     await _loadCaretakersUsers();
     await _loadPendingCaretakers(); 
   }
 
-  Future<void> _loadVisuallyImpairedUsers() async {
+  Future<void> _loadPartiallySightedUsers() async {
     try {
       final users = await adminService.getUsersByRole('partially_sighted');
       if (mounted) {
@@ -477,7 +477,7 @@ class _UsersContentState extends State<UsersContent>
   Widget _buildTabContent() {
     switch (_selectedTab) {
       case 0:
-        return _buildVisuallyImpairedList();
+        return _buildPartiallySightedList();
       case 1:
         return _buildCaretakersList();
       case 2:
@@ -487,7 +487,7 @@ class _UsersContentState extends State<UsersContent>
     }
   }
 
-  Widget _buildVisuallyImpairedList() {
+  Widget _buildPartiallySightedList() {
     if (_isLoadingVI) return Center(child: Padding(padding: const EdgeInsets.all(40), child: CircularProgressIndicator(color: _primaryColor)));
 
     final filteredUsers = _getFilteredUsers(_partiallySightedUsers);

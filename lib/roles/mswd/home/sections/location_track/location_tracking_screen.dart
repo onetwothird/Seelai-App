@@ -48,6 +48,10 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   final Map<String, GeoPoint> _lastRenderedPoints = {};
   final Map<String, String?> _lastRenderedImageUrls = {};
   
+  // Routing state
+  RoadInfo? _currentRoadInfo;
+  bool _isRouting = false;
+  
   Timer? _refreshTimer;
   Timer? _uiUpdateTimer;
 
@@ -62,7 +66,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     _initializeMapController();
     _startLocationTracking();
     
-    _uiUpdateTimer = Timer.periodic(Duration(minutes: 1), (timer) {
+    _uiUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) setState(() {});
     });
   }
@@ -104,7 +108,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       }
     });
 
-    _refreshTimer = Timer.periodic(Duration(seconds: 45), (_) => _refreshLocationData());
+    _refreshTimer = Timer.periodic(const Duration(seconds: 45), (_) => _refreshLocationData());
   }
 
   Future<void> _processUserLocations(
@@ -152,7 +156,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         if (_isMapReady) await _updateMapMarkers();
       }
     } catch (e) {
-      // Log the error so it isn't swallowed silently
       debugPrint('Error refreshing location data: $e');
     }
   }
@@ -281,11 +284,52 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     }
   }
 
+  // ==================== ROUTING LOGIC ====================
+
+  Future<void> _drawRouteToUser(GeoPoint targetPoint) async {
+    setState(() => _isRouting = true);
+    
+    try {
+      // 1. Get the MSWD admin's current device location
+      GeoPoint? myLocation = await _mapController.myLocation();
+
+      // 2. Clear any existing roads
+      await _mapController.clearAllRoads();
+
+      // 3. Draw Waze-like route
+      RoadInfo roadInfo = await _mapController.drawRoad(
+        myLocation,
+        targetPoint,
+        roadType: RoadType.car, // Calculates driving roads
+        roadOption: const RoadOption(
+          roadWidth: 10,
+          roadColor: Colors.blueAccent,
+          zoomInto: true, // Auto-zooms to fit the whole route
+        ),
+      );
+
+      if (mounted) {
+        setState(() {
+          _currentRoadInfo = roadInfo;
+          _isRouting = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Routing Error: $e');
+      if (mounted) {
+        setState(() => _isRouting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to calculate route. Please ensure location is enabled.')),
+        );
+      }
+    }
+  }
+
   // ==================== IMAGE & WIDGET HELPERS ====================
 
   Future<Uint8List?> _downloadImageBytes(String url) async {
     try {
-      final response = await http.get(Uri.parse(url)).timeout(Duration(seconds: 4));
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
         return response.bodyBytes;
       }
@@ -295,7 +339,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     return null;
   }
 
-  // NEW: Builds a marker Widget that looks exactly like the Detail Card profile
   Widget _buildAvatarMarkerWidget({
     required Uint8List? imageBytes,
     required String name,
@@ -314,11 +357,8 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            // Use the same fallback background color as DetailCard
             color: primary.withValues(alpha: 0.1),
-            // Removed the Border.all here as requested
-            // Add shadow for visibility on map
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: Colors.black45,
                 blurRadius: 8,
@@ -331,8 +371,8 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                 ? ColorFiltered(
                     // Apply greyscale filter if not active (offline)
                     colorFilter: isActive 
-                        ? ColorFilter.mode(Colors.transparent, BlendMode.multiply) 
-                        : ColorFilter.matrix(<double>[
+                        ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply) 
+                        : const ColorFilter.matrix(<double>[
                             0.2126, 0.7152, 0.0722, 0, 0,
                             0.2126, 0.7152, 0.0722, 0, 0,
                             0.2126, 0.7152, 0.0722, 0, 0,
@@ -347,7 +387,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                     child: Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',
                       style: TextStyle(
-                        // Match DetailCard text style
                         color: primary,
                         fontWeight: FontWeight.bold,
                         fontSize: size * 0.4,
@@ -369,7 +408,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                 color: Colors.greenAccent[700],
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
+                boxShadow: const [
                   BoxShadow(color: Colors.black26, blurRadius: 4)
                 ]
               ),
@@ -389,8 +428,12 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     }
   }
 
-  void _clearSelection() {
-    setState(() => _selectedUserId = null);
+  void _clearSelection() async {
+    setState(() {
+      _selectedUserId = null;
+      _currentRoadInfo = null;
+    });
+    await _mapController.clearAllRoads();
     _updateMapMarkers();
   }
 
@@ -424,7 +467,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                   onTap: _centerMapIdeally,
                   theme: theme,
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 _buildGlassButton(
                   icon: Icons.refresh_rounded,
                   onTap: _refreshLocationData,
@@ -440,9 +483,9 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             right: 0,
             bottom: bottomContentOffset, 
             child: AnimatedSwitcher(
-              duration: Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 300),
               transitionBuilder: (child, anim) => SlideTransition(
-                position: Tween<Offset>(begin: Offset(0, 1), end: Offset.zero).animate(anim),
+                position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(anim),
                 child: child,
               ),
               child: _selectedUserId != null
@@ -454,7 +497,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           if (_isLoading)
             Container(
               color: Colors.black45,
-              child: Center(
+              child: const Center(
                 child: CircularProgressIndicator(color: primary),
               ),
             ),
@@ -467,20 +510,23 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     return OSMFlutter(
       controller: _mapController,
       osmOption: OSMOption(
-        userTrackingOption: UserTrackingOption(enableTracking: false),
-        zoomOption: ZoomOption(
+        userTrackingOption: const UserTrackingOption(
+          enableTracking: true,
+          unFollowUser: true,
+        ),
+        zoomOption: const ZoomOption(
           initZoom: 15.0,
           minZoomLevel: 4,
           maxZoomLevel: 19,
           stepZoom: 1.0,
         ),
-        roadConfiguration: RoadOption(roadColor: Colors.blueGrey),
+        roadConfiguration: const RoadOption(roadColor: Colors.blueGrey),
       ),
       onMapIsReady: (isReady) async {
         if (!mounted) return;
         setState(() => _isMapReady = isReady);
         if (isReady) {
-          await Future.delayed(Duration(milliseconds: 500));
+          await Future.delayed(const Duration(milliseconds: 500));
           await _updateMapMarkers();
         }
       },
@@ -513,19 +559,19 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: widget.isDarkMode 
                 ? theme.cardColor.withValues(alpha: 0.8) 
                 : Colors.white.withValues(alpha: 0.8),
             border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             borderRadius: BorderRadius.circular(30),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
           ),
           child: Row(
             children: [
-              Icon(Icons.radar, color: primary),
-              SizedBox(width: 12),
+              const Icon(Icons.radar, color: primary),
+              const SizedBox(width: 12),
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -540,7 +586,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
               ),
               Container(
                 width: 1, height: 20, color: theme.subtextColor,
-                margin: EdgeInsets.symmetric(horizontal: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 8),
               ),
               InkWell(
                 onTap: () {
@@ -554,7 +600,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                       size: 16,
                       color: _showOnlyActive ? Colors.green : theme.subtextColor,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text('Active', style: TextStyle(
                       fontSize: 12, 
                       color: _showOnlyActive ? Colors.green : theme.subtextColor
@@ -577,7 +623,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         _updateMapMarkers();
       },
       child: Padding(
-        padding: EdgeInsets.only(right: 16),
+        padding: const EdgeInsets.only(right: 16),
         child: Text(
           text,
           style: TextStyle(
@@ -599,7 +645,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             color: widget.isDarkMode ? Colors.black54 : Colors.white.withValues(alpha: 0.9),
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white24),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
           ),
           child: IconButton(
             icon: Icon(icon, color: widget.isDarkMode ? Colors.white : Colors.black87),
@@ -627,7 +673,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       return 0;
     });
 
-    if (usersList.isEmpty) return SizedBox.shrink();
+    if (usersList.isEmpty) return const SizedBox.shrink();
 
     return NotificationListener<UserScrollNotification>(
       onNotification: (notification) {
@@ -642,10 +688,10 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       },
       child: Container(
         height: 140,
-        padding: EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: 10),
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          padding: EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: usersList.length,
           itemBuilder: (context, index) {
             final loc = usersList[index];
@@ -659,11 +705,11 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
               onTap: () => _selectUser(userId),
               child: Container(
                 width: 100,
-                margin: EdgeInsets.only(right: 12),
+                margin: const EdgeInsets.only(right: 12),
                 decoration: BoxDecoration(
-                  color: widget.isDarkMode ? Color(0xFF1A1F3A) : Colors.white,
+                  color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(blurRadius: 8, color: Colors.black12, offset: Offset(0,4))],
+                  boxShadow: const [BoxShadow(blurRadius: 8, color: Colors.black12, offset: Offset(0,4))],
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -675,7 +721,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                           backgroundColor: Colors.grey[200],
                           backgroundImage: (img != null && img.isNotEmpty) ? NetworkImage(img) : null,
                           child: (img == null || img.isEmpty) 
-                              ? Text(name.isNotEmpty ? name[0] : '?', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 20)) 
+                              ? Text(name.isNotEmpty ? name[0] : '?', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 20)) 
                               : null,
                         ),
                         if (isActive)
@@ -692,9 +738,9 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                           ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: Text(
                         name,
                         maxLines: 1,
@@ -718,23 +764,23 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   }
 
   Widget _buildDetailCard(dynamic theme) {
-    if (_selectedUserId == null) return SizedBox.shrink();
+    if (_selectedUserId == null) return const SizedBox.shrink();
     
     final location = _userLocations[_selectedUserId];
     final profile = _userProfiles[_selectedUserId];
-    if (location == null || profile == null) return SizedBox.shrink();
+    if (location == null || profile == null) return const SizedBox.shrink();
 
     final isActive = mswdLocationTrackingService.isLocationRecent(location);
     final lastUpdate = DateTime.fromMillisecondsSinceEpoch(location['lastUpdateMillis'] ?? 0);
     final accuracy = location['accuracy']?.toStringAsFixed(0) ?? '?';
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-      padding: EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 5))],
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 5))],
         border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
       ),
       child: Column(
@@ -752,10 +798,10 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                   color: primary.withValues(alpha: 0.1)
                 ),
                 child: (profile['profileImageUrl'] == null || profile['profileImageUrl'].isEmpty)
-                  ? Center(child: Text(profile['name']?[0] ?? '?', style: TextStyle(fontWeight: FontWeight.bold, color: primary)))
+                  ? Center(child: Text(profile['name']?[0] ?? '?', style: const TextStyle(fontWeight: FontWeight.bold, color: primary)))
                   : null,
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -765,17 +811,30 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                       style: h3.copyWith(color: theme.textColor, fontSize: 18),
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, size: 14, color: theme.subtextColor),
-                        SizedBox(width: 4),
-                        Text(
-                          'Accuracy: ${accuracy}m',
-                          style: caption.copyWith(color: theme.subtextColor),
-                        ),
-                      ],
-                    ),
+                    const SizedBox(height: 4),
+                    // Show Accurate Routing Info if available, otherwise show GPS Accuracy
+                    if (_currentRoadInfo != null && _currentRoadInfo!.distance != null && _currentRoadInfo!.duration != null)
+                      Row(
+                        children: [
+                          Icon(Icons.directions_car, size: 14, color: theme.subtextColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${_currentRoadInfo!.distance!.toStringAsFixed(2)} km • ${(_currentRoadInfo!.duration! / 60).toStringAsFixed(0)} mins',
+                            style: caption.copyWith(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      )
+                    else
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 14, color: theme.subtextColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Accuracy: ${accuracy}m',
+                            style: caption.copyWith(color: theme.subtextColor),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -783,11 +842,11 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                 onPressed: _clearSelection,
                 icon: Icon(Icons.close, color: theme.subtextColor),
                 padding: EdgeInsets.zero,
-                constraints: BoxConstraints(),
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -798,41 +857,78 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                     isDarkMode: widget.isDarkMode, 
                     theme: theme
                   ),
-                  icon: Icon(Icons.call, size: 18),
-                  label: Text('Call Now'),
+                  icon: const Icon(Icons.call, size: 18),
+                  label: const Text('Call Now'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
-                    shape: StadiumBorder(),
-                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     elevation: 0,
                   ),
                 ),
               ),
-              SizedBox(width: 12),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isActive ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.access_time_rounded, size: 14, color: isActive ? Colors.green : Colors.grey),
-                    SizedBox(width: 6),
-                    Text(
-                      timeago.format(lastUpdate, locale: 'en_short'), 
-                      style: TextStyle(
-                        color: isActive ? Colors.green : Colors.grey, 
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12
-                      )
-                    ),
-                  ],
+              const SizedBox(width: 8),
+              // Navigate Button
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isRouting ? null : () {
+                    final lat = location['latitude'] as double;
+                    final lng = location['longitude'] as double;
+                    _drawRouteToUser(GeoPoint(latitude: lat, longitude: lng));
+                  },
+                  icon: _isRouting 
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.navigation, size: 18),
+                  label: Text(_isRouting ? 'Routing...' : 'Navigate'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primary,
+                    foregroundColor: Colors.white,
+                    shape: const StadiumBorder(),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                  ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isActive ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.access_time_rounded, size: 14, color: isActive ? Colors.green : Colors.grey),
+                  const SizedBox(width: 6),
+                  Builder(
+                    builder: (context) {
+                      // Grab the short string (e.g., "now", "5m", "1h")
+                      String timeStr = timeago.format(lastUpdate, locale: 'en_short');
+                      
+                      // Format it nicely to fix the "Updated now" awkwardness
+                      String displayText = timeStr == 'now' 
+                          ? 'Just updated' 
+                          : 'Updated $timeStr ago';
+
+                      return Text(
+                        displayText, 
+                        style: TextStyle(
+                          color: isActive ? Colors.green : Colors.grey, 
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12
+                        )
+                      );
+                    }
+                  ),
+                ],
+              ),
+            ),
+          )
         ],
       ),
     );
@@ -842,7 +938,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     if (_lastRenderedPoints.isEmpty) return;
     
     if (_selectedUserId != null && _lastRenderedPoints.containsKey(_selectedUserId)) {
-      // Replaced goToLocation with moveTo
       await _mapController.moveTo(_lastRenderedPoints[_selectedUserId]!);
     } else {
       double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;

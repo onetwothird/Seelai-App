@@ -283,7 +283,7 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
               ),
             ),
           ),
-          if (_isLoading) LoadingOverlay(message: 'Registering...', isVisible: _isLoading),
+          if (_isLoading) LoadingOverlay(message: '', isVisible: _isLoading),
         ],
       ),
     );

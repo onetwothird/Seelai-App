@@ -36,7 +36,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   void _initializeStream() {
     _announcementStream = _announcementService.getAnnouncementsForUser(
       widget.userId,
-      'Visually Impaired',
+      'Partially Sighted',
     );
   }
 
@@ -374,7 +374,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     switch (audience) {
       case 'Caretakers':
         return Icons.volunteer_activism_rounded;
-      case 'Visually Impaired':
+      case 'Partially Sighted':
         return Icons.visibility_off_rounded;
       case 'Specific Users':
         return Icons.person_rounded;
@@ -384,8 +384,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   }
 
   String _getAudienceLabel(AnnouncementModel announcement) {
-    if (announcement.targetAudience == 'Visually Impaired') {
-      return 'For All Visually Impaired';
+    if (announcement.targetAudience == 'Partially Sighted') {
+      return 'For All Partially Sighted';
     } else if (announcement.targetAudience == 'Specific Users' &&
         announcement.specificUsers.contains(widget.userId)) {
       return 'For You';

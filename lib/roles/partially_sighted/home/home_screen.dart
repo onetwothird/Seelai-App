@@ -22,19 +22,19 @@ import 'package:seelai_app/roles/partially_sighted/home/widgets/notifications_bo
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/missed_call_alert_section.dart';
 
-class VisuallyImpairedHomeScreen extends StatefulWidget {
+class PartiallySightedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const VisuallyImpairedHomeScreen({
+  const PartiallySightedHomeScreen({
     super.key,
     required this.userData,
   });
 
   @override
-  State<VisuallyImpairedHomeScreen> createState() => _VisuallyImpairedHomeScreenState();
+  State<PartiallySightedHomeScreen> createState() => _PartiallySightedHomeScreenState();
 }
 
-class _VisuallyImpairedHomeScreenState extends State<VisuallyImpairedHomeScreen> 
+class _PartiallySightedHomeScreenState extends State<PartiallySightedHomeScreen> 
     with SingleTickerProviderStateMixin {
   // Services
   late final CameraService _cameraService;
