@@ -9,11 +9,10 @@ class MswdLocationTrackingService {
 
   // ==================== GET ALL LOCATIONS ====================
 
-  /// Get all visually impaired users' locations
   Future<List<Map<String, dynamic>>> getAllPatientLocations() async {
     try {
       final snapshot = await _database
-          .ref('user_locations/visually_impaired')
+          .ref('user_locations/partially_sighted')
           .once();
 
       if (!snapshot.snapshot.exists) return [];
@@ -25,7 +24,7 @@ class MswdLocationTrackingService {
         if (locationData is Map) {
           Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
           location['userId'] = userId;
-          location['userType'] = 'visually_impaired';
+          location['userType'] = 'partially_sighted';
           locations.add(location);
         }
       });
@@ -94,8 +93,8 @@ class MswdLocationTrackingService {
   /// Get specific user location
   Future<Map<String, dynamic>?> getUserLocation(String userId, String userType) async {
     try {
-      String path = userType == 'visually_impaired' 
-          ? 'user_locations/visually_impaired/$userId'
+      String path = userType == 'partially_sighted' 
+          ? 'user_locations/partially_sighted/$userId'
           : 'user_locations/caretaker/$userId';
       
       final snapshot = await _database.ref(path).once();
@@ -117,10 +116,9 @@ class MswdLocationTrackingService {
 
   // ==================== REAL-TIME STREAMS ====================
 
-  /// Stream all visually impaired users' locations
   Stream<List<Map<String, dynamic>>> streamAllPatientLocations() {
     return _database
-        .ref('user_locations/visually_impaired')
+        .ref('user_locations/partially_sighted  ')
         .onValue
         .map((event) {
       if (!event.snapshot.exists) return [];
@@ -132,7 +130,7 @@ class MswdLocationTrackingService {
         if (locationData is Map) {
           Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
           location['userId'] = userId;
-          location['userType'] = 'visually_impaired';
+          location['userType'] = 'partially_sighted';
           locations.add(location);
         }
       });
@@ -177,14 +175,14 @@ class MswdLocationTrackingService {
 
       Map<dynamic, dynamic> data = event.snapshot.value as Map;
 
-      // Process visually impaired users
-      if (data['visually_impaired'] != null) {
-        Map<dynamic, dynamic> patientsMap = data['visually_impaired'] as Map;
+      // Process partially sighted users
+      if (data['partially_sighted'] != null) {
+        Map<dynamic, dynamic> patientsMap = data['partially_sighted'] as Map;
         patientsMap.forEach((userId, locationData) {
           if (locationData is Map) {
             Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
             location['userId'] = userId;
-            location['userType'] = 'visually_impaired';
+            location['userType'] = 'partially_sighted';
             result['patients']!.add(location);
           }
         });
@@ -209,8 +207,8 @@ class MswdLocationTrackingService {
 
   /// Stream specific user location
   Stream<Map<String, dynamic>?> streamUserLocation(String userId, String userType) {
-    String path = userType == 'visually_impaired' 
-        ? 'user_locations/visually_impaired/$userId'
+    String path = userType == 'partially_sighted' 
+        ? 'user_locations/partially_sighted/$userId'
         : 'user_locations/caretaker/$userId';
     
     return _database.ref(path).onValue.map((event) {
@@ -322,7 +320,7 @@ class MswdLocationTrackingService {
         String status = getLocationStatus(location);
         String userType = location['userType'] ?? '';
 
-        if (userType == 'visually_impaired') {
+        if (userType == 'partially_sighted') {
           totalPatients++;
         } else if (userType == 'caretaker') {
           totalCaretakers++;
@@ -371,8 +369,8 @@ class MswdLocationTrackingService {
     try {
       final cutoffTime = DateTime.now().subtract(duration).millisecondsSinceEpoch;
       
-      String path = userType == 'visually_impaired'
-          ? 'user_locations/visually_impaired/$userId'
+      String path = userType == 'partially_sighted'
+          ? 'user_locations/partially_sighted/$userId'
           : 'user_locations/caretaker/$userId';
       
       final snapshot = await _database
