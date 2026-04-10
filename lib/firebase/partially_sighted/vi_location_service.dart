@@ -145,7 +145,7 @@ class VILocationService {
     await _positionStream?.cancel();
     _positionStream = null;
     _isTracking = false;
-    debugPrint('🛑 Location tracking stopped');
+    debugPrint('Location tracking stopped');
   }
 
   /// Get distance to a specific location
