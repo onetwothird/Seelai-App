@@ -6,7 +6,6 @@ import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request
 class AssistanceRequestService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   
-  /// Send an assistance request from visually impaired user to caretaker
   Future<bool> sendAssistanceRequest({
     required String patientId,
     required String patientName,
@@ -143,7 +142,6 @@ class AssistanceRequestService {
     });
   }
   
-  /// Stream requests for a specific patient (real-time) - for visually impaired
   Stream<List<RequestModel>> streamPatientRequests(String patientId) {
     return _database
         .ref('assistance_requests')
