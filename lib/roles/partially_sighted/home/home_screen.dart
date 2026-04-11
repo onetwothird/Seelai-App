@@ -21,6 +21,8 @@ import 'package:seelai_app/roles/partially_sighted/home/sections/registration/su
 import 'package:seelai_app/roles/partially_sighted/home/widgets/notifications_bottom_sheet.dart'; 
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/communication/missed_call_alert_section.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:seelai_app/screens/onboarding_screen.dart';
 
 class PartiallySightedHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -241,7 +243,16 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(context).pop(true);
+              Navigator.of(context).pop(false); // Close the dialog
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const OnboardingScreen(),
+                  ),
+                  (route) => false, // Clear the entire navigation stack
+                );
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
             child: const Text('Exit', style: TextStyle(color: Colors.white)),
