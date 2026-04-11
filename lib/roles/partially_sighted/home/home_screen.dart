@@ -31,10 +31,10 @@ class PartiallySightedHomeScreen extends StatefulWidget {
   });
 
   @override
-  State<PartiallySightedHomeScreen> createState() => _PartiallySightedHomeScreenState();
+  State<PartiallySightedHomeScreen> createState() => _VisuallyImpairedHomeScreenState();
 }
 
-class _PartiallySightedHomeScreenState extends State<PartiallySightedHomeScreen> 
+class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen> 
     with SingleTickerProviderStateMixin {
   // Services
   late final CameraService _cameraService;

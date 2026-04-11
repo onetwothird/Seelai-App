@@ -29,7 +29,7 @@ class MyPatientsSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'My Assistance',
+              'My Asssistance',
               style: TextStyle(
                 fontSize: 20,
                 color: theme.textColor,

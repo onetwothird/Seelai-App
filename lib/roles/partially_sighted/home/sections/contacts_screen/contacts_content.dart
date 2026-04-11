@@ -143,18 +143,19 @@ class _ContactsContentState extends State<ContactsContent> {
         if (mounted) {
           setState(() {
             _emergencyContacts = contactsData.map((contact) {
-              return ContactModel(
-                id: contact['contactId'] ?? '',
-                name: contact['name'] ?? 'Unknown',
-                relationship: contact['relationship'] ?? 'Contact',
-                phoneNumber: contact['phone'] ?? 'N/A',
-                isEmergencyContact: true,
-                isCaretaker: false,
-                avatar: Icons.medical_services_rounded,
-                color: error,
-                profileImageUrl: null,
-              );
-            }).toList();
+            return ContactModel(
+              id: contact['contactId'] ?? '',
+              name: contact['name'] ?? 'Unknown',
+              relationship: contact['relationship'] ?? 'Contact',
+              phoneNumber: contact['phone'] ?? 'N/A',
+              isEmergencyContact: true,
+              isCaretaker: false,
+              avatar: Icons.medical_services_rounded,
+              color: error,
+              // Change this line from 'profileImageUrl: null,' to:
+              profileImageUrl: contact['profileImageUrl'] as String?, 
+            );
+          }).toList();
             _isLoadingEmergency = false;
             _error = null;
           });
