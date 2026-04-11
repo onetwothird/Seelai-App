@@ -2,7 +2,7 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart'; // NEW IMPORT REQUIRED FOR SCROLL DIRECTION
+import 'package:flutter/rendering.dart'; 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/urgent_alerts_section.dart';
 import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
@@ -18,7 +18,6 @@ import 'package:seelai_app/roles/mswd/home/sections/dashboard/quick_actions.dart
 import 'package:seelai_app/roles/mswd/home/widgets/mswd_notifications_bottom_sheet.dart'; 
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
-// Import the new registration screen
 import 'package:seelai_app/roles/mswd/home/sections/registration/subject_registration_screen.dart';
 
 class MSWDHomeScreen extends StatefulWidget {
@@ -50,7 +49,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   void initState() {
     super.initState();
     _startPendingRequestsListener();
-    _dashboardStatsFuture = adminService.getUserStatistics(); // Load stats ONCE here
+    _dashboardStatsFuture = adminService.getUserStatistics(); 
   }
 
   void _startPendingRequestsListener() {
@@ -147,7 +146,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         if (didPop) return; 
         final bool shouldPop = await _onWillPop();
         if (shouldPop && context.mounted) {
-          // Navigate to OnboardingScreen and clear all previous routes
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const OnboardingScreen()),
             (Route<dynamic> route) => false, 
@@ -157,87 +155,61 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       child: Scaffold(
         extendBody: true,
         
-        // --- ADD FACE/OBJECT FLOATING ACTION BUTTON ---
+        // --- ONLY SHOW "ADD FACE/OBJECT" HERE ---
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: _isNavVisible && _selectedIndex != 2 
-              ? Container(
-                  height: 56,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(28),
-                    // REMOVED: The boxShadow array that was here has been deleted
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(28),
-                      onTap: () => _showAddOptionsBottomSheet(context),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.center_focus_strong_rounded,
-                              color: Colors.white, 
-                              size: 22
-                            ),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'Add Face/Object',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ) 
-              : null,
-        // --- END FLOATING ACTION BUTTON ---
-
+        floatingActionButton: _isNavVisible 
+            ? (_selectedIndex != 2 ? _buildAddFaceObjectFab(context) : null)
+            : null, // "Show Menu" button was removed from here so we can force it to the absolute bottom
+        
         body: Container(
           decoration: BoxDecoration(gradient: theme.backgroundGradient),
           child: SafeArea(
             bottom: false,
-            // --- ADDED NOTIFICATION LISTENER FOR SCROLLING ---
-            child: NotificationListener<UserScrollNotification>(
-              onNotification: (notification) {
-                if (notification.direction == ScrollDirection.forward) {
-                  if (!_isNavVisible) setState(() => _isNavVisible = true);
-                } else if (notification.direction == ScrollDirection.reverse) {
-                  if (_isNavVisible) setState(() => _isNavVisible = false);
-                }
-                return false; 
-              },
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                switchInCurve: Curves.easeInOutCubic,
-                switchOutCurve: Curves.easeInOutCubic,
-                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                  return Stack(
-                    alignment: Alignment.topCenter, 
-                    children: <Widget>[
-                      ...previousChildren,
-                      ?currentChild,
-                    ],
-                  );
-                },
-                child: SizedBox(
-                  key: ValueKey<int>(_selectedIndex),
-                  child: _buildMainContent(screenWidth, screenHeight, theme),
+            // --- WE WRAPPED THIS IN A STACK SO WE CAN PIN THE BUTTON TO THE BOTTOM ---
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: NotificationListener<UserScrollNotification>(
+                    onNotification: (notification) {
+                      if (notification.direction == ScrollDirection.forward) {
+                        if (!_isNavVisible) setState(() => _isNavVisible = true);
+                      } else if (notification.direction == ScrollDirection.reverse) {
+                        if (_isNavVisible) setState(() => _isNavVisible = false);
+                      }
+                      return false; 
+                    },
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      switchInCurve: Curves.easeInOutCubic,
+                      switchOutCurve: Curves.easeInOutCubic,
+                      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                        return Stack(
+                          alignment: Alignment.topCenter, 
+                          children: <Widget>[
+                            ...previousChildren,
+                            ?currentChild,
+                          ],
+                        );
+                      },
+                      child: SizedBox(
+                        key: ValueKey<int>(_selectedIndex),
+                        child: _buildMainContent(screenWidth, screenHeight, theme),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                
+                // --- SHOW MENU BUTTON (FORCED TO THE BOTTOM) ---
+                if (!_isNavVisible && _selectedIndex == 3)
+                  Positioned(
+                    bottom: 32, // <--- This forces it down into the empty space perfectly!
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: _buildShowMenuFab(),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),
@@ -262,7 +234,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    // Helper to build the header inside the scrollable content
     Widget buildScrollableHeader() {
       final adminName = widget.userData['name'] ?? 'Admin';
       return HeaderSection(
@@ -320,6 +291,18 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
+          onScroll: (isScrollingDown) {
+            if (isScrollingDown) {
+              if (_isNavVisible) setState(() => _isNavVisible = false);
+            } else {
+              if (!_isNavVisible) setState(() => _isNavVisible = true);
+            }
+          },
+          onRestoreMenu: () {
+            if (!_isNavVisible) {
+              setState(() => _isNavVisible = true);
+            }
+          },
         );
         break;
       case 2:
@@ -346,7 +329,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         );
     }
     
-    // Map screen doesn't need to be scrollable
     if (_selectedIndex == 3) {
       return content;
     }
@@ -363,7 +345,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         left: width * 0.05,
         right: width * 0.05,
         top: 16, 
-        bottom: 120, // Extra padding to avoid overlapping with FAB
+        bottom: 120, 
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,6 +385,107 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     );
   }
 
+  // =========================================================================
+  // FLOATING ACTION BUTTON BUILDERS
+  // =========================================================================
+
+  Widget _buildAddFaceObjectFab(BuildContext context) {
+    return Container(
+      height: 56,
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: () => _showAddOptionsBottomSheet(context),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.center_focus_strong_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Add Face/Object',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShowMenuFab() {
+    return Container(
+      height: 48,
+      // REMOVED THE MARGIN HERE so it sits exactly where we position it!
+      decoration: BoxDecoration(
+        color: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: _isDarkMode ? Colors.white24 : Colors.grey.shade200,
+        ),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            setState(() => _isNavVisible = true);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.keyboard_arrow_up_rounded,
+                  color: Color(0xFF8B5CF6), // Primary Purple
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Show Menu',
+                  style: TextStyle(
+                    color: _isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   _AppTheme _getDarkTheme() {
     return _AppTheme(
       backgroundGradient: const LinearGradient(
@@ -432,10 +515,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     );
   }
 
-  // =========================================================================
-  // ADD OPTIONS BOTTOM SHEET METHODS
-  // =========================================================================
-
   void _showAddOptionsBottomSheet(BuildContext context) {
     final Color primaryColor = const Color(0xFF8B5CF6);
 
@@ -456,7 +535,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Drag Handle
                 Center(
                   child: Container(
                     width: 36,
@@ -468,8 +546,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                     ),
                   ),
                 ),
-                
-                // Header Text
                 Text(
                   'Add New Registry',
                   style: TextStyle(
@@ -489,7 +565,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                 ),
                 const SizedBox(height: 32),
                 
-                // Caretaker Face Card
                 _buildAddOptionCard(
                   icon: Icons.face_retouching_natural_rounded,
                   title: 'Caretaker Face',
@@ -511,12 +586,11 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                 
                 const SizedBox(height: 16),
                 
-                // New Object Card
                 _buildAddOptionCard(
                   icon: Icons.view_in_ar_rounded, 
                   title: 'New Object',
                   subtitle: 'Scan an everyday item for detection',
-                  primaryColor: const Color(0xFF3B82F6), // Blue to differentiate
+                  primaryColor: const Color(0xFF3B82F6), 
                   onTap: () {
                     Navigator.pop(bc);
                     Navigator.push(
@@ -567,7 +641,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         ),
         child: Row(
           children: [
-            // Soft tinted icon container
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(

@@ -337,96 +337,162 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   }
 
   Future<void> _updateMapWithBothLocations() async {
-    if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
-    _isUpdatingMarkers = true;
+  if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
+  _isUpdatingMarkers = true;
 
-    try {
-      final userGeoPoint = GeoPoint(latitude: _currentPosition!.latitude, longitude: _currentPosition!.longitude);
+  try {
+    final userGeoPoint = GeoPoint(
+      latitude: _currentPosition!.latitude,
+      longitude: _currentPosition!.longitude,
+    );
 
-      if (_lastUserGeoPoint == null || _geoPointDistance(_lastUserGeoPoint!, userGeoPoint) > 2.0) { 
-        if (_lastUserGeoPoint != null) {
-          try { 
-            await _mapController.removeMarker(_lastUserGeoPoint!); 
-          } catch (e) {
-            debugPrint('Failed to remove previous user marker: $e');
-          }
-        }
-        try { 
-          await _mapController.removeCircle(_userAccuracyCircleKey); 
+    if (_lastUserGeoPoint == null || _geoPointDistance(_lastUserGeoPoint!, userGeoPoint) > 2.0) {
+      if (_lastUserGeoPoint != null) {
+        try {
+          await _mapController.removeMarker(_lastUserGeoPoint!);
         } catch (e) {
-          debugPrint('Failed to remove accuracy circle: $e');
-        }
-
-        final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
-          imageUrl: widget.userData['profileImageUrl'] as String?,
-          name: widget.userData['name'] ?? 'You',
-          borderColor: primary,
-        );
-        
-        if (userMarkerBytes != null && mounted) {
-          await _mapController.addMarker(
-            userGeoPoint,
-            markerIcon: MarkerIcon(
-              iconWidget: Container(
-                width: 60, height: 60,
-                decoration: BoxDecoration(shape: BoxShape.circle, image: DecorationImage(image: MemoryImage(userMarkerBytes), fit: BoxFit.cover)),
-              ),
-            ),
-          );
-
-          await _mapController.drawCircle(
-            CircleOSM(
-              key: _userAccuracyCircleKey, centerPoint: userGeoPoint,
-              radius: _currentPosition!.accuracy.clamp(5.0, 50.0),
-              color: primary.withValues(alpha: 0.2), strokeWidth: 2,
-            ),
-          );
-          _lastUserGeoPoint = userGeoPoint;
+          debugPrint('Failed to remove previous user marker: $e');
         }
       }
+      try {
+        await _mapController.removeCircle(_userAccuracyCircleKey);
+      } catch (e) {
+        debugPrint('Failed to remove accuracy circle: $e');
+      }
 
-      if (_caretakerLocation != null && mounted) {
-        final caretakerGeoPoint = GeoPoint(latitude: _caretakerLocation!['latitude'] as double, longitude: _caretakerLocation!['longitude'] as double);
+      // ✅ FIX: Safe extraction with fallback key names
+      final String? userImageUrl = _extractImageUrl(widget.userData);
+      final String userName = (widget.userData['name'] as String?)?.trim() ?? 
+                              (widget.userData['fullName'] as String?)?.trim() ?? 
+                              'You';
 
-        if (_lastCaretakerGeoPoint == null || _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeoPoint) > 3.0) {
-          if (_lastCaretakerGeoPoint != null) {
-            try { 
-              await _mapController.removeMarker(_lastCaretakerGeoPoint!); 
-            } catch (e) {
-              debugPrint('Failed to remove previous caretaker marker: $e');
-            }
-          }
+      debugPrint('🗺️ User marker imageUrl: $userImageUrl | name: $userName');
 
-          String? caretakerImageUrl;
-          final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
-          if (assignedCaretakers != null && assignedCaretakers.isNotEmpty) {
-            caretakerImageUrl = (assignedCaretakers.values.first as Map<dynamic, dynamic>?)?['profileImageUrl'] as String?;
-          }
+      final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
+        imageUrl: userImageUrl,
+        name: userName,
+        borderColor: primary,
+      );
 
-          final caretakerMarkerBytes = await MapMarkerHelper.createProfileMarker(
-            imageUrl: caretakerImageUrl, name: 'Caretaker', borderColor: Colors.blue,
-          );
-          
-          if (caretakerMarkerBytes != null && mounted) {
-            await _mapController.addMarker(
-              caretakerGeoPoint,
-              markerIcon: MarkerIcon(
-                iconWidget: Container(
-                  width: 60, height: 60,
-                  decoration: BoxDecoration(shape: BoxShape.circle, image: DecorationImage(image: MemoryImage(caretakerMarkerBytes), fit: BoxFit.cover)),
+      if (userMarkerBytes != null && mounted) {
+        await _mapController.addMarker(
+          userGeoPoint,
+          markerIcon: MarkerIcon(
+            iconWidget: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: MemoryImage(userMarkerBytes),
+                  fit: BoxFit.cover,
                 ),
               ),
-            );
-            _lastCaretakerGeoPoint = caretakerGeoPoint;
+            ),
+          ),
+        );
+
+        await _mapController.drawCircle(
+          CircleOSM(
+            key: _userAccuracyCircleKey,
+            centerPoint: userGeoPoint,
+            radius: _currentPosition!.accuracy.clamp(5.0, 50.0),
+            color: primary.withValues(alpha: 0.2),
+            strokeWidth: 2,
+          ),
+        );
+        _lastUserGeoPoint = userGeoPoint;
+      }
+    }
+
+    if (_caretakerLocation != null && mounted) {
+      final caretakerGeoPoint = GeoPoint(
+        latitude: _caretakerLocation!['latitude'] as double,
+        longitude: _caretakerLocation!['longitude'] as double,
+      );
+
+      if (_lastCaretakerGeoPoint == null ||
+          _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeoPoint) > 3.0) {
+        if (_lastCaretakerGeoPoint != null) {
+          try {
+            await _mapController.removeMarker(_lastCaretakerGeoPoint!);
+          } catch (e) {
+            debugPrint('Failed to remove previous caretaker marker: $e');
           }
         }
+
+        // ✅ FIX: Safe caretaker image extraction
+        String? caretakerImageUrl;
+        String caretakerName = 'Caretaker';
+
+        final assignedCaretakers =
+            widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
+
+        if (assignedCaretakers != null && assignedCaretakers.isNotEmpty) {
+          final caretakerData =
+              assignedCaretakers.values.first as Map<dynamic, dynamic>?;
+
+          caretakerImageUrl = _extractImageUrl(
+            caretakerData?.map((k, v) => MapEntry(k.toString(), v)) ?? {},
+          );
+          caretakerName = (caretakerData?['name'] as String?)?.trim() ??
+                          (caretakerData?['fullName'] as String?)?.trim() ??
+                          'Caretaker';
+        }
+
+        debugPrint('🗺️ Caretaker marker imageUrl: $caretakerImageUrl | name: $caretakerName');
+
+        final caretakerMarkerBytes = await MapMarkerHelper.createProfileMarker(
+          imageUrl: caretakerImageUrl,
+          name: caretakerName,
+          borderColor: Colors.blue,
+        );
+
+        if (caretakerMarkerBytes != null && mounted) {
+          await _mapController.addMarker(
+            caretakerGeoPoint,
+            markerIcon: MarkerIcon(
+              iconWidget: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  image: DecorationImage(
+                    image: MemoryImage(caretakerMarkerBytes),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+          );
+          _lastCaretakerGeoPoint = caretakerGeoPoint;
+        }
       }
-    } catch (e) {
-      debugPrint('Error updating map: $e');
-    } finally {
-      _isUpdatingMarkers = false;
+    }
+  } catch (e) {
+    debugPrint('Error updating map: $e');
+  } finally {
+    _isUpdatingMarkers = false;
+  }
+}
+
+String? _extractImageUrl(Map<String, dynamic> data) {
+  const possibleKeys = [
+    'profileImageUrl',
+    'profileImage',
+    'imageUrl',
+    'photoUrl',
+    'avatarUrl',
+    'photo',
+  ];
+  for (final key in possibleKeys) {
+    final val = data[key];
+    if (val is String && val.trim().isNotEmpty) {
+      return val.trim();
     }
   }
+  return null;
+}
 
   double _geoPointDistance(GeoPoint p1, GeoPoint p2) {
     return locationTrackingService.calculateDistance(
