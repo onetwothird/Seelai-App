@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:http/http.dart' as http; // Required for direct image download
+import 'package:http/http.dart' as http; 
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
@@ -18,6 +18,7 @@ class MswdLocationTrackingScreen extends StatefulWidget {
   final dynamic theme;
   final Map<String, dynamic> userData;
   final Function(bool isScrollingDown)? onScroll;
+  final VoidCallback? onRestoreMenu;
 
   const MswdLocationTrackingScreen({
     super.key,
@@ -25,6 +26,7 @@ class MswdLocationTrackingScreen extends StatefulWidget {
     required this.theme,
     required this.userData,
     this.onScroll,
+    this.onRestoreMenu,
   });
 
   @override
@@ -56,10 +58,9 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   Timer? _uiUpdateTimer;
 
   // LAYOUT ADJUSTMENT:
-  // Lift content 110px from bottom to clear the navigation menu
-  final double bottomContentOffset = 110.0; 
+  // Lift content 130px from bottom to fully clear the navigation menu
+  final double bottomContentOffset = 130.0; 
   
-
   @override
   void initState() {
     super.initState();
@@ -135,7 +136,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             'userType': userType,
           };
         });
-        // Force redraw to show profile image once loaded
         if(_isMapReady) _updateMapMarkers();
       }
     } catch (e) {
@@ -201,7 +201,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             lon2: lng,
           );
 
-          // Update if moved > 5m OR image URL changed OR selection changed
           bool imageChanged = _lastRenderedImageUrls[userId] != currentImgUrl;
           bool isSelected = _selectedUserId == userId;
 
@@ -221,13 +220,11 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           Color ringColor = userType == 'partially_sighted' ? Colors.redAccent : Colors.blueAccent;
           if (!isActive) ringColor = Colors.grey;
 
-          // 1. Download Image Bytes first
           Uint8List? imageBytes;
           if (currentImgUrl != null && currentImgUrl.isNotEmpty) {
             imageBytes = await _downloadImageBytes(currentImgUrl);
           }
 
-          // 2. Build the Marker using standard Widgets
           final markerWidget = _buildAvatarMarkerWidget(
             imageBytes: imageBytes,
             name: name,
@@ -290,21 +287,17 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     setState(() => _isRouting = true);
     
     try {
-      // 1. Get the MSWD admin's current device location
       GeoPoint? myLocation = await _mapController.myLocation();
-
-      // 2. Clear any existing roads
       await _mapController.clearAllRoads();
 
-      // 3. Draw Waze-like route
       RoadInfo roadInfo = await _mapController.drawRoad(
         myLocation,
         targetPoint,
-        roadType: RoadType.car, // Calculates driving roads
+        roadType: RoadType.car, 
         roadOption: const RoadOption(
           roadWidth: 10,
           roadColor: Colors.blueAccent,
-          zoomInto: true, // Auto-zooms to fit the whole route
+          zoomInto: true, 
         ),
       );
 
@@ -346,7 +339,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     required bool isActive,
     required bool isSelected,
   }) {
-    // Determine size based on selection
     final double size = isSelected ? 110.0 : 80.0;
     
     return Stack(
@@ -369,7 +361,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           child: ClipOval(
             child: imageBytes != null
                 ? ColorFiltered(
-                    // Apply greyscale filter if not active (offline)
                     colorFilter: isActive 
                         ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply) 
                         : const ColorFilter.matrix(<double>[
@@ -396,7 +387,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
           ),
         ),
         
-        // Active Status Indicator (Green Dot)
         if (isActive)
           Positioned(
             right: 2,
@@ -429,6 +419,8 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   }
 
   void _clearSelection() async {
+    widget.onRestoreMenu?.call(); 
+
     setState(() {
       _selectedUserId = null;
       _currentRoadInfo = null;
@@ -448,7 +440,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         children: [
           _buildMap(),
 
-          // Glass Top Bar
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             left: 16,
@@ -456,7 +447,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             child: _buildGlassTopBar(theme),
           ),
 
-          // Right Side Tools
           Positioned(
             right: 16,
             bottom: bottomContentOffset + 160, 
@@ -477,7 +467,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             ),
           ),
 
-          // User Carousel & Detail Card Container
           Positioned(
             left: 0,
             right: 0,
@@ -507,49 +496,58 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   }
 
   Widget _buildMap() {
-    return OSMFlutter(
-      controller: _mapController,
-      osmOption: OSMOption(
-        userTrackingOption: const UserTrackingOption(
-          enableTracking: true,
-          unFollowUser: true,
+    return Listener(
+      // This detects when a user drags/swipes their finger across the map
+      onPointerMove: (event) {
+        // Send a signal to the home screen to hide the menu (true = hide)
+        widget.onScroll?.call(true); 
+      },
+      child: OSMFlutter(
+        controller: _mapController,
+        osmOption: OSMOption(
+          userTrackingOption: const UserTrackingOption(
+            enableTracking: true,
+            unFollowUser: true,
+          ),
+          zoomOption: const ZoomOption(
+            initZoom: 15.0,
+            minZoomLevel: 4,
+            maxZoomLevel: 19,
+            stepZoom: 1.0,
+          ),
+          roadConfiguration: const RoadOption(roadColor: Colors.blueGrey),
         ),
-        zoomOption: const ZoomOption(
-          initZoom: 15.0,
-          minZoomLevel: 4,
-          maxZoomLevel: 19,
-          stepZoom: 1.0,
-        ),
-        roadConfiguration: const RoadOption(roadColor: Colors.blueGrey),
+        onMapIsReady: (isReady) async {
+          if (!mounted) return;
+          setState(() => _isMapReady = isReady);
+          if (isReady) {
+            await Future.delayed(const Duration(milliseconds: 500));
+            await _updateMapMarkers();
+          }
+        },
+        onGeoPointClicked: (point) {
+          widget.onRestoreMenu?.call(); 
+
+          String? closestId;
+          double minD = 10000;
+          _lastRenderedPoints.forEach((id, p) {
+             double d = mswdLocationTrackingService.calculateDistance(
+               lat1: point.latitude, lon1: point.longitude,
+               lat2: p.latitude, lon2: p.longitude
+             );
+             if (d < 150 && d < minD) {
+               minD = d;
+               closestId = id;
+             }
+          });
+          
+          if (closestId != null) {
+            _selectUser(closestId!);
+          } else {
+            _clearSelection();
+          }
+        },
       ),
-      onMapIsReady: (isReady) async {
-        if (!mounted) return;
-        setState(() => _isMapReady = isReady);
-        if (isReady) {
-          await Future.delayed(const Duration(milliseconds: 500));
-          await _updateMapMarkers();
-        }
-      },
-      onGeoPointClicked: (point) {
-        String? closestId;
-        double minD = 10000;
-        _lastRenderedPoints.forEach((id, p) {
-           double d = mswdLocationTrackingService.calculateDistance(
-             lat1: point.latitude, lon1: point.longitude,
-             lat2: p.latitude, lon2: p.longitude
-           );
-           if (d < 150 && d < minD) {
-             minD = d;
-             closestId = id;
-           }
-        });
-        
-        if (closestId != null) {
-          _selectUser(closestId!);
-        } else {
-          _clearSelection();
-        }
-      },
     );
   }
 
@@ -684,7 +682,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             widget.onScroll!(false); 
           }
         }
-        return true;
+        return false; 
       },
       child: Container(
         height: 140,
@@ -812,7 +810,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    // Show Accurate Routing Info if available, otherwise show GPS Accuracy
                     if (_currentRoadInfo != null && _currentRoadInfo!.distance != null && _currentRoadInfo!.duration != null)
                       Row(
                         children: [
@@ -869,7 +866,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                 ),
               ),
               const SizedBox(width: 8),
-              // Navigate Button
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _isRouting ? null : () {
@@ -907,10 +903,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                   const SizedBox(width: 6),
                   Builder(
                     builder: (context) {
-                      // Grab the short string (e.g., "now", "5m", "1h")
                       String timeStr = timeago.format(lastUpdate, locale: 'en_short');
-                      
-                      // Format it nicely to fix the "Updated now" awkwardness
                       String displayText = timeStr == 'now' 
                           ? 'Just updated' 
                           : 'Updated $timeStr ago';

@@ -486,21 +486,42 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            detection['icon'] as IconData? ?? Icons.image_rounded,
-                            color: color,
-                            size: 30,
+                 child: imageUrl != null && imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    // ✅ Show shimmer/color while loading
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: color.withValues(alpha: 0.15),
+                        child: Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: color,
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
                           ),
-                        )
-                      : Icon(
-                          detection['icon'] as IconData? ?? Icons.image_rounded,
-                          color: color,
-                          size: 30,
                         ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) => Icon(
+                      detection['icon'] as IconData? ?? Icons.image_rounded,
+                      color: color,
+                      size: 30,
+                    ),
+                  )
+                : Icon(
+                    detection['icon'] as IconData? ?? Icons.image_rounded,
+                    color: color,
+                    size: 30,
+                  ),
                 ),
                 SizedBox(width: spacingMedium),
                 
