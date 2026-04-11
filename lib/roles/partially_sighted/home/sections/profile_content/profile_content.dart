@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
-import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:seelai_app/screens/onboarding_screen.dart';
 
 class ProfileContent extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -41,10 +41,10 @@ class _ProfileContentState extends State<ProfileContent> {
   final _confirmPasswordController = TextEditingController();
 
   // Color Palette 
-  final Color _colPersonal = const Color(0xFF3B82F6); // Kept for the gradient fallback avatar
-  final Color _colSecurity = const Color(0xFF10B981); // Kept for success snackbars/buttons
+  final Color _colPersonal = const Color(0xFF3B82F6); 
+  final Color _colSecurity = const Color(0xFF10B981); 
   final Color _colSupport = const Color(0xFF06B6D4);  
-  final Color _colSafety = const Color(0xFFEF4444);   // Kept for Sign Out / SOS
+  final Color _colSafety = const Color(0xFFEF4444);   
 
   @override
   void initState() {
@@ -76,9 +76,7 @@ class _ProfileContentState extends State<ProfileContent> {
 
   @override
   Widget build(BuildContext context) {
-    // NO SingleChildScrollView here to prevent scrolling conflicts with home_screen.dart
     return Padding(
-      // 120 bottom padding ensures the last item clears the bottom navigation bar
       padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,7 +104,7 @@ class _ProfileContentState extends State<ProfileContent> {
               _buildSettingsTile(
                 title: 'Phone Number',
                 icon: Icons.phone_outlined,
-                iconColor: _colPersonal, // Passed but overridden internally for a clean look
+                iconColor: _colPersonal, 
                 value: _currentData['contactNumber']?.toString().isNotEmpty == true 
                     ? _currentData['contactNumber'] 
                     : 'Not provided',
@@ -400,7 +398,6 @@ class _ProfileContentState extends State<ProfileContent> {
                   ),
                   const SizedBox(width: 16),
                   
-                  // The title takes up its required space
                   Expanded(
                     child: Text(
                       title,
@@ -414,7 +411,6 @@ class _ProfileContentState extends State<ProfileContent> {
                   
                   if (value != null) ...[
                     const SizedBox(width: 16),
-                    // THE FIX: Expanded -> Row(end) -> Flexible -> ScrollView
                     Expanded(
                       flex: 2, 
                       child: Row(
@@ -850,16 +846,20 @@ class _ProfileContentState extends State<ProfileContent> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // 1. Close the confirmation dialog
               Navigator.pop(dialogContext);
               
+              // 2. Actually sign out of Firebase
               await authService.value.signOut();
               
               if (!mounted) return; 
 
+              // 3. Clear the navigation stack and go to Onboarding Screen
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-                (route) => false,
+                (route) => false, 
               );
+              
               _showSnackbar('Successfully signed out', Colors.green);
             },
             style: ElevatedButton.styleFrom(
@@ -1036,7 +1036,6 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
     required String description, 
     bool isDestructive = false
   }) {
-    // 🎨 Apply the same clean adaptive style to the video guide items! 🎨
     final displayIconColor = isDestructive ? widget.colSafety : widget.theme.textColor;
     final displayContainerColor = isDestructive 
         ? widget.colSafety.withValues(alpha: 0.15) 
