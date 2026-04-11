@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
-import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:seelai_app/screens/onboarding_screen.dart';
 
 class ProfileContent extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -755,11 +755,15 @@ class _ProfileContentState extends State<ProfileContent> {
           ),
           ElevatedButton(
             onPressed: () async {
+              // 1. Close the dialog
               Navigator.pop(dialogContext);
+              
+              // 2. Sign out of Firebase
               await authService.value.signOut();
               
               if (!parentContext.mounted) return;
 
+              // 3. Navigate to Onboarding Screen and clear history
               Navigator.of(parentContext).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                 (route) => false,
