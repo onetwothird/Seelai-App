@@ -30,11 +30,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _isLoading = true;
   bool _isProcessingAction = false; // For approve/reject loading state
   final ScrollController _scrollController = ScrollController();
+  bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
     _loadFullUserData();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.offset > 10 && !_isScrolled) {
+      setState(() => _isScrolled = true);
+    } else if (_scrollController.offset <= 10 && _isScrolled) {
+      setState(() => _isScrolled = false);
+    }
   }
 
   Future<void> _loadFullUserData() async {
@@ -68,6 +78,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -175,8 +186,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: _isScrolled ? Colors.white : Colors.transparent,
+        surfaceTintColor: Colors.white, 
+        elevation: _isScrolled ? 2 : 0,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         centerTitle: true,
         leading: Container(
           margin: const EdgeInsets.all(8),
@@ -188,7 +201,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ],
           ),
           child: IconButton(
-            icon: Icon(Icons.arrow_back_rounded, color: textColor, size: 20),
+            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF8B5CF6), size: 20),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -211,7 +224,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ],
             ),
             child: IconButton(
-              icon: Icon(Icons.refresh_rounded, color: textColor, size: 20),
+              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF8B5CF6), size: 20),
               onPressed: _loadFullUserData,
             ),
           ),
@@ -278,7 +291,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           _buildSectionCard(
                             title: 'Medical Information',
                             icon: Icons.medical_services_rounded,
-                            color: Colors.redAccent,
+                            color: const Color(0xFF8B5CF6), // Updated purple color
                             children: [
                               _buildInfoRow('Disability', _fullUserData?['disabilityType'] ?? 'N/A', textColor),
                               _buildInfoRow('Diagnosis', _fullUserData?['diagnosis'] ?? 'Not specified', textColor),
@@ -293,7 +306,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         _buildSectionCard(
                           title: 'Contact Details',
                           icon: Icons.contact_phone_rounded,
-                          color: Colors.blueAccent,
+                          color: const Color(0xFF8B5CF6), // Updated purple color
                           children: [
                             _buildInfoRow('Phone', _fullUserData?['contactNumber'] ?? 'N/A', textColor),
                             _buildInfoRow('Address', _fullUserData?['address'] ?? 'N/A', textColor, isMultiline: true),
@@ -310,7 +323,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         _buildSectionCard(
                           title: 'Account Info',
                           icon: Icons.shield_rounded,
-                          color: Colors.orangeAccent,
+                          color: const Color(0xFF8B5CF6), // Updated purple color
                           children: [
                             _buildInfoRow('Status', (_fullUserData?['isActive'] ?? true) ? 'Active' : 'Inactive', textColor),
                              if (isCaretaker)
@@ -438,6 +451,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildQuickInfoRow(Color cardColor, Color textColor) {
     final sex = _fullUserData?['sex'] ?? 'N/A';
+    const iconColor = Color(0xFF8B5CF6); // Updated purple color
     
     return Row(
       children: [
@@ -446,7 +460,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             label: 'Age',
             value: '${_fullUserData?['age'] ?? 'N/A'} yrs',
             icon: Icons.cake_rounded,
-            color: Colors.orange,
+            color: iconColor, 
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -457,7 +471,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             label: 'Gender',
             value: sex,
             icon: Icons.wc_rounded,
-            color: Colors.blue,
+            color: iconColor, 
             cardColor: cardColor,
             textColor: textColor,
           ),
