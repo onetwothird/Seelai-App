@@ -1,4 +1,4 @@
-// File: lib/firebase/cloudinary_service.dart
+// File: lib/storage/cloudinary_service.dart
 
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -42,6 +42,34 @@ class CloudinaryService {
       throw Exception('Failed to upload to Cloudinary: $e');
     }
   }
+
+  /// Upload SOS Contact image to Cloudinary
+  Future<String?> uploadContactImage(File imageFile, String patientId) async {
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
+      );
+      
+      request.fields['upload_preset'] = uploadPresetProfile; 
+      request.fields['folder'] = 'seelai_sos_contacts/$patientId'; 
+      
+      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      var response = await request.send();
+      
+      if (response.statusCode == 200) {
+        var responseData = await response.stream.bytesToString();
+        var jsonResponse = json.decode(responseData);
+        return jsonResponse['secure_url'] as String;
+      } else {
+        debugPrint('Upload failed: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('Failed to upload contact image to Cloudinary: $e');
+      return null;
+    }
+  }
   
   /// Upload a detection snapshot to Cloudinary
   Future<String?> uploadDetectionImage(File imageFile, String userId, String detectionType) async {
@@ -52,7 +80,8 @@ class CloudinaryService {
       );
       
       request.fields['upload_preset'] = uploadPresetDetections; 
-      request.fields['folder'] = 'seelai_detections/$detectionType/$userId'; 
+      // 👇 THIS IS THE UPDATED LINE TO MATCH YOUR CLOUDINARY FOLDER 👇
+      request.fields['folder'] = 'detected_images/$detectionType/$userId'; 
       
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
       var response = await request.send();
@@ -99,7 +128,6 @@ class CloudinaryService {
   }
 
   String _generateSignature(String publicId, String timestamp) {
-    // apiSecret is dynamically injected here
     final stringToSign = 'public_id=$publicId&timestamp=$timestamp$apiSecret';
     final bytes = utf8.encode(stringToSign);
     final digest = sha1.convert(bytes);

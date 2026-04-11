@@ -1,6 +1,6 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/widgets/location_map_widget.dart
 
-import 'dart:ui'; // ADDED: For frosted glass blur effect
+import 'dart:ui'; 
 import 'package:flutter/material.dart';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:geolocator/geolocator.dart';
@@ -16,6 +16,7 @@ class LocationMapWidget extends StatefulWidget {
   final dynamic theme;
   final String userId;
   final Map<String, dynamic> userData;
+  final bool isFullScreen; 
 
   const LocationMapWidget({
     super.key,
@@ -23,6 +24,7 @@ class LocationMapWidget extends StatefulWidget {
     required this.theme,
     required this.userId,
     required this.userData,
+    this.isFullScreen = false, 
   });
 
   @override
@@ -37,6 +39,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   bool _isLoading = true;
   bool _isTrackingActive = false;
   bool _permissionDenied = false;
+
   StreamSubscription<Position>? _positionStreamSubscription;
   StreamSubscription? _caretakerLocationStream;
   StreamSubscription<ServiceStatus>? _serviceStatusStream;
@@ -180,13 +183,33 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   Future<void> _startLocationTracking() async {
     try {
+      Position? cachedPosition = await Geolocator.getLastKnownPosition();
+      
+      if (cachedPosition != null && mounted) {
+        setState(() {
+          _currentPosition = cachedPosition;
+          _isLoading = false;
+          _isTrackingActive = true;
+          _permissionDenied = false;
+        });
+        
+        if (_isMapReady) {
+          await _updateMapWithBothLocations();
+          await _mapController.moveTo(
+            GeoPoint(latitude: cachedPosition.latitude, longitude: cachedPosition.longitude),
+            animate: false,
+          );
+        }
+      }
+
       Position position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
+          accuracy: LocationAccuracy.high, 
         ),
       ).timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: 10),
         onTimeout: () {
+          if (cachedPosition != null) return cachedPosition; 
           throw TimeoutException('Getting location is taking too long...');
         },
       );
@@ -258,7 +281,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         _showSnackBar(
           'Could not get your location. Please try again.',
           Icons.error_outline,
-          error, 
+          Colors.red, 
         );
       }
     }
@@ -266,23 +289,15 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   bool _hasSignificantChange(Position? oldPos, Position newPos) {
     if (oldPos == null) return true;
-    
     double distance = Geolocator.distanceBetween(
-      oldPos.latitude,
-      oldPos.longitude,
-      newPos.latitude,
-      newPos.longitude,
+      oldPos.latitude, oldPos.longitude, newPos.latitude, newPos.longitude,
     );
-    
     return distance > 2.0 || newPos.accuracy < oldPos.accuracy;
   }
 
   void _startCaretakerLocationListener() {
     final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
-    
-    if (assignedCaretakers == null || assignedCaretakers.isEmpty) {
-      return;
-    }
+    if (assignedCaretakers == null || assignedCaretakers.isEmpty) return;
 
     final caretakerId = assignedCaretakers.keys.first.toString();
 
@@ -291,10 +306,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         .listen((location) async {
       if (location != null && mounted) {
         if (_hasCaretakerLocationChanged(location)) {
-          setState(() {
-            _caretakerLocation = location;
-          });
-
+          setState(() => _caretakerLocation = location);
           if (_isMapReady && _currentPosition != null) {
             await _updateMapWithBothLocations();
           }
@@ -304,12 +316,9 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
     _caretakerCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
       if (!mounted) return;
-      
       final location = await locationTrackingService.getCaretakerLocation(caretakerId);
       if (location != null && mounted && _hasCaretakerLocationChanged(location)) {
-        setState(() {
-          _caretakerLocation = location;
-        });
+        setState(() => _caretakerLocation = location);
         if (_isMapReady && _currentPosition != null) {
           await _updateMapWithBothLocations();
         }
@@ -319,54 +328,38 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   bool _hasCaretakerLocationChanged(Map<String, dynamic> newLocation) {
     if (_caretakerLocation == null) return true;
-    
     final oldLat = _caretakerLocation!['latitude'] as double;
     final oldLng = _caretakerLocation!['longitude'] as double;
     final newLat = newLocation['latitude'] as double;
     final newLng = newLocation['longitude'] as double;
-    
-    double distance = locationTrackingService.calculateDistance(
-      lat1: oldLat,
-      lon1: oldLng,
-      lat2: newLat,
-      lon2: newLng,
-    );
-    
+    double distance = locationTrackingService.calculateDistance(lat1: oldLat, lon1: oldLng, lat2: newLat, lon2: newLng);
     return distance > 3.0; 
   }
 
   Future<void> _updateMapWithBothLocations() async {
     if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
-    
     _isUpdatingMarkers = true;
 
     try {
-      final userGeoPoint = GeoPoint(
-        latitude: _currentPosition!.latitude,
-        longitude: _currentPosition!.longitude,
-      );
+      final userGeoPoint = GeoPoint(latitude: _currentPosition!.latitude, longitude: _currentPosition!.longitude);
 
-      // --- USER MARKER UPDATE ---
-      if (_lastUserGeoPoint == null || 
-          _geoPointDistance(_lastUserGeoPoint!, userGeoPoint) > 2.0) { 
-        
+      if (_lastUserGeoPoint == null || _geoPointDistance(_lastUserGeoPoint!, userGeoPoint) > 2.0) { 
         if (_lastUserGeoPoint != null) {
-          try {
-            await _mapController.removeMarker(_lastUserGeoPoint!);
-          } catch (e) { debugPrint("User marker removal error: $e"); }
+          try { 
+            await _mapController.removeMarker(_lastUserGeoPoint!); 
+          } catch (e) {
+            debugPrint('Failed to remove previous user marker: $e');
+          }
         }
-
-        try {
-          await _mapController.removeCircle(_userAccuracyCircleKey);
+        try { 
+          await _mapController.removeCircle(_userAccuracyCircleKey); 
         } catch (e) {
-          debugPrint("Accuracy circle removal error: $e");
+          debugPrint('Failed to remove accuracy circle: $e');
         }
 
-        final userImageUrl = widget.userData['profileImageUrl'] as String?;
-        final userName = widget.userData['name'] ?? 'You';
         final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
-          imageUrl: userImageUrl,
-          name: userName,
+          imageUrl: widget.userData['profileImageUrl'] as String?,
+          name: widget.userData['name'] ?? 'You',
           borderColor: primary,
         );
         
@@ -375,60 +368,43 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
             userGeoPoint,
             markerIcon: MarkerIcon(
               iconWidget: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: MemoryImage(userMarkerBytes),
-                    fit: BoxFit.cover,
-                  ),
-                ),
+                width: 60, height: 60,
+                decoration: BoxDecoration(shape: BoxShape.circle, image: DecorationImage(image: MemoryImage(userMarkerBytes), fit: BoxFit.cover)),
               ),
             ),
           );
 
           await _mapController.drawCircle(
             CircleOSM(
-              key: _userAccuracyCircleKey,
-              centerPoint: userGeoPoint,
+              key: _userAccuracyCircleKey, centerPoint: userGeoPoint,
               radius: _currentPosition!.accuracy.clamp(5.0, 50.0),
-              color: primary.withValues(alpha: 0.2),
-              strokeWidth: 2,
+              color: primary.withValues(alpha: 0.2), strokeWidth: 2,
             ),
           );
-
           _lastUserGeoPoint = userGeoPoint;
         }
       }
 
-      // --- CARETAKER MARKER UPDATE ---
       if (_caretakerLocation != null && mounted) {
-        final caretakerGeoPoint = GeoPoint(
-          latitude: _caretakerLocation!['latitude'] as double,
-          longitude: _caretakerLocation!['longitude'] as double,
-        );
+        final caretakerGeoPoint = GeoPoint(latitude: _caretakerLocation!['latitude'] as double, longitude: _caretakerLocation!['longitude'] as double);
 
-        if (_lastCaretakerGeoPoint == null || 
-            _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeoPoint) > 3.0) {
-          
+        if (_lastCaretakerGeoPoint == null || _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeoPoint) > 3.0) {
           if (_lastCaretakerGeoPoint != null) {
-            try {
-              await _mapController.removeMarker(_lastCaretakerGeoPoint!);
-            } catch (e) { debugPrint("Caretaker marker removal error: $e"); }
+            try { 
+              await _mapController.removeMarker(_lastCaretakerGeoPoint!); 
+            } catch (e) {
+              debugPrint('Failed to remove previous caretaker marker: $e');
+            }
           }
 
           String? caretakerImageUrl;
           final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
           if (assignedCaretakers != null && assignedCaretakers.isNotEmpty) {
-            final firstCaretaker = assignedCaretakers.values.first as Map<dynamic, dynamic>?;
-            caretakerImageUrl = firstCaretaker?['profileImageUrl'] as String?;
+            caretakerImageUrl = (assignedCaretakers.values.first as Map<dynamic, dynamic>?)?['profileImageUrl'] as String?;
           }
 
           final caretakerMarkerBytes = await MapMarkerHelper.createProfileMarker(
-            imageUrl: caretakerImageUrl,
-            name: 'Caretaker',
-            borderColor: Colors.blue,
+            imageUrl: caretakerImageUrl, name: 'Caretaker', borderColor: Colors.blue,
           );
           
           if (caretakerMarkerBytes != null && mounted) {
@@ -436,19 +412,11 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
               caretakerGeoPoint,
               markerIcon: MarkerIcon(
                 iconWidget: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: MemoryImage(caretakerMarkerBytes),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+                  width: 60, height: 60,
+                  decoration: BoxDecoration(shape: BoxShape.circle, image: DecorationImage(image: MemoryImage(caretakerMarkerBytes), fit: BoxFit.cover)),
                 ),
               ),
             );
-
             _lastCaretakerGeoPoint = caretakerGeoPoint;
           }
         }
@@ -462,28 +430,16 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   double _geoPointDistance(GeoPoint p1, GeoPoint p2) {
     return locationTrackingService.calculateDistance(
-      lat1: p1.latitude,
-      lon1: p1.longitude,
-      lat2: p2.latitude,
-      lon2: p2.longitude,
+      lat1: p1.latitude, lon1: p1.longitude, lat2: p2.latitude, lon2: p2.longitude,
     );
   }
 
   Future<void> _updateFirebaseLocation(Position position) async {
     try {
-      final success = await locationTrackingService.updatePatientLocation(
-        patientId: widget.userId,
-        latitude: position.latitude,
-        longitude: position.longitude,
-        accuracy: position.accuracy,
-        altitude: position.altitude,
-        speed: position.speed,
-        heading: position.heading,
+      await locationTrackingService.updatePatientLocation(
+        patientId: widget.userId, latitude: position.latitude, longitude: position.longitude,
+        accuracy: position.accuracy, altitude: position.altitude, speed: position.speed, heading: position.heading,
       );
-
-      if (success) {
-        debugPrint('Firebase location updated: ${position.latitude}, ${position.longitude}');
-      }
     } catch (e) {
       debugPrint('Error updating Firebase location: $e');
     }
@@ -491,45 +447,20 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   void _showSnackBar(String message, IconData icon, Color backgroundColor) {
     if (!mounted) return;
-    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(width: spacingSmall),
-            Expanded(
-              child: Text(
-                message,
-                style: bodyBold.copyWith(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: backgroundColor,
-        behavior: SnackBarBehavior.floating,
+        content: Row(children: [Icon(icon, color: Colors.white, size: 20), const SizedBox(width: spacingSmall), Expanded(child: Text(message, style: bodyBold.copyWith(color: Colors.white)))]),
+        backgroundColor: backgroundColor, behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.only(bottom: 80, left: 20, right: 20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), duration: const Duration(seconds: 4),
       ),
     );
   }
 
-  // ==========================================
-  // INNOVATIVE TTS LOCATION & CONTEXT AWARENESS
-  // ==========================================
-
   Future<void> _centerOnMyLocation() async {
     await _flutterTts.speak('Centering map on your location.');
-    
     if (_currentPosition != null && _isMapReady) {
-      final geoPoint = GeoPoint(
-        latitude: _currentPosition!.latitude,
-        longitude: _currentPosition!.longitude,
-      );
-      await _mapController.moveTo(geoPoint, animate: true);
+      await _mapController.moveTo(GeoPoint(latitude: _currentPosition!.latitude, longitude: _currentPosition!.longitude), animate: true);
     }
   }
 
@@ -538,15 +469,14 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
       await _flutterTts.speak('Scanning for GPS signal. Please wait.');
       return;
     }
-
+    
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(
-        _currentPosition!.latitude,
-        _currentPosition!.longitude,
+        _currentPosition!.latitude, 
+        _currentPosition!.longitude
       );
-
+      
       String locationSpeech = "I cannot determine the exact street name.";
-      String displayAddress = "Address unknown";
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
@@ -563,7 +493,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         }
 
         if (addressParts.isNotEmpty) {
-          displayAddress = addressParts.join(', ');
+          String displayAddress = addressParts.join(', ');
           locationSpeech = 'You are currently near $displayAddress.';
         } else {
           locationSpeech = 'You are in ${place.locality ?? 'an unknown area'}.';
@@ -576,25 +506,14 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
           GeoPoint(latitude: _currentPosition!.latitude, longitude: _currentPosition!.longitude),
           GeoPoint(latitude: _caretakerLocation!['latitude'], longitude: _caretakerLocation!['longitude']),
         );
-        
-        String distanceStr = locationTrackingService.formatDistance(distance);
-        caretakerSpeech = " Your caretaker is approximately $distanceStr away.";
+        caretakerSpeech = " Your caretaker is approximately ${locationTrackingService.formatDistance(distance)} away.";
       } else {
         caretakerSpeech = " Your caretaker's location is currently unavailable.";
       }
 
       await _flutterTts.speak(locationSpeech + caretakerSpeech);
-
-      if (mounted) {
-        _showSnackBar(
-          displayAddress,
-          Icons.record_voice_over_rounded,
-          const Color(0xFFF59E0B), 
-        );
-      }
-
+      
     } catch (e) {
-      debugPrint('Geocoding error: $e');
       await _flutterTts.speak('Your GPS coordinates are active, but I cannot read the street name right now.');
     }
   }
@@ -605,56 +524,96 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   @override
   Widget build(BuildContext context) {
+    Widget mapStack = Stack(
+      children: [
+        if (!_permissionDenied) _buildMapView(),
+        if (_isLoading) _buildLoadingOverlay()
+        else if (_permissionDenied) _buildPermissionDeniedState(),
+        if (!_permissionDenied && !_isLoading) _buildControlButtons(),
+        
+        if (widget.isFullScreen)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            left: 16,
+            child: _buildBackButton(),
+          ),
+      ],
+    );
+
+    if (widget.isFullScreen) {
+      return Scaffold(
+        backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
+        body: mapStack,
+      );
+    }
+
     return Semantics(
       label: 'Your current location map',
-      // REMOVED: All redundant borders, radii, and shadows that were causing the "box-in-a-box" issue.
-      // Now it's just a perfectly sized box that flush-fills the parent card.
-      child: SizedBox(
-        height: 280, // A highly optimized height for maps inside cards
+      child: Container(
+        height: 280, 
         width: double.infinity,
-        child: Stack(
-          children: [
-            if (_isLoading)
-              _buildLoadingState()
-            else if (_permissionDenied)
-              _buildPermissionDeniedState()
-            else
-              _buildMapView(),
-
-            if (!_permissionDenied && !_isLoading)
-              _buildControlButtons(),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: widget.isDarkMode 
+                  ? Colors.black.withValues(alpha: 0.3) 
+                  : Colors.black.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
+            ),
           ],
+          border: Border.all(
+            color: widget.isDarkMode 
+                ? Colors.white.withValues(alpha: 0.1) 
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: mapStack,
         ),
       ),
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildBackButton() {
     return Container(
-      // Ensure it matches the map's background seamlessly
-      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : const Color(0xFFF4F4F5),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(
-              height: 40,
-              width: 40,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(primary),
-                strokeWidth: 3,
-              ),
-            ),
-            const SizedBox(height: spacingLarge),
-            Text(
-              'Locating...',
-              style: bodyBold.copyWith(
-                color: widget.theme.textColor,
-                fontSize: 15,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
+      decoration: BoxDecoration(
+        color: widget.isDarkMode 
+            ? const Color(0xFF1A1F3A).withValues(alpha: 0.85)
+            : Colors.white.withValues(alpha: 0.9),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
+        onPressed: () => Navigator.pop(context),
+        tooltip: 'Close full screen',
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        color: widget.isDarkMode ? const Color(0xFF1A1F3A).withValues(alpha: 0.7) : const Color(0xFFF4F4F5).withValues(alpha: 0.7),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40, width: 40, child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)), strokeWidth: 3)),
+              const SizedBox(height: 16),
+              Text('Locating...', style: TextStyle(fontWeight: FontWeight.bold, color: widget.theme.textColor, fontSize: 15, letterSpacing: 0.5)),
+            ],
+          ),
         ),
       ),
     );
@@ -668,51 +627,19 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.location_off_rounded,
-              size: 42,
-              color: widget.theme.subtextColor.withOpacity(0.5),
-            ),
+            Icon(Icons.location_off_rounded, size: 42, color: widget.theme.subtextColor.withOpacity(0.5)),
             const SizedBox(height: spacingMedium),
-            Text(
-              'Location Access Denied',
-              style: bodyBold.copyWith(
-                color: widget.theme.textColor,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text('Location Access Denied', style: bodyBold.copyWith(color: widget.theme.textColor, fontSize: 16), textAlign: TextAlign.center),
             const SizedBox(height: 6),
-            Text(
-              'Required to share location with caretaker.',
-              style: caption.copyWith(
-                color: widget.theme.subtextColor,
-                fontSize: 13,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text('Required to share location with caretaker.', style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 13), textAlign: TextAlign.center),
             const SizedBox(height: spacingMedium),
             ElevatedButton(
               onPressed: () async {
-                setState(() {
-                  _isLoading = true;
-                  _permissionDenied = false;
-                });
+                setState(() { _isLoading = true; _permissionDenied = false; });
                 await _initializeLocationTracking();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              ),
-              child: Text(
-                'Enable',
-                style: bodyBold.copyWith(color: Colors.white, fontSize: 14),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10)),
+              child: Text('Enable', style: bodyBold.copyWith(color: Colors.white, fontSize: 14)),
             ),
           ],
         ),
@@ -724,33 +651,16 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     return OSMFlutter(
       controller: _mapController,
       osmOption: OSMOption(
-        userTrackingOption: const UserTrackingOption(
-          enableTracking: false,
-          unFollowUser: true,
-        ),
-        zoomOption: ZoomOption(
-          initZoom: _currentZoom,
-          minZoomLevel: 3,
-          maxZoomLevel: 19,
-          stepZoom: 1.0,
-        ),
-        staticPoints: const [],
-        enableRotationByGesture: true,
-        showZoomController: false,
-        showDefaultInfoWindow: false,
+        userTrackingOption: const UserTrackingOption(enableTracking: false, unFollowUser: true),
+        zoomOption: ZoomOption(initZoom: _currentZoom, minZoomLevel: 3, maxZoomLevel: 19, stepZoom: 1.0),
+        staticPoints: const [], enableRotationByGesture: true, showZoomController: false, showDefaultInfoWindow: false,
       ),
       onMapIsReady: (isReady) async {
         if (!mounted) return;
-        
-        setState(() {
-          _isMapReady = isReady;
-        });
-        
+        setState(() => _isMapReady = isReady);
         if (isReady && _currentPosition != null) {
           await Future.delayed(const Duration(milliseconds: 300));
-          if (mounted) {
-            await _updateMapWithBothLocations();
-          }
+          if (mounted) await _updateMapWithBothLocations();
         }
       },
     );
@@ -759,59 +669,57 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   Widget _buildControlButtons() {
     return Positioned(
       right: 12,
-      bottom: 12,
+      bottom: widget.isFullScreen ? 24 : 12, 
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          // Clean shadow to lift the pill off the map
           boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 4)),
           ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), // Beautiful glassmorphic blur
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
             child: Container(
               decoration: BoxDecoration(
-                color: widget.isDarkMode 
-                    ? const Color(0xFF1A1F3A).withValues(alpha: 0.85)
-                    : Colors.white.withValues(alpha: 0.9), // Slightly transparent to let blur show through
+                color: widget.isDarkMode ? const Color(0xFF1A1F3A).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9), 
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: widget.isDarkMode 
-                      ? Colors.white.withValues(alpha: 0.1) 
-                      : Colors.black.withValues(alpha: 0.05),
-                  width: 1,
-                ),
+                border: Border.all(color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05), width: 1),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildMapAction(
-                    icon: Icons.my_location_rounded,
-                    onTap: _centerOnMyLocation,
-                    tooltip: 'Center on my location',
-                    color: primary,
+                    icon: Icons.my_location_rounded, onTap: _centerOnMyLocation, tooltip: 'Center on my location', color: primary,
                   ),
-                  // A very subtle separator line
-                  Container(
-                    height: 1,
-                    width: 36,
-                    color: widget.isDarkMode 
-                        ? Colors.white.withValues(alpha: 0.1) 
-                        : Colors.grey.withValues(alpha: 0.2),
-                  ),
+                  _buildDivider(),
                   _buildMapAction(
-                    // Changed icon to something that feels more like "Read Aloud"
-                    icon: Icons.volume_up_rounded, 
-                    onTap: _announceCurrentLocationAndContext,
-                    tooltip: 'Read current address',
-                    color: const Color(0xFF8B5CF6), // A deep, premium purple instead of harsh orange
+                    icon: Icons.volume_up_rounded, onTap: _announceCurrentLocationAndContext, tooltip: 'Read current address', color: const Color(0xFF8B5CF6), 
+                  ),
+                  _buildDivider(),
+                  _buildMapAction(
+                    icon: widget.isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded, 
+                    onTap: () {
+                      if (widget.isFullScreen) {
+                        Navigator.pop(context); 
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LocationMapWidget(
+                              isDarkMode: widget.isDarkMode,
+                              theme: widget.theme,
+                              userId: widget.userId,
+                              userData: widget.userData,
+                              isFullScreen: true, 
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    tooltip: widget.isFullScreen ? 'Minimize map' : 'Expand map',
+                    color: const Color(0xFF8B5CF6), 
                   ),
                 ],
               ),
@@ -822,29 +730,18 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     );
   }
 
-  Widget _buildMapAction({
-    required IconData icon,
-    required VoidCallback onTap,
-    required String tooltip,
-    required Color color,
-  }) {
+  Widget _buildDivider() {
+    return Container(height: 1, width: 36, color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2));
+  }
+
+  Widget _buildMapAction({required IconData icon, required VoidCallback onTap, required String tooltip, required Color color}) {
     return Semantics(
-      label: tooltip,
-      button: true,
+      label: tooltip, button: true,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
-          splashColor: color.withValues(alpha: 0.1),
-          highlightColor: Colors.transparent,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
-          ),
+          onTap: onTap, splashColor: color.withValues(alpha: 0.1), highlightColor: Colors.transparent,
+          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0), child: Icon(icon, color: color, size: 24)),
         ),
       ),
     );

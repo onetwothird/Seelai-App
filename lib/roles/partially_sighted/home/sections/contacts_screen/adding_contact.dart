@@ -1,8 +1,11 @@
-// File: lib/roles/partially_sighted/home/sections/contacts_screen/adding_contact.dart
+// File: C:\seelai_app\lib\roles\partially_sighted\home\sections\contacts_screen\adding_contact.dart
 
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:seelai_app/storage/cloudinary_service.dart'; 
 
 class AddContactDialog extends StatefulWidget {
   final String patientId;
@@ -28,6 +31,11 @@ class _AddContactDialogState extends State<AddContactDialog> {
   final TextEditingController _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   
+  // Image Picker State
+  File? _selectedImage;
+  bool _isLoading = false;
+  final ImagePicker _picker = ImagePicker();
+  
   // Brand Color
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
@@ -39,14 +47,37 @@ class _AddContactDialogState extends State<AddContactDialog> {
     super.dispose();
   }
 
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+      });
+    }
+  }
+
   Future<void> _addContact() async {
     if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      
       try {
+        String? imageUrl;
+
+        // 1. Upload to Cloudinary if an image is selected
+        if (_selectedImage != null) {
+          imageUrl = await cloudinaryService.uploadContactImage(
+            _selectedImage!, 
+            widget.patientId,
+          );
+        }
+
+        // 2. Save to Firebase 
         await emergencyContactsService.addEmergencyContact(
           userId: widget.patientId,
           contactName: _nameController.text,
           contactPhone: _phoneController.text,
           relationship: _relationshipController.text,
+          profileImageUrl: imageUrl, 
         );
 
         if (!mounted) return;
@@ -62,6 +93,10 @@ class _AddContactDialogState extends State<AddContactDialog> {
             backgroundColor: error, 
           ),
         );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
       }
     }
   }
@@ -92,7 +127,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: _primaryColor, width: 2), // Now uses purple
+          borderSide: BorderSide(color: _primaryColor, width: 2), 
         ),
         filled: true,
         fillColor: widget.isDarkMode 
@@ -119,6 +154,47 @@ class _AddContactDialogState extends State<AddContactDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Center(
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? Colors.white10 : Colors.black12,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _primaryColor.withValues(alpha: 0.5), width: 2),
+                        image: _selectedImage != null
+                            ? DecorationImage(
+                                image: FileImage(_selectedImage!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
+                      ),
+                      child: _selectedImage == null
+                          ? Icon(Icons.person_outline_rounded, size: 40, color: widget.theme.subtextColor)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _pickImage,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _primaryColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: widget.theme.cardColor, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               _buildTextField(
                 controller: _nameController,
                 label: 'Full Name',
@@ -130,7 +206,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
                   return null;
                 },
               ),
-              SizedBox(height: spacingMedium),
+              const SizedBox(height: 16),
               _buildTextField(
                 controller: _relationshipController,
                 label: 'Relationship',
@@ -142,7 +218,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
                   return null;
                 },
               ),
-              SizedBox(height: spacingMedium),
+              const SizedBox(height: 16),
               _buildTextField(
                 controller: _phoneController,
                 label: 'Phone Number',
@@ -164,19 +240,25 @@ class _AddContactDialogState extends State<AddContactDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isLoading ? null : () => Navigator.pop(context),
           child: Text('Cancel', style: body.copyWith(color: widget.theme.subtextColor)),
         ),
         ElevatedButton(
-          onPressed: _addContact,
+          onPressed: _isLoading ? null : _addContact,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _primaryColor, // Now uses purple
-            foregroundColor: white,
+            backgroundColor: _primaryColor, 
+            foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(radiusMedium),
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: Text('Add Contact'),
+          child: _isLoading 
+            ? const SizedBox(
+                width: 20, 
+                height: 20, 
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+              )
+            : const Text('Add Contact'),
         ),
       ],
     );
