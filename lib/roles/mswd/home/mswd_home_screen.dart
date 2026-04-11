@@ -155,53 +155,51 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         
         // --- ADD FACE/OBJECT FLOATING ACTION BUTTON ---
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: _isNavVisible && _selectedIndex != 3 
-            ? Container(
-                height: 56,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF8B5CF6), // Clean solid purple
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+        floatingActionButton: _isNavVisible && _selectedIndex != 2 
+              ? Container(
+                  height: 56,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8B5CF6), Color(0xFF6D28D9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
                     borderRadius: BorderRadius.circular(28),
-                    onTap: () => _showAddOptionsBottomSheet(context),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.center_focus_strong_rounded,
-                            color: Colors.white, 
-                            size: 22
-                          ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Add Face/Object',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.3,
+                    // REMOVED: The boxShadow array that was here has been deleted
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(28),
+                      onTap: () => _showAddOptionsBottomSheet(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.center_focus_strong_rounded,
+                              color: Colors.white, 
+                              size: 22
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            const Text(
+                              'Add Face/Object',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ) 
-            : null,
+                ) 
+              : null,
         // --- END FLOATING ACTION BUTTON ---
 
         body: Container(
