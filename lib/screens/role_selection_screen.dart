@@ -230,21 +230,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
         curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.05) : Colors.white,
+          color: Colors.white, // FIX: Always white. Prevents the grey/brown animation flash!
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade200,
             width: isSelected ? 1.5 : 1,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: isSelected
-                  ? color.withValues(alpha: 0.15)
-                  : Colors.black.withValues(alpha: 0.02),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          // No boxShadow here!
         ),
         child: Row(
           children: [
@@ -302,7 +294,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
       ),
     );
   }
-
+  
   void _showAuthBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
