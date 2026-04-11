@@ -231,7 +231,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
           ],
         ),
         content: Text(
-          'Are you sure you want to exit and log out?',
+          'Are you sure you want to exit the app?', // <-- Text changed here
           style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
         ),
         actions: [
@@ -305,13 +305,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(28),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
+                    // REMOVED: The boxShadow array that was here has been deleted
                   ),
                   child: Material(
                     color: Colors.transparent,
