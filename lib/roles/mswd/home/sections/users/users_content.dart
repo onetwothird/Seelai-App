@@ -27,8 +27,8 @@ class UsersContent extends StatefulWidget {
 
 class _UsersContentState extends State<UsersContent>
     with SingleTickerProviderStateMixin {
-  // Brand Colors - Vibrant Purple
-  final Color _primaryColor = const Color(0xFF7C3AED);
+  // Brand Colors - Your requested purple!
+  final Color _primaryColor = const Color(0xFF8B5CF6);
 
   late TabController _tabController;
   int _selectedTab = 0;
@@ -411,8 +411,8 @@ class _UsersContentState extends State<UsersContent>
       child: Row(
         children: [
           _buildTab(0, Icons.visibility_off_rounded, 'Patients', _primaryColor),
-          _buildTab(1, Icons.favorite_rounded, 'Caretakers', accent),
-          _buildTab(2, Icons.verified_user_rounded, 'Requests', Colors.orange),
+          _buildTab(1, Icons.favorite_rounded, 'Caretakers', _primaryColor),
+          _buildTab(2, Icons.verified_user_rounded, 'Requests', _primaryColor),
         ],
       ),
     );
@@ -633,7 +633,9 @@ class _UsersContentState extends State<UsersContent>
   Widget _buildCaretakerCard(Map<String, dynamic> caretaker, {required bool isPending}) {
     final profileImageUrl = caretaker['profileImageUrl'] as String?;
     final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
-    final color = isPending ? Colors.orange : accent;
+    
+    // REPLACED `accent` WITH `_primaryColor`
+    final color = isPending ? Colors.orange : _primaryColor;
 
     return Container(
       decoration: BoxDecoration(
