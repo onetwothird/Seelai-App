@@ -31,11 +31,23 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Map<String, dynamic>? _fullPatientData;
   bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
+  bool _isScrolled = false; // Added state to track scroll
 
   @override
   void initState() {
     super.initState();
     _loadFullPatientData();
+    
+    // Add listener to detect scrolling
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.offset > 10 && !_isScrolled) {
+      setState(() => _isScrolled = true);
+    } else if (_scrollController.offset <= 10 && _isScrolled) {
+      setState(() => _isScrolled = false);
+    }
   }
 
   Future<void> _loadFullPatientData() async {
@@ -58,6 +70,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll); // Clean up listener
     _scrollController.dispose();
     super.dispose();
   }
@@ -72,11 +85,16 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     final textColor = widget.isDarkMode ? Colors.white : Colors.black87;
     final subColor = widget.isDarkMode ? const Color(0xFFB0B8D4) : Colors.grey[600];
 
+    // Ensure text is visible if dark mode is on but the header becomes white
+    final appBarTitleColor = _isScrolled && widget.isDarkMode ? Colors.black87 : textColor;
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        // Toggle white color when scrolled
+        backgroundColor: _isScrolled ? Colors.white : Colors.transparent,
+        surfaceTintColor: Colors.transparent, // Prevents M3 auto-tinting
+        elevation: _isScrolled ? 2 : 0, // Adds a subtle shadow when scrolling
         centerTitle: true,
         leading: Container(
           margin: const EdgeInsets.all(8),
@@ -95,7 +113,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         title: Text(
           'Patient Profile',
           style: TextStyle(
-            color: textColor,
+            color: appBarTitleColor,
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
@@ -142,7 +160,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Medical Information',
                           icon: Icons.medical_services_rounded,
-                          color: Colors.redAccent,
+                          color: const Color(0xFF8B5CF6), // Changed to requested color
                           children: [
                             _buildInfoRow('Disability', widget.patient.disabilityType, textColor),
                             _buildInfoRow('Diagnosis', _fullPatientData?['diagnosis'] ?? 'Not specified', textColor),
@@ -157,7 +175,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Contact Details',
                           icon: Icons.contact_phone_rounded,
-                          color: Colors.blueAccent,
+                          color: const Color(0xFF8B5CF6), // Changed to requested color
                           children: [
                             _buildInfoRow('Phone', widget.patient.contactNumber ?? 'N/A', textColor),
                             _buildInfoRow('Address', widget.patient.address ?? 'N/A', textColor, isMultiline: true),
@@ -173,7 +191,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Account Info',
                           icon: Icons.shield_rounded,
-                          color: Colors.orangeAccent,
+                          color: const Color(0xFF8B5CF6), // Changed to requested color
                           children: [
                             _buildInfoRow('ID Number', _fullPatientData?['idNumber'] ?? 'N/A', textColor),
                             _buildInfoRow('Last Active', _formatLastActive(widget.patient.lastActive), textColor),
@@ -215,9 +233,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.black, width: 1),
-                    // Match the background color from the list screen
                     color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[200],
-                    // Note: Shadows can sometimes cause lag in Hero, but usually fine
                     boxShadow: [
                       BoxShadow(
                         color: primary.withValues(alpha: 0.2),
@@ -238,7 +254,6 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                 ),
               ),
             ),
-            // Status Indicator (Outside Hero so it doesn't fly with the image)
             Positioned(
               bottom: 4,
               right: 4,
@@ -316,7 +331,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             label: 'Age',
             value: '${widget.patient.age} yrs',
             icon: Icons.cake_rounded,
-            color: Colors.orange,
+            color: const Color(0xFF8B5CF6), // Changed to requested color
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -327,7 +342,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             label: 'Gender',
             value: sex,
             icon: Icons.wc_rounded,
-            color: Colors.blue,
+            color: const Color(0xFF8B5CF6), // Changed to requested color
             cardColor: cardColor,
             textColor: textColor,
           ),
