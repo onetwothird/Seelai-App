@@ -17,7 +17,7 @@ import 'package:seelai_app/roles/mswd/home/sections/dashboard/dashboard_stats.da
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/quick_actions.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/mswd_notifications_bottom_sheet.dart'; 
 import 'package:seelai_app/firebase/firebase_services.dart';
-
+import 'package:seelai_app/screens/onboarding_screen.dart';
 // Import the new registration screen
 import 'package:seelai_app/roles/mswd/home/sections/registration/subject_registration_screen.dart';
 
@@ -147,7 +147,11 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         if (didPop) return; 
         final bool shouldPop = await _onWillPop();
         if (shouldPop && context.mounted) {
-          Navigator.of(context).pop(result);
+          // Navigate to OnboardingScreen and clear all previous routes
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            (Route<dynamic> route) => false, 
+          );
         }
       },
       child: Scaffold(
