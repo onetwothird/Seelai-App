@@ -823,11 +823,13 @@ class _MoreContentState extends State<MoreContent> {
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(dialogContext);
-              await authService.value.signOut();
+              Navigator.pop(dialogContext); // 1. Closes the dialog
+              
+              await authService.value.signOut(); // 2. Clears Firebase session
               
               if (!parentContext.mounted) return;
 
+              // 3. Routes to Onboarding and clears navigation stack
               Navigator.of(parentContext).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                 (route) => false,
