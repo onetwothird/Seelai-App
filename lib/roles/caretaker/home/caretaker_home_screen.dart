@@ -23,6 +23,9 @@ import 'package:seelai_app/roles/caretaker/home/widgets/notifications_bottom_she
 // IMPORT FOR THE GLOBAL CALL LISTENER
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
 
+// IMPORT FOR POST-LOGOUT NAVIGATION
+import 'package:seelai_app/screens/onboarding_screen.dart';
+
 // NEW IMPORT FOR THE FLOATING MISSED CALL SECTION
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/communication/caretaker_missed_call_alert_section.dart';
 
@@ -252,7 +255,16 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(context).pop(true);
+              Navigator.of(context).pop(false); // Close the dialog
+              await FirebaseAuth.instance.signOut();
+              if (context.mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const OnboardingScreen(),
+                  ),
+                  (route) => false, // Clear the entire navigation stack
+                );
+              }
             },
             // Use PURPLE Theme color
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
@@ -260,7 +272,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           ),
         ],
       ),
-    )) ?? false;
+    )) ?? false;   
   }
 
  @override
