@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart'; // NEW IMPORT REQUIRED FOR SCROLL DIRECTION
+import 'package:flutter/rendering.dart'; 
 import 'package:firebase_auth/firebase_auth.dart'; 
 import 'package:geolocator/geolocator.dart'; 
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/caretaker_home_content.dart';
@@ -17,16 +17,9 @@ import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 
-// IMPORT FOR THE BOTTOM SHEET
 import 'package:seelai_app/roles/caretaker/home/widgets/notifications_bottom_sheet.dart';
-
-// IMPORT FOR THE GLOBAL CALL LISTENER
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
-
-// IMPORT FOR POST-LOGOUT NAVIGATION
 import 'package:seelai_app/screens/onboarding_screen.dart';
-
-// NEW IMPORT FOR THE FLOATING MISSED CALL SECTION
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/communication/caretaker_missed_call_alert_section.dart';
 
 class CaretakerHomeScreen extends StatefulWidget {
@@ -80,19 +73,15 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   }
 
   void _setupGlobalRequestStream() {
-    // 1. Get Nullable ID
     String? rawId = FirebaseAuth.instance.currentUser?.uid;
     rawId ??= widget.userData['userId'] ?? widget.userData['uid'];
 
-    // 2. Check and Return
     if (rawId == null || rawId.isEmpty) {
       debugPrint("Error: No User ID found for Request Stream.");
       return;
     }
 
-    // 3. Create Non-Nullable 'Safe' ID
     final String userId = rawId;
-
     debugPrint("Home Screen: Monitoring requests for $userId");
 
     _requestsSubscription = _requestService.streamRequests(userId).listen((requests) {
@@ -127,25 +116,22 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       
       if (permission == LocationPermission.deniedForever) return;
 
-      // 1. Get Nullable ID
       String? rawId = FirebaseAuth.instance.currentUser?.uid;
       rawId ??= widget.userData['userId'] ?? widget.userData['uid'];
       
-      // 2. Check
       if (rawId == null) return;
-
-      // 3. Create Non-Nullable 'Safe' ID
       final String userId = rawId;
 
       try {
         Position position = await Geolocator.getCurrentPosition(
-          // ignore: duplicate_ignore
-          // ignore: deprecated_member_use
-          desiredAccuracy: LocationAccuracy.high
+          // REPLACED desiredAccuracy WITH locationSettings
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
         
         await locationTrackingService.updateCaretakerLocation(
-          caretakerId: userId, // Now safe to use
+          caretakerId: userId,
           latitude: position.latitude,
           longitude: position.longitude,
           accuracy: position.accuracy,
@@ -164,7 +150,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         ),
       ).listen((Position position) {
         locationTrackingService.updateCaretakerLocation(
-          caretakerId: userId, // Now safe to use inside closure
+          caretakerId: userId, 
           latitude: position.latitude,
           longitude: position.longitude,
           accuracy: position.accuracy,
@@ -220,17 +206,15 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   }
 
   Future<bool> _onWillPop() async {
-    // If not on Home tab (index 0), go back to Home tab first
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
         _animationController.reset();
         _animationController.forward();
       });
-      return false; // Prevent exit
+      return false; 
     }
 
-    // If on Home tab, show Exit Confirmation Dialog
     return (await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -238,7 +222,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
-            // Use PURPLE Theme color
             const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)), 
             const SizedBox(width: 10),
             Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
@@ -255,18 +238,17 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(context).pop(false); // Close the dialog
+              Navigator.of(context).pop(false);
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) => const OnboardingScreen(),
                   ),
-                  (route) => false, // Clear the entire navigation stack
+                  (route) => false, 
                 );
               }
             },
-            // Use PURPLE Theme color
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
             child: const Text('Exit', style: TextStyle(color: Colors.white)),
           ),
@@ -289,9 +271,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       child: PopScope(
         canPop: false, 
         onPopInvokedWithResult: (bool didPop, Object? result) async {
-          if (didPop) {
-            return; 
-          }
+          if (didPop) return; 
 
           final bool shouldPop = await _onWillPop();
           
@@ -359,7 +339,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   }
 
   Widget _buildMainContent(double width, double height, _AppTheme theme) {
-    // Helper to build the header inside the scrollable content
     Widget buildScrollableHeader() {
       final caretakerName = widget.userData['name'] ?? 'Caretaker';
       return HeaderSection(
@@ -402,7 +381,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     return IndexedStack(
       index: _selectedIndex,
       children: [
-        // Index 0: Home Content (Header added inside ScrollView)
+        // Index 0: Home
         SingleChildScrollView(
           physics: const ClampingScrollPhysics(), 
           child: Column(
@@ -420,14 +399,14 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             ],
           ),
         ),
-        // Index 1
+        // Index 1: Patients
         PatientsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           locationService: _locationService,
         ),
-        // Index 2
+        // Index 2: Requests
         RequestsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
@@ -445,7 +424,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             }
           },
         ),
-        // Index 3
+        // Index 3: Profile
         SingleChildScrollView(
           physics: const ClampingScrollPhysics(), 
           child: ProfileContent(
@@ -454,12 +433,26 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             theme: theme,
           ),
         ),
-        // Index 4
+        // Index 4: LOCATION TRACKING WITH CALLBACKS ADDED
         RealtimeTrackingScreen(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           locationService: _locationService,
+          onScroll: (isScrollingDown) {
+            // Hide navbar when interacting with the map
+            if (isScrollingDown && _isNavVisible) {
+              setState(() => _isNavVisible = false);
+            } else if (!isScrollingDown && !_isNavVisible) {
+              setState(() => _isNavVisible = true);
+            }
+          },
+          onRestoreMenu: () {
+            // Restore navbar when map click stops
+            if (!_isNavVisible) {
+              setState(() => _isNavVisible = true);
+            }
+          },
         ),
       ],
     );
