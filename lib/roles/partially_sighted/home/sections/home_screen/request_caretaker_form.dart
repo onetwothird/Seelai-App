@@ -3,8 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:http/http.dart' as http; // ADDED
-import 'dart:convert'; // ADDED
+import 'package:http/http.dart' as http; 
+import 'dart:convert'; 
 
 class RequestCaretakerForm extends StatefulWidget {
   final String userName;
@@ -401,7 +401,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
               children: [
                 Icon(
                   priority['icon'] as IconData,
-                  color: isSelected ? white : color,
+                  color: isSelected ? Colors.white : color,
                   size: 18,
                 ),
                 SizedBox(width: spacingSmall),
@@ -409,7 +409,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                   priority['label'] as String,
                   style: bodyBold.copyWith(
                     fontSize: 14,
-                    color: isSelected ? white : widget.theme.textColor,
+                    color: isSelected ? Colors.white : widget.theme.textColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -498,7 +498,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                       end: Alignment.centerRight,
                     )
                   : null,
-              color: canSubmit ? null : grey.withValues(alpha: 0.3),
+              color: canSubmit ? null : Colors.grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(radiusMedium),
               boxShadow: canSubmit
                   ? [
@@ -517,7 +517,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                       width: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(white),
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                       ),
                     ),
                   )
@@ -526,7 +526,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                     children: [
                       Icon(
                         Icons.send_rounded,
-                        color: canSubmit ? white : grey,
+                        color: canSubmit ? Colors.white : Colors.grey,
                         size: 20,
                       ),
                       SizedBox(width: spacingSmall),
@@ -534,7 +534,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                         'Send Request',
                         style: bodyBold.copyWith(
                           fontSize: 16,
-                          color: canSubmit ? white : grey,
+                          color: canSubmit ? Colors.white : Colors.grey,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -546,7 +546,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
     );
   }
 
-  // ==================== HTTP PING LOGIC HERE ====================
+  // ==================== HTTP PING & SMS LOGIC ====================
   Future<void> _handleSubmit() async {
     if (_selectedType == null) return;
 
@@ -555,6 +555,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
     });
 
     try {
+      // 1. Save the request to Firebase
       final success = await _assistanceRequestService.sendAssistanceRequest(
         patientId: widget.userId,
         patientName: widget.userName,
@@ -566,10 +567,14 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
         priority: _selectedPriority.toLowerCase(),
       );
 
-      // --- NEW HTTP PING LOGIC ---
+      // 2. Trigger Alarm Server (FCM + SMS) if Priority is High/Emergency
       if (success && (_selectedPriority.toLowerCase() == 'high' || _selectedPriority.toLowerCase() == 'emergency')) {
         try {
-          // IMPORTANT: Replace this URL with your actual Render.com URL
+          // Fetch the caretaker's phone number from your database
+          final caretakerData = await databaseService.getUserData(widget.caretakerId);
+          final caretakerPhone = caretakerData?['contactNumber'] ?? caretakerData?['phone'] ?? '';
+
+          // Send data to Render Server
           final url = Uri.parse('https://seelai-alarm-server.onrender.com/trigger-alarm');
           
           http.post(
@@ -579,6 +584,10 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
               'caretakerId': widget.caretakerId,
               'patientName': widget.userName,
               'priority': _selectedPriority.toLowerCase(),
+              'caretakerPhone': caretakerPhone, // Passing phone number to backend
+              'message': _messageController.text.isNotEmpty 
+                  ? _messageController.text 
+                  : 'User needs $_selectedType assistance immediately.'
             }),
           ).then((response) {
             debugPrint("Alarm Server Response: ${response.statusCode}");
@@ -587,8 +596,8 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
           debugPrint("Failed to ping alarm server: $e");
         }
       }
-      // ----------------------------
 
+      // 3. Log Activity
       if (success) {
         await _userActivityService.logCaretakerRequest(
           userId: widget.userId,
@@ -597,6 +606,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
         );
       }
 
+      // 4. UI Feedback
       if (mounted) {
         Navigator.pop(context);
         
@@ -606,7 +616,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
               children: [
                 Icon(
                   success ? Icons.check_circle_rounded : Icons.error_rounded,
-                  color: white,
+                  color: Colors.white,
                 ),
                 SizedBox(width: spacingSmall),
                 Expanded(
@@ -614,12 +624,12 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
                     success
                         ? 'Request sent successfully!'
                         : 'Failed to send request',
-                    style: bodyBold.copyWith(color: white),
+                    style: bodyBold.copyWith(color: Colors.white),
                   ),
                 ),
               ],
             ),
-            backgroundColor: success ? Colors.green : error,
+            backgroundColor: success ? Colors.green : Colors.red,
             behavior: SnackBarBehavior.floating,
             margin: EdgeInsets.only(bottom: 100, left: 20, right: 20),
             shape: RoundedRectangleBorder(
@@ -637,7 +647,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('An error occurred. Please try again.'),
-            backgroundColor: error,
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             margin: EdgeInsets.only(bottom: 100, left: 20, right: 20),
           ),
