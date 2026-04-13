@@ -124,7 +124,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
       try {
         Position position = await Geolocator.getCurrentPosition(
-          // REPLACED desiredAccuracy WITH locationSettings
           locationSettings: const LocationSettings(
             accuracy: LocationAccuracy.high,
           ),
