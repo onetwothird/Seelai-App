@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -10,16 +9,23 @@ import 'dart:async';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
-import 'select_patient.dart';
+
+// Make sure you have this import path correct
+import 'package:seelai_app/roles/caretaker/home/sections/patient_location/select_patient.dart';
 
 class RealtimeTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final Map<String, dynamic> userData;
   final LocationService locationService;
+  
+  // Callbacks for hiding/showing bottom navigation bar
+  final Function(bool isScrollingDown)? onScroll;
+  final VoidCallback? onRestoreMenu;
 
   const RealtimeTrackingScreen({
     super.key,
@@ -27,17 +33,18 @@ class RealtimeTrackingScreen extends StatefulWidget {
     required this.theme,
     required this.userData, 
     required this.locationService,
+    this.onScroll,
+    this.onRestoreMenu,
   });
 
   @override
   State<RealtimeTrackingScreen> createState() => _RealtimeTrackingScreenState();
 }
 
-class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
+class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with TickerProviderStateMixin {
   PatientModel? _selectedPatient;
   Map<String, dynamic>? _selectedPatientFullData;
   bool _isTracking = false;
-  bool _isFullscreen = false;
   String? _caretakerId;
   StreamSubscription? _locationTrackingStream;
   StreamSubscription? _caretakerLocationStream;
@@ -46,8 +53,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   Map<String, dynamic>? _currentCaretakerLocation;
   
   late MapController _mapController;
+  final FlutterTts _flutterTts = FlutterTts();
+
   bool _isMapReady = false;
-  double _currentZoom = 15.0;
   
   Timer? _pulseTimer;
   bool _isPulseExpanded = false;
@@ -56,142 +64,46 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
   
   bool _isLoadingRoute = false;
 
-  // Track last known positions to prevent duplicate updates
   GeoPoint? _lastPatientGeoPoint;
   GeoPoint? _lastCaretakerGeoPoint;
-
-  // LOCKING VARIABLE: Prevents overlapping map updates (Fixes doubling icons)
   bool _isUpdatingMarkers = false;
+
+  final Map<String, Uint8List> _imageCache = {};
+  
+  // Offset to ensure content stays above the bottom nav bar
+  final double bottomContentOffset = 100.0;
 
   @override
   void initState() {
     super.initState();
     _initializeMapController();
     _initializeCaretakerId();
+    _initTTS();
     _requestLocationPermission();
+  }
+
+  Future<void> _initTTS() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.speak(text);
   }
 
   void _initializeMapController() {
     _mapController = MapController(
-      initPosition: GeoPoint(
-        latitude: 14.2456,
-        longitude: 121.1234,
-      ),
+      initPosition: GeoPoint(latitude: 14.2456, longitude: 121.1234),
       areaLimit: BoundingBox.world(),
-    );
-  }
-
-  Future<Uint8List?> _createProfileMarker({
-    required String? imageUrl,
-    required String name,
-    required Color borderColor,
-    double size = 120.0,
-  }) async {
-    try {
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-
-      final shadowPaint = Paint()
-        ..color = Colors.black.withValues(alpha: 0.3)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
-      canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
-
-      final borderPaint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 5, borderPaint);
-
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        try {
-          final response = await http.get(Uri.parse(imageUrl)).timeout(Duration(seconds: 5));
-          if (response.statusCode == 200) {
-            final codec = await ui.instantiateImageCodec(
-              response.bodyBytes,
-              targetWidth: size.toInt() - 20,
-              targetHeight: size.toInt() - 20,
-            );
-            final frame = await codec.getNextFrame();
-            
-            final path = Path()
-              ..addOval(Rect.fromCircle(
-                center: Offset(size / 2, size / 2),
-                radius: size / 2 - 10,
-              ));
-            canvas.clipPath(path);
-            
-            canvas.drawImageRect(
-              frame.image,
-              Rect.fromLTWH(0, 0, frame.image.width.toDouble(), frame.image.height.toDouble()),
-              Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10),
-              Paint(),
-            );
-          } else {
-            _drawDefaultMarkerAvatar(canvas, size, name, borderColor);
-          }
-        } catch (e) {
-          debugPrint('Error loading profile image: $e');
-          _drawDefaultMarkerAvatar(canvas, size, name, borderColor);
-        }
-      } else {
-        _drawDefaultMarkerAvatar(canvas, size, name, borderColor);
-      }
-
-      final coloredBorderPaint = Paint()
-        ..color = borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4;
-      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 7, coloredBorderPaint);
-
-      final picture = recorder.endRecording();
-      final img = await picture.toImage(size.toInt(), size.toInt());
-      final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
-      
-      return byteData?.buffer.asUint8List();
-    } catch (e) {
-      debugPrint('Error creating marker: $e');
-      return null;
-    }
-  }
-
-  void _drawDefaultMarkerAvatar(Canvas canvas, double size, String name, Color color) {
-    final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10);
-    final gradient = ui.Gradient.linear(
-      Offset(rect.left, rect.top),
-      Offset(rect.right, rect.bottom),
-      [color, color.withValues(alpha: 0.7)],
-    );
-    final paint = Paint()..shader = gradient;
-    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
-
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: size * 0.4,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        size / 2 - textPainter.width / 2,
-        size / 2 - textPainter.height / 2,
-      ),
     );
   }
 
   Future<void> _requestLocationPermission() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      _showSnackBar(
-        'Location services are disabled. Please enable them.',
-        Icons.location_off,
-        error,
-      );
+      _speak('Location services are disabled. Please enable them.');
       return;
     }
 
@@ -199,21 +111,13 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        _showSnackBar(
-          'Location permissions are denied',
-          Icons.location_off,
-          error,
-        );
+        _speak('Location permissions were denied.');
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      _showSnackBar(
-        'Location permissions are permanently denied',
-        Icons.location_off,
-        error,
-      );
+      _speak('Location permissions are permanently denied.');
       return;
     }
 
@@ -224,9 +128,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     if (_caretakerId == null) return;
 
     _caretakerLocationStream = Geolocator.getPositionStream(
-      locationSettings: LocationSettings(
+      locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 5, // Update every 5 meters
+        distanceFilter: 2, 
       ),
     ).listen((Position position) async {
       final newLocation = {
@@ -235,7 +139,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         'accuracy': position.accuracy,
       };
 
-      // Only update if significantly changed
       if (_hasCaretakerLocationChanged(newLocation)) {
         setState(() {
           _currentCaretakerLocation = newLocation;
@@ -248,44 +151,29 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
           accuracy: position.accuracy,
         );
 
-        if (_currentPatientLocation != null) {
-          _updateDistance();
-        }
-
-        if (_isMapReady && _isTracking) {
-          await _updateMapMarkers();
-        }
+        if (_currentPatientLocation != null) _updateDistance();
+        if (_isMapReady && _isTracking) await _updateMapMarkers();
       }
     });
   }
 
   bool _hasCaretakerLocationChanged(Map<String, dynamic> newLocation) {
     if (_currentCaretakerLocation == null) return true;
-    
     final oldLat = _currentCaretakerLocation!['latitude'] as double;
     final oldLng = _currentCaretakerLocation!['longitude'] as double;
     final newLat = newLocation['latitude'] as double;
     final newLng = newLocation['longitude'] as double;
     
     double distance = locationTrackingService.calculateDistance(
-      lat1: oldLat,
-      lon1: oldLng,
-      lat2: newLat,
-      lon2: newLng,
+      lat1: oldLat, lon1: oldLng, lat2: newLat, lon2: newLng,
     );
-    
-    return distance > 3.0; // Update if moved more than 3 meters
+    return distance > 1.5; 
   }
 
   Future<void> _initializeCaretakerId() async {
-    // FORCE the app to use the authenticated user's ID
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      if (mounted) {
-        setState(() {
-          _caretakerId = user.uid;
-        });
-      }
+    if (user != null && mounted) {
+      setState(() => _caretakerId = user.uid);
     }
   }
 
@@ -295,13 +183,16 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     _caretakerLocationStream?.cancel();
     _pulseTimer?.cancel();
     _mapController.dispose();
+    _flutterTts.stop();
     super.dispose();
   }
+
+  // ==================== AUTO-TRACKING LOGIC ====================
 
   void onPatientSelected(PatientModel patient) async {
     setState(() {
       _selectedPatient = patient;
-      _isTracking = false;
+      _isTracking = true; // Auto Start Tracking
       _lastPatientGeoPoint = null;
     });
     
@@ -314,196 +205,264 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
     
     final patientData = await databaseService.getUserDataByRole(patient.id, 'partially_sighted');
     if (patientData != null && mounted) {
-      setState(() {
-        _selectedPatientFullData = patientData;
-      });
+      setState(() => _selectedPatientFullData = patientData);
     }
     
     final location = await locationTrackingService.getPatientLocation(patient.id);
     if (location != null && mounted) {
-      setState(() {
-        _currentPatientLocation = location;
-      });
-      
+      setState(() => _currentPatientLocation = location);
       await _updateMapLocation(location);
       _updateDistance();
     } else {
-      if (mounted) {
-        _showSnackBar(
-          'Location not available for ${patient.name}',
-          Icons.location_off_rounded,
-          error,
-        );
+      if (mounted) _speak('Location is currently not available for ${patient.name}.');
+    }
+
+    _startPulseAnimation();
+    await _drawRoute();
+    
+    _locationTrackingStream = locationTrackingService
+        .trackPatientLocation(patient.id)
+        .listen((loc) async {
+      if (loc != null && mounted) {
+        if (_hasPatientLocationChanged(loc)) {
+          setState(() => _currentPatientLocation = loc);
+          _updateDistance();
+          await _updateMapMarkers();
+          
+          if (_lastPatientGeoPoint != null) {
+            final newPatientGeo = GeoPoint(latitude: loc['latitude'] as double, longitude: loc['longitude'] as double);
+            if (_geoPointDistance(_lastPatientGeoPoint!, newPatientGeo) > 5.0) {
+              await _drawRoute();
+            }
+          }
+        }
+      }
+    });
+    
+    _speak('Tracking started for ${patient.name}.');
+  }
+
+  void _clearSelection() async {
+    widget.onRestoreMenu?.call();
+    _locationTrackingStream?.cancel();
+    _pulseTimer?.cancel();
+    
+    if (_isMapReady) {
+      await _mapController.clearAllRoads();
+      if (_lastPatientGeoPoint != null) {
+        try { await _mapController.removeMarker(_lastPatientGeoPoint!); } catch (_) {}
       }
     }
+    
+    setState(() {
+      _selectedPatient = null;
+      _isTracking = false;
+      _currentPatientLocation = null;
+      _distanceToPatient = null;
+      _estimatedTime = null;
+      _lastPatientGeoPoint = null;
+      _isPulseExpanded = false;
+    });
+    
+    _speak('Tracking stopped.');
+    await _updateMapMarkers();
   }
+
+  // ==================== MAP UPDATE LOGIC ====================
 
   Future<void> _updateMapLocation(Map<String, dynamic> location) async {
     if (!_isMapReady) return;
-    
     final lat = location['latitude'] as double;
     final lng = location['longitude'] as double;
-    final geoPoint = GeoPoint(latitude: lat, longitude: lng);
-    
     try {
       await _updateMapMarkers();
-      await _mapController.moveTo(geoPoint, animate: true);
+      await _mapController.moveTo(GeoPoint(latitude: lat, longitude: lng), animate: true);
     } catch (e) {
       debugPrint('Error updating map location: $e');
     }
   }
 
-  // UPDATED METHOD: Using lock to prevent double icons
   Future<void> _updateMapMarkers() async {
-    // 1. Safety check & Lock
     if (!_isMapReady || _isUpdatingMarkers) return;
     _isUpdatingMarkers = true;
 
     try {
-      // --- Update Patient Marker ---
-      if (_currentPatientLocation != null && _selectedPatient != null) {
+      // PATIENT MARKER
+      if (_currentPatientLocation != null && _selectedPatient != null && _isTracking) {
         final patientGeo = GeoPoint(
           latitude: _currentPatientLocation!['latitude'] as double,
           longitude: _currentPatientLocation!['longitude'] as double,
         );
 
-        // Check significant change or force update if pulse changed
         bool shouldUpdate = _lastPatientGeoPoint == null || 
-            _geoPointDistance(_lastPatientGeoPoint!, patientGeo) > 3.0 ||
-            _isTracking; // Always update if tracking (for pulse animation)
+            _geoPointDistance(_lastPatientGeoPoint!, patientGeo) > 1.5 || _isTracking; 
 
         if (shouldUpdate) {
-          // Remove old marker first
           if (_lastPatientGeoPoint != null) {
-            try {
-              await _mapController.removeMarker(_lastPatientGeoPoint!);
-            } catch (e) {
-              debugPrint("Error removing old patient marker: $e");
-            }
+            try { await _mapController.removeMarker(_lastPatientGeoPoint!); } catch (_) {}
           }
 
           final patientImageUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
-          final patientMarkerBytes = await _createProfileMarker(
-            imageUrl: patientImageUrl,
+          Uint8List? imageBytes = await _getImageBytes(patientImageUrl);
+
+          final markerWidget = _buildAvatarMarkerWidget(
+            imageBytes: imageBytes,
             name: _selectedPatient!.name,
-            borderColor: primary,
+            ringColor: primary,
+            isActive: true,
+            isSelected: true,
           );
 
-          if (patientMarkerBytes != null && mounted) {
+          if (mounted) {
             await _mapController.addMarker(
               patientGeo,
-              markerIcon: MarkerIcon(
-                iconWidget: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: MemoryImage(patientMarkerBytes),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
+              markerIcon: MarkerIcon(iconWidget: markerWidget),
             );
 
-            // Add pulse circle only when tracking
-            if (_isTracking) {
-              // Note: Ideally remove old circle if library supports it
-              await _mapController.drawCircle(
-                CircleOSM(
-                  key: 'patient_circle',
-                  centerPoint: patientGeo,
-                  radius: _isPulseExpanded ? 80.0 : 40.0,
-                  color: primary.withValues(alpha: 0.2),
-                  strokeWidth: 2,
-                ),
-              );
-            }
+            await _mapController.drawCircle(
+              CircleOSM(
+                key: 'patient_circle',
+                centerPoint: patientGeo,
+                radius: _isPulseExpanded ? 50.0 : 25.0,
+                color: primary.withValues(alpha: 0.2),
+                strokeWidth: 2,
+              ),
+            );
 
             _lastPatientGeoPoint = patientGeo;
           }
         }
       }
 
-      // --- Update Caretaker Marker ---
+      // CARETAKER MARKER
       if (_currentCaretakerLocation != null) {
         final caretakerGeo = GeoPoint(
           latitude: _currentCaretakerLocation!['latitude'] as double,
           longitude: _currentCaretakerLocation!['longitude'] as double,
         );
 
-        if (_lastCaretakerGeoPoint == null || 
-            _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeo) > 3.0) {
-          
+        if (_lastCaretakerGeoPoint == null || _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeo) > 1.5) {
           if (_lastCaretakerGeoPoint != null) {
-            try {
-              await _mapController.removeMarker(_lastCaretakerGeoPoint!);
-            } catch (e) {
-               debugPrint("Error removing old caretaker marker: $e");
-            }
+            try { await _mapController.removeMarker(_lastCaretakerGeoPoint!); } catch (_) {}
           }
 
           final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
-          final caretakerName = widget.userData['name'] ?? 'You';
-          final caretakerMarkerBytes = await _createProfileMarker(
-            imageUrl: caretakerImageUrl,
-            name: caretakerName,
-            borderColor: Colors.blue,
+          Uint8List? careBytes = await _getImageBytes(caretakerImageUrl);
+
+          final markerWidget = _buildAvatarMarkerWidget(
+            imageBytes: careBytes,
+            name: widget.userData['name'] ?? 'You',
+            ringColor: Colors.blueAccent,
+            isActive: true,
+            isSelected: false,
           );
 
-          if (caretakerMarkerBytes != null && mounted) {
+          if (mounted) {
             await _mapController.addMarker(
               caretakerGeo,
-              markerIcon: MarkerIcon(
-                iconWidget: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: MemoryImage(caretakerMarkerBytes),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ),
+              markerIcon: MarkerIcon(iconWidget: markerWidget),
             );
-
             _lastCaretakerGeoPoint = caretakerGeo;
           }
-        }
-      }
-
-      // Update route if tracking
-      if (_isTracking && _lastPatientGeoPoint != null && _lastCaretakerGeoPoint != null) {
-        // Prevent frequent route redraws
-        if (!_isLoadingRoute) {
-             await _drawRoute();
         }
       }
 
     } catch (e) {
       debugPrint('Error updating markers: $e');
     } finally {
-      // Release lock
       _isUpdatingMarkers = false;
     }
   }
 
-  double _geoPointDistance(GeoPoint p1, GeoPoint p2) {
-    return locationTrackingService.calculateDistance(
-      lat1: p1.latitude,
-      lon1: p1.longitude,
-      lat2: p2.latitude,
-      lon2: p2.longitude,
+  Future<Uint8List?> _getImageBytes(String? url) async {
+    if (url == null || url.isEmpty) return null;
+    if (_imageCache.containsKey(url)) return _imageCache[url];
+    try {
+      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
+      if (response.statusCode == 200) {
+        _imageCache[url] = response.bodyBytes;
+        return response.bodyBytes;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Widget _buildAvatarMarkerWidget({
+    required Uint8List? imageBytes,
+    required String name,
+    required Color ringColor,
+    required bool isActive,
+    required bool isSelected,
+  }) {
+    final double size = isSelected ? 100.0 : 70.0;
+    
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: ringColor.withValues(alpha: 0.2),
+            border: Border.all(color: ringColor, width: isSelected ? 3 : 2),
+            boxShadow: const [BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(0, 4))],
+          ),
+          child: ClipOval(
+            child: imageBytes != null
+                ? Image.memory(imageBytes, fit: BoxFit.cover)
+                : Center(
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: TextStyle(
+                        color: ringColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: size * 0.4,
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+        if (isActive)
+          Positioned(
+            right: 2,
+            bottom: 2,
+            child: Container(
+              width: size * 0.25,
+              height: size * 0.25,
+              decoration: BoxDecoration(
+                color: Colors.greenAccent[700],
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)]
+              ),
+            ),
+          ),
+      ],
     );
   }
 
+  double _geoPointDistance(GeoPoint p1, GeoPoint p2) {
+    return locationTrackingService.calculateDistance(
+      lat1: p1.latitude, lon1: p1.longitude, lat2: p2.latitude, lon2: p2.longitude,
+    );
+  }
+
+  bool _hasPatientLocationChanged(Map<String, dynamic> newLocation) {
+    if (_currentPatientLocation == null) return true;
+    final oldLat = _currentPatientLocation!['latitude'] as double;
+    final oldLng = _currentPatientLocation!['longitude'] as double;
+    final newLat = newLocation['latitude'] as double;
+    final newLng = newLocation['longitude'] as double;
+    
+    double distance = locationTrackingService.calculateDistance(
+      lat1: oldLat, lon1: oldLng, lat2: newLat, lon2: newLng,
+    );
+    return distance > 1.5; 
+  }
+
   void _updateDistance() {
-    if (_currentPatientLocation == null || _currentCaretakerLocation == null) {
-      return;
-    }
+    if (_currentPatientLocation == null || _currentCaretakerLocation == null) return;
 
     final distance = locationTrackingService.calculateDistance(
       lat1: _currentCaretakerLocation!['latitude'] as double,
@@ -516,152 +475,49 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
 
     setState(() {
       _distanceToPatient = locationTrackingService.formatDistance(distance);
-      _estimatedTime = timeInMinutes < 1 
-          ? 'Less than 1 min'
-          : '${timeInMinutes.round()} min';
+      _estimatedTime = timeInMinutes < 1 ? 'Less than 1 min' : '${timeInMinutes.round()} min';
     });
   }
 
   void _startPulseAnimation() {
     _pulseTimer?.cancel();
-    _pulseTimer = Timer.periodic(Duration(milliseconds: 1500), (timer) {
+    _pulseTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
       if (mounted && _isTracking && _currentPatientLocation != null) {
-        setState(() {
-          _isPulseExpanded = !_isPulseExpanded;
-        });
+        setState(() => _isPulseExpanded = !_isPulseExpanded);
         _updateMapMarkers();
       }
     });
   }
 
-  void _toggleTracking() async {
-    if (_selectedPatient == null) return;
-    
-    setState(() {
-      _isTracking = !_isTracking;
-    });
-    
-    if (_isTracking) {
-      _startPulseAnimation();
-      await _drawRoute();
-      
-      _locationTrackingStream = locationTrackingService
-          .trackPatientLocation(_selectedPatient!.id)
-          .listen((location) async {
-        if (location != null && mounted) {
-          // Check if location has significantly changed
-          if (_hasPatientLocationChanged(location)) {
-            setState(() {
-              _currentPatientLocation = location;
-            });
-            _updateDistance();
-            await _updateMapMarkers();
-            
-            // Redraw route if patient moved significantly
-            if (_lastPatientGeoPoint != null) {
-              final newPatientGeo = GeoPoint(
-                latitude: location['latitude'] as double,
-                longitude: location['longitude'] as double,
-              );
-              if (_geoPointDistance(_lastPatientGeoPoint!, newPatientGeo) > 10.0) {
-                await _drawRoute();
-              }
-            }
-          }
-        }
-      });
-      
-      _showSnackBar(
-        'Real-time tracking started for ${_selectedPatient?.name}',
-        Icons.my_location_rounded,
-        Colors.green,
-      );
-    } else {
-      _locationTrackingStream?.cancel();
-      _pulseTimer?.cancel();
-      
-      if (_isMapReady) {
-        await _mapController.clearAllRoads();
-        // Force update to remove pulse
-        setState(() {
-             _isPulseExpanded = false;
-        });
-        await _updateMapMarkers();
-      }
-      
-      _showSnackBar(
-        'Tracking stopped',
-        Icons.location_off_rounded,
-        grey,
-      );
-    }
-  }
-
-  bool _hasPatientLocationChanged(Map<String, dynamic> newLocation) {
-    if (_currentPatientLocation == null) return true;
-    
-    final oldLat = _currentPatientLocation!['latitude'] as double;
-    final oldLng = _currentPatientLocation!['longitude'] as double;
-    final newLat = newLocation['latitude'] as double;
-    final newLng = newLocation['longitude'] as double;
-    
-    double distance = locationTrackingService.calculateDistance(
-      lat1: oldLat,
-      lon1: oldLng,
-      lat2: newLat,
-      lon2: newLng,
-    );
-    
-    return distance > 3.0; // Update if moved more than 3 meters
-  }
-
   Future<void> _drawRoute() async {
-    if (!_isMapReady || 
-        _currentPatientLocation == null || 
-        _currentCaretakerLocation == null ||
-        _isLoadingRoute) {
-      return;
-    }
+    if (!_isMapReady || _currentPatientLocation == null || _currentCaretakerLocation == null || _isLoadingRoute) return;
 
-    setState(() {
-      _isLoadingRoute = true;
-    });
+    setState(() => _isLoadingRoute = true);
 
     try {
       final start = GeoPoint(
         latitude: _currentCaretakerLocation!['latitude'] as double,
         longitude: _currentCaretakerLocation!['longitude'] as double,
       );
-
       final end = GeoPoint(
         latitude: _currentPatientLocation!['latitude'] as double,
         longitude: _currentPatientLocation!['longitude'] as double,
       );
 
       await _mapController.clearAllRoads();
-
       await _mapController.drawRoad(
-        start,
-        end,
+        start, end,
         roadType: RoadType.car,
         roadOption: RoadOption(
           roadWidth: 8.0,
           roadColor: primary,
-          roadBorderWidth: 2.0,
-          roadBorderColor: Colors.white,
+          zoomInto: true,
         ),
       );
-
-      setState(() {
-        _isLoadingRoute = false;
-      });
-
-      debugPrint('✅ Route drawn successfully');
     } catch (e) {
-      debugPrint('❌ Error drawing route: $e');
-      setState(() {
-        _isLoadingRoute = false;
-      });
+      debugPrint('Error drawing route: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingRoute = false);
     }
   }
 
@@ -671,14 +527,8 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         latitude: _currentPatientLocation!['latitude'] as double,
         longitude: _currentPatientLocation!['longitude'] as double,
       );
-      
       await _mapController.moveTo(geoPoint, animate: true);
-      
-      _showSnackBar(
-        'Centered on patient location',
-        Icons.center_focus_strong_rounded,
-        accent,
-      );
+      _speak('Centered on patient.');
     }
   }
 
@@ -688,635 +538,278 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> {
         latitude: _currentCaretakerLocation!['latitude'] as double,
         longitude: _currentCaretakerLocation!['longitude'] as double,
       );
-      
       await _mapController.moveTo(geoPoint, animate: true);
-      
-      _showSnackBar(
-        'Centered on your location',
-        Icons.my_location,
-        Colors.blue,
-      );
+      _speak('Centered on your location.');
     }
   }
 
   Future<void> _openGoogleMapsNavigation() async {
     if (_currentPatientLocation == null) {
-      _showSnackBar(
-        'Patient location not available',
-        Icons.error_outline,
-        error,
-      );
+      _speak('Patient location is currently unavailable.');
       return;
     }
-
+    
+    // DEFINE lat AND lng HERE
     final lat = _currentPatientLocation!['latitude'];
     final lng = _currentPatientLocation!['longitude'];
     
-    final url = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
+    // Inject them into the actual Google Maps URL
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } else {
-      _showSnackBar(
-        'Could not open navigation',
-        Icons.error_outline,
-        error,
-      );
+      _speak('Could not open navigation app.');
     }
   }
 
-  Future<void> _zoomIn() async {
-    if (!_isMapReady) return;
-    if (_currentZoom < 19) {
-      setState(() {
-        _currentZoom += 1;
-      });
-      await _mapController.setZoom(zoomLevel: _currentZoom);
-    }
-  }
-
-  Future<void> _zoomOut() async {
-    if (!_isMapReady) return;
-    if (_currentZoom > 3) {
-      setState(() {
-        _currentZoom -= 1;
-      });
-      await _mapController.setZoom(zoomLevel: _currentZoom);
-    }
-  }
-
-  void _toggleFullscreen() {
-    setState(() {
-      _isFullscreen = !_isFullscreen;
-    });
-  }
-
-  void _showSnackBar(String message, IconData icon, Color backgroundColor) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(icon, color: white, size: 20),
-            SizedBox(width: spacingSmall),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: backgroundColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(radiusMedium),
-        ),
-        margin: EdgeInsets.only(
-          bottom: 80,
-          left: spacingMedium,
-          right: spacingMedium,
-        ),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _buildProfileAvatar(String? imageUrl, String name, {double size = 40}) {
-    final hasImage = imageUrl != null && imageUrl.isNotEmpty;
-    
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: !hasImage ? primaryGradient : null,
-        border: Border.all(color: white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-        image: hasImage
-            ? DecorationImage(
-                image: NetworkImage(imageUrl),
-                fit: BoxFit.cover,
-              )
-            : null,
-      ),
-      child: !hasImage
-          ? Center(
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : '?',
-                style: TextStyle(
-                  color: white,
-                  fontSize: size * 0.4,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          : null,
-    );
-  }
+  // ==================== UI BUILDER ====================
 
   @override
   Widget build(BuildContext context) {
-    if (_isFullscreen) {
-      return Scaffold(
-        body: Stack(
-          children: [
-            _buildMapView(fullscreen: true),
-            _buildFullscreenControls(),
-          ],
-        ),
-      );
-    }
+    final theme = widget.theme;
 
-    final width = MediaQuery.of(context).size.width;
-    final height = MediaQuery.of(context).size.height;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.only(
-        left: width * 0.06,
-        right: width * 0.06,
-        bottom: 100,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      body: Stack(
         children: [
-          _buildHeader(),
-          SizedBox(height: spacingLarge),
-          _buildMapContainer(height),
-          SizedBox(height: spacingLarge),
-          SelectPatient(
-            isDarkMode: widget.isDarkMode,
-            theme: widget.theme,
-            userData: widget.userData,
-            selectedPatient: _selectedPatient,
-            onPatientSelected: onPatientSelected,
-          ),
-        ],
-      ),
-    );
-  }
+          _buildMap(),
 
-  Widget _buildHeader() {
-    return Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Location Tracking',
-                style: h2.copyWith(
-                  fontSize: 24,
-                  color: widget.theme.textColor,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                'Monitor patient locations with navigation',
-                style: body.copyWith(
-                  color: widget.theme.subtextColor,
-                  fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMapContainer(double height) {
-    return Container(
-      height: height * 0.5,
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        borderRadius: BorderRadius.circular(radiusLarge),
-        boxShadow: widget.isDarkMode
-            ? [
-                BoxShadow(
-                  color: primary.withValues(alpha: 0.2),
-                  blurRadius: 24,
-                  offset: Offset(0, 8),
-                ),
-              ]
-            : softShadow,
-        border: widget.isDarkMode
-            ? Border.all(color: primary.withValues(alpha: 0.3), width: 2)
-            : null,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radiusLarge),
-        child: _buildMapView(fullscreen: false),
-      ),
-    );
-  }
-
-  Widget _buildMapView({required bool fullscreen}) {
-    return Stack(
-      children: [
-        OSMFlutter(
-          controller: _mapController,
-          osmOption: OSMOption(
-            userTrackingOption: UserTrackingOption(
-              enableTracking: false,
-              unFollowUser: true,
-            ),
-            zoomOption: ZoomOption(
-              initZoom: _currentZoom,
-              minZoomLevel: 3,
-              maxZoomLevel: 19,
-              stepZoom: 1.0,
-            ),
-            roadConfiguration: RoadOption(
-              roadColor: primary,
-              roadWidth: 8.0,
-            ),
-            staticPoints: [],
-            enableRotationByGesture: true,
-            showZoomController: false,
-            showDefaultInfoWindow: false,
-          ),
-          onMapIsReady: (isReady) {
-            setState(() {
-              _isMapReady = isReady;
-            });
-            if (isReady && _currentPatientLocation != null) {
-              _updateMapMarkers();
-            }
-          },
-        ),
-        
-        if (_isLoadingRoute)
+          // MSWD Style Glass Top Bar
           Positioned(
-            top: fullscreen ? 80 : spacingMedium,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: spacingMedium,
-                  vertical: spacingSmall,
-                ),
-                decoration: BoxDecoration(
-                  color: widget.theme.cardColor,
-                  borderRadius: BorderRadius.circular(radiusMedium),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation(primary),
-                      ),
-                    ),
-                    SizedBox(width: spacingSmall),
-                    Text(
-                      'Calculating route...',
-                      style: caption.copyWith(
-                        color: widget.theme.textColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            right: 16,
+            child: _buildGlassTopBar(theme),
           ),
-        
-        if (_selectedPatient != null && !fullscreen)
-          _buildPatientInfoOverlay(),
-        
-        if (_selectedPatient != null)
-          fullscreen ? Container() : _buildMapControls(),
-        
-        _buildZoomControls(fullscreen),
-        
-        if (_selectedPatient == null && !fullscreen)
-          _buildNoPatientMessage(),
-      ],
-    );
-  }
 
-  Widget _buildPatientInfoOverlay() {
-    final patientImageUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
-    final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
-
-    return Positioned(
-      top: spacingMedium,
-      left: spacingMedium,
-      right: spacingMedium,
-      child: Container(
-        padding: EdgeInsets.all(spacingMedium),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              widget.theme.cardColor,
-              widget.theme.cardColor.withOpacity(0.95),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(radiusMedium),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 16,
-              offset: Offset(0, 4),
-            ),
-          ],
-          border: Border.all(
-            color: primary.withValues(alpha: 0.3),
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          children: [
-            Row(
+          // Floating Center Buttons
+          Positioned(
+            right: 16,
+            bottom: _selectedPatient != null ? bottomContentOffset + 180 : bottomContentOffset + 240, 
+            child: Column(
               children: [
-                _buildProfileAvatar(
-                  patientImageUrl,
-                  _selectedPatient!.name,
-                  size: 45,
-                ),
-                SizedBox(width: spacingSmall),
-                Icon(Icons.arrow_forward, color: widget.theme.subtextColor, size: 20),
-                SizedBox(width: spacingSmall),
-                _buildProfileAvatar(
-                  caretakerImageUrl,
-                  widget.userData['name'] ?? 'You',
-                  size: 45,
-                ),
-                SizedBox(width: spacingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _selectedPatient!.name,
-                        style: bodyBold.copyWith(
-                          fontSize: 14,
-                          color: widget.theme.textColor,
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            'Tracking ${_isTracking ? "Active" : "Paused"}',
-                            style: caption.copyWith(
-                              fontSize: 12,
-                              color: _isTracking ? Colors.green : widget.theme.subtextColor,
-                              fontWeight: _isTracking ? FontWeight.w600 : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                if (_selectedPatient != null) ...[
+                  _buildGlassButton(icon: Icons.person_pin_circle, onTap: _centerOnPatient, theme: theme),
+                  const SizedBox(height: 12),
+                ],
+                _buildGlassButton(icon: Icons.my_location, onTap: _centerOnCaretaker, theme: theme),
               ],
             ),
-            if (_distanceToPatient != null && _estimatedTime != null) ...[
-              SizedBox(height: spacingSmall),
+          ),
+
+          // Bottom Content Overlay
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: bottomContentOffset,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, anim) => SlideTransition(
+                position: Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(anim),
+                child: child,
+              ),
+              child: _selectedPatient != null
+                  ? _buildDetailCard(theme)
+                  : _buildPatientSelectionPanel(theme),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMap() {
+    return Listener(
+      // Passes the drag interaction up to Home Screen to hide the nav bar
+      onPointerMove: (event) {
+        widget.onScroll?.call(true); 
+      },
+      child: OSMFlutter(
+        controller: _mapController,
+        osmOption: const OSMOption(
+          userTrackingOption: UserTrackingOption(
+            enableTracking: false,
+            unFollowUser: true,
+          ),
+          zoomOption: ZoomOption(
+            initZoom: 17.0, 
+            minZoomLevel: 3,
+            maxZoomLevel: 19,
+            stepZoom: 1.0,
+          ),
+          roadConfiguration: RoadOption(roadColor: primary, roadWidth: 8.0),
+          showZoomController: false,
+        ),
+        onMapIsReady: (isReady) {
+          setState(() => _isMapReady = isReady);
+        },
+        onGeoPointClicked: (point) {
+          widget.onRestoreMenu?.call();
+        },
+      ),
+    );
+  }
+
+  Widget _buildGlassTopBar(dynamic theme) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(30),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: BoxDecoration(
+            color: widget.isDarkMode 
+                ? theme.cardColor.withValues(alpha: 0.8) 
+                : Colors.white.withValues(alpha: 0.8),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
+          ),
+          child: Row(
+            children: [
+              Icon(_isTracking ? Icons.radar : Icons.map_outlined, color: _isTracking ? Colors.green : primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _isTracking ? 'Tracking ${_selectedPatient!.name}' : 'Select Patient to Track',
+                  style: h3.copyWith(fontSize: 16, color: theme.textColor, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              if (_isLoadingRoute)
+                const SizedBox(
+                  width: 16, height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: primary),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlassButton({required IconData icon, required VoidCallback onTap, required dynamic theme}) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          width: 50, height: 50,
+          decoration: BoxDecoration(
+            color: widget.isDarkMode ? Colors.black54 : Colors.white.withValues(alpha: 0.9),
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white24),
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
+          ),
+          child: IconButton(
+            icon: Icon(icon, color: primary),
+            onPressed: onTap,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPatientSelectionPanel(dynamic theme) {
+    return Container(
+      height: 360,
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
+      decoration: BoxDecoration(
+        color: widget.isDarkMode ? theme.cardColor.withOpacity(0.95) : Colors.white.withValues(alpha: 0.95),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, -5))],
+      ),
+      child: SingleChildScrollView(
+        child: SelectPatient(
+          isDarkMode: widget.isDarkMode,
+          theme: theme,
+          userData: widget.userData,
+          selectedPatient: _selectedPatient,
+          onPatientSelected: onPatientSelected,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailCard(dynamic theme) {
+    final imgUrl = _selectedPatientFullData?['profileImageUrl'] as String?;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 5))],
+        border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
               Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: spacingSmall,
-                  vertical: 6,
-                ),
+                width: 50, height: 50,
                 decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(radiusSmall),
+                  shape: BoxShape.circle,
+                  image: (imgUrl != null && imgUrl.isNotEmpty)
+                    ? DecorationImage(image: NetworkImage(imgUrl), fit: BoxFit.cover)
+                    : null,
+                  color: primary.withValues(alpha: 0.1)
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: (imgUrl == null || imgUrl.isEmpty)
+                  ? Center(child: Text(_selectedPatient!.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: primary)))
+                  : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.navigation, size: 14, color: primary),
-                    SizedBox(width: 4),
                     Text(
-                      '$_distanceToPatient • $_estimatedTime',
-                      style: caption.copyWith(
-                        fontSize: 12,
-                        color: primary,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      _selectedPatient!.name,
+                      style: h3.copyWith(color: theme.textColor, fontSize: 18),
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.directions_car, size: 14, color: theme.subtextColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_distanceToPatient ?? '...'} • ${_estimatedTime ?? '...'}',
+                          style: caption.copyWith(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+              ),
+              IconButton(
+                onPressed: _clearSelection,
+                icon: Icon(Icons.close, color: theme.subtextColor),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMapControls() {
-    return Positioned(
-      bottom: spacingMedium,
-      left: spacingMedium,
-      right: spacingMedium,
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildMapActionButton(
-              icon: _isTracking ? Icons.stop_rounded : Icons.play_arrow_rounded,
-              label: _isTracking ? 'Stop' : 'Start',
-              color: _isTracking ? error : Colors.green,
-              onTap: _toggleTracking,
-            ),
           ),
-          SizedBox(width: spacingSmall),
-          Expanded(
-            child: _buildMapActionButton(
-              icon: Icons.directions_rounded,
-              label: 'Navigate',
-              color: primary,
-              onTap: _openGoogleMapsNavigation,
-            ),
-          ),
-          SizedBox(width: spacingSmall),
-          _buildMapActionButton(
-            icon: Icons.fullscreen,
-            label: '',
-            color: accent,
-            onTap: _toggleFullscreen,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildZoomControls(bool fullscreen) {
-    return Positioned(
-      right: spacingMedium,
-      top: fullscreen ? 80 : spacingMedium + 80,
-      child: Column(
-        children: [
-          _buildZoomButton(Icons.add, _zoomIn),
-          SizedBox(height: spacingSmall),
-          _buildZoomButton(Icons.remove, _zoomOut),
-          SizedBox(height: spacingSmall),
-          _buildZoomButton(Icons.my_location, _centerOnCaretaker),
-          if (_selectedPatient != null) ...[
-            SizedBox(height: spacingSmall),
-            _buildZoomButton(Icons.person_pin_circle, _centerOnPatient),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildZoomButton(IconData icon, VoidCallback onTap) {
-    return Container(
-      decoration: BoxDecoration(
-        color: widget.theme.cardColor,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(100),
-          child: Padding(
-            padding: EdgeInsets.all(12),
-            child: Icon(
-              icon,
-              color: primary,
-              size: 24,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFullscreenControls() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + spacingSmall,
-      left: spacingMedium,
-      right: spacingMedium,
-      child: Row(
-        children: [
-          _buildMapActionButton(
-            icon: Icons.fullscreen_exit,
-            label: 'Exit',
-            color: grey,
-            onTap: _toggleFullscreen,
-          ),
-          Spacer(),
-          if (_selectedPatient != null) ...[
-            _buildMapActionButton(
-              icon: _isTracking ? Icons.stop_rounded : Icons.play_arrow_rounded,
-              label: _isTracking ? 'Stop' : 'Track',
-              color: _isTracking ? error : Colors.green,
-              onTap: _toggleTracking,
-            ),
-            SizedBox(width: spacingSmall),
-            _buildMapActionButton(
-              icon: Icons.directions_rounded,
-              label: 'Navigate',
-              color: primary,
-              onTap: _openGoogleMapsNavigation,
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMapActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.4),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-        borderRadius: BorderRadius.circular(radiusMedium),
-      ),
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: white,
-          padding: EdgeInsets.symmetric(
-            vertical: label.isEmpty ? 12 : 14,
-            horizontal: label.isEmpty ? 12 : spacingMedium,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(radiusMedium),
-          ),
-          elevation: 0,
-        ),
-        child: label.isEmpty
-            ? Icon(icon, size: 20)
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 18),
-                  if (label.isNotEmpty) ...[
-                    SizedBox(width: 6),
-                    Text(
-                      label,
-                      style: bodyBold.copyWith(
-                        fontSize: 13,
-                        color: white,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-      ),
-    );
-  }
-
-  Widget _buildNoPatientMessage() {
-    return Center(
-      child: Container(
-        padding: EdgeInsets.all(spacingLarge),
-        decoration: BoxDecoration(
-          color: widget.theme.cardColor.withOpacity(0.9),
-          borderRadius: BorderRadius.circular(radiusMedium),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.map_outlined,
-              size: 48,
-              color: widget.theme.subtextColor,
-            ),
-            SizedBox(height: spacingSmall),
-            Text(
-              'Select a patient to view location',
-              style: bodyBold.copyWith(
-                color: widget.theme.textColor,
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _openGoogleMapsNavigation,
+              icon: const Icon(Icons.navigation, size: 18),
+              label: const Text('Navigate in Maps'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+                shape: const StadiumBorder(),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                elevation: 0,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
