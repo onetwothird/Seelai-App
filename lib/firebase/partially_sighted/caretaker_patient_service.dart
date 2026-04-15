@@ -33,13 +33,10 @@ class CaretakerPatientService {
     required String patientId,
   }) async {
     try {
-      // Remove patient from caretaker's list
       await _database.ref('user_info/caretaker/$caretakerId/assignedPatients/$patientId').remove();
       
-      // Remove caretaker from patient's list
       await _database.ref('user_info/partially_sighted/$patientId/assignedCaretakers/$caretakerId').remove();
       
-      // Update timestamps
       await _database.ref('user_info/caretaker/$caretakerId/updatedAt').set(ServerValue.timestamp);
       await _database.ref('user_info/partially_sighted/$patientId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
