@@ -24,7 +24,6 @@ class CaretakerRequestService {
         status: RequestStatus.pending,
       );
 
-      // Notify all listeners about the new request
       for (var listener in _listeners) {
         listener(request);
       }
