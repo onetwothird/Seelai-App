@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
-import 'package:intl/intl.dart'; // Ensure you have intl package or use basic formatting
+import 'package:intl/intl.dart'; 
 
 class AllAnnouncementsCaretakerPage extends StatelessWidget {
   final bool isDarkMode;
@@ -21,15 +21,14 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Background color: slightly off-white for light mode to let cards pop
     final backgroundColor = isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFF8F9FE);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: backgroundColor,
-        surfaceTintColor: Colors.transparent, // Prevents color shift on scroll
-        scrolledUnderElevation: 0,            // Prevents shadow/elevation on scroll
+        surfaceTintColor: Colors.transparent, 
+        scrolledUnderElevation: 0,            
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -38,7 +37,6 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.cardColor,
               shape: BoxShape.circle,
-              // Standardized subtle border
               border: Border.all(
                 color: isDarkMode 
                     ? Colors.white.withValues(alpha: 0.05) 
@@ -75,16 +73,27 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
     );
   }
 
+  // --- NEW HELPER METHOD ---
+  // Maps specific database hex codes to static constants to keep the tree-shaker happy.
+  // Add the hex codes you actually use in your database to this map.
+  IconData _getSafeIcon(String hexCode) {
+    final Map<String, IconData> safeIcons = {
+      '0xef4c': Icons.notifications,
+      '0xe000': Icons.warning,
+      '0xe3fc': Icons.event,
+      '0xe88a': Icons.home,
+      '0xe3e3': Icons.info,
+      // Add more known icons here...
+    };
+    
+    // Normalize string to match map keys
+    String formattedCode = hexCode.toLowerCase().trim();
+    return safeIcons[formattedCode] ?? Icons.notifications; // Fallback icon
+  }
+
   Widget _buildModernCard(AnnouncementModel announcement) {
-    IconData icon;
-    try {
-      icon = IconData(
-        int.parse(announcement.iconCodePoint.replaceAll('0x', ''), radix: 16),
-        fontFamily: 'MaterialIcons',
-      );
-    } catch (e) {
-      icon = Icons.notifications;
-    }
+    // FIX: Replaced non-constant IconData invocation with safe constant mapping
+    IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
 
     return Container(
@@ -92,7 +101,6 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        // Removed dark mode shadow
         boxShadow: isDarkMode
             ? []
             : [
@@ -102,7 +110,6 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
                   offset: const Offset(0, 4),
                 ),
               ],
-        // Replaced colored border with neutral subtle border
         border: Border.all(
           color: isDarkMode 
               ? Colors.white.withValues(alpha: 0.05) 
@@ -116,7 +123,6 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Icon Container
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -126,7 +132,6 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
                 child: Icon(icon, color: color, size: 24),
               ),
               SizedBox(width: 16),
-              // Title and Time
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,13 +166,11 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
             ],
           ),
           SizedBox(height: 16),
-          // Divider for separation
           Divider(
             color: isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), 
             height: 1,
           ),
           SizedBox(height: 16),
-          // Message Body
           Text(
             announcement.message,
             style: body.copyWith(
@@ -177,7 +180,6 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
             ),
           ),
           SizedBox(height: 12),
-          // Audience Tag (Minimalist pill)
           Align(
             alignment: Alignment.centerLeft,
             child: Container(
@@ -211,7 +213,6 @@ class AllAnnouncementsCaretakerPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.cardColor,
               shape: BoxShape.circle,
-              // Removed dark mode shadow and added neutral border
               boxShadow: isDarkMode 
                 ? [] 
                 : [

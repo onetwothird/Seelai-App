@@ -1,4 +1,4 @@
-// File: lib/roles/caretaker/home/sections/home_screen/announcement.dart // (Assuming path based on imports)
+// File: lib/roles/caretaker/home/sections/home_screen/announcement.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -9,7 +9,7 @@ import 'package:seelai_app/roles/caretaker/home/sections/home_screen/all_announc
 class AnnouncementSection extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
-  final String caretakerId; // Pass the caretaker's user ID
+  final String caretakerId; 
 
   const AnnouncementSection({
     super.key,
@@ -44,6 +44,22 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     setState(() {
       _initializeStream();
     });
+  }
+
+  // --- NEW HELPER METHOD ---
+  // Keeps tree-shaking intact by using constant IconData mapping.
+  IconData _getSafeIcon(String hexCode) {
+    final Map<String, IconData> safeIcons = {
+      '0xef4c': Icons.notifications,
+      '0xe000': Icons.warning,
+      '0xe3fc': Icons.event,
+      '0xe88a': Icons.home,
+      '0xe3e3': Icons.info,
+      // Add more known icons here...
+    };
+    
+    String formattedCode = hexCode.toLowerCase().trim();
+    return safeIcons[formattedCode] ?? Icons.notifications; 
   }
 
   @override
@@ -83,7 +99,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         StreamBuilder<List<AnnouncementModel>>(
           stream: _announcementStream,
           builder: (context, snapshot) {
-            // Show loading only on initial load
             if (snapshot.connectionState == ConnectionState.waiting && 
                 !snapshot.hasData) {
               return Center(
@@ -133,7 +148,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                   );
                 }),
 
-                // "View All Announcements" button if more than 5
                 if (hasMoreAnnouncements)
                   Padding(
                     padding: EdgeInsets.only(top: spacingSmall),
@@ -213,9 +227,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
-        // Removed dark mode shadow
         boxShadow: widget.isDarkMode ? [] : softShadow,
-        // Using neutral subtle border
         border: Border.all(
           color: widget.isDarkMode 
               ? Colors.white.withValues(alpha: 0.05) 
@@ -262,10 +274,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
   Widget _buildAnnouncementCard(AnnouncementModel announcement) {
     String timeAgo = _getTimeAgo(announcement.timestamp);
-    IconData icon = IconData(
-      int.parse(announcement.iconCodePoint.replaceAll('0x', ''), radix: 16),
-      fontFamily: 'MaterialIcons',
-    );
+    // FIX: Using the safe constant map instead of int.parse
+    IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
 
     return Container(
@@ -273,11 +283,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
-        // Removed colored glowy shadow
         boxShadow: widget.isDarkMode
             ? []
             : softShadow,
-        // Replaced colored border with neutral subtle border
         border: Border.all(
           color: widget.isDarkMode 
               ? Colors.white.withValues(alpha: 0.05) 

@@ -59,12 +59,29 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
     });
   }
 
+  // --- NEW HELPER METHOD ---
+  // Keeps tree-shaking intact by using constant IconData mapping.
+  IconData _getSafeIcon(String hexCode) {
+    final Map<String, IconData> safeIcons = {
+      '0xef4c': Icons.notifications,
+      '0xe000': Icons.warning,
+      '0xe3fc': Icons.event,
+      '0xe88a': Icons.home,
+      '0xe3e3': Icons.info,
+      '0xe047': Icons.campaign,
+      // Add more known icons here that you use in announcementIcons...
+    };
+    
+    String formattedCode = hexCode.toLowerCase().trim();
+    return safeIcons[formattedCode] ?? Icons.campaign; // Fallback icon
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Changed to white
+      backgroundColor: Colors.white, 
       appBar: AppBar(
-        backgroundColor: Colors.white, // Changed to white
+        backgroundColor: Colors.white, 
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
@@ -85,7 +102,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon & Color Selection (Manual Only)
             Text(
               'Icon & Color',
               style: bodyBold.copyWith(
@@ -97,7 +113,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
             SizedBox(height: spacingSmall),
             Row(
               children: [
-                // Icon Picker
                 Expanded(
                   child: Material(
                     color: Colors.transparent,
@@ -107,7 +122,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                       child: Container(
                         padding: EdgeInsets.all(spacingMedium),
                         decoration: BoxDecoration(
-                          color: Colors.white, // Changed to white
+                          color: Colors.white, 
                           borderRadius: BorderRadius.circular(radiusMedium),
                           border: Border.all(
                             color: widget.theme.subtextColor.withOpacity(0.2),
@@ -116,11 +131,9 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
+                            // FIX: Used the safe mapper instead of dynamic IconData parsing
                             Icon(
-                              IconData(
-                                int.parse(selectedIconCodePoint.replaceAll('0x', ''), radix: 16),
-                                fontFamily: 'MaterialIcons',
-                              ),
+                              _getSafeIcon(selectedIconCodePoint),
                               color: Color(selectedColorValue),
                               size: 28,
                             ),
@@ -140,7 +153,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                   ),
                 ),
                 SizedBox(width: spacingSmall),
-                // Color Picker
                 Expanded(
                   child: Material(
                     color: Colors.transparent,
@@ -150,7 +162,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                       child: Container(
                         padding: EdgeInsets.all(spacingMedium),
                         decoration: BoxDecoration(
-                          color: Colors.white, // Changed to white
+                          color: Colors.white, 
                           borderRadius: BorderRadius.circular(radiusMedium),
                           border: Border.all(
                             color: widget.theme.subtextColor.withOpacity(0.2),
@@ -191,7 +203,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
             
             SizedBox(height: spacingLarge),
             
-            // Target Audience Selection
             Text(
               'Target Audience',
               style: bodyBold.copyWith(
@@ -203,7 +214,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
             SizedBox(height: spacingSmall),
             Container(
               decoration: BoxDecoration(
-                color: Colors.white, // Changed to white
+                color: Colors.white, 
                 borderRadius: BorderRadius.circular(radiusMedium),
                 border: Border.all(
                   color: widget.theme.subtextColor.withOpacity(0.2),
@@ -216,7 +227,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                   isExpanded: true,
                   padding: EdgeInsets.symmetric(horizontal: spacingMedium),
                   borderRadius: BorderRadius.circular(radiusMedium),
-                  dropdownColor: Colors.white, // Changed to white
+                  dropdownColor: Colors.white, 
                   style: body.copyWith(color: widget.theme.textColor),
                   icon: Icon(Icons.arrow_drop_down, color: widget.theme.textColor),
                   items: [
@@ -273,7 +284,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
               ),
             ),
             
-            // Show user selection if "Specific Users" is selected
             if (selectedAudience == 'Specific Users') ...[
               SizedBox(height: spacingLarge),
               Text(
@@ -288,7 +298,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
               Container(
                 constraints: BoxConstraints(maxHeight: 300),
                 decoration: BoxDecoration(
-                  color: Colors.white, // Changed to white
+                  color: Colors.white, 
                   borderRadius: BorderRadius.circular(radiusMedium),
                   border: Border.all(
                     color: widget.theme.subtextColor.withOpacity(0.2),
@@ -401,7 +411,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
             
             SizedBox(height: spacingLarge),
             
-            // Title Input
             Text(
               'Title',
               style: bodyBold.copyWith(
@@ -420,7 +429,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                   color: widget.theme.subtextColor.withOpacity(0.5),
                 ),
                 filled: true,
-                fillColor: Colors.white, // Changed to white
+                fillColor: Colors.white, 
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
                   borderSide: BorderSide(
@@ -442,7 +451,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
             
             SizedBox(height: spacingLarge),
             
-            // Message Input
             Text(
               'Message',
               style: bodyBold.copyWith(
@@ -462,7 +470,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                   color: widget.theme.subtextColor.withOpacity(0.5),
                 ),
                 filled: true,
-                fillColor: Colors.white, // Changed to white
+                fillColor: Colors.white, 
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(radiusMedium),
                   borderSide: BorderSide(
@@ -484,7 +492,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
             
             SizedBox(height: spacingLarge * 2),
             
-            // Send Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -528,7 +535,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white, // Changed to white
+          backgroundColor: Colors.white, 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusLarge),
           ),
@@ -568,7 +575,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                       decoration: BoxDecoration(
                         color: isSelected 
                             ? primary.withValues(alpha: 0.1)
-                            : Colors.white, // Changed to white
+                            : Colors.white, 
                         borderRadius: BorderRadius.circular(radiusMedium),
                         border: Border.all(
                           color: isSelected 
@@ -581,7 +588,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            iconItem.icon,
+                            iconItem.icon, // Assuming this is already an IconData type
                             color: isSelected ? primary : widget.theme.textColor,
                             size: 28,
                           ),
@@ -642,7 +649,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white, // Changed to white
+          backgroundColor: Colors.white, 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(radiusLarge),
           ),
@@ -739,7 +746,6 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
       return;
     }
     
-    // Validate specific users selection
     if (selectedAudience == 'Specific Users' && selectedUserIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -752,20 +758,18 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
     
     setState(() => isSending = true);
     
-    // Create announcement model
     final announcement = AnnouncementModel(
-      id: '', // Will be set by Firebase
+      id: '', 
       title: titleController.text,
       message: messageController.text,
       targetAudience: selectedAudience,
       specificUsers: List<String>.from(selectedUserIds),
       timestamp: DateTime.now(),
-      createdBy: 'Admin', // Replace with actual admin ID
+      createdBy: 'Admin', 
       iconCodePoint: selectedIconCodePoint,
       colorValue: selectedColorValue,
     );
     
-    // Save to Firebase
     final announcementId = await _announcementService.createAnnouncement(announcement);
     
     setState(() => isSending = false);
@@ -783,7 +787,7 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
           ),
         );
         
-        Navigator.of(context).pop(); // Go back to previous screen
+        Navigator.of(context).pop(); 
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

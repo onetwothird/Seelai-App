@@ -46,6 +46,10 @@ class _RequestsContentState extends State<RequestsContent>
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
   final Map<String, String?> _profileImageCache = {};
 
+  // Animation State for Mascot Messages
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +58,7 @@ class _RequestsContentState extends State<RequestsContent>
       if (mounted) setState(() {});
     });
     _initializeCaretakerId();
+    _startMessageTimer();
   }
 
   // Helper to safely extract the first name from user data
@@ -61,6 +66,37 @@ class _RequestsContentState extends State<RequestsContent>
     final name = widget.userData['name'] as String? ?? 'Caretaker';
     final parts = name.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : 'Caretaker';
+  }
+
+  void _startMessageTimer() {
+    _messageTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        final messagesCount = _getMascotMessages().length;
+        if (messagesCount > 1) {
+          setState(() {
+            _currentMessageIndex = (_currentMessageIndex + 1) % messagesCount;
+          });
+        }
+      }
+    });
+  }
+
+  List<String> _getMascotMessages() {
+    int pendingCount = _pendingRequests.length;
+    int activeCount = _activeRequests.length;
+    
+    List<String> messages = [];
+    
+    if (pendingCount > 0 || activeCount > 0) {
+      messages.add('Hello, ${_getFirstName()}! You have $pendingCount pending request${pendingCount != 1 ? 's' : ''} and $activeCount active task${activeCount != 1 ? 's' : ''} right now.');
+    } else {
+      messages.add('Hello, ${_getFirstName()}! You\'re all caught up. No pending or active requests at the moment.');
+    }
+    
+    messages.add('Remember to check the priority labels on requests. Red signifies an urgent need!');
+    messages.add('You can quickly switch between the Pending, Active, and History tabs to manage your workflow.');
+    
+    return messages;
   }
 
   Future<void> _initializeCaretakerId() async {
@@ -171,6 +207,7 @@ class _RequestsContentState extends State<RequestsContent>
 
   @override
   void dispose() {
+    _messageTimer?.cancel();
     _tabController.dispose();
     _requestsSubscription?.cancel();
     super.dispose();
@@ -286,8 +323,9 @@ class _RequestsContentState extends State<RequestsContent>
   }
 
   Widget _buildMascotBanner() {
-    int pendingCount = _pendingRequests.length;
-    int activeCount = _activeRequests.length;
+    final messages = _getMascotMessages();
+    final safeIndex = _currentMessageIndex % messages.length;
+    final displayMessage = messages[safeIndex];
 
     return Stack(
       clipBehavior: Clip.none,
@@ -372,15 +410,20 @@ class _RequestsContentState extends State<RequestsContent>
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        'Hello, ${_getFirstName()}! You have $pendingCount pending request${pendingCount != 1 ? 's' : ''} and $activeCount active task${activeCount != 1 ? 's' : ''} right now.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: widget.isDarkMode
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : Colors.black87,
-                          height: 1.4,
+                      // NEW TYPEWRITER TEXT WITH FIXED HEIGHT CONTAINER
+                      Container(
+                        height: 65, // Fixed height to stop layout jumping and fit 3 lines
+                        alignment: Alignment.topLeft,
+                        child: TypewriterText(
+                          text: displayMessage,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: widget.isDarkMode
+                                ? Colors.white.withValues(alpha: 0.85)
+                                : Colors.black87,
+                            height: 1.4,
+                          ),
                         ),
                       ),
                     ],
@@ -942,4 +985,88 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// CUSTOM TYPEWRITER ANIMATION WIDGET
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  final Duration duration;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.duration = const Duration(milliseconds: 1500), // Speed of the typing
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+  bool _wasActive = true; 
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool isActive = TickerMode.of(context);
+    
+    if (isActive && !_wasActive) {
+      _controller.reset();
+      _controller.forward();
+    }
+    _wasActive = isActive;
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        String visibleString = widget.text.substring(0, _characterCount.value);
+        return Text(
+          visibleString,
+          style: widget.style,
+        );
+      },
+    );
+  }
 }
