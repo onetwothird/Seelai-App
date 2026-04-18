@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/caretaker_home_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_header_section.dart';
+import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_header_section.dart' hide primary;
 import 'package:seelai_app/roles/caretaker/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patients_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/requests_content.dart';
@@ -16,7 +16,6 @@ import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
-
 import 'package:seelai_app/roles/caretaker/home/widgets/notifications_bottom_sheet.dart';
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
@@ -309,6 +308,41 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                       isDarkMode: _isDarkMode,
                       theme: theme,
                     ),
+
+                    // ==========================================
+                    // FLOATING "SHOW MENU" BUTTON
+                    // ==========================================
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOutCubic,
+                      // Hide it off-screen when nav is visible, slide it up when hidden
+                      bottom: _isNavVisible ? -100 : MediaQuery.of(context).padding.bottom + 20,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() => _isNavVisible = true);
+                          },
+                          icon: Icon(Icons.keyboard_arrow_up, color: primary),
+                          label: Text(
+                            'Show Menu',
+                            style: TextStyle(
+                              color: theme.textColor, 
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.cardColor,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: const StadiumBorder(),
+                            elevation: 8,
+                            shadowColor: Colors.black26,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -432,7 +466,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             theme: theme,
           ),
         ),
-        // Index 4: LOCATION TRACKING WITH CALLBACKS ADDED
+        // Index 4: LOCATION TRACKING
         RealtimeTrackingScreen(
           isDarkMode: _isDarkMode,
           theme: theme,

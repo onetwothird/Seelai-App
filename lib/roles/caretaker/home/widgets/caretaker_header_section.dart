@@ -420,24 +420,12 @@ class _HeaderSectionState extends State<HeaderSection> {
                               ),
                               const SizedBox(height: 6),
                               
-                              // The Animated Text Switcher
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 400),
-                                transitionBuilder: (Widget child, Animation<double> animation) {
-                                  return FadeTransition(
-                                    opacity: animation,
-                                    child: SlideTransition(
-                                      position: Tween<Offset>(
-                                        begin: const Offset(0.0, 0.2), // Slides up slightly
-                                        end: Offset.zero,
-                                      ).animate(animation),
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: Text(
-                                  displayMessage,
-                                  key: ValueKey<String>(displayMessage), // Important for AnimatedSwitcher
+                              // THE NEW TYPEWRITER TEXT WIDGET
+                              Container(
+                                height: 60, // Fixed height keeps the bubble size totally static
+                                alignment: Alignment.topLeft,
+                                child: TypewriterText(
+                                  text: displayMessage,
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
@@ -511,4 +499,77 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// CUSTOM TYPEWRITER ANIMATION WIDGET
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  final Duration duration;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.duration = const Duration(milliseconds: 1500), // Speed of the typing
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Restart the typing animation whenever the text string changes
+    if (oldWidget.text != widget.text) {
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        // Grab a substring of the text based on the current animation value
+        String visibleString = widget.text.substring(0, _characterCount.value);
+        return Text(
+          visibleString,
+          style: widget.style,
+        );
+      },
+    );
+  }
 }

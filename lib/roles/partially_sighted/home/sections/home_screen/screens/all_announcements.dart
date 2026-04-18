@@ -23,6 +23,24 @@ class AllAnnouncementsVIPage extends StatefulWidget {
 }
 
 class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
+  
+  // --- NEW HELPER METHOD ---
+  // Keeps tree-shaking intact by using constant IconData mapping.
+  IconData _getSafeIcon(String hexCode) {
+    final Map<String, IconData> safeIcons = {
+      '0xef4c': Icons.notifications,
+      '0xe000': Icons.warning,
+      '0xe3fc': Icons.event,
+      '0xe88a': Icons.home,
+      '0xe3e3': Icons.info,
+      '0xe047': Icons.campaign,
+      // Add more known icons here...
+    };
+    
+    String formattedCode = hexCode.toLowerCase().trim();
+    return safeIcons[formattedCode] ?? Icons.notifications; // Fallback icon
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,10 +116,9 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
 
   Widget _buildAnnouncementCard(AnnouncementModel announcement) {
     String timeAgo = _getTimeAgo(announcement.timestamp);
-    IconData icon = IconData(
-      int.parse(announcement.iconCodePoint.replaceAll('0x', ''), radix: 16),
-      fontFamily: 'MaterialIcons',
-    );
+    
+    // FIX: Using the safe constant map instead of int.parse
+    IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
 
     return Semantics(

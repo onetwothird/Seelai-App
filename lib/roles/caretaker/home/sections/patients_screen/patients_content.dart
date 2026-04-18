@@ -46,10 +46,15 @@ class _PatientsContentState extends State<PatientsContent> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  // Animation State for Mascot Messages
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
   @override
   void initState() {
     super.initState();
     _initializeCaretakerId();
+    _startMessageTimer();
   }
 
   // Helper to safely extract the first name from user data
@@ -57,6 +62,31 @@ class _PatientsContentState extends State<PatientsContent> {
     final name = widget.userData['name'] as String? ?? 'Caretaker';
     final parts = name.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : 'Caretaker';
+  }
+
+  void _startMessageTimer() {
+    // Cycle through messages every 4 seconds just like the header
+    _messageTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (mounted) {
+        final messagesCount = _getMascotMessages().length;
+        if (messagesCount > 1) {
+          setState(() {
+            _currentMessageIndex = (_currentMessageIndex + 1) % messagesCount;
+          });
+        }
+      }
+    });
+  }
+
+  List<String> _getMascotMessages() {
+    final onlineCount = _patients.where((p) => p.isOnline).length;
+    final totalCount = _patients.length;
+    
+    return [
+      'Hello, ${_getFirstName()}! You are currently caring for $totalCount patient${totalCount != 1 ? 's' : ''}${totalCount > 0 ? ', with $onlineCount online right now.' : '.'}',
+      'Did you know? You can tap on a patient\'s card to view their full details and location.',
+      'Need to reach out? Use the quick action buttons to call or message your patients directly.',
+    ];
   }
 
   Future<void> _initializeCaretakerId() async {
@@ -126,6 +156,7 @@ class _PatientsContentState extends State<PatientsContent> {
 
   @override
   void dispose() {
+    _messageTimer?.cancel();
     _patientsSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
@@ -238,8 +269,9 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   Widget _buildMascotBanner() {
-    final onlineCount = _patients.where((p) => p.isOnline).length;
-    final totalCount = _patients.length;
+    final messages = _getMascotMessages();
+    final safeIndex = _currentMessageIndex % messages.length;
+    final displayMessage = messages[safeIndex];
 
     return Stack(
       clipBehavior: Clip.none,
@@ -324,15 +356,20 @@ class _PatientsContentState extends State<PatientsContent> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        'Hello, ${_getFirstName()}! You are currently caring for $totalCount patient${totalCount != 1 ? 's' : ''}${totalCount > 0 ? ', with $onlineCount online right now.' : '.'}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: widget.isDarkMode
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : Colors.black87,
-                          height: 1.4,
+                      // NEW TYPEWRITER TEXT WITH FIXED HEIGHT CONTAINER
+                      Container(
+                        height: 65, // Fixed height keeps the bubble static and fits 3 lines
+                        alignment: Alignment.topLeft,
+                        child: TypewriterText(
+                          text: displayMessage,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: widget.isDarkMode
+                                ? Colors.white.withValues(alpha: 0.85)
+                                : Colors.black87,
+                            height: 1.4,
+                          ),
                         ),
                       ),
                     ],
@@ -957,4 +994,88 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// CUSTOM TYPEWRITER ANIMATION WIDGET
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  final Duration duration;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.duration = const Duration(milliseconds: 1500),
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+  bool _wasActive = true; 
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool isActive = TickerMode.of(context);
+    
+    if (isActive && !_wasActive) {
+      _controller.reset();
+      _controller.forward();
+    }
+    _wasActive = isActive;
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        String visibleString = widget.text.substring(0, _characterCount.value);
+        return Text(
+          visibleString,
+          style: widget.style,
+        );
+      },
+    );
+  }
 }

@@ -8,13 +8,11 @@ import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
-// Make sure you have this import path correct
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/select_patient.dart';
 
 class RealtimeTrackingScreen extends StatefulWidget {
@@ -23,7 +21,6 @@ class RealtimeTrackingScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
   final LocationService locationService;
   
-  // Callbacks for hiding/showing bottom navigation bar
   final Function(bool isScrollingDown)? onScroll;
   final VoidCallback? onRestoreMenu;
 
@@ -44,6 +41,8 @@ class RealtimeTrackingScreen extends StatefulWidget {
 class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with TickerProviderStateMixin {
   PatientModel? _selectedPatient;
   Map<String, dynamic>? _selectedPatientFullData;
+  Map<String, dynamic>? _caretakerFullData; // <-- FRESH DATA FOR YOUR PROFILE PIC
+  
   bool _isTracking = false;
   String? _caretakerId;
   StreamSubscription? _locationTrackingStream;
@@ -70,7 +69,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
 
   final Map<String, Uint8List> _imageCache = {};
   
-  // Offset to ensure content stays above the bottom nav bar
   final double bottomContentOffset = 100.0;
 
   @override
@@ -124,9 +122,38 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     _startCaretakerLocationTracking();
   }
 
-  void _startCaretakerLocationTracking() {
+  // ================= FIXED LOCATION INITIALIZATION =================
+  Future<void> _startCaretakerLocationTracking() async {
     if (_caretakerId == null) return;
 
+    // 1. Force the app to get the initial location IMMEDIATELY so route doesn't hang
+    // 1. Force the app to get the initial location IMMEDIATELY so route doesn't hang
+    try {
+      Position initialPosition = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.bestForNavigation,
+        ),
+      );
+      
+      if (mounted) {
+        setState(() {
+          _currentCaretakerLocation = {
+            'latitude': initialPosition.latitude,
+            'longitude': initialPosition.longitude,
+            'accuracy': initialPosition.accuracy,
+          };
+        });
+        
+        // Draw the caretaker marker right away
+        if (_isMapReady) {
+          await _updateMapMarkers();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error getting initial caretaker location: $e');
+    }
+
+    // 2. Start listening to future movement updates
     _caretakerLocationStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
@@ -174,6 +201,13 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && mounted) {
       setState(() => _caretakerId = user.uid);
+      
+      // FETCH FRESH PROFILE PICTURE FROM FIREBASE
+      final freshData = await databaseService.getUserDataByRole(user.uid, 'caretaker');
+      if (freshData != null && mounted) {
+        setState(() => _caretakerFullData = freshData);
+        if (_isMapReady) _updateMapMarkers(); // Redraw marker with new image
+      }
     }
   }
 
@@ -187,12 +221,10 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     super.dispose();
   }
 
-  // ==================== AUTO-TRACKING LOGIC ====================
-
   void onPatientSelected(PatientModel patient) async {
     setState(() {
       _selectedPatient = patient;
-      _isTracking = true; // Auto Start Tracking
+      _isTracking = true; 
       _lastPatientGeoPoint = null;
     });
     
@@ -267,8 +299,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     _speak('Tracking stopped.');
     await _updateMapMarkers();
   }
-
-  // ==================== MAP UPDATE LOGIC ====================
 
   Future<void> _updateMapLocation(Map<String, dynamic> location) async {
     if (!_isMapReady) return;
@@ -346,7 +376,10 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
             try { await _mapController.removeMarker(_lastCaretakerGeoPoint!); } catch (_) {}
           }
 
-          final caretakerImageUrl = widget.userData['profileImageUrl'] as String?;
+          // Uses the FRESH data so the image actually loads
+          final caretakerImageUrl = _caretakerFullData?['profileImageUrl'] as String? 
+              ?? widget.userData['profileImageUrl'] as String?;
+              
           Uint8List? careBytes = await _getImageBytes(caretakerImageUrl);
 
           final markerWidget = _buildAvatarMarkerWidget(
@@ -354,7 +387,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
             name: widget.userData['name'] ?? 'You',
             ringColor: Colors.blueAccent,
             isActive: true,
-            isSelected: false,
+            isSelected: false, 
           );
 
           if (mounted) {
@@ -489,9 +522,19 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     });
   }
 
+  // ================= FIXED DRAW ROUTE LOGIC =================
+  // ================= FIXED DRAW ROUTE LOGIC =================
   Future<void> _drawRoute() async {
-    if (!_isMapReady || _currentPatientLocation == null || _currentCaretakerLocation == null || _isLoadingRoute) return;
+    if (!_isMapReady) return;
 
+    // Verify both locations exist before trying to draw
+    if (_currentPatientLocation == null || _currentCaretakerLocation == null) {
+      // Speak the warning out loud
+      _speak('Waiting for GPS coordinates to draw route.');
+      return;
+    }
+
+    if (_isLoadingRoute) return;
     setState(() => _isLoadingRoute = true);
 
     try {
@@ -504,6 +547,20 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
         longitude: _currentPatientLocation!['longitude'] as double,
       );
 
+      // Emulator safe-guard to prevent map crash
+      if (_geoPointDistance(start, end) < 15.0) {
+        // Speak the warning out loud
+        _speak('You are already at the patient\'s location.');
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('You are already at the patient\'s location!')),
+          );
+        }
+        await _mapController.moveTo(end, animate: true);
+        return;
+      }
+
       await _mapController.clearAllRoads();
       await _mapController.drawRoad(
         start, end,
@@ -511,7 +568,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
         roadOption: RoadOption(
           roadWidth: 8.0,
           roadColor: primary,
-          zoomInto: true,
+          zoomInto: true, 
         ),
       );
     } catch (e) {
@@ -520,7 +577,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
       if (mounted) setState(() => _isLoadingRoute = false);
     }
   }
-
   Future<void> _centerOnPatient() async {
     if (_currentPatientLocation != null && _isMapReady) {
       final geoPoint = GeoPoint(
@@ -543,28 +599,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     }
   }
 
-  Future<void> _openGoogleMapsNavigation() async {
-    if (_currentPatientLocation == null) {
-      _speak('Patient location is currently unavailable.');
-      return;
-    }
-    
-    // DEFINE lat AND lng HERE
-    final lat = _currentPatientLocation!['latitude'];
-    final lng = _currentPatientLocation!['longitude'];
-    
-    // Inject them into the actual Google Maps URL
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-    
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      _speak('Could not open navigation app.');
-    }
-  }
-
-  // ==================== UI BUILDER ====================
-
   @override
   Widget build(BuildContext context) {
     final theme = widget.theme;
@@ -574,7 +608,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
         children: [
           _buildMap(),
 
-          // MSWD Style Glass Top Bar
           Positioned(
             top: MediaQuery.of(context).padding.top + 10,
             left: 16,
@@ -582,10 +615,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
             child: _buildGlassTopBar(theme),
           ),
 
-          // Floating Center Buttons
           Positioned(
             right: 16,
-            bottom: _selectedPatient != null ? bottomContentOffset + 180 : bottomContentOffset + 240, 
+            bottom: _selectedPatient != null ? 310.0 : 380.0, 
             child: Column(
               children: [
                 if (_selectedPatient != null) ...[
@@ -597,11 +629,10 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
             ),
           ),
 
-          // Bottom Content Overlay
           Positioned(
             left: 0,
             right: 0,
-            bottom: bottomContentOffset,
+            bottom: 0, 
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               transitionBuilder: (child, anim) => SlideTransition(
@@ -609,7 +640,10 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
                 child: child,
               ),
               child: _selectedPatient != null
-                  ? _buildDetailCard(theme)
+                  ? Padding( 
+                      padding: const EdgeInsets.only(bottom: 140.0), 
+                      child: _buildDetailCard(theme),
+                    )
                   : _buildPatientSelectionPanel(theme),
             ),
           ),
@@ -620,7 +654,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
 
   Widget _buildMap() {
     return Listener(
-      // Passes the drag interaction up to Home Screen to hide the nav bar
       onPointerMove: (event) {
         widget.onScroll?.call(true); 
       },
@@ -711,9 +744,16 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
   }
 
   Widget _buildPatientSelectionPanel(dynamic theme) {
+    double baseHeight = 260.0; 
+    
     return Container(
-      height: 360,
-      padding: const EdgeInsets.only(top: 16, left: 16, right: 16),
+      height: baseHeight + bottomContentOffset, 
+      padding: EdgeInsets.only(
+        top: 16, 
+        left: 16, 
+        right: 16, 
+        bottom: bottomContentOffset, 
+      ),
       decoration: BoxDecoration(
         color: widget.isDarkMode ? theme.cardColor.withOpacity(0.95) : Colors.white.withValues(alpha: 0.95),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -797,9 +837,9 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: _openGoogleMapsNavigation,
-              icon: const Icon(Icons.navigation, size: 18),
-              label: const Text('Navigate in Maps'),
+              onPressed: _drawRoute, 
+              icon: const Icon(Icons.route, size: 18),
+              label: const Text('Focus on Route'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primary,
                 foregroundColor: Colors.white,
