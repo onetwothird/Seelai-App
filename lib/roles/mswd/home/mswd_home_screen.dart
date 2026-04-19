@@ -159,7 +159,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: _isNavVisible 
             ? (_selectedIndex != 2 ? _buildAddFaceObjectFab(context) : null)
-            : null, // "Show Menu" button was removed from here so we can force it to the absolute bottom
+            : null, 
         
         body: Container(
           decoration: BoxDecoration(gradient: theme.backgroundGradient),
@@ -199,16 +199,21 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                   ),
                 ),
                 
-                // --- SHOW MENU BUTTON (FORCED TO THE BOTTOM) ---
-                if (!_isNavVisible && _selectedIndex == 3)
-                  Positioned(
-                    bottom: 32, // <--- This forces it down into the empty space perfectly!
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: _buildShowMenuFab(),
-                    ),
+                // ==========================================
+                // FLOATING "SHOW MENU" BUTTON
+                // ==========================================
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOutCubic,
+                  // Hide it off-screen when nav is visible, slide it up when hidden
+                  bottom: _isNavVisible ? -100 : MediaQuery.of(context).padding.bottom + 20,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: _buildShowMenuFab(),
                   ),
+                ),
+                // ==========================================
               ],
             ),
           ),
@@ -329,10 +334,14 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         );
     }
     
-    if (_selectedIndex == 3) {
+    // Tab 1 (Users), Tab 2 (Requests), and Tab 3 (Location) 
+    // already have their own built-in scrolling mechanics.
+    if (_selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 3) {
       return content;
     }
     
+    // Only wrap Tab 0 (Dashboard) and Tab 4 (More/Profile) 
+    // in the global scroll view.
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(), 
       child: content,
@@ -437,7 +446,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   Widget _buildShowMenuFab() {
     return Container(
       height: 48,
-      // REMOVED THE MARGIN HERE so it sits exactly where we position it!
       decoration: BoxDecoration(
         color: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
         borderRadius: BorderRadius.circular(24),

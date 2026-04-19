@@ -233,7 +233,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
           ],
         ),
         content: Text(
-          'Are you sure you want to exit the app?', // <-- Text changed here
+          'Are you sure you want to exit the app?',
           style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
         ),
         actions: [
@@ -316,7 +316,6 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(28),
-                    // REMOVED: The boxShadow array that was here has been deleted
                   ),
                   child: Material(
                     color: Colors.transparent,
@@ -379,6 +378,49 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
                       isDarkMode: _isDarkMode,
                       theme: theme,
                     ),
+
+                    // ==========================================
+                    // FLOATING "SHOW MENU" BUTTON
+                    // ==========================================
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOutCubic,
+                      // Hide it off-screen when nav is visible, slide it up when hidden
+                      bottom: _isNavVisible ? -100 : MediaQuery.of(context).padding.bottom + 20,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Semantics(
+                          label: 'Show navigation menu',
+                          button: true,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() => _isNavVisible = true);
+                              // Announce to the screen reader that the menu is back
+                              _accessibilityService.announce('Navigation menu shown');
+                            },
+                            icon: const Icon(Icons.keyboard_arrow_up, color: Color(0xFF8B5CF6)),
+                            label: Text(
+                              'Show Menu',
+                              style: TextStyle(
+                                color: theme.textColor, 
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.cardColor,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: const StadiumBorder(),
+                              elevation: 8,
+                              shadowColor: Colors.black26,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // ==========================================
+
                   ],
                 ),
               ),
@@ -430,7 +472,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
           ),
         ),
         
-        // Tab 1: Contacts Content - REMOVED SingleChildScrollView wrappers to fix scrolling!
+        // Tab 1: Contacts Content 
         ContactsContent(
           isDarkMode: _isDarkMode,
           theme: theme,

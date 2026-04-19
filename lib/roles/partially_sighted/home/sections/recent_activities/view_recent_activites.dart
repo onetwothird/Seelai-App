@@ -43,13 +43,29 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
   StreamSubscription? _objectsSub;
   StreamSubscription? _textsSub;
 
+  // Animation State
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
   @override
   void initState() {
     super.initState();
     _setupRealtimeStreams();
+    _startMessageTimer();
   }
 
-  // ✅ THE FIX: We listen to the streams exactly once when the widget loads
+  void _startMessageTimer() {
+    // Cycle through messages every 5 seconds
+    _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex = (_currentMessageIndex + 1) % 2; // Cycles between 2 messages
+        });
+      }
+    });
+  }
+
+  // We listen to the streams exactly once when the widget loads
   void _setupRealtimeStreams() {
     // 1. Listen to Faces
     _facesSub = faceDetectionService.streamDetectedFaces(widget.userId).listen((faces) {
@@ -109,7 +125,15 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     _facesSub?.cancel();
     _objectsSub?.cancel();
     _textsSub?.cancel();
+    _messageTimer?.cancel();
     super.dispose();
+  }
+
+  List<String> _getMascotMessages(int faceCount, int objectCount, int textCount) {
+    return [
+      'Hello! You have scanned $faceCount face${faceCount != 1 ? 's' : ''}, $objectCount object${objectCount != 1 ? 's' : ''}, and $textCount text block${textCount != 1 ? 's' : ''}.',
+      'Tip: You can tap on any detection card below to view its full details.',
+    ];
   }
 
   @override
@@ -241,6 +265,12 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     int objectCount = detections.where((d) => d['type'] == 'object').length;
     int textCount = detections.where((d) => d['type'] == 'text').length;
 
+    final messages = _getMascotMessages(faceCount, objectCount, textCount);
+    final displayMessage = messages[_currentMessageIndex % messages.length];
+    
+    // Find the longest message to lock the bubble size
+    final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -282,12 +312,12 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                           width: 90,
                           height: 90,
                           decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.15),
+                            color: _primaryColor.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.smart_toy_outlined,
-                            color: primary,
+                            color: _primaryColor,
                             size: 36,
                           ),
                         ),
@@ -334,16 +364,33 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        'Hello! You have scanned $faceCount face${faceCount != 1 ? 's' : ''}, $objectCount object${objectCount != 1 ? 's' : ''}, and $textCount text block${textCount != 1 ? 's' : ''}.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: widget.isDarkMode
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : Colors.black87,
-                          height: 1.4,
-                        ),
+                      
+                      // THE STACK TRICK - No cutting, no jumping!
+                      Stack(
+                        children: [
+                          // 1. Invisible text uses the LONGEST message to keep bubble size fixed
+                          Text(
+                            longestMessage,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.transparent, 
+                              height: 1.4,
+                            ),
+                          ),
+                          // 2. Typewriter text types out the current message
+                          Positioned.fill(
+                            child: TypewriterText(
+                              text: displayMessage,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -908,10 +955,9 @@ class _TailPainter extends CustomPainter {
     final paint = Paint()..color = color;
     final path = Path();
     
-    // Draw a triangle pointing to the left
-    path.moveTo(size.width, 0); // Top right corner
-    path.lineTo(0, size.height / 2); // Pointing left (middle)
-    path.lineTo(size.width, size.height); // Bottom right corner
+    path.moveTo(size.width, 0); 
+    path.lineTo(0, size.height / 2); 
+    path.lineTo(size.width, size.height); 
     path.close();
     
     canvas.drawPath(path, paint);
@@ -919,4 +965,83 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    // THE FIX: Dynamic speed! 40 milliseconds per character.
+    // Long messages and short messages will now type at the exact same natural speed.
+    int msDuration = widget.text.length * 40; 
+    
+    _controller = AnimationController(
+      vsync: this, 
+      duration: Duration(milliseconds: msDuration),
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40; 
+      _controller.duration = Duration(milliseconds: msDuration);
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        int end = _characterCount.value;
+        // Strict safety check to prevent out-of-bounds text duplication
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+        
+        return Text(
+          widget.text.substring(0, end),
+          style: widget.style,
+        );
+      },
+    );
+  }
 }

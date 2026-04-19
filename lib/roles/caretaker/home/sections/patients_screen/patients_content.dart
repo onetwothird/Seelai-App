@@ -997,18 +997,16 @@ class _TailPainter extends CustomPainter {
 }
 
 // ==========================================
-// CUSTOM TYPEWRITER ANIMATION WIDGET
+// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
 // ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
-  final Duration duration;
 
   const TypewriterText({
     super.key,
     required this.text,
     required this.style,
-    this.duration = const Duration(milliseconds: 1500),
   });
 
   @override
@@ -1018,35 +1016,28 @@ class TypewriterText extends StatefulWidget {
 class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<int> _characterCount;
-  bool _wasActive = true; 
 
   @override
   void initState() {
     super.initState();
+    // THE FIX: Dynamic speed! 40 milliseconds per character.
+    // Long messages and short messages will now type at the exact same natural speed.
+    int msDuration = widget.text.length * 40; 
+    
     _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
+      vsync: this, 
+      duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
     _controller.forward();
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final bool isActive = TickerMode.of(context);
-    
-    if (isActive && !_wasActive) {
-      _controller.reset();
-      _controller.forward();
-    }
-    _wasActive = isActive;
-  }
-
-  @override
   void didUpdateWidget(TypewriterText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40; 
+      _controller.duration = Duration(milliseconds: msDuration);
       _setupAnimation();
       _controller.reset();
       _controller.forward();
@@ -1070,9 +1061,13 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
     return AnimatedBuilder(
       animation: _characterCount,
       builder: (context, child) {
-        String visibleString = widget.text.substring(0, _characterCount.value);
+        int end = _characterCount.value;
+        // Strict safety check to prevent out-of-bounds text duplication
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+        
         return Text(
-          visibleString,
+          widget.text.substring(0, end),
           style: widget.style,
         );
       },

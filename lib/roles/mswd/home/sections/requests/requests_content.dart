@@ -39,6 +39,10 @@ class _RequestsContentState extends State<RequestsContent> {
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
   final Map<String, Map<String, dynamic>> _userDataCache = {};
 
+  // Animation State
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
   final List<Map<String, dynamic>> _filters = [
     {'label': 'Pending', 'status': RequestStatus.pending, 'icon': Icons.pending_actions_rounded, 'color': const Color(0xFFF5A623)},
     {'label': 'Accepted', 'status': RequestStatus.accepted, 'icon': Icons.how_to_reg_rounded, 'color': const Color(0xFF3B82F6)},
@@ -51,6 +55,18 @@ class _RequestsContentState extends State<RequestsContent> {
   void initState() {
     super.initState();
     _loadRequests();
+    _startMessageTimer();
+  }
+
+  void _startMessageTimer() {
+    _messageTimer?.cancel();
+    _messageTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex++;
+        });
+      }
+    });
   }
 
   // Helper to safely extract the first name from user data
@@ -60,8 +76,23 @@ class _RequestsContentState extends State<RequestsContent> {
     return parts.isNotEmpty ? parts.first : 'Admin';
   }
 
+  List<String> _getMascotMessages() {
+    final pendingCount = _allRequests.where((r) => r.status == RequestStatus.pending).length;
+    final emergencyCount = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed).length;
+
+    List<String> msgs = [];
+    if (pendingCount == 0 && emergencyCount == 0) {
+      msgs.add('Hello, ${_getFirstName()}! The assistance log is clear. Great job keeping up!');
+    } else {
+      msgs.add('Hello, ${_getFirstName()}! You currently have $pendingCount pending request${pendingCount != 1 ? 's' : ''} and $emergencyCount active emergenc${emergencyCount != 1 ? 'ies' : 'y'}.');
+    }
+    msgs.add('Tip: Use the filter chips below to quickly sort requests by their status.');
+    return msgs;
+  }
+
   @override
   void dispose() {
+    _messageTimer?.cancel();
     _searchController.dispose();
     _requestsSubscription?.cancel();
     super.dispose();
@@ -121,7 +152,7 @@ class _RequestsContentState extends State<RequestsContent> {
 
     return SingleChildScrollView(
       controller: widget.scrollController,
-      physics: const AlwaysScrollableScrollPhysics(), 
+      physics: const AlwaysScrollableScrollPhysics(), // Scrollability ensured
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -187,8 +218,10 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 
   Widget _buildMascotBanner() {
-    final pendingCount = _allRequests.where((r) => r.status == RequestStatus.pending).length;
-    final emergencyCount = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed).length;
+    final messages = _getMascotMessages();
+    final safeIndex = _currentMessageIndex % messages.length;
+    final displayMessage = messages[safeIndex];
+    final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
 
     return Stack(
       clipBehavior: Clip.none,
@@ -273,16 +306,30 @@ class _RequestsContentState extends State<RequestsContent> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        'Hello, ${_getFirstName()}! You currently have $pendingCount pending request${pendingCount != 1 ? 's' : ''} and $emergencyCount active emergenc${emergencyCount != 1 ? 'ies' : 'y'} to review.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: widget.isDarkMode
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : Colors.black87,
-                          height: 1.4,
-                        ),
+                      
+                      // FIXED STACK TRICK
+                      Stack(
+                        children: [
+                          Text(
+                            longestMessage,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.transparent, 
+                              height: 1.4,
+                            ),
+                          ),
+                          TypewriterText(
+                            key: ValueKey(displayMessage),
+                            text: displayMessage,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -295,6 +342,7 @@ class _RequestsContentState extends State<RequestsContent> {
     );
   }
 
+  // [Keep _buildQuickStats, _buildSummaryCard, _buildSearchAndFilter, _buildFilterChips, _buildRequestList, _buildRedesignedCard, _buildLoading, _buildError, _getStatusColor, _formatShortTime methods exactly the same...]
   Widget _buildQuickStats() {
     final pending = _allRequests.where((r) => r.status == RequestStatus.pending).length;
     final emergency = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed).length;
@@ -822,7 +870,6 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 }
 
-// Custom Painter to draw the speech bubble tail pointing to the mascot
 class _TailPainter extends CustomPainter {
   final Color color;
 
@@ -833,7 +880,6 @@ class _TailPainter extends CustomPainter {
     final paint = Paint()..color = color;
     final path = Path();
     
-    // Draw a triangle pointing to the left
     path.moveTo(size.width, 0); 
     path.lineTo(0, size.height / 2); 
     path.lineTo(size.width, size.height); 
@@ -844,4 +890,79 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    int msDuration = widget.text.length * 40; 
+    _controller = AnimationController(
+      vsync: this, 
+      duration: Duration(milliseconds: msDuration),
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40; 
+      _controller.duration = Duration(milliseconds: msDuration);
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        int end = _characterCount.value;
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+        
+        return Text(
+          widget.text.substring(0, end),
+          style: widget.style,
+        );
+      },
+    );
+  }
 }

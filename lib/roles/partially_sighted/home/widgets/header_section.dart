@@ -1,5 +1,6 @@
 // File: lib/roles/partially_sighted/home/widgets/header_section.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -37,6 +38,36 @@ class HeaderSection extends StatefulWidget {
 class _HeaderSectionState extends State<HeaderSection> {
   // State to handle the temporary "mark as read" double check animation
   bool _showDoubleCheck = false;
+  
+  // Animation State
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startMessageTimer();
+  }
+
+  @override
+  void dispose() {
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startMessageTimer() {
+    // Cycle through alert messages every 5 seconds
+    _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        final messagesCount = _getMascotMessages().length;
+        if (messagesCount > 1) {
+          setState(() {
+            _currentMessageIndex = (_currentMessageIndex + 1) % messagesCount;
+          });
+        }
+      }
+    });
+  }
 
   // Helper to safely extract the first name
   String _getFirstName() {
@@ -53,14 +84,21 @@ class _HeaderSectionState extends State<HeaderSection> {
   }
 
   // Helper to generate the dynamic mascot message
-  String _getMascotMessage() {
+  List<String> _getMascotMessages() {
+    List<String> messages = [];
+
     if (widget.unreadNotificationCount == 0) {
-      return 'Hello, ${_getFirstName()}! You\'re all caught up. Tap the scanner whenever you\'re ready.';
+      messages.add('Hello, ${_getFirstName()}! You\'re all caught up. Tap the scanner whenever you\'re ready.');
+      messages.add('Did you know? You can double tap the moon icon in the top right to toggle dark mode.');
     } else if (widget.unreadNotificationCount == 1) {
-      return 'Hello, ${_getFirstName()}! You have 1 unread notification. Tap the bell icon to check it out.';
+      messages.add('Hello, ${_getFirstName()}! You have 1 unread notification. Tap the bell icon to check it out.');
+      messages.add('Don\'t forget to review your latest alerts!');
     } else {
-      return 'Hello, ${_getFirstName()}! You have ${widget.unreadNotificationCount} unread notifications. Tap the bell icon to check them out.';
+      messages.add('Hello, ${_getFirstName()}! You have ${widget.unreadNotificationCount} unread notifications. Tap the bell icon to check them out.');
+      messages.add('Don\'t forget to review your latest alerts!');
     }
+
+    return messages;
   }
 
   void _handleNotificationTap() {
@@ -95,6 +133,14 @@ class _HeaderSectionState extends State<HeaderSection> {
     
     // Theme's primary color for the icons
     final Color iconTint = primary; 
+
+    // Fetch the list of messages and determine which one to show right now
+    final messages = _getMascotMessages();
+    final safeIndex = _currentMessageIndex % messages.length;
+    final displayMessage = messages[safeIndex];
+    
+    // Find the longest message to act as our permanent invisible structural guide
+    final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
 
     return Semantics(
       label: 'Header section. ${_getGreeting()}, ${_getFirstName()}. Today is $formattedDate',
@@ -315,7 +361,7 @@ class _HeaderSectionState extends State<HeaderSection> {
                             color: primary.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.smart_toy_outlined,
                             color: primary,
                             size: 36,
@@ -365,16 +411,35 @@ class _HeaderSectionState extends State<HeaderSection> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                _getMascotMessage(), 
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: widget.isDarkMode
-                                      ? Colors.white.withValues(alpha: 0.85)
-                                      : Colors.black87,
-                                  height: 1.4,
-                                ),
+                              
+                              // THE FIX: Stack allows auto-sizing without jumping
+                              Stack(
+                                children: [
+                                  // 1. Invisible text uses the LONGEST message to keep bubble size fixed permanently
+                                  Text(
+                                    longestMessage,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.transparent, // Invisible!
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  // 2. Typewriter text types out the current message inside perfectly sized space
+                                  Positioned.fill(
+                                    child: TypewriterText(
+                                      text: displayMessage,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        color: widget.isDarkMode
+                                            ? Colors.white.withValues(alpha: 0.85)
+                                            : Colors.black87,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -428,10 +493,9 @@ class _TailPainter extends CustomPainter {
     final paint = Paint()..color = color;
     final path = Path();
     
-    // Draw a triangle pointing to the left
-    path.moveTo(size.width, 0); // Top right corner
-    path.lineTo(0, size.height / 2); // Pointing left (middle)
-    path.lineTo(size.width, size.height); // Bottom right corner
+    path.moveTo(size.width, 0); 
+    path.lineTo(0, size.height / 2); 
+    path.lineTo(size.width, size.height); 
     path.close();
     
     canvas.drawPath(path, paint);
@@ -439,4 +503,83 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    // THE FIX: Dynamic speed! 40 milliseconds per character.
+    // Long messages and short messages will now type at the exact same natural speed.
+    int msDuration = widget.text.length * 40; 
+    
+    _controller = AnimationController(
+      vsync: this, 
+      duration: Duration(milliseconds: msDuration),
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40; 
+      _controller.duration = Duration(milliseconds: msDuration);
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        int end = _characterCount.value;
+        // Strict safety check to prevent out-of-bounds text duplication
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+        
+        return Text(
+          widget.text.substring(0, end),
+          style: widget.style,
+        );
+      },
+    );
+  }
 }

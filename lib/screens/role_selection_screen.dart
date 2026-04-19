@@ -5,6 +5,7 @@ import 'package:seelai_app/roles/caretaker/auth/login/login_screen.dart';
 import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
 import 'package:seelai_app/roles/mswd/auth/login/login_screen.dart';
 import 'package:seelai_app/roles/mswd/auth/signup/signup_screen.dart';
+import 'package:seelai_app/screens/onboarding_screen.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
@@ -69,7 +70,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                          );
+                        },
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
                         color: const Color(0xFF1E293B),
                         style: IconButton.styleFrom(

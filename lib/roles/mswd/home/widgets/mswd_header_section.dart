@@ -1,5 +1,6 @@
 // File: lib/roles/mswd/home/widgets/mswd_header_section.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -35,6 +36,33 @@ class HeaderSection extends StatefulWidget {
 
 class _HeaderSectionState extends State<HeaderSection> {
   bool _showDoubleCheck = false;
+  
+  // Animation State
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startMessageTimer();
+  }
+
+  @override
+  void dispose() {
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startMessageTimer() {
+    _messageTimer?.cancel(); 
+    _messageTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex++;
+        });
+      }
+    });
+  }
 
   String _getFirstName() {
     if (widget.adminName.isEmpty) return 'Admin';
@@ -49,13 +77,22 @@ class _HeaderSectionState extends State<HeaderSection> {
     return 'Good evening';
   }
 
-  String _getMascotMessage() {
+  List<String> _getMascotMessages() {
     if (widget.pendingRequestsCount == 0) {
-      return 'Hello, ${_getFirstName()}! You\'re all caught up. The dashboard is looking great.';
+      return [
+        'Hello, ${_getFirstName()}! You\'re all caught up. The dashboard is looking great.',
+        'Did you know? You can double tap the moon icon to toggle dark mode.'
+      ];
     } else if (widget.pendingRequestsCount == 1) {
-      return 'Hello, ${_getFirstName()}! You have 1 pending request awaiting approval. Tap the bell icon to check it out.';
+      return [
+        'Hello, ${_getFirstName()}! You have 1 pending request awaiting approval.',
+        'Tap the bell icon in the top right to check it out and respond.'
+      ];
     } else {
-      return 'Hello, ${_getFirstName()}! You have ${widget.pendingRequestsCount} pending requests awaiting approval. Tap the bell icon to check them out.';
+      return [
+        'Hello, ${_getFirstName()}! You have ${widget.pendingRequestsCount} pending requests awaiting approval.',
+        'Tap the bell icon in the top right to review the alerts.'
+      ];
     }
   }
 
@@ -86,6 +123,12 @@ class _HeaderSectionState extends State<HeaderSection> {
 
     final Color buttonBgColor = widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC);
     final Color iconTint = primary; 
+
+    // Fetch messages
+    final messages = _getMascotMessages();
+    final safeIndex = _currentMessageIndex % messages.length;
+    final displayMessage = messages[safeIndex];
+    final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
 
     return Semantics(
       label: 'Header section. ${_getGreeting()}, ${_getFirstName()}. Today is $formattedDate',
@@ -351,16 +394,32 @@ class _HeaderSectionState extends State<HeaderSection> {
                                 ),
                               ),
                               const SizedBox(height: 6),
-                              Text(
-                                _getMascotMessage(), 
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: widget.isDarkMode
-                                      ? Colors.white.withValues(alpha: 0.85)
-                                      : Colors.black87,
-                                  height: 1.4,
-                                ),
+                              
+                              // THE FIXED STACK TRICK
+                              Stack(
+                                children: [
+                                  // 1. Invisible text uses the LONGEST message to lock bubble size
+                                  Text(
+                                    longestMessage,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.transparent, 
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  // 2. Typewriter text types out the current message
+                                  TypewriterText(
+                                    key: ValueKey(displayMessage),
+                                    text: displayMessage,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -422,4 +481,79 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    int msDuration = widget.text.length * 40; 
+    _controller = AnimationController(
+      vsync: this, 
+      duration: Duration(milliseconds: msDuration),
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40; 
+      _controller.duration = Duration(milliseconds: msDuration);
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        int end = _characterCount.value;
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+        
+        return Text(
+          widget.text.substring(0, end),
+          style: widget.style,
+        );
+      },
+    );
+  }
 }
