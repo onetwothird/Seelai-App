@@ -46,11 +46,26 @@ class _ContactsContentState extends State<ContactsContent> {
 
   // 0 = All, 1 = Caretakers, 2 = SOS
   int _selectedFilterIndex = 0; 
+  
+  // Animation State
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _initializePatientId();
+    _startMessageTimer();
+  }
+  
+  void _startMessageTimer() {
+    _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex = (_currentMessageIndex + 1) % 2;
+        });
+      }
+    });
   }
 
   // Helper to safely extract the first name from user data
@@ -58,6 +73,13 @@ class _ContactsContentState extends State<ContactsContent> {
     final name = widget.userData['name'] as String? ?? 'User';
     final parts = name.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : 'User';
+  }
+  
+  List<String> _getMascotMessages() {
+    return [
+      'Hello, ${_getFirstName()}! You have ${_caretakerContacts.length} caretaker${_caretakerContacts.length != 1 ? 's' : ''} and ${_emergencyContacts.length} SOS contact${_emergencyContacts.length != 1 ? 's' : ''} in your network.',
+      'Did you know? You can tap on a contact card to quickly call or send them a message.',
+    ];
   }
 
   Future<void> _initializePatientId() async {
@@ -152,7 +174,6 @@ class _ContactsContentState extends State<ContactsContent> {
               isCaretaker: false,
               avatar: Icons.medical_services_rounded,
               color: error,
-              // Change this line from 'profileImageUrl: null,' to:
               profileImageUrl: contact['profileImageUrl'] as String?, 
             );
           }).toList();
@@ -161,11 +182,11 @@ class _ContactsContentState extends State<ContactsContent> {
           });
         }
       },
-      onError: (error) {
-        debugPrint('Error loading emergency contacts: $error');
+      onError: (err) {
+        debugPrint('Error loading emergency contacts: $err');
         if (mounted) {
           setState(() {
-            _error = 'Failed to load emergency contacts: $error';
+            _error = 'Failed to load emergency contacts: $err';
             _isLoadingEmergency = false;
           });
         }
@@ -178,6 +199,7 @@ class _ContactsContentState extends State<ContactsContent> {
     _caretakersSubscription?.cancel();
     _emergencyContactsSubscription?.cancel();
     _searchController.dispose();
+    _messageTimer?.cancel();
     super.dispose();
   }
 
@@ -503,6 +525,12 @@ class _ContactsContentState extends State<ContactsContent> {
   }
 
  Widget _buildMascotBanner() {
+    final messages = _getMascotMessages();
+    final displayMessage = messages[_currentMessageIndex % messages.length];
+    
+    // Find the longest message to lock the bubble size
+    final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -530,7 +558,6 @@ class _ContactsContentState extends State<ContactsContent> {
         Padding(
           padding: EdgeInsets.symmetric(
             horizontal: MediaQuery.of(context).size.width * 0.06,
-            // Notice: Removed vertical padding so the mascot touches the exact top of the gradient!
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -545,12 +572,12 @@ class _ContactsContentState extends State<ContactsContent> {
                           width: 90,
                           height: 90,
                           decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.15),
+                            color: _primaryColor.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             Icons.smart_toy_outlined,
-                            color: primary,
+                            color: _primaryColor,
                             size: 36,
                           ),
                         ),
@@ -558,7 +585,7 @@ class _ContactsContentState extends State<ContactsContent> {
               
               // Speech Bubble Tail (Pointing left, aligned to mouth)
               Container(
-                margin: const EdgeInsets.only(bottom: 40), // Adjusted to connect perfectly
+                margin: const EdgeInsets.only(bottom: 40),
                 child: CustomPaint(
                   size: const Size(12, 16),
                   painter: _TailPainter(
@@ -597,16 +624,33 @@ class _ContactsContentState extends State<ContactsContent> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
-                        'Hello, ${_getFirstName()}! You have ${_caretakerContacts.length} caretaker${_caretakerContacts.length != 1 ? 's' : ''} and ${_emergencyContacts.length} SOS contact${_emergencyContacts.length != 1 ? 's' : ''} in your network.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: widget.isDarkMode
-                              ? Colors.white.withValues(alpha: 0.85)
-                              : Colors.black87,
-                          height: 1.4,
-                        ),
+                      
+                      // THE STACK TRICK - No cutting, no jumping!
+                      Stack(
+                        children: [
+                          // 1. Invisible text uses the LONGEST message to keep bubble size fixed
+                          Text(
+                            longestMessage,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.transparent, 
+                              height: 1.4,
+                            ),
+                          ),
+                          // 2. Typewriter text types out the current message
+                          Positioned.fill(
+                            child: TypewriterText(
+                              text: displayMessage,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -618,6 +662,7 @@ class _ContactsContentState extends State<ContactsContent> {
       ],
     );
   }
+  
   // Pill Filters mimicking the "All, Debit, Credit" style
   Widget _buildFilterTabs() {
     return Container(
@@ -1230,10 +1275,9 @@ class _TailPainter extends CustomPainter {
     final paint = Paint()..color = color;
     final path = Path();
     
-    // Draw a triangle pointing to the left
-    path.moveTo(size.width, 0); // Top right corner
-    path.lineTo(0, size.height / 2); // Pointing left (middle)
-    path.lineTo(size.width, size.height); // Bottom right corner
+    path.moveTo(size.width, 0); 
+    path.lineTo(0, size.height / 2); 
+    path.lineTo(size.width, size.height); 
     path.close();
     
     canvas.drawPath(path, paint);
@@ -1241,4 +1285,83 @@ class _TailPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ==========================================
+// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
+// ==========================================
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+  });
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    // THE FIX: Dynamic speed! 40 milliseconds per character.
+    // Long messages and short messages will now type at the exact same natural speed.
+    int msDuration = widget.text.length * 40; 
+    
+    _controller = AnimationController(
+      vsync: this, 
+      duration: Duration(milliseconds: msDuration),
+    );
+    _setupAnimation();
+    _controller.forward();
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40; 
+      _controller.duration = Duration(milliseconds: msDuration);
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        int end = _characterCount.value;
+        // Strict safety check to prevent out-of-bounds text duplication
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+        
+        return Text(
+          widget.text.substring(0, end),
+          style: widget.style,
+        );
+      },
+    );
+  }
 }
