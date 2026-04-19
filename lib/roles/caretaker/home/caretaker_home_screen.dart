@@ -7,7 +7,7 @@ import 'package:seelai_app/roles/caretaker/home/sections/home_screen/caretaker_h
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_header_section.dart' hide primary;
-import 'package:seelai_app/roles/caretaker/home/widgets/bottom_navigation.dart';
+import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_bottom_navigation.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patients_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/requests_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/caretaker_profile_content.dart';
