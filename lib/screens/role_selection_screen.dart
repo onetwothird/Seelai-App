@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:seelai_app/roles/partially_sighted/auth/login/login_screen.dart';
-import 'package:seelai_app/roles/partially_sighted/auth/signup/signup_screen.dart';
-import 'package:seelai_app/roles/caretaker/auth/login/login_screen.dart';
-import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
-import 'package:seelai_app/roles/mswd/auth/login/login_screen.dart';
-import 'package:seelai_app/roles/mswd/auth/signup/signup_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/auth/login/user_login_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/auth/signup/user_signup_screen.dart';
+import 'package:seelai_app/roles/caretaker/auth/login/caretaker_login_screen.dart';
+import 'package:seelai_app/roles/caretaker/auth/signup/caretaker_signup_screen.dart';
+import 'package:seelai_app/roles/mswd/auth/login/mswd_login_screen.dart';
+import 'package:seelai_app/roles/mswd/auth/signup/mswd_signup_screen.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
