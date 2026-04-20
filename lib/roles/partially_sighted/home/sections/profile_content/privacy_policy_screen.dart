@@ -17,8 +17,8 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Define clean contrast colors based on theme
-    final Color bgColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF9FAFB);
+    // UPDATED: Background is now pure white in light mode to match the header seamlessly
+    final Color bgColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
     final Color headerColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDarkMode ? Colors.white : const Color(0xFF111827);
     final Color subTextColor = isDarkMode ? Colors.white70 : const Color(0xFF6B7280);
@@ -114,7 +114,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: _primaryColor.withValues(alpha: 0.05),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: _primaryColor.withValues(alpha: 0.15)),
                     ),

@@ -18,7 +18,7 @@ class AboutSeelaiScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Define clean contrast colors based on theme
-    final Color bgColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF9FAFB);
+    final Color bgColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
     final Color headerColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final Color cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDarkMode ? Colors.white : const Color(0xFF111827);
@@ -31,7 +31,7 @@ class AboutSeelaiScreen extends StatelessWidget {
           // ==================== WHITE SCROLLING HEADER ====================
           SliverAppBar(
             backgroundColor: headerColor,
-            surfaceTintColor: headerColor, // Prevents color shifting on scroll
+            surfaceTintColor: headerColor, 
             pinned: true,
             elevation: 1,
             shadowColor: Colors.black.withValues(alpha: 0.05),
@@ -51,29 +51,53 @@ class AboutSeelaiScreen extends StatelessWidget {
           // ==================== MAIN CONTENT ====================
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+              // Reduced top padding slightly to bring content up
+              padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 32.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Logo/Icon Concept
-                  Container(
-                    height: 100,
-                    width: 100,
-                    decoration: BoxDecoration(
-                      color: _primaryColor.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.remove_red_eye_rounded, size: 50, color: _primaryColor),
-                  ),
-                  const SizedBox(height: 24),
                   
+                  // ==================== REFINED LOGO SECTION ====================
+                  Container(
+                    width: 110, // Smaller, tighter size
+                    height: 110,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28.0), // Smooth, continuous curve
+                      boxShadow: isDarkMode ? [] : [ 
+                        BoxShadow(
+                          color: _primaryColor.withValues(alpha: 0.25), // Soft purple glow instead of harsh black shadow
+                          blurRadius: 24,
+                          spreadRadius: -4,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28.0), 
+                      child: Image.asset(
+                        'assets/seelai_app_logo/seelai_app_logo.png',
+                        fit: BoxFit.cover, // Removes the awkward white box-in-box look
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: Colors.white,
+                          child: Icon(
+                            Icons.image_not_supported_rounded, 
+                            color: Colors.grey[400], 
+                            size: 40
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16), // Tighter spacing
+                  
+                  // ==================== APP TITLE & VERSION ====================
                   Text(
                     'SEELAI',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 26,
                       fontWeight: FontWeight.w900,
                       color: textColor,
-                      letterSpacing: 2.0,
+                      letterSpacing: 1.5,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -86,15 +110,15 @@ class AboutSeelaiScreen extends StatelessWidget {
                     child: Text(
                       'Version 1.0.0',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 12,
                         color: _primaryColor,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24), // Significantly reduced gap before cards
                   
-                  // Content Cards
+                  // ==================== CONTENT CARDS ====================
                   _buildSectionCard(
                     title: 'Our Mission',
                     icon: Icons.lightbulb_outline_rounded,
@@ -103,7 +127,7 @@ class AboutSeelaiScreen extends StatelessWidget {
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12), // Tighter gap between cards
                   
                   _buildSectionCard(
                     title: 'Core Technology',
@@ -113,7 +137,7 @@ class AboutSeelaiScreen extends StatelessWidget {
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
 
                   _buildSectionCard(
                     title: 'Caretaker Integration',
@@ -124,18 +148,18 @@ class AboutSeelaiScreen extends StatelessWidget {
                     subTextColor: subTextColor,
                   ),
                   
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 32),
                   Text(
                     'Designed with purpose.\nBuilt for independence.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 13,
                       fontStyle: FontStyle.italic,
                       color: subTextColor.withValues(alpha: 0.7),
                       height: 1.5,
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24), 
                 ],
               ),
             ),
@@ -145,7 +169,7 @@ class AboutSeelaiScreen extends StatelessWidget {
     );
   }
 
-  // Clean, flat card layout with primary color accents
+  // Refined card layout with slightly tighter padding
   Widget _buildSectionCard({
     required String title, 
     required IconData icon, 
@@ -156,7 +180,7 @@ class AboutSeelaiScreen extends StatelessWidget {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20), // Reduced from 24 to save space
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
@@ -165,7 +189,7 @@ class AboutSeelaiScreen extends StatelessWidget {
         ),
         boxShadow: isDarkMode 
             ? [] 
-            : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 15, offset: const Offset(0, 5))],
+            : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,18 +197,18 @@ class AboutSeelaiScreen extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(8), // Reduced from 10
                 decoration: BoxDecoration(
                   color: _primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: _primaryColor, size: 22),
+                child: Icon(icon, color: _primaryColor, size: 20),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 17, // Slightly smaller
                   fontWeight: FontWeight.bold,
                   color: textColor,
                   letterSpacing: -0.3,
@@ -192,12 +216,12 @@ class AboutSeelaiScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12), // Reduced gap
           Text(
             content,
             style: TextStyle(
-              fontSize: 15,
-              height: 1.6,
+              fontSize: 14, // Scaled down slightly for better density
+              height: 1.5,
               color: subTextColor,
             ),
           ),

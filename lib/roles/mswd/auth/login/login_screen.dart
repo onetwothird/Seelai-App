@@ -129,7 +129,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                           child: Opacity(
                             opacity: 0.08,
                             child: Image.asset(
-                              'assets/images/eye background.jpg',
+                              'assets/icons/eye background.jpg',
                               fit: BoxFit.cover,
                             ),
                           ),
