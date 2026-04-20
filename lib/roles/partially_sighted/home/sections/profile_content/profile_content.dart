@@ -6,6 +6,8 @@ import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:intl/intl.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/profile_content/about_seelai_screen.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/profile_content/privacy_policy_screen.dart';
 
 class ProfileContent extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -726,53 +728,25 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   void _showAboutDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('About Seelai', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Seelai App', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w600, fontSize: 16)),
-            const SizedBox(height: 8),
-            Text(
-              'A companion app designed to empower partially sighted individuals through technology.',
-              style: TextStyle(color: widget.theme.subtextColor, height: 1.5),
-            ),
-            const SizedBox(height: 16),
-            Text('Version: 1.0.0', style: TextStyle(color: widget.theme.subtextColor, fontSize: 12)),
-          ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AboutSeelaiScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: TextStyle(color: _colSupport, fontWeight: FontWeight.w600)),
-          ),
-        ],
       ),
     );
   }
 
   void _showPrivacyDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Privacy Policy', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
-        content: Text(
-          'Your privacy is important to us. All personal and medical data is securely stored and used solely for the purpose of providing assistance services within the app.',
-          style: TextStyle(color: widget.theme.subtextColor, height: 1.5),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrivacyPolicyScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: TextStyle(color: _colSupport, fontWeight: FontWeight.w600)),
-          ),
-        ],
       ),
     );
   }
