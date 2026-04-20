@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/auth/signup/signup_screen.dart';
+import 'package:seelai_app/roles/caretaker/auth/signup/caretaker_signup_screen.dart';
 import 'package:seelai_app/roles/caretaker/home/caretaker_home_screen.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';

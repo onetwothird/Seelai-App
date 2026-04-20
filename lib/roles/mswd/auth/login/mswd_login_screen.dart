@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:seelai_app/roles/partially_sighted/caretaker/caretaker_selection_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/partially_sighted/auth/signup/signup_screen.dart';
-import 'package:seelai_app/roles/partially_sighted/home/home_screen.dart';
+import 'package:seelai_app/roles/mswd/auth/signup/mswd_signup_screen.dart';
+import 'package:seelai_app/roles/mswd/home/mswd_home_screen.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/firebase/activity_logs_service.dart';
 import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-class LoginScreenPartiallySighted extends StatefulWidget {
-  const LoginScreenPartiallySighted({super.key});
+class MSWDLoginScreen extends StatefulWidget {
+  const MSWDLoginScreen({super.key});
 
   @override
-  State<LoginScreenPartiallySighted> createState() => _LoginScreenPartiallySightedState();
+  State<MSWDLoginScreen> createState() => _MSWDLoginScreenState();
 }
 
-class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighted> with TickerProviderStateMixin {
+class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -31,7 +30,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
   void initState() {
     super.initState();
     _entryController = AnimationController(
-      duration: Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
@@ -40,7 +39,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 0.1),
+      begin: const Offset(0, 0.1),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
 
@@ -58,14 +57,14 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final Color brandColor = primary; 
+    final Color brandColor = primary;
 
     return Scaffold(
-      backgroundColor: Colors.white, 
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           // 1. Top Section: Hero Animation
-         Positioned(
+          Positioned(
           top: -60, // Try -60, -80, or -100 to pull it up more
           left: 0,
           right: 0,
@@ -75,7 +74,8 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
             fit: BoxFit.cover, 
           ),
         ),
-         // 2. Back Button (High Contrast & Clear UX)
+
+          // 2. Back Button (High Contrast & Clear UX)
           Positioned(
             top: 50,
             left: 20,
@@ -89,12 +89,12 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
                 color: Colors.white, // Crisp white arrow
                 iconSize: 22,
-                tooltip: 'Go back', // Good for accessibility screen readers!
+                tooltip: 'Go back', 
               ),
             ),
           ),
 
-          // 3. Bottom Section: The Card
+          // 3. Bottom Section: White Card
           Align(
             alignment: Alignment.bottomCenter,
             child: FadeTransition(
@@ -106,15 +106,15 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(40),
                       topRight: Radius.circular(40),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05), // FIXED
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 30,
-                        offset: Offset(0, -10),
+                        offset: const Offset(0, -10),
                       ),
                     ],
                   ),
@@ -122,12 +122,12 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                     children: [
                       Positioned.fill(
                         child: ClipRRect(
-                          borderRadius: BorderRadius.only(
+                          borderRadius: const BorderRadius.only(
                             topLeft: Radius.circular(40),
                             topRight: Radius.circular(40),
                           ),
                           child: Opacity(
-                            opacity: 0.08, 
+                            opacity: 0.08,
                             child: Image.asset(
                               'assets/icons/eye background.jpg',
                               fit: BoxFit.cover,
@@ -136,14 +136,15 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                         ),
                       ),
 
+                      // Content
                       SingleChildScrollView(
-                        physics: BouncingScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(32, 40, 32, 32),
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              "Welcome, Partial User!",
+                            const Text(
+                              "Welcome, MSWD Staff!",
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w800,
@@ -151,9 +152,9 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                                 letterSpacing: -0.5,
                               ),
                             ),
-                            SizedBox(height: 8),
-                            Text(
-                              "Sign in to continue your journey.",
+                            const SizedBox(height: 8),
+                            const Text(
+                              "Authorized personnel portal access.",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Color(0xFF64748B),
@@ -161,16 +162,15 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                               ),
                             ),
 
-                            SizedBox(height: 32),
+                            const SizedBox(height: 32),
 
-                            // Standard Login Fields
                             _buildTextField(
                               controller: _emailController,
                               hint: "Email address",
                               icon: Icons.email_outlined,
                             ),
                             
-                            SizedBox(height: 20),
+                            const SizedBox(height: 20),
 
                             _buildTextField(
                               controller: _passwordController,
@@ -193,7 +193,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                               ),
                             ),
 
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
 
                             SizedBox(
                               width: double.infinity,
@@ -208,7 +208,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                child: Text(
+                                child: const Text(
                                   "Sign In",
                                   style: TextStyle(
                                     fontSize: 16,
@@ -218,21 +218,21 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                               ),
                             ),
 
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
 
                             // --- GOOGLE SECTION ---
                             Row(
                               children: [
-                                Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
                                 Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text("OR", style: TextStyle(color: Color(0xFF94A3B8))),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: const Text("OR", style: TextStyle(color: Color(0xFF94A3B8))),
                                 ),
-                                Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
                               ],
                             ),
                             
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
 
                             SizedBox(
                               width: double.infinity,
@@ -240,10 +240,10 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                               child: OutlinedButton(
                                 onPressed: _isLoading ? null : _handleGoogleLogin,
                                 style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                                  side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   backgroundColor: Colors.white,
-                                  foregroundColor: Color(0xFF1E293B),
+                                  foregroundColor: const Color(0xFF1E293B),
                                   elevation: 0,
                                 ),
                                 child: Row(
@@ -254,8 +254,8 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                                       height: 24,
                                       width: 24,
                                     ),
-                                    SizedBox(width: 12),
-                                    Text(
+                                    const SizedBox(width: 12),
+                                    const Text(
                                       "Continue with Google",
                                       style: TextStyle(
                                         fontSize: 16,
@@ -270,7 +270,7 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                             ),
                             // --- END GOOGLE SECTION ---
 
-                            SizedBox(height: 24),
+                            const SizedBox(height: 24),
 
                             Center(
                               child: TextButton(
@@ -278,17 +278,17 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => PartiallySightedSignupScreen(),
+                                      builder: (context) => const MSWDSignupScreen(),
                                     ),
                                   );
                                 },
                                 child: RichText(
                                   text: TextSpan(
-                                    style: TextStyle(color: Color(0xFF64748B), fontSize: 15),
+                                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
                                     children: [
-                                      TextSpan(text: "Don't have an account? "),
+                                      const TextSpan(text: "Don't have an account? "),
                                       TextSpan(
-                                        text: "Sign Up",
+                                        text: "Register",
                                         style: TextStyle(
                                           color: brandColor,
                                           fontWeight: FontWeight.bold,
@@ -319,8 +319,6 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
     );
   }
 
-  // --- Widgets ---
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -329,48 +327,48 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Color(0xFFF8FAFC), 
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFE2E8F0)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword && _obscurePassword,
-        style: TextStyle(fontSize: 16, color: Color(0xFF1E293B)),
+        style: const TextStyle(fontSize: 16, color: Color(0xFF1E293B)),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Color(0xFF94A3B8)),
-          prefixIcon: Icon(icon, color: Color(0xFF64748B)),
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: Color(0xFF94A3B8),
+                    color: const Color(0xFF94A3B8),
                   ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
       ),
     );
   }
 
   void _showForgotPasswordDialog() {
-    // FIXED: Save parent context
-    final parentContext = context;
+    // 1. Capture the parent context for the SnackBar
+    final parentContext = context; 
     final TextEditingController emailController = TextEditingController();
-    
+
     showDialog(
       context: parentContext,
-      // FIXED: Rename builder context
+      // 2. Rename to dialogContext to avoid shadowing the outer context
       builder: (dialogContext) => AlertDialog(
-        title: Text('Reset Password'),
+        title: const Text('Reset Password'),
         content: TextField(
           controller: emailController,
           keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: 'Enter your email',
             prefixIcon: Icon(Icons.email_outlined),
           ),
@@ -378,222 +376,114 @@ class _LoginScreenPartiallySightedState extends State<LoginScreenPartiallySighte
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Cancel'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
               if (emailController.text.isEmpty) {
                 Navigator.pop(dialogContext);
-                if (parentContext.mounted) {
-                  ScaffoldMessenger.of(parentContext).showSnackBar(SnackBar(content: Text('Please enter your email'), backgroundColor: error));
-                }
                 return;
               }
+
               try {
                 await authService.value.sendPasswordResetEmail(email: emailController.text.trim());
                 
+                // 3. GUARD: Check if the dialog is still open before popping
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
-                
+
+                // 4. GUARD: Check if the main screen is still active before showing the SnackBar
                 if (!parentContext.mounted) return;
-                ScaffoldMessenger.of(parentContext).showSnackBar(SnackBar(content: Text('Password reset email sent!'), backgroundColor: success));
+                ScaffoldMessenger.of(parentContext).showSnackBar(
+                  const SnackBar(content: Text('Password reset email sent!'), backgroundColor: success),
+                );
               } catch (e) {
+                // 5. GUARD: Check if the dialog is still open before popping on error
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
-                
-                if (!parentContext.mounted) return;
-                ScaffoldMessenger.of(parentContext).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
               }
             },
-            child: Text('Send'),
+            child: const Text('Send'),
           ),
         ],
       ),
     );
   }
 
-  // --- GOOGLE LOGIN LOGIC ---
+  // ==================== GOOGLE LOGIN LOGIC ====================
   Future<void> _handleGoogleLogin() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       UserCredential? userCredential = await authService.value.signInWithGoogle();
       
       if (userCredential == null) {
-        // User canceled the Google flow
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         return;
       }
 
-      // Check if they already have a database profile filled out
       Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
       
       if (userData != null) {
-        // USER EXISTS IN DB: Proceed with normal login routing
-        String userRole = userData['role'] ?? '';
-        
-        if (userRole != 'partially_sighted') {
-          await authService.value.signOut();
-          if (!mounted) return; 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('This account is not registered as a Partially Sighted User'), backgroundColor: error),
-          );
-          return;
-        }
-        
-        await activityLogsService.logActivity(
-          userId: userCredential.user!.uid,
-          action: 'login',
-          details: 'User logged in via Google as $userRole',
-        );
-        
-        userData['uid'] = userCredential.user!.uid;
-        
-        bool hasCaretaker = false;
-        if (userData['assignedCaretakers'] != null) {
-          Map<dynamic, dynamic> assignedCaretakers = userData['assignedCaretakers'] as Map;
-          hasCaretaker = assignedCaretakers.isNotEmpty;
-        }
-        
-        if (!mounted) return; 
-        
-        if (hasCaretaker) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => PartiallySightedHomeScreen(userData: userData)));
-          Future.delayed(Duration(milliseconds: 500), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));
-            }
-          });
+        if (userData['role'] == 'admin' || userData['role'] == 'mswd') {
+          await activityLogsService.logActivity(userId: userCredential.user!.uid, action: 'login', details: 'MSWD logged in via Google');
+          if (mounted) {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MSWDHomeScreen(userData: userData)));
+          }
         } else {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => CaretakerSelectionScreen(userData: userData)));
+          await authService.value.signOut();
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access Denied: Not an MSWD account'), backgroundColor: error));
         }
       } else {
-        // NEW GOOGLE USER: They authenticated, but haven't filled out the form.
-        if (!mounted) return; // FIXED: Add mounted guard
-        
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PartiallySightedSignupScreen(googleUser: userCredential.user),
-          ),
-        );
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Almost there! Please complete your medical profile to finish registration.'), 
-            backgroundColor: primary,
-            duration: Duration(seconds: 4),
-          ),
-        );
+        // User not in DB, route to Signup
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MSWDSignupScreen(googleUser: userCredential.user),
+            ),
+          );
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Almost there! Please complete your staff profile.'), 
+              backgroundColor: primary,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // --- STANDARD LOGIN LOGIC ---
+  // ==================== STANDARD LOGIN LOGIC ====================
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please fill in all fields'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields'), backgroundColor: error));
       return;
     }
-    if (!_emailController.text.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Please enter a valid email address'), backgroundColor: error));
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
-      UserCredential userCredential = await authService.value.signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
+      UserCredential userCredential = await authService.value.signIn(email: _emailController.text.trim(), password: _passwordController.text);
       Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
       
-      if (userData != null) {
-        String userRole = userData['role'] ?? '';
-        
-        if (userRole != 'partially_sighted') {
-          await authService.value.signOut();
-          if (!mounted) return; // FIXED: Add mounted guard
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('This account is not registered as a Partially Sighted User'), backgroundColor: error));
-          return;
+      if (userData != null && (userData['role'] == 'admin' || userData['role'] == 'mswd')) {
+         await activityLogsService.logActivity(userId: userCredential.user!.uid, action: 'login', details: 'MSWD logged in');
+        if (mounted) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MSWDHomeScreen(userData: userData)));
         }
-        
-        await activityLogsService.logActivity(
-          userId: userCredential.user!.uid,
-          action: 'login',
-          details: 'User logged in as $userRole',
-        );
-        
-        userData['uid'] = userCredential.user!.uid;
-        
-        bool hasCaretaker = false;
-        if (userData['assignedCaretakers'] != null) {
-          Map<dynamic, dynamic> assignedCaretakers = userData['assignedCaretakers'] as Map;
-          hasCaretaker = assignedCaretakers.isNotEmpty;
-        }
-        
-        if (!mounted) return; // FIXED: Add mounted guard
-        
-        if (hasCaretaker) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => PartiallySightedHomeScreen(userData: userData)));
-          Future.delayed(Duration(milliseconds: 500), () {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome back!'), backgroundColor: primary));
-            }
-          });
-        } else {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => CaretakerSelectionScreen(userData: userData)));
-        }
+      } else {
+        await authService.value.signOut();
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access Denied: Not an MSWD account'), backgroundColor: error));
       }
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'An error occurred';
-      
-      // FIXED: Wrapped all statements in blocks
-      if (e.code == 'user-not-found') {
-        errorMessage = 'No user found with this email';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Wrong password';
-      } else if (e.code == 'invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (e.code == 'user-disabled') {
-        errorMessage = 'Account disabled';
-      } else if (e.code == 'too-many-requests') {
-        errorMessage = 'Too many attempts. Try again later';
-      } else {
-        errorMessage = e.message ?? 'Login failed';
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(errorMessage), backgroundColor: error));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed'), backgroundColor: error));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }
