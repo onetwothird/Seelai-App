@@ -252,7 +252,7 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           Positioned.fill(
             child: Opacity(
               opacity: 0.08,
-              child: Image.asset('assets/images/eye background.jpg', fit: BoxFit.cover),
+              child: Image.asset('assets/icons/eye background.jpg', fit: BoxFit.cover),
             ),
           ),
 

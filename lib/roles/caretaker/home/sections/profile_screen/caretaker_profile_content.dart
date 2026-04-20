@@ -7,6 +7,10 @@ import 'package:seelai_app/firebase/database_service.dart';
 import 'package:intl/intl.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
 
+// IMPORTANT: Ensure these paths match where you saved the new screens!
+import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/about_seelai_screen.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/privacy_policy_screen.dart';
+
 class ProfileContent extends StatefulWidget {
   final Map<String, dynamic> userData;
   final bool isDarkMode;
@@ -33,6 +37,7 @@ class _ProfileContentState extends State<ProfileContent> {
   final Color _colSafety = const Color(0xFFEF4444);        
   final Color _colSupport = const Color(0xFF06B6D4);       
   final Color _colSecurity = const Color(0xFF10B981);      
+  final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
   void initState() {
@@ -164,7 +169,7 @@ class _ProfileContentState extends State<ProfileContent> {
             ],
           ),
 
-          // ==================== SUPPORT & INFO ====================
+          // ==================== SUPPORT & INFO (UPDATED) ====================
           _buildSettingsGroup(
             title: 'Support & Information',
             children: [
@@ -175,22 +180,16 @@ class _ProfileContentState extends State<ProfileContent> {
                 onTap: _showHowToUseDialog,
               ),
               _buildSettingsTile(
+                title: 'About Seelai', // Replaced generic Terms of Service with About Seelai
+                icon: Icons.info_outline_rounded,
+                iconColor: _colSupport,
+                onTap: _showAboutDialog, // Triggers new function
+              ),
+              _buildSettingsTile(
                 title: 'Privacy Policy',
                 icon: Icons.privacy_tip_outlined,
                 iconColor: _colSupport,
-                onTap: () => _showInfoDialog(
-                  'Privacy Policy', 
-                  'This application collects minimal data required to assist partially sighted individuals. Your location data is shared only with your assigned patients during active monitoring.'
-                ),
-              ),
-              _buildSettingsTile(
-                title: 'Terms of Service',
-                icon: Icons.description_outlined,
-                iconColor: _colSupport,
-                onTap: () => _showInfoDialog(
-                  'Terms of Service', 
-                  'By using this app, you agree to act responsibly as a caretaker and respond to emergency alerts promptly.'
-                ),
+                onTap: _showPrivacyDialog, // Triggers new function
                 isLast: true,
               ),
             ],
@@ -496,7 +495,33 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  // ==================== DIALOGS ====================
+  // ==================== NEW NAVIGATION DIALOGS ====================
+
+  void _showAboutDialog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AboutSeelaiScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacyDialog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrivacyPolicyScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
+        ),
+      ),
+    );
+  }
+
+  // ==================== EDIT/LOGOUT DIALOGS ====================
 
   void _showEditProfileDialog() {
     final parentContext = context; 
@@ -684,74 +709,29 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  void _showLogoutDialog() {
+ void _showLogoutDialog() {
     final parentContext = context;
 
     showDialog(
       context: parentContext,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
+        backgroundColor: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: widget.theme.subtextColor.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: _colSafety.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.logout_rounded, color: _colSafety, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  'Sign Out', 
-                  style: TextStyle(
-                    color: widget.theme.textColor, 
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 22,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
+            Icon(Icons.logout_rounded, color: _colSafety), 
+            const SizedBox(width: 10),
+            Text('Sign Out?', style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black)),
           ],
         ),
         content: Text(
-          'Are you sure you want to sign out?', 
-          style: TextStyle(
-            color: widget.theme.subtextColor, 
-            fontSize: 16, 
-            height: 1.5,
-          ),
+          'Are you sure you want to sign out?',
+          style: TextStyle(color: widget.isDarkMode ? Colors.white70 : Colors.black87),
         ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Cancel', 
-              style: TextStyle(
-                color: widget.theme.subtextColor, 
-                fontWeight: FontWeight.w600, 
-                fontSize: 16,
-              ),
-            ),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -770,41 +750,13 @@ class _ProfileContentState extends State<ProfileContent> {
               );
               
               if (mounted) {
-                _showSnackbar('Successfully signed out', Colors.green);
+                _showSnackbar('Successfully signed out', _primaryColor);
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _colSafety,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
             ),
-            child: const Text(
-              'Sign Out', 
-              style: TextStyle(
-                color: Colors.white, 
-                fontWeight: FontWeight.bold, 
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showInfoDialog(String title, String content) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
-        content: SingleChildScrollView(child: Text(content, style: TextStyle(fontSize: 15, color: widget.theme.subtextColor, height: 1.5))),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: TextStyle(color: _colSupport, fontWeight: FontWeight.bold)),
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

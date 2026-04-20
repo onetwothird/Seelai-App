@@ -1,4 +1,4 @@
-// File: lib/roles/partially_sighted/home/sections/profile_content/privacy_policy_screen.dart
+// File: lib/roles/mswd/home/sections/profile_content/privacy_policy_screen.dart
 
 import 'package:flutter/material.dart';
 
@@ -6,7 +6,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
   final dynamic theme;
   final bool isDarkMode;
   
-  // Requested Color Palette
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   const PrivacyPolicyScreen({
@@ -17,7 +16,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // UPDATED: Background is now pure white in light mode to match the header seamlessly
     final Color bgColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
     final Color headerColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDarkMode ? Colors.white : const Color(0xFF111827);
@@ -30,7 +28,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           // ==================== WHITE SCROLLING HEADER ====================
           SliverAppBar(
             backgroundColor: headerColor,
-            surfaceTintColor: headerColor, // Prevents color shifting on scroll
+            surfaceTintColor: headerColor, 
             pinned: true,
             elevation: 1,
             shadowColor: Colors.black.withValues(alpha: 0.05),
@@ -55,7 +53,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Your Privacy\nMatters',
+                    'Administrative\nData Compliance',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
@@ -66,7 +64,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Last updated: April 2026\n\nAt SEELAI, we are deeply committed to protecting the privacy and security of both our partially sighted users and their caretakers. This policy outlines how we handle your data.',
+                    'Last updated: April 2026\n\nAs an MSWD Administrator for the SEELAI system, you are bound by strict municipal and national data privacy laws. This policy outlines your administrative responsibilities regarding citizen data.',
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
@@ -77,33 +75,33 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
                   // Policy Sections
                   _buildPolicySection(
-                    title: '1. Camera & Image Data',
-                    icon: Icons.camera_alt_outlined,
-                    content: 'SEELAI relies on your device\'s camera for object and face detection. To ensure your maximum privacy, all visual processing is performed locally on your device using TensorFlow Lite. We do not record, store, or transmit your live camera feed to external servers.',
+                    title: '1. Elevated Data Access',
+                    icon: Icons.admin_panel_settings_outlined,
+                    content: 'You possess elevated access to sensitive demographic, medical diagnoses, and real-time location data of citizens. This access is granted strictly for official municipal monitoring, support coordination, and emergency dispatch purposes.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
                   
                   _buildPolicySection(
-                    title: '2. Caretaker Facial Recognition',
-                    icon: Icons.face_retouching_natural_rounded,
-                    content: 'When registering a caretaker\'s face into the system, the facial mapping data is securely encrypted. This data is used strictly for the purpose of recognizing trusted individuals within your immediate vicinity.',
+                    title: '2. Strict Confidentiality',
+                    icon: Icons.lock_outline_rounded,
+                    content: 'All citizen records, SOS alert histories, and caretaker assignments are highly confidential. Unauthorized exporting, sharing, or misuse of this data outside official MSWD operations is a direct violation of data privacy regulations.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
 
                   _buildPolicySection(
-                    title: '3. Location & SOS Services',
-                    icon: Icons.emergency_outlined,
-                    content: 'Your location data is only accessed when the SOS emergency feature is activated. Upon activation, your precise location is transmitted exclusively to your registered caretakers to facilitate immediate assistance.',
+                    title: '3. Mandatory Audit Logging',
+                    icon: Icons.manage_search_rounded,
+                    content: 'To maintain complete transparency and systemic accountability, all administrative actions—including profile reviews, data report exports, and broadcast messaging—are permanently recorded in the system activity logs.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
 
                   _buildPolicySection(
-                    title: '4. Data Sharing & Dashboard',
-                    icon: Icons.dashboard_customize_outlined,
-                    content: 'Personal and medical information (such as diagnosis and contact details) is stored securely in our Firebase backend. This information is only accessible to you and the caretakers you explicitly authorize via the web-based management dashboard. We do not sell your data to third parties.',
+                    title: '4. Official Communications',
+                    icon: Icons.campaign_outlined,
+                    content: 'The system broadcast and direct messaging tools must be utilized exclusively for official MSWD announcements, emergency warnings, and verified community support initiatives.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
@@ -121,11 +119,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.shield_outlined, color: _primaryColor, size: 24),
+                        Icon(Icons.gavel_rounded, color: _primaryColor, size: 24),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            'By using SEELAI, you consent to this policy. For account deletion or data removal requests, please contact your primary caretaker or system administrator.',
+                            'By logging into the MSWD Admin Portal, you acknowledge these terms and agree to handle all citizen data ethically and legally.',
                             style: TextStyle(
                               fontSize: 14,
                               height: 1.5,
@@ -137,7 +135,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 48), // Bottom padding
+                  const SizedBox(height: 48), 
                 ],
               ),
             ),
@@ -147,7 +145,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  // Clean, structured list item for policy rules
   Widget _buildPolicySection({
     required String title, 
     required IconData icon, 

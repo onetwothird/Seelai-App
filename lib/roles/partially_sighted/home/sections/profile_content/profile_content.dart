@@ -47,6 +47,7 @@ class _ProfileContentState extends State<ProfileContent> {
   final Color _colSecurity = const Color(0xFF10B981); 
   final Color _colSupport = const Color(0xFF06B6D4);  
   final Color _colSafety = const Color(0xFFEF4444);   
+  final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
   void initState() {
@@ -751,72 +752,27 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
- void _showLogoutDialog() {
+void _showLogoutDialog() {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-        contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        title: Column(
-          mainAxisSize: MainAxisSize.min,
+        backgroundColor: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
           children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: widget.theme.subtextColor.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: _colSafety.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.logout_rounded, color: _colSafety, size: 24),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  'Sign Out', 
-                  style: TextStyle(
-                    color: widget.theme.textColor, 
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 22,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
+            Icon(Icons.logout_rounded, color: _colSafety), // Red instead of purple
+            const SizedBox(width: 10),
+            Text('Sign Out?', style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black)),
           ],
         ),
-        content: Text(
-          'Are you sure you want to sign out?', 
-          style: TextStyle(
-            color: widget.theme.subtextColor, 
-            fontSize: 16, 
-            height: 1.5,
-          ),
+       content: Text(
+          'Are you sure you want to sign out?',
+          style: TextStyle(color: widget.isDarkMode ? Colors.white70 : Colors.black87),
         ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'Cancel', 
-              style: TextStyle(
-                color: widget.theme.subtextColor, 
-                fontWeight: FontWeight.w600, 
-                fontSize: 16,
-              ),
-            ),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -834,22 +790,10 @@ class _ProfileContentState extends State<ProfileContent> {
                 (route) => false, 
               );
               
-              _showSnackbar('Successfully signed out', Colors.green);
+              _showSnackbar('Successfully signed out', _primaryColor);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _colSafety,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Sign Out', 
-              style: TextStyle(
-                color: Colors.white, 
-                fontWeight: FontWeight.bold, 
-                fontSize: 16,
-              ),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: _colSafety), // Red instead of purple
+            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

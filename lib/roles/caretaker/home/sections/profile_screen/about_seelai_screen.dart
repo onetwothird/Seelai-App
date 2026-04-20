@@ -1,4 +1,4 @@
-// File: lib/roles/partially_sighted/home/sections/profile_content/about_seelai_screen.dart
+// File: lib/roles/caretaker/home/sections/profile_screen/about_seelai_screen.dart
 
 import 'package:flutter/material.dart';
 
@@ -17,7 +17,6 @@ class AboutSeelaiScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Define clean contrast colors based on theme
     final Color bgColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
     final Color headerColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final Color cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
@@ -51,7 +50,6 @@ class AboutSeelaiScreen extends StatelessWidget {
           // ==================== MAIN CONTENT ====================
           SliverToBoxAdapter(
             child: Padding(
-              // Reduced top padding slightly to bring content up
               padding: const EdgeInsets.fromLTRB(20.0, 16.0, 20.0, 32.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -59,13 +57,13 @@ class AboutSeelaiScreen extends StatelessWidget {
                   
                   // ==================== REFINED LOGO SECTION ====================
                   Container(
-                    width: 110, // Smaller, tighter size
+                    width: 110,
                     height: 110,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28.0), // Smooth, continuous curve
+                      borderRadius: BorderRadius.circular(28.0),
                       boxShadow: isDarkMode ? [] : [ 
                         BoxShadow(
-                          color: _primaryColor.withValues(alpha: 0.25), // Soft purple glow instead of harsh black shadow
+                          color: _primaryColor.withValues(alpha: 0.25), 
                           blurRadius: 24,
                           spreadRadius: -4,
                           offset: const Offset(0, 8),
@@ -76,7 +74,7 @@ class AboutSeelaiScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(28.0), 
                       child: Image.asset(
                         'assets/seelai_app_logo/seelai_app_logo.png',
-                        fit: BoxFit.cover, // Removes the awkward white box-in-box look
+                        fit: BoxFit.cover, 
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: Colors.white,
                           child: Icon(
@@ -88,7 +86,7 @@ class AboutSeelaiScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16), // Tighter spacing
+                  const SizedBox(height: 16),
                   
                   // ==================== APP TITLE & VERSION ====================
                   Text(
@@ -116,23 +114,23 @@ class AboutSeelaiScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24), // Significantly reduced gap before cards
+                  const SizedBox(height: 24),
                   
                   // ==================== CONTENT CARDS ====================
                   _buildSectionCard(
                     title: 'Our Mission',
                     icon: Icons.lightbulb_outline_rounded,
-                    content: 'SEELAI is an intelligent mobile assistant dedicated to enhancing the daily activities and independence of partially sighted individuals. By bridging the gap between advanced technology and accessibility, we aim to provide a safer, more navigable world for our users.',
+                    content: 'SEELAI bridges the gap between advanced technology and accessibility. For caretakers, it provides a comprehensive suite of tools to monitor, assist, and ensure the safety of partially sighted individuals from anywhere.',
                     cardColor: cardColor,
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
-                  const SizedBox(height: 12), // Tighter gap between cards
+                  const SizedBox(height: 12),
                   
                   _buildSectionCard(
-                    title: 'Core Technology',
-                    icon: Icons.memory_rounded,
-                    content: 'Powered by state-of-the-art machine learning, SEELAI utilizes the YOLO algorithm and TensorFlow Lite to provide rapid, on-device object and face detection. This ensures real-time environmental awareness without the constant need for an internet connection.',
+                    title: 'Monitoring & Alerts',
+                    icon: Icons.notification_important_rounded,
+                    content: 'Receive instant SOS emergency notifications, track real-time locations during critical moments, and maintain a secure line of communication with your assigned patients to provide immediate assistance.',
                     cardColor: cardColor,
                     textColor: textColor,
                     subTextColor: subTextColor,
@@ -140,9 +138,9 @@ class AboutSeelaiScreen extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   _buildSectionCard(
-                    title: 'Caretaker Integration',
-                    icon: Icons.people_outline_rounded,
-                    content: 'SEELAI is built for collaboration. The system seamlessly connects users with their registered caretakers, allowing for trusted facial recognition, secure emergency SOS alerts, and remote technical model management.',
+                    title: 'System Management',
+                    icon: Icons.dashboard_customize_rounded,
+                    content: 'Use the SEELAI ecosystem to remotely manage trusted face registrations and monitor technical statistics, helping your patients navigate their world safely and independently.',
                     cardColor: cardColor,
                     textColor: textColor,
                     subTextColor: subTextColor,
@@ -150,7 +148,7 @@ class AboutSeelaiScreen extends StatelessWidget {
                   
                   const SizedBox(height: 32),
                   Text(
-                    'Designed with purpose.\nBuilt for independence.',
+                    'Designed for support.\nBuilt for peace of mind.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -169,7 +167,6 @@ class AboutSeelaiScreen extends StatelessWidget {
     );
   }
 
-  // Refined card layout with slightly tighter padding
   Widget _buildSectionCard({
     required String title, 
     required IconData icon, 
@@ -180,7 +177,7 @@ class AboutSeelaiScreen extends StatelessWidget {
   }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20), // Reduced from 24 to save space
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
@@ -197,7 +194,7 @@ class AboutSeelaiScreen extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8), // Reduced from 10
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: _primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
@@ -208,7 +205,7 @@ class AboutSeelaiScreen extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  fontSize: 17, // Slightly smaller
+                  fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: textColor,
                   letterSpacing: -0.3,
@@ -216,11 +213,11 @@ class AboutSeelaiScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12), // Reduced gap
+          const SizedBox(height: 12),
           Text(
             content,
             style: TextStyle(
-              fontSize: 14, // Scaled down slightly for better density
+              fontSize: 14,
               height: 1.5,
               color: subTextColor,
             ),

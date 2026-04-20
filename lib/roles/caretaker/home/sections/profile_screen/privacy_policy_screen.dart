@@ -1,4 +1,4 @@
-// File: lib/roles/partially_sighted/home/sections/profile_content/privacy_policy_screen.dart
+// File: lib/roles/caretaker/home/sections/profile_screen/privacy_policy_screen.dart
 
 import 'package:flutter/material.dart';
 
@@ -17,7 +17,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // UPDATED: Background is now pure white in light mode to match the header seamlessly
+    // Pure white background in light mode to match the header seamlessly
     final Color bgColor = isDarkMode ? const Color(0xFF121212) : Colors.white;
     final Color headerColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDarkMode ? Colors.white : const Color(0xFF111827);
@@ -30,7 +30,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           // ==================== WHITE SCROLLING HEADER ====================
           SliverAppBar(
             backgroundColor: headerColor,
-            surfaceTintColor: headerColor, // Prevents color shifting on scroll
+            surfaceTintColor: headerColor, 
             pinned: true,
             elevation: 1,
             shadowColor: Colors.black.withValues(alpha: 0.05),
@@ -55,7 +55,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Your Privacy\nMatters',
+                    'Caretaker\nData Privacy',
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w900,
@@ -66,7 +66,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Last updated: April 2026\n\nAt SEELAI, we are deeply committed to protecting the privacy and security of both our partially sighted users and their caretakers. This policy outlines how we handle your data.',
+                    'Last updated: April 2026\n\nAt SEELAI, we protect the privacy of both our partially sighted users and their dedicated caretakers. This policy outlines your responsibilities regarding patient data and how your own information is handled.',
                     style: TextStyle(
                       fontSize: 16,
                       height: 1.6,
@@ -77,33 +77,33 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
                   // Policy Sections
                   _buildPolicySection(
-                    title: '1. Camera & Image Data',
-                    icon: Icons.camera_alt_outlined,
-                    content: 'SEELAI relies on your device\'s camera for object and face detection. To ensure your maximum privacy, all visual processing is performed locally on your device using TensorFlow Lite. We do not record, store, or transmit your live camera feed to external servers.',
+                    title: '1. Patient Data Access',
+                    icon: Icons.visibility_outlined,
+                    content: 'As a caretaker, you are granted access to sensitive patient data, including real-time location and emergency SOS alerts. This access is strictly bound to the patients who have explicitly authorized your connection.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
                   
                   _buildPolicySection(
-                    title: '2. Caretaker Facial Recognition',
-                    icon: Icons.face_retouching_natural_rounded,
-                    content: 'When registering a caretaker\'s face into the system, the facial mapping data is securely encrypted. This data is used strictly for the purpose of recognizing trusted individuals within your immediate vicinity.',
+                    title: '2. Camera & Visual Privacy',
+                    icon: Icons.camera_alt_outlined,
+                    content: 'You do not have continuous access to the patient\'s live camera feed. Visual data and location are only transmitted during active SOS emergencies or specific assistance requests to protect patient autonomy.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
 
                   _buildPolicySection(
-                    title: '3. Location & SOS Services',
-                    icon: Icons.emergency_outlined,
-                    content: 'Your location data is only accessed when the SOS emergency feature is activated. Upon activation, your precise location is transmitted exclusively to your registered caretakers to facilitate immediate assistance.',
+                    title: '3. Your Information',
+                    icon: Icons.admin_panel_settings_outlined,
+                    content: 'Your contact information and facial mapping data (if registered into the system for recognition) are encrypted. This data is shared exclusively with your assigned patients to establish trust and recognition.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
 
                   _buildPolicySection(
-                    title: '4. Data Sharing & Dashboard',
-                    icon: Icons.dashboard_customize_outlined,
-                    content: 'Personal and medical information (such as diagnosis and contact details) is stored securely in our Firebase backend. This information is only accessible to you and the caretakers you explicitly authorize via the web-based management dashboard. We do not sell your data to third parties.',
+                    title: '4. Security & Compliance',
+                    icon: Icons.shield_outlined,
+                    content: 'All data is stored securely using our Firebase backend services. We require all caretakers to act responsibly, maintain the confidentiality of the patients they monitor, and never share patient data with unauthorized third parties.',
                     textColor: textColor,
                     subTextColor: subTextColor,
                   ),
@@ -121,11 +121,11 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.shield_outlined, color: _primaryColor, size: 24),
+                        Icon(Icons.verified_user_outlined, color: _primaryColor, size: 24),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            'By using SEELAI, you consent to this policy. For account deletion or data removal requests, please contact your primary caretaker or system administrator.',
+                            'By acting as a SEELAI caretaker, you consent to this policy and agree to handle patient data ethically. For account deletion, contact the system administrator.',
                             style: TextStyle(
                               fontSize: 14,
                               height: 1.5,
@@ -137,7 +137,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 48), // Bottom padding
+                  const SizedBox(height: 48), 
                 ],
               ),
             ),
@@ -147,7 +147,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
     );
   }
 
-  // Clean, structured list item for policy rules
   Widget _buildPolicySection({
     required String title, 
     required IconData icon, 
