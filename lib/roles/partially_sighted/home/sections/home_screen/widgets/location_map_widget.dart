@@ -183,6 +183,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   Future<void> _startLocationTracking() async {
     try {
+      // 1. Try to get cached position for immediate map centering
       Position? cachedPosition = await Geolocator.getLastKnownPosition();
       
       if (cachedPosition != null && mounted) {
@@ -202,37 +203,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         }
       }
 
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high, 
-        ),
-      ).timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          if (cachedPosition != null) return cachedPosition; 
-          throw TimeoutException('Getting location is taking too long...');
-        },
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _currentPosition = position;
-        _isTrackingActive = true;
-        _isLoading = false;
-        _permissionDenied = false;
-      });
-
-      await _updateFirebaseLocation(position);
-      
-      if (_isMapReady) {
-        await _updateMapWithBothLocations();
-        await _mapController.moveTo(
-          GeoPoint(latitude: position.latitude, longitude: position.longitude),
-          animate: true,
-        );
-      }
-      
+      // 2. Initialize streams FIRST. Even if the initial fetch is slow, the stream will catch the location once GPS locks.
       _caretakerLocationStream?.cancel();
       _caretakerCheckTimer?.cancel();
       _startCaretakerLocationListener();
@@ -247,15 +218,25 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         (Position position) async {
           if (!mounted) return;
           
+          bool isFirstValidLock = _currentPosition == null;
+          
           if (_hasSignificantChange(_currentPosition, position)) {
             setState(() {
               _currentPosition = position;
+              _isLoading = false; // Dismiss loading when GPS finally connects
             });
 
             if (_isMapReady) {
               await _updateMapWithBothLocations();
+              
+              // Automatically pan to the user when the GPS locks for the very first time
+              if (isFirstValidLock) {
+                 await _mapController.moveTo(
+                  GeoPoint(latitude: position.latitude, longitude: position.longitude),
+                  animate: true,
+                );
+              }
             }
-
             await _updateFirebaseLocation(position);
           }
         },
@@ -271,18 +252,49 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         }
       });
       
+      // 3. Try to get a fresh position (handle timeout gracefully)
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        ).timeout(const Duration(seconds: 15)); // Increased to 15 seconds for fresh logins
+
+        if (!mounted) return;
+
+        setState(() {
+          _currentPosition = position;
+          _isTrackingActive = true;
+          _isLoading = false;
+          _permissionDenied = false;
+        });
+
+        await _updateFirebaseLocation(position);
+        
+        if (_isMapReady) {
+          await _updateMapWithBothLocations();
+          await _mapController.moveTo(
+            GeoPoint(latitude: position.latitude, longitude: position.longitude),
+            animate: true,
+          );
+        }
+      } on TimeoutException {
+        // If it times out, DO NOT hide the map. The position stream above will eventually find the user.
+        debugPrint('getCurrentPosition timed out. Relying on position stream.');
+        if (cachedPosition == null && mounted) {
+           _showSnackBar(
+            'Acquiring GPS signal. This may take a moment...',
+            Icons.gps_fixed,
+            const Color(0xFF8B5CF6),
+          );
+        }
+      }
+      
     } catch (e) {
       debugPrint('Error starting location tracking: $e');
-      if (mounted) {
+      if (mounted && _currentPosition == null) {
         setState(() {
           _isLoading = false;
-          _permissionDenied = true;
+          // Removed _permissionDenied = true; -> don't assume a general error means permissions were revoked
         });
-        _showSnackBar(
-          'Could not get your location. Please try again.',
-          Icons.error_outline,
-          Colors.red, 
-        );
       }
     }
   }
@@ -724,9 +736,21 @@ String? _extractImageUrl(Map<String, dynamic> data) {
       onMapIsReady: (isReady) async {
         if (!mounted) return;
         setState(() => _isMapReady = isReady);
+        
         if (isReady && _currentPosition != null) {
           await Future.delayed(const Duration(milliseconds: 300));
-          if (mounted) await _updateMapWithBothLocations();
+          if (mounted) {
+             await _updateMapWithBothLocations();
+             
+             // NEW: Ensure the map moves to the user if the map rendered AFTER the location was found
+             await _mapController.moveTo(
+               GeoPoint(
+                 latitude: _currentPosition!.latitude, 
+                 longitude: _currentPosition!.longitude
+               ),
+               animate: true,
+             );
+          }
         }
       },
     );
