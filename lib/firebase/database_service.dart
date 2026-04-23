@@ -8,13 +8,10 @@ class DatabaseService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // Expose database instance for other services
   FirebaseDatabase get database => _database;
 
-  // Helper method to get the correct path based on role
   String getUserPath(String role, String userId) {
     switch (role) {
       case 'partially_sighted':
