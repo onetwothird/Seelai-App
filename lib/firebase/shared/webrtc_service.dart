@@ -1,6 +1,7 @@
 // File: lib/firebase/shared/webrtc_service.dart
 
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
@@ -15,17 +16,33 @@ class WebRTCService {
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
 
+  // UPDATED: Added your specific Metered.ca STUN and TURN servers
   final Map<String, dynamic> _configuration = {
     'iceServers': [
       {'urls': 'stun:stun.l.google.com:19302'},
       {'urls': 'stun:stun1.l.google.com:19302'},
+      {'urls': 'stun:stun.relay.metered.ca:80'},
+      {
+        'urls': 'turn:global.relay.metered.ca:80',
+        'username': '39bd9edd6bd07b93b59e2a7c',
+        'credential': 'eFiAfnch2oDDz6R5',
+      },
+      {
+        'urls': 'turn:global.relay.metered.ca:443',
+        'username': '39bd9edd6bd07b93b59e2a7c',
+        'credential': 'eFiAfnch2oDDz6R5',
+      },
+      {
+        'urls': 'turns:global.relay.metered.ca:443?transport=tcp',
+        'username': '39bd9edd6bd07b93b59e2a7c',
+        'credential': 'eFiAfnch2oDDz6R5',
+      }
     ]
   };
 
   Function(MediaStream stream)? onAddRemoteStream;
   Function()? onConnectionClosed;
 
-  // FIX: ICE Candidate Queue to prevent Black Screens
   final List<RTCIceCandidate> _remoteCandidatesQueue = [];
   bool _isRemoteDescriptionSet = false;
 
@@ -34,21 +51,27 @@ class WebRTCService {
     await remoteRenderer.initialize();
   }
 
+  // UPDATED: Changed 'mandatory' to 'ideal' to prevent camera crashes
   Future<void> openUserMedia(bool isVideo) async {
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
       'video': isVideo ? {
-        'mandatory': {
-          'minWidth': '640', 
-          'minHeight': '480',
-          'minFrameRate': '30',
+        'ideal': {
+          'width': 640, 
+          'height': 480,
+          'frameRate': 30,
         },
         'facingMode': 'user',
       } : false,
     };
 
-    _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-    localRenderer.srcObject = _localStream;
+    try {
+      _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+      localRenderer.srcObject = _localStream;
+    } catch (e) {
+      debugPrint("Camera/Mic Error: Failed to open user media. $e");
+      rethrow; 
+    }
   }
 
   Future<void> _createPeerConnection(String path, String callId, bool isCaller) async {
@@ -111,7 +134,6 @@ class WebRTCService {
           await _peerConnection!.setRemoteDescription(answer);
           _isRemoteDescriptionSet = true;
 
-          // Process queued ICE candidates now that SDP is ready
           for (var candidate in _remoteCandidatesQueue) {
             await _peerConnection!.addCandidate(candidate);
           }
@@ -156,7 +178,6 @@ class WebRTCService {
             'sdp': answer.sdp,
           });
 
-          // Process queued ICE candidates now that SDP is ready
           for (var candidate in _remoteCandidatesQueue) {
             await _peerConnection!.addCandidate(candidate);
           }

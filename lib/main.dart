@@ -1,25 +1,99 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; 
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart'; 
+import 'package:flutter_callkit_incoming/entities/entities.dart'; // Make sure this is here!
 import 'package:seelai_app/core/firebase_options.dart';
 import 'package:seelai_app/screens/splash_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() async {
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
 
+  if (message.data['type'] == 'emergency_alarm') {
+    final patientName = message.data['patientName'] ?? 'Patient';
+    final requestMsg = message.data['message'] ?? 'Emergency Assistance Needed!';
+    final requestId = message.data['requestId'] ?? 'req_${DateTime.now().millisecondsSinceEpoch}';
+
+    final callParams = CallKitParams(
+      id: requestId,
+      nameCaller: 'EMERGENCY: $patientName',
+      appName: 'SEELAI',
+      avatar: '', 
+      handle: requestMsg,
+      type: 0, 
+      duration: 30000, 
+      textAccept: 'Open App',
+      textDecline: 'Dismiss',
+      extra: <String, dynamic>{'requestId': requestId},
+      android: const AndroidParams(
+        isCustomNotification: true,
+        isShowLogo: false,
+        ringtonePath: 'system_ringtone_default', 
+        backgroundColor: '#FF0000', 
+        actionColor: '#4CAF50',
+      ),
+      ios: const IOSParams(
+        iconName: 'AppIcon',
+        handleType: '',
+        supportsVideo: false,
+        maximumCallGroups: 1,
+        maximumCallsPerCallGroup: 1,
+        audioSessionMode: 'default',
+        audioSessionActive: true,
+        audioSessionPreferredSampleRate: 44100.0,
+        audioSessionPreferredIOBufferDuration: 0.005,
+        supportsDTMF: true,
+        supportsHolding: true,
+        supportsGrouping: false,
+        supportsUngrouping: false,
+        ringtonePath: 'system_ringtone_default',
+      ),
+    );
+    
+    await FlutterCallkitIncoming.showCallkitIncoming(callParams);
+  }
+}
+
+// ==========================================
+// ADDED: The Permission Function
+// ==========================================
+Future<void> requestNotificationPermissions() async {
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: true,
+    provisional: false,
+    sound: true,
+  );
+  debugPrint('User granted permission: ${settings.authorizationStatus}');
+}
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
-  // Initialize the Firebase
+  // Initialize Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    if (e.toString().contains('duplicate-app')) {
-    } else {
+    if (!e.toString().contains('duplicate-app')) {
       rethrow;
     }
   }
+
+  // ==========================================
+  // ADDED: Call the permission request here!
+  // ==========================================
+  await requestNotificationPermissions();
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   
   runApp(const MainApp());
 }
@@ -29,9 +103,9 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const AnimatedSplashScreenWidget(),
+      home: AnimatedSplashScreenWidget(),
     );
   }
 }

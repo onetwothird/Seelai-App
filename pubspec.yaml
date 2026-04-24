@@ -13,7 +13,7 @@ dependencies:
   cloud_firestore: ^6.0.3
   firebase_database: ^12.0.3
   provider: ^6.1.5+1
-  firebase_messaging: ^16.1.1
+  firebase_messaging: ^16.2.0
   firebase_core: ^4.2.0
   camera: ^0.11.4
   intl: ^0.20.2
@@ -47,6 +47,7 @@ dependencies:
   uuid: ^4.5.3
   pdf: ^3.12.0
   printing: ^5.14.3
+  flutter_callkit_incoming: ^3.0.0
   
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,3 @@
-// File: lib/roles/caretaker/home/sections/home_screen/communication/screens/caretaker_voice_call_screen.dart
-
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -131,17 +129,28 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
     super.dispose();
   }
 
-  Future<void> _startCallProcess() async {
-    await Permission.microphone.request();
-    
-    await _webrtcService.initRenderers();
-    await _webrtcService.openUserMedia(false); 
-    
-    _webrtcService.onConnectionClosed = () {
-      if (mounted) _endCall();
-    };
+ Future<void> _startCallProcess() async {
+    final micStatus = await Permission.microphone.request();
 
-    await _handleCallConnection();
+    if (!micStatus.isGranted) {
+      debugPrint("Microphone Permission Denied! Ending call process.");
+      if (mounted) _endCall();
+      return; 
+    }
+
+    try {
+      await _webrtcService.initRenderers();
+      await _webrtcService.openUserMedia(false); 
+      
+      _webrtcService.onConnectionClosed = () {
+        if (mounted) _endCall();
+      };
+
+      await _handleCallConnection();
+    } catch (e) {
+      debugPrint("Failed to open mic: $e");
+      if (mounted) _endCall(); 
+    }
   }
 
   Future<void> _handleCallConnection() async {
@@ -198,7 +207,6 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
   Future<void> _endCall() async {
     if (_isEnding) return;
     
-    // FIX: Using setState forces the screen to hide BEFORE WebRTC throws errors
     if (mounted) {
       setState(() => _isEnding = true);
     } else {
@@ -232,8 +240,6 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
 
   @override
   Widget build(BuildContext context) {
-    if (_isEnding) return const SizedBox.shrink(); // FIX: Safely removes UI
-
     final size = MediaQuery.of(context).size;
     
     double pipWidth = 120.0;
