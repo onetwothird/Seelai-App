@@ -28,6 +28,10 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
 
   final List<String> _filterOptions = ['Last 7 Days', 'Last 30 Days', 'All Time'];
 
+  // Pagination Variables
+  int _currentPage = 1;
+  final int _itemsPerPage = 10; // Change this to show more/less logs per page
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +60,8 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
   void _applyFilter(String filter) {
     setState(() {
       _selectedFilter = filter;
+      _currentPage = 1; // Reset to first page whenever filter changes
+      
       if (filter == 'All Time') {
         _filteredLogs = List.from(_allLogs);
         return;
@@ -73,6 +79,12 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
         return logDate.isAfter(cutoffDate);
       }).toList();
     });
+  }
+
+  // Get only the logs for the current page
+  List<Map<String, dynamic>> get _paginatedLogs {
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    return _filteredLogs.skip(startIndex).take(_itemsPerPage).toList();
   }
 
   // Formats system strings (e.g., "ACCOUNT_CREATED" -> "Account Created")
@@ -113,6 +125,8 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
     final Color textColor = widget.isDarkMode ? Colors.white : const Color(0xFF111827);
     final Color subTextColor = widget.isDarkMode ? Colors.white70 : const Color(0xFF6B7280);
     final Color cardColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+
+    final currentLogs = _paginatedLogs;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -188,7 +202,7 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
 
                 const SizedBox(height: 32),
 
-                // Unified Card Layout (Matches the Checkbox Group in Export Report)
+                // Unified Card Layout
                 if (_filteredLogs.isEmpty)
                   Center(
                     child: Padding(
@@ -203,29 +217,106 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
                     ),
                   )
                 else
-                  Container(
-                    decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                      boxShadow: widget.isDarkMode 
-                          ? [] 
-                          : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
-                    ),
-                    // Using ListView inside to build children efficiently
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _filteredLogs.length,
-                      itemBuilder: (context, index) {
-                        final isLast = index == _filteredLogs.length - 1;
-                        return _buildLogItemTile(_filteredLogs[index], isLast, textColor, subTextColor);
-                      },
-                    ),
+                  Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                          boxShadow: widget.isDarkMode 
+                              ? [] 
+                              : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: currentLogs.length,
+                          itemBuilder: (context, index) {
+                            final isLast = index == currentLogs.length - 1;
+                            return _buildLogItemTile(currentLogs[index], isLast, textColor, subTextColor);
+                          },
+                        ),
+                      ),
+                      
+                      // Pagination Controls
+                      _buildPaginationControls(textColor, cardColor),
+                    ],
                   ),
               ],
             ),
           ),
+    );
+  }
+
+  // Pagination UI Builder
+  Widget _buildPaginationControls(Color textColor, Color cardColor) {
+    int totalPages = (_filteredLogs.length / _itemsPerPage).ceil();
+    if (totalPages <= 1) return const SizedBox.shrink();
+
+    List<Widget> pageButtons = [];
+
+    // Previous Button
+    pageButtons.add(
+      IconButton(
+        icon: Icon(Icons.chevron_left_rounded, color: _currentPage > 1 ? textColor : textColor.withValues(alpha: 0.3)),
+        onPressed: _currentPage > 1 ? () => setState(() => _currentPage--) : null,
+      ),
+    );
+
+    // Calculate Dynamic Page Range (Show up to 5 page numbers at a time)
+    int startPage = _currentPage > 2 ? _currentPage - 2 : 1;
+    int endPage = startPage + 4 > totalPages ? totalPages : startPage + 4;
+    
+    if (endPage - startPage < 4 && totalPages > 4) {
+      startPage = endPage - 4;
+    }
+
+    // Page Numbers
+    for (int i = startPage; i <= endPage; i++) {
+      bool isSelected = _currentPage == i;
+      pageButtons.add(
+        GestureDetector(
+          onTap: () => setState(() => _currentPage = i),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: isSelected ? _primaryColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isSelected ? _primaryColor : (widget.isDarkMode ? Colors.white10 : Colors.grey.shade300)
+              )
+            ),
+            child: Text(
+              i.toString(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : textColor,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Next Button
+    pageButtons.add(
+      IconButton(
+        icon: Icon(Icons.chevron_right_rounded, color: _currentPage < totalPages ? textColor : textColor.withValues(alpha: 0.3)),
+        onPressed: _currentPage < totalPages ? () => setState(() => _currentPage++) : null,
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 24.0, bottom: 12.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: pageButtons,
+      ),
     );
   }
 

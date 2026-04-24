@@ -1,5 +1,3 @@
-// File: lib/roles/partially_sighted/home/sections/home_screen/communication/screens/voice_call_screen.dart
-
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -138,16 +136,27 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   }
 
   Future<void> _startCallProcess() async {
-    await Permission.microphone.request();
-    
-    await _webrtcService.initRenderers();
-    await _webrtcService.openUserMedia(false); 
-    
-    _webrtcService.onConnectionClosed = () {
-      if (mounted) _endCall();
-    };
+    final micStatus = await Permission.microphone.request();
 
-    await _handleCallConnection();
+    if (!micStatus.isGranted) {
+      debugPrint("Microphone Permission Denied! Ending call process.");
+      if (mounted) _endCall();
+      return; 
+    }
+
+    try {
+      await _webrtcService.initRenderers();
+      await _webrtcService.openUserMedia(false); 
+      
+      _webrtcService.onConnectionClosed = () {
+        if (mounted) _endCall();
+      };
+
+      await _handleCallConnection();
+    } catch (e) {
+      debugPrint("Failed to open mic: $e");
+      if (mounted) _endCall(); 
+    }
   }
 
   Future<void> _handleCallConnection() async {
@@ -216,7 +225,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   Future<void> _endCall() async {
     if (_isEnding) return;
     
-    // FIX: Using setState forces the screen to hide BEFORE WebRTC throws errors
     if (mounted) {
       setState(() => _isEnding = true);
     } else {
@@ -281,8 +289,6 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    if (_isEnding) return const SizedBox.shrink(); // FIX: Safely removes UI
-
     final size = MediaQuery.of(context).size;
     
     double pipWidth = 120.0;

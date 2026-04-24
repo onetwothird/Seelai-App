@@ -7,6 +7,8 @@ import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_details_screen.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 
 class RequestsContent extends StatefulWidget {
   final bool isDarkMode;
@@ -53,12 +55,47 @@ class _RequestsContentState extends State<RequestsContent>
   @override
   void initState() {
     super.initState();
+    
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
-    _initializeCaretakerId();
+
+    // 1. Initialize ID and save the FCM Token
+    _initializeCaretakerId().then((_) {
+      if (_caretakerId != null) {
+        databaseService.saveUserFCMToken(_caretakerId!, 'caretaker');
+      }
+    });
+
+    // 2. Start the Mascot message rotation
     _startMessageTimer();
+    
+    // 3. Listen for CallKit actions (when user taps "Open App" on the ringing screen)
+    FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
+      switch (event!.event) {
+        case Event.actionCallAccept:
+          // The app comes to the foreground. Since this widget is active,
+          // your Firebase streams below are already pulling the new emergency request!
+          break;
+        case Event.actionCallDecline:
+          debugPrint("Alarm dismissed by user.");
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
+  // Method to rotate the mascot messages every 8 seconds
+  void _startMessageTimer() {
+    _messageTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex++;
+        });
+      }
+    });
   }
 
   // Helper to safely extract the first name from user data
@@ -66,19 +103,6 @@ class _RequestsContentState extends State<RequestsContent>
     final name = widget.userData['name'] as String? ?? 'Caretaker';
     final parts = name.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : 'Caretaker';
-  }
-
-  void _startMessageTimer() {
-    _messageTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (mounted) {
-        final messagesCount = _getMascotMessages().length;
-        if (messagesCount > 1) {
-          setState(() {
-            _currentMessageIndex = (_currentMessageIndex + 1) % messagesCount;
-          });
-        }
-      }
-    });
   }
 
   List<String> _getMascotMessages() {
@@ -1011,8 +1035,8 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    // THE FIX: Dynamic speed! 40 milliseconds per character.
-    // Long messages and short messages will now type at the exact same natural speed.
+    
+    // Dynamic speed! 40 milliseconds per character.
     int msDuration = widget.text.length * 40; 
     
     _controller = AnimationController(
@@ -1053,7 +1077,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       animation: _characterCount,
       builder: (context, child) {
         int end = _characterCount.value;
-        // Strict safety check to prevent out-of-bounds text duplication
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
         

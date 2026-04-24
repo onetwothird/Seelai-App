@@ -1,5 +1,3 @@
-// File: lib/roles/caretaker/home/sections/home_screen/communication/screens/caretaker_video_call_screen.dart
-
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
@@ -128,24 +126,36 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
   }
 
   Future<void> _startCallProcess() async {
-    await [Permission.camera, Permission.microphone].request();
+    final cameraStatus = await Permission.camera.request();
+    final micStatus = await Permission.microphone.request();
 
-    await _webrtcService.initRenderers();
-    await _webrtcService.openUserMedia(true);
-
-    _webrtcService.onAddRemoteStream = (stream) {
-      if (mounted) setState(() => _hasRemoteStream = true);
-    };
-    
-    _webrtcService.onConnectionClosed = () {
+    if (!cameraStatus.isGranted || !micStatus.isGranted) {
+      debugPrint("Permissions Denied! Ending call process.");
       if (mounted) _endCall();
-    };
+      return; 
+    }
 
-    if (mounted) setState(() => _isConnectionReady = true);
+    try {
+      await _webrtcService.initRenderers();
+      await _webrtcService.openUserMedia(true);
 
-    await _handleCallConnection();
+      _webrtcService.onAddRemoteStream = (stream) {
+        if (mounted) setState(() => _hasRemoteStream = true);
+      };
+      
+      _webrtcService.onConnectionClosed = () {
+        if (mounted) _endCall();
+      };
+
+      if (mounted) setState(() => _isConnectionReady = true);
+
+      await _handleCallConnection();
+    } catch (e) {
+      debugPrint("Failed to open camera/mic: $e");
+      if (mounted) _endCall(); 
+    }
   }
-
+  
   Future<void> _handleCallConnection() async {
     final currentUserId = databaseService.currentUserId ?? widget.patientData['caretakerId'];
     if (currentUserId == null) return;
@@ -198,7 +208,6 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
   Future<void> _endCall() async {
     if (_isEnding) return;
     
-    // FIX: Using setState forces the screen to hide BEFORE WebRTC destroys the feed
     if (mounted) {
       setState(() => _isEnding = true);
     } else {
@@ -232,8 +241,6 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
 
   @override
   Widget build(BuildContext context) {
-    if (_isEnding) return const SizedBox.shrink(); // FIX: Safely removes UI to stop the red screen crash
-
     final size = MediaQuery.of(context).size;
     
     double pipWidth = 120.0;
@@ -278,26 +285,25 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
     return Stack(
       children: [
         Positioned.fill(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 500),
-            child: _hasRemoteStream
-                ? RTCVideoView(
-                    _webrtcService.remoteRenderer,
-                    objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    key: const ValueKey('remoteVideo'),
-                  )
-                : (_isConnectionReady && !_isVideoOff
-                    ? RTCVideoView(
-                        _webrtcService.localRenderer,
-                        mirror: true,
-                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        key: const ValueKey('localVideoBackground'),
-                      )
-                    : Container(
-                        key: const ValueKey('clearLocalBackground'),
-                        child: _buildUserVideoFallback(null), 
-                      )),
-          ),
+          child: _hasRemoteStream
+              ? (!_isEnding 
+                  ? RTCVideoView(
+                      _webrtcService.remoteRenderer,
+                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      key: const ValueKey('remoteVideo'),
+                    )
+                  : Container(color: Colors.black))
+              : (_isConnectionReady && !_isVideoOff && !_isEnding
+                  ? RTCVideoView(
+                      _webrtcService.localRenderer,
+                      mirror: true,
+                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      key: const ValueKey('localVideoBackground'),
+                    )
+                  : Container(
+                      key: const ValueKey('clearLocalBackground'),
+                      child: _buildUserVideoFallback(null), 
+                    )),
         ),
 
         if (!_hasRemoteStream)
@@ -355,7 +361,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16), 
-                child: _isVideoOff
+                child: _isVideoOff || _isEnding 
                     ? _buildUserVideoFallback(null)
                     : RTCVideoView(
                         _webrtcService.localRenderer,
@@ -441,7 +447,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _hasRemoteStream
+              _hasRemoteStream && !_isEnding
                   ? RTCVideoView(
                       _webrtcService.remoteRenderer,
                       objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
@@ -460,7 +466,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8), 
-                    child: (_isConnectionReady && !_isVideoOff)
+                    child: (_isConnectionReady && !_isVideoOff && !_isEnding)
                         ? RTCVideoView(
                             _webrtcService.localRenderer,
                             mirror: true,

@@ -43,11 +43,9 @@ class _ProfileContentState extends State<ProfileContent> {
   final _confirmPasswordController = TextEditingController();
 
   // Color Palette 
-  final Color _colPersonal = const Color(0xFF3B82F6); 
-  final Color _colSecurity = const Color(0xFF10B981); 
+  final Color _colPersonal = const Color(0xFF8B5CF6);
   final Color _colSupport = const Color(0xFF06B6D4);  
   final Color _colSafety = const Color(0xFFEF4444);   
-  final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
   void initState() {
@@ -191,19 +189,19 @@ class _ProfileContentState extends State<ProfileContent> {
               _buildSettingsTile(
                 title: 'How to Use Seelai',
                 icon: Icons.play_circle_fill_rounded,
-                iconColor: _colPersonal,
+                iconColor: _colSupport,
                 onTap: _showAppGuideDialog,
               ),
               _buildSettingsTile(
                 title: 'About Seelai',
                 icon: Icons.info_outline_rounded,
-                iconColor: _colPersonal,
+                iconColor: _colSupport,
                 onTap: _showAboutDialog,
               ),
               _buildSettingsTile(
                 title: 'Privacy Policy',
                 icon: Icons.privacy_tip_outlined,
-                iconColor: _colPersonal,
+                iconColor: _colSupport,
                 onTap: _showPrivacyDialog,
                 isLast: true,
               ),
@@ -390,6 +388,7 @@ class _ProfileContentState extends State<ProfileContent> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -402,6 +401,7 @@ class _ProfileContentState extends State<ProfileContent> {
                   const SizedBox(width: 16),
                   
                   Expanded(
+                    flex: 3,
                     child: Text(
                       title,
                       style: TextStyle(
@@ -415,24 +415,16 @@ class _ProfileContentState extends State<ProfileContent> {
                   if (value != null) ...[
                     const SizedBox(width: 16),
                     Expanded(
-                      flex: 2, 
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Flexible(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Text(
-                                value,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: widget.theme.subtextColor,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                      flex: 4, 
+                      child: Text(
+                        value,
+                        textAlign: TextAlign.end,
+                        softWrap: true, 
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: widget.theme.subtextColor,
+                        ),
                       ),
                     ),
                   ],
@@ -452,9 +444,53 @@ class _ProfileContentState extends State<ProfileContent> {
                 height: 1,
                 thickness: 1,
                 indent: 56,
-                color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+                color: widget.isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
               ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== NEW UI: MODERN TEXT FIELD ====================
+  Widget _buildDialogTextField(String label, TextEditingController controller, IconData icon, {
+    bool isPassword = false,
+    TextInputType inputType = TextInputType.text,
+    Color? focusColor,
+  }) {
+    final activeColor = focusColor ?? _colPersonal;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextField(
+        controller: controller,
+        keyboardType: inputType,
+        obscureText: isPassword,
+        style: TextStyle(color: widget.theme.textColor, fontSize: 15),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+          prefixIcon: Icon(icon, color: widget.theme.subtextColor, size: 22),
+          filled: true,
+          fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: activeColor, width: 2),
+          ),
         ),
       ),
     );
@@ -478,30 +514,6 @@ class _ProfileContentState extends State<ProfileContent> {
     return count > 0 ? '$count Active' : 'None';
   }
 
-  Widget _buildDialogTextField(String label, TextEditingController controller, IconData icon, {bool isNumber = false, bool isPassword = false}) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.phone : TextInputType.text,
-      obscureText: isPassword,
-      style: TextStyle(color: widget.theme.textColor),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: widget.theme.subtextColor),
-        prefixIcon: Icon(icon, color: widget.theme.subtextColor),
-        filled: true,
-        fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _colSecurity, width: 1.5),
-        ),
-      ),
-    );
-  }
-
   void _showSnackbar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -513,220 +525,7 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  // ==================== DIALOGS ====================
-
-  void _showEditProfileDialog() {
-    _nameController.text = _currentData['name'] ?? '';
-    _addressController.text = _currentData['address'] ?? '';
-    _contactController.text = _currentData['contactNumber'] ?? '';
-    _diagnosisController.text = _currentData['diagnosis'] ?? '';
-    _selectedSex = _currentData['sex'];
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (statefulContext, setStateDialog) {
-            return AlertDialog(
-              backgroundColor: widget.theme.cardColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text('Update Profile', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildDialogTextField('Full Name', _nameController, Icons.person_outline),
-                    const SizedBox(height: 16),
-                    _buildDialogTextField('Address', _addressController, Icons.home_outlined),
-                    const SizedBox(height: 16),
-                    _buildDialogTextField('Phone Number', _contactController, Icons.phone_outlined, isNumber: true),
-                    const SizedBox(height: 16),
-                    _buildDialogTextField('Diagnosis', _diagnosisController, Icons.medical_services_outlined),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedSex,
-                      dropdownColor: widget.theme.cardColor,
-                      decoration: InputDecoration(
-                        labelText: 'Sex',
-                        labelStyle: TextStyle(color: widget.theme.subtextColor),
-                        prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor),
-                        filled: true,
-                        fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      ),
-                      items: ['Male', 'Female', 'Not Specified']
-                          .map((sex) => DropdownMenuItem(value: sex, child: Text(sex, style: TextStyle(color: widget.theme.textColor))))
-                          .toList(),
-                      onChanged: (val) => setStateDialog(() => _selectedSex = val),
-                    ),
-                  ],
-                ),
-              ),
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(statefulContext),
-                  child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _colSecurity,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
-                  ),
-                  onPressed: _isLoading ? null : () async {
-                    setStateDialog(() => _isLoading = true);
-                    try {
-                      final userId = authService.value.currentUser?.uid;
-                      if (userId == null) throw Exception("User not found");
-
-                      await databaseService.updateUserProfile(
-                        userId: userId,
-                        role: 'partially_sighted',
-                        name: _nameController.text.trim(),
-                        address: _addressController.text.trim(),
-                        contactNumber: _contactController.text.trim(),
-                        diagnosis: _diagnosisController.text.trim(),
-                        sex: _selectedSex,
-                      );
-
-                      if (!statefulContext.mounted) return;
-                      Navigator.pop(statefulContext);
-
-                      if (!mounted) return;
-                      setState(() {
-                        _currentData['name'] = _nameController.text.trim();
-                        _currentData['address'] = _addressController.text.trim();
-                        _currentData['contactNumber'] = _contactController.text.trim();
-                        _currentData['diagnosis'] = _diagnosisController.text.trim();
-                        _currentData['sex'] = _selectedSex;
-                      });
-                      
-                      _showSnackbar('Profile updated successfully', _colSecurity);
-                      
-                    } catch (e) {
-                      if (statefulContext.mounted) {
-                        setStateDialog(() => _isLoading = false);
-                      }
-                      if (mounted) {
-                        _showSnackbar('Error updating profile: $e', _colSafety);
-                      }
-                    }
-                  },
-                  child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
- void _showChangePasswordDialog() {
-    _currentPasswordController.clear();
-    _newPasswordController.clear();
-    _confirmPasswordController.clear();
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (statefulContext, setStateDialog) {
-            return AlertDialog(
-              backgroundColor: widget.theme.cardColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text('Change Password', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'You will need to sign in again after changing your password.',
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
-                    ),
-                    const SizedBox(height: 20),
-                    _buildDialogTextField('Current Password', _currentPasswordController, Icons.lock_outline, isPassword: true),
-                    const SizedBox(height: 16),
-                    _buildDialogTextField('New Password', _newPasswordController, Icons.lock_outline, isPassword: true),
-                    const SizedBox(height: 16),
-                    _buildDialogTextField('Confirm Password', _confirmPasswordController, Icons.lock_outline, isPassword: true),
-                  ],
-                ),
-              ),
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(statefulContext),
-                  child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _colSecurity,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
-                  ),
-                  onPressed: _isLoading ? null : () async {
-                    if (_newPasswordController.text != _confirmPasswordController.text) {
-                      _showSnackbar('New passwords do not match', _colSafety);
-                      return;
-                    }
-                    if (_newPasswordController.text.length < 6) {
-                      _showSnackbar('Password must be at least 6 characters', _colSafety);
-                      return;
-                    }
-
-                    setStateDialog(() => _isLoading = true);
-                    try {
-                      final email = authService.value.currentUser?.email;
-                      if (email == null) throw Exception("Email not found");
-
-                      await authService.value.resetPasswordFromCurrentPassword(
-                        email: email,
-                        currentPassword: _currentPasswordController.text,
-                        newPassword: _newPasswordController.text,
-                      );
-
-                      if (!statefulContext.mounted) return;
-                      Navigator.pop(statefulContext);
-                      
-                      if (mounted) {
-                        _showSnackbar('Password changed successfully', _colSecurity);
-                      }
-                      
-                    } catch (e) {
-                      if (statefulContext.mounted) {
-                        setStateDialog(() => _isLoading = false);
-                      }
-                      if (mounted) {
-                        _showSnackbar('Error: Please check your current password', _colSafety);
-                      }
-                    }
-                  },
-                  child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showAppGuideDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AppGuideVideoDialog(
-        theme: widget.theme,
-        colSupport: _colSupport,
-        colSafety: _colSafety,
-      ),
-    );
-  }
+  // ==================== NAVIGATION DIALOGS ====================
 
   void _showAboutDialog() {
     Navigator.push(
@@ -752,50 +551,408 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-void _showLogoutDialog() {
+  // ==================== NEW UI: EDIT PROFILE DIALOG ====================
+
+  void _showEditProfileDialog() {
+    final parentContext = context;
+    _nameController.text = _currentData['name'] ?? '';
+    _addressController.text = _currentData['address'] ?? '';
+    _contactController.text = _currentData['contactNumber'] ?? '';
+    _diagnosisController.text = _currentData['diagnosis'] ?? '';
+    _selectedSex = _currentData['sex'];
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (statefulContext, setStateDialog) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: widget.theme.cardColor,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Update Profile',
+                        style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Modify your personal and medical details below.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      _buildDialogTextField('Full Name', _nameController, Icons.person_outline, focusColor: _colPersonal),
+                      _buildDialogTextField('Address', _addressController, Icons.home_outlined, focusColor: _colPersonal),
+                      _buildDialogTextField('Phone Number', _contactController, Icons.phone_outlined, inputType: TextInputType.phone, focusColor: _colPersonal),
+                      
+                      // Using Row with Expanded for responsive side-by-side fields
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 1,
+                            child: _buildDialogTextField('Diagnosis', _diagnosisController, Icons.medical_services_outlined, focusColor: _colPersonal),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 1,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: DropdownButtonFormField<String>(
+                                initialValue: _selectedSex,
+                                dropdownColor: widget.theme.cardColor,
+                                icon: Icon(Icons.arrow_drop_down_rounded, color: widget.theme.subtextColor),
+                                isExpanded: true, // Prevents overflow on smaller screens
+                                decoration: InputDecoration(
+                                  labelText: 'Gender',
+                                  labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+                                  prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor, size: 22),
+                                  filled: true,
+                                  fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                    borderSide: BorderSide(color: _colPersonal, width: 2),
+                                  ),
+                                ),
+                                items: ['Male', 'Female', 'Not Specified']
+                                    .map((sex) => DropdownMenuItem(value: sex, child: Text(sex, style: TextStyle(color: widget.theme.textColor))))
+                                    .toList(),
+                                onChanged: (val) => setStateDialog(() => _selectedSex = val),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+                      
+                      // Buttons Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              onPressed: () => Navigator.pop(statefulContext),
+                              child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _colPersonal,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: widget.isDarkMode ? 0 : 4,
+                                shadowColor: _colPersonal.withValues(alpha: 0.4),
+                              ),
+                              onPressed: _isLoading ? null : () async {
+                                setStateDialog(() => _isLoading = true);
+                                try {
+                                  final userId = authService.value.currentUser?.uid;
+                                  if (userId == null) throw Exception("User not found");
+
+                                  await databaseService.updateUserProfile(
+                                    userId: userId,
+                                    role: 'partially_sighted',
+                                    name: _nameController.text.trim(),
+                                    address: _addressController.text.trim(),
+                                    contactNumber: _contactController.text.trim(),
+                                    diagnosis: _diagnosisController.text.trim(),
+                                    sex: _selectedSex,
+                                  );
+
+                                  if (!statefulContext.mounted) return;
+                                  Navigator.pop(statefulContext);
+
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _currentData['name'] = _nameController.text.trim();
+                                    _currentData['address'] = _addressController.text.trim();
+                                    _currentData['contactNumber'] = _contactController.text.trim();
+                                    _currentData['diagnosis'] = _diagnosisController.text.trim();
+                                    _currentData['sex'] = _selectedSex;
+                                  });
+                                  
+                                  _showSnackbar('Profile updated successfully', _colPersonal);
+                                  
+                                } catch (e) {
+                                  if (statefulContext.mounted) {
+                                    setStateDialog(() => _isLoading = false);
+                                  }
+                                  if (mounted) {
+                                    _showSnackbar('Error updating profile: $e', _colSafety);
+                                  }
+                                }
+                              },
+                              child: _isLoading
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ==================== NEW UI: CHANGE PASSWORD DIALOG ====================
+
+  void _showChangePasswordDialog() {
+    _currentPasswordController.clear();
+    _newPasswordController.clear();
+    _confirmPasswordController.clear();
+
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.logout_rounded, color: _colSafety), // Red instead of purple
-            const SizedBox(width: 10),
-            Text('Sign Out?', style: TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black)),
-          ],
-        ),
-       content: Text(
-          'Are you sure you want to sign out?',
-          style: TextStyle(color: widget.isDarkMode ? Colors.white70 : Colors.black87),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              // 1. Close the confirmation dialog
-              Navigator.pop(dialogContext);
-              
-              // 2. Actually sign out of Firebase
-              await authService.value.signOut();
-              
-              if (!mounted) return; 
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (statefulContext, setStateDialog) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.all(20),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: widget.theme.cardColor,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Change Password',
+                        style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline_rounded, color: widget.theme.subtextColor, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'For security, you will be required to sign in again after changing your password.',
+                                style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, height: 1.4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      _buildDialogTextField('Current Password', _currentPasswordController, Icons.lock_outline, isPassword: true, focusColor: _colPersonal),
+                      _buildDialogTextField('New Password', _newPasswordController, Icons.lock_outline, isPassword: true, focusColor: _colPersonal),
+                      _buildDialogTextField('Confirm Password', _confirmPasswordController, Icons.lock_outline, isPassword: true, focusColor: _colPersonal),
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Buttons Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              onPressed: () => Navigator.pop(statefulContext),
+                              child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _colPersonal,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: widget.isDarkMode ? 0 : 4,
+                                shadowColor: _colPersonal.withValues(alpha: 0.4),
+                              ),
+                              onPressed: _isLoading ? null : () async {
+                                if (_newPasswordController.text != _confirmPasswordController.text) {
+                                  _showSnackbar('New passwords do not match', _colSafety);
+                                  return;
+                                }
+                                if (_newPasswordController.text.length < 6) {
+                                  _showSnackbar('Password must be at least 6 characters', _colSafety);
+                                  return;
+                                }
 
-              // 3. Clear the navigation stack and go to Onboarding Screen
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-                (route) => false, 
-              );
-              
-              _showSnackbar('Successfully signed out', _primaryColor);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: _colSafety), // Red instead of purple
-            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+                                setStateDialog(() => _isLoading = true);
+                                try {
+                                  final email = authService.value.currentUser?.email;
+                                  if (email == null) throw Exception("Email not found");
+
+                                  await authService.value.resetPasswordFromCurrentPassword(
+                                    email: email,
+                                    currentPassword: _currentPasswordController.text,
+                                    newPassword: _newPasswordController.text,
+                                  );
+
+                                  if (!statefulContext.mounted) return;
+                                  Navigator.pop(statefulContext);
+                                  
+                                  if (mounted) {
+                                    _showSnackbar('Password changed successfully', _colPersonal);
+                                  }
+                                  
+                                } catch (e) {
+                                  if (statefulContext.mounted) {
+                                    setStateDialog(() => _isLoading = false);
+                                  }
+                                  if (mounted) {
+                                    _showSnackbar('Error: Please check your current password', _colSafety);
+                                  }
+                                }
+                              },
+                              child: _isLoading
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ==================== NEW UI: LOGOUT DIALOG ====================
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: widget.theme.cardColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Removed header icon
+              Text(
+                'Sign Out',
+                style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Are you sure you want to sign out?',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: widget.theme.subtextColor, fontSize: 15),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(dialogContext); 
+                        await authService.value.signOut(); 
+                        if (!mounted) return; 
+
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                          (route) => false, 
+                        );
+                        
+                        _showSnackbar('Successfully signed out', _colPersonal);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _colSafety,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: widget.isDarkMode ? 0 : 4,
+                        shadowColor: _colSafety.withValues(alpha: 0.4),
+                      ),
+                      child: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAppGuideDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AppGuideVideoDialog(
+        theme: widget.theme,
+        colSupport: _colSupport,
+        colSafety: _colSafety,
       ),
     );
   }
@@ -848,13 +1005,19 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: widget.theme.cardColor,
+    return Dialog(
+      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(20),
-      contentPadding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      content: SizedBox(
+      child: Container(
         width: double.maxFinite,
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: widget.theme.textColor.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -865,10 +1028,10 @@ class _AppGuideVideoDialogState extends State<AppGuideVideoDialog> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                     child: _hasError 
                         ? Center(
                             child: Padding(

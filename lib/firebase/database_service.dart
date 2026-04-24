@@ -2,6 +2,8 @@
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 /// Main database service - handles basic user operations
 class DatabaseService {
@@ -171,6 +173,7 @@ class DatabaseService {
     String? profileImageUrl,
     String? relationship,
     String? department,
+    String? fcmToken,
   }) async {
     try {
       Map<String, dynamic> updates = {
@@ -190,6 +193,7 @@ class DatabaseService {
       if (phone != null) updates['phone'] = phone;
       if (relationship != null) updates['relationship'] = relationship;
       if (department != null) updates['department'] = department;
+      if (fcmToken != null) updates['fcmToken'] = fcmToken;
 
       String path = getUserPath(role, userId);
       await _database.ref(path).update(updates);
@@ -207,6 +211,35 @@ class DatabaseService {
       }
       return null;
     });
+  }
+
+  // ==================== FCM TOKEN MANAGEMENT ====================
+
+  /// Fetches the device's FCM Token and saves it to the user's profile
+  Future<void> saveUserFCMToken(String userId, String role) async {
+    try {
+      // 1. Get the unique device token
+      String? token = await FirebaseMessaging.instance.getToken();
+      
+      if (token != null) {
+        // 2. Save it to the correct path based on their role
+        String path = getUserPath(role, userId);
+        await _database.ref(path).update({
+          'fcmToken': token,
+        });
+        debugPrint("✅ FCM Token successfully saved for $role!");
+      }
+
+      // 3. Listen for token refreshes (happens occasionally by Android/iOS)
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
+        String path = getUserPath(role, userId);
+        _database.ref(path).update({
+          'fcmToken': newToken,
+        });
+      });
+    } catch (e) {
+      debugPrint("Failed to save FCM token: $e");
+    }
   }
 
   // ==================== ROLE VERIFICATION ====================

@@ -1,4 +1,4 @@
-// File: lib/roles/mswd/home/sections/more_content.dart
+// File: lib/roles/mswd/home/sections/profile_content/more_content.dart
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -6,8 +6,8 @@ import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:intl/intl.dart';
-
-// IMPORTANT: Import the new screens here!
+import 'package:seelai_app/roles/mswd/home/sections/profile_content/system_activity_logs.dart';
+import 'package:seelai_app/roles/mswd/home/sections/profile_content/export_system_report.dart';
 import 'package:seelai_app/roles/mswd/home/sections/profile_content/about_seelai_screen.dart';
 import 'package:seelai_app/roles/mswd/home/sections/profile_content/privacy_policy_screen.dart';
 
@@ -38,7 +38,6 @@ class _MoreContentState extends State<MoreContent> {
   final Color _colTracking = const Color(0xFF8B5CF6);      
   final Color _colSafety = const Color(0xFFEF4444);        
   final Color _colSupport = const Color(0xFF06B6D4);       
-  final Color _colSecurity = const Color(0xFF10B981);      
   final Color _colAdmin = const Color(0xFFF59E0B);         
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
@@ -85,11 +84,11 @@ class _MoreContentState extends State<MoreContent> {
               Text(
                 'Profile & Settings',
                 style: TextStyle(
-                color: widget.theme.textColor,
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
+                  color: widget.theme.textColor,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
               ),
             ],
           ),
@@ -122,12 +121,12 @@ class _MoreContentState extends State<MoreContent> {
                     : 'MSWD General',
               ),
               _buildSettingsTile(
-                title: 'Admin ID',
+                title: 'ID Number',
                 icon: Icons.badge_outlined,
                 iconColor: _colVerifications,
-                value: _userData['adminId']?.toString().isNotEmpty == true 
-                    ? _userData['adminId'] 
-                    : 'A-${_userData['userId']?.substring(0, 5).toUpperCase() ?? '00000'}',
+                value: _userData['idNumber']?.toString().isNotEmpty == true 
+                    ? _userData['idNumber'] 
+                    : 'Not provided',
                 isLast: true,
               ),
             ],
@@ -141,7 +140,15 @@ class _MoreContentState extends State<MoreContent> {
                 icon: Icons.manage_search_rounded,
                 iconColor: _colAdmin,
                 onTap: () {
-                  _showSnackbar('Navigating to system logs...', _colAdmin);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SystemActivityLogsScreen(
+                        theme: widget.theme,
+                        isDarkMode: widget.isDarkMode,
+                      ),
+                    ),
+                  );
                 },
               ),
               _buildSettingsTile(
@@ -149,7 +156,16 @@ class _MoreContentState extends State<MoreContent> {
                 icon: Icons.file_download_outlined,
                 iconColor: _colAdmin,
                 onTap: () {
-                  _showSnackbar('Generating PDF report...', _colSecurity);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ExportSystemReportScreen(
+                        theme: widget.theme,
+                        isDarkMode: widget.isDarkMode,
+                        userData: _userData,
+                      ),
+                    ),
+                  );
                 },
                 isLast: true,
               ),
@@ -189,40 +205,39 @@ class _MoreContentState extends State<MoreContent> {
               _buildSettingsTile(
                 title: 'Edit Profile',
                 icon: Icons.edit_outlined,
-                iconColor: _colSecurity,
+                iconColor: _primaryColor, // Matches the new purple theme
                 onTap: _showEditProfileDialog,
               ),
               _buildSettingsTile(
                 title: 'Change Password',
                 icon: Icons.lock_outline_rounded,
-                iconColor: _colSecurity,
+                iconColor: _primaryColor, // Matches the new purple theme
                 onTap: _showChangePasswordDialog,
                 isLast: true,
               ),
             ],
           ),
 
-          // ==================== SUPPORT & INFO (UPDATED) ====================
           _buildSettingsGroup(
             title: 'Support & Information',
             children: [
               _buildSettingsTile(
-                title: 'Admin Guide Video',
+                title: 'How to Use Seelai',
                 icon: Icons.play_circle_fill_rounded,
                 iconColor: _colSupport,
                 onTap: _showHowToUseDialog,
               ),
               _buildSettingsTile(
-                title: 'About Seelai', // NEW ITEM
+                title: 'About Seelai',
                 icon: Icons.info_outline_rounded,
                 iconColor: _colSupport,
-                onTap: _showAboutDialog, // Triggers new screen
+                onTap: _showAboutDialog,
               ),
               _buildSettingsTile(
-                title: 'Privacy Policy', // UPDATED
+                title: 'Privacy Policy',
                 icon: Icons.privacy_tip_outlined,
                 iconColor: _colSupport,
-                onTap: _showPrivacyDialog, // Triggers new screen
+                onTap: _showPrivacyDialog,
                 isLast: true,
               ),
             ],
@@ -234,7 +249,7 @@ class _MoreContentState extends State<MoreContent> {
               _buildSettingsTile(
                 title: 'Sign Out',
                 icon: Icons.logout_rounded,
-                iconColor: _colSafety,
+                iconColor: _colSafety, // Kept red for destructive action
                 isDestructive: true,
                 onTap: _showLogoutDialog,
                 isLast: true,
@@ -245,10 +260,6 @@ class _MoreContentState extends State<MoreContent> {
       ),
     );
   }
-
-  // ==================== UI COMPONENTS (Keep existing UI Builders) ====================
-  // (Your _buildCenteredProfileImage, _buildGradientFallback, _buildSettingsGroup,
-  // _buildSettingsTile, _buildDialogTextField, _formatBirthdate, _showSnackbar stay EXACTLY the same as your code)
 
   Widget _buildCenteredProfileImage() {
     final profileUrl = _userData['profileImageUrl'] as String?;
@@ -381,7 +392,7 @@ class _MoreContentState extends State<MoreContent> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: widget.theme.subtextColor.withOpacity(0.8),
+                  color: widget.theme.subtextColor.withValues(alpha: 0.8),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -488,7 +499,7 @@ class _MoreContentState extends State<MoreContent> {
                     Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
-                      color: widget.theme.subtextColor.withOpacity(0.5),
+                      color: widget.theme.subtextColor.withValues(alpha: 0.5),
                     ),
                   ]
                 ],
@@ -507,34 +518,47 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
+  // ==================== NEW UI: MODERN TEXT FIELD ====================
   Widget _buildDialogTextField(String label, TextEditingController controller, IconData icon, {
     bool isPassword = false,
     TextInputType inputType = TextInputType.text,
+    Color? focusColor,
   }) {
-    return TextField(
-      controller: controller,
-      keyboardType: inputType,
-      obscureText: isPassword,
-      style: TextStyle(color: widget.theme.textColor),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: widget.theme.subtextColor),
-        prefixIcon: Icon(icon, color: widget.theme.subtextColor),
-        filled: true,
-        fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _colSecurity, width: 1.5),
+    final activeColor = focusColor ?? _primaryColor;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextField(
+        controller: controller,
+        keyboardType: inputType,
+        obscureText: isPassword,
+        style: TextStyle(color: widget.theme.textColor, fontSize: 15),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+          prefixIcon: Icon(icon, color: widget.theme.subtextColor, size: 22),
+          filled: true,
+          fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: activeColor, width: 2),
+          ),
         ),
       ),
     );
   }
-
-  // ==================== HELPERS ====================
 
   String _formatBirthdate(String birthdate) {
     if (birthdate.isEmpty) return 'Not specified';
@@ -557,36 +581,15 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
-  // ==================== NEW NAVIGATION DIALOGS ====================
-
   void _showAboutDialog() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AboutSeelaiScreen(
-          theme: widget.theme,
-          isDarkMode: widget.isDarkMode,
-        ),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => AboutSeelaiScreen(theme: widget.theme, isDarkMode: widget.isDarkMode)));
   }
 
   void _showPrivacyDialog() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PrivacyPolicyScreen(
-          theme: widget.theme,
-          isDarkMode: widget.isDarkMode,
-        ),
-      ),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyScreen(theme: widget.theme, isDarkMode: widget.isDarkMode)));
   }
 
-  // ==================== EDIT/LOGOUT DIALOGS (Keep Existing Code) ====================
-  // (Your _showEditProfileDialog, _showChangePasswordDialog, _showLogoutDialog, 
-  // _showHowToUseDialog stay exactly the same here)
-  
+  // ==================== NEW UI: EDIT PROFILE DIALOG ====================
   void _showEditProfileDialog() {
     final parentContext = context; 
 
@@ -600,97 +603,155 @@ class _MoreContentState extends State<MoreContent> {
       context: parentContext,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setStateDialog) {
-          return AlertDialog(
-            backgroundColor: widget.theme.cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text(
-              'Update Admin Profile',
-              style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-            content: SingleChildScrollView(
-              child: SizedBox(
-                width: double.maxFinite,
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: widget.theme.cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                ],
+              ),
+              child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _buildDialogTextField('Full Name', nameController, Icons.person_outline),
+                    Text(
+                      'Update Profile',
+                      style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Modify your official administrative details below.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+                    ),
+                    const SizedBox(height: 32),
+                    
+                    // Input Fields using _primaryColor focus
+                    _buildDialogTextField('Full Name', nameController, Icons.person_outline, focusColor: _primaryColor),
+                    _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone, focusColor: _primaryColor),
+                    _buildDialogTextField('Department', departmentController, Icons.business_center_outlined, focusColor: _primaryColor),
+                    
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: _buildDialogTextField('Age', ageController, Icons.cake_outlined, inputType: TextInputType.number, focusColor: _primaryColor),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedSex,
+                              dropdownColor: widget.theme.cardColor,
+                              icon: Icon(Icons.arrow_drop_down_rounded, color: widget.theme.subtextColor),
+                              decoration: InputDecoration(
+                                labelText: 'Gender',
+                                labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+                                prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor, size: 22),
+                                filled: true,
+                                fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(color: _primaryColor, width: 2),
+                                ),
+                              ),
+                              items: ['Male', 'Female', 'Not Specified']
+                                  .map((sex) => DropdownMenuItem(value: sex, child: Text(sex, style: TextStyle(color: widget.theme.textColor))))
+                                  .toList(),
+                              onChanged: (val) => setStateDialog(() => selectedSex = val),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
                     const SizedBox(height: 16),
-                    _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone),
-                    const SizedBox(height: 16),
-                    _buildDialogTextField('Department', departmentController, Icons.business_center_outlined),
-                    const SizedBox(height: 16),
-                    _buildDialogTextField('Age', ageController, Icons.cake_outlined, inputType: TextInputType.number),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: selectedSex,
-                      dropdownColor: widget.theme.cardColor,
-                      decoration: InputDecoration(
-                        labelText: 'Sex',
-                        labelStyle: TextStyle(color: widget.theme.subtextColor),
-                        prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor),
-                        filled: true,
-                        fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.05),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      ),
-                      items: ['Male', 'Female', 'Not Specified']
-                          .map((sex) => DropdownMenuItem(value: sex, child: Text(sex, style: TextStyle(color: widget.theme.textColor))))
-                          .toList(),
-                      onChanged: (val) => setStateDialog(() => selectedSex = val),
+                    
+                    // Buttons Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: widget.isDarkMode ? 0 : 4,
+                              shadowColor: _primaryColor.withValues(alpha: 0.4),
+                            ),
+                            onPressed: _isLoading ? null : () async {
+                              setStateDialog(() => _isLoading = true);
+                              Navigator.pop(dialogContext);
+
+                              try {
+                                await databaseService.updateUserProfile(
+                                  userId: databaseService.currentUserId!,
+                                  role: 'admin',
+                                  name: nameController.text.trim(),
+                                  phone: phoneController.text.trim(),
+                                  contactNumber: phoneController.text.trim(),
+                                  department: departmentController.text.trim(),
+                                  age: int.tryParse(ageController.text.trim()),
+                                  sex: selectedSex,
+                                );
+
+                                await _refreshUserData();
+
+                                if (!mounted) return;
+                                _showSnackbar('Profile updated successfully', _primaryColor);
+                              } catch (e) {
+                                if (!mounted) return;
+                                _showSnackbar('Error updating profile: $e', _colSafety);
+                              } finally {
+                                if (mounted) setState(() => _isLoading = false);
+                              }
+                            },
+                            child: _isLoading
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _colSecurity,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
-                ),
-                onPressed: _isLoading ? null : () async {
-                  setStateDialog(() => _isLoading = true);
-                  Navigator.pop(dialogContext);
-
-                  try {
-                    await databaseService.updateUserProfile(
-                      userId: databaseService.currentUserId!,
-                      role: 'admin',
-                      name: nameController.text.trim(),
-                      phone: phoneController.text.trim(),
-                      contactNumber: phoneController.text.trim(),
-                      department: departmentController.text.trim(),
-                      age: int.tryParse(ageController.text.trim()),
-                      sex: selectedSex,
-                    );
-
-                    await _refreshUserData();
-
-                    if (!mounted) return;
-                    _showSnackbar('Profile updated successfully', _colSecurity);
-                  } catch (e) {
-                    if (!mounted) return;
-                    _showSnackbar('Error updating profile: $e', _colSafety);
-                  } finally {
-                    if (mounted) setState(() => _isLoading = false);
-                  }
-                },
-                child: _isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ],
           );
         },
       ),
     );
   }
 
+  // ==================== NEW UI: CHANGE PASSWORD DIALOG ====================
   void _showChangePasswordDialog() {
     final currentPassController = TextEditingController();
     final newPassController = TextEditingController();
@@ -700,131 +761,202 @@ class _MoreContentState extends State<MoreContent> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (builderContext, setStateDialog) {
-          return AlertDialog(
-            backgroundColor: widget.theme.cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Text('Change Password', style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold, fontSize: 20)),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'You will need to sign in again after changing your password.',
-                    style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildDialogTextField('Current Password', currentPassController, Icons.lock_outline, isPassword: true),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField('New Password', newPassController, Icons.lock_outline, isPassword: true),
-                  const SizedBox(height: 16),
-                  _buildDialogTextField('Confirm Password', confirmPassController, Icons.lock_outline, isPassword: true),
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: widget.theme.cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
                 ],
               ),
-            ),
-            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(builderContext),
-                child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor)),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _colSecurity,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
-                ),
-                onPressed: _isLoading ? null : () async {
-                  if (newPassController.text != confirmPassController.text) {
-                    _showSnackbar('New passwords do not match', _colSafety);
-                    return;
-                  }
-                  if (newPassController.text.length < 6) {
-                    _showSnackbar('Password must be at least 6 characters', _colSafety);
-                    return;
-                  }
-
-                  setStateDialog(() => _isLoading = true);
-                  try {
-                    await authService.value.resetPasswordFromCurrentPassword(
-                      email: _userData['email'],
-                      currentPassword: currentPassController.text,
-                      newPassword: newPassController.text,
-                    );
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                   
+                    Text(
+                      'Change Password',
+                      style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, color: widget.theme.subtextColor, size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'For security, you will be required to sign in again after changing your password.',
+                              style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, height: 1.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     
-                    if (!builderContext.mounted) return;
-                    Navigator.pop(builderContext);
-                    _showSnackbar('Password changed successfully', _colSecurity);
-                  } catch (e) {
-                    _showSnackbar('Failed to change password. Check current password.', _colSafety);
-                  } finally {
-                    if (builderContext.mounted) {
-                      setStateDialog(() => _isLoading = false);
-                    }
-                  }
-                },
-                child: _isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    _buildDialogTextField('Current Password', currentPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
+                    _buildDialogTextField('New Password', newPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
+                    _buildDialogTextField('Confirm Password', confirmPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Buttons Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            onPressed: () => Navigator.pop(builderContext),
+                            child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: widget.isDarkMode ? 0 : 4,
+                              shadowColor: _primaryColor.withValues(alpha: 0.4),
+                            ),
+                            onPressed: _isLoading ? null : () async {
+                              if (newPassController.text != confirmPassController.text) {
+                                _showSnackbar('New passwords do not match', _colSafety);
+                                return;
+                              }
+                              if (newPassController.text.length < 6) {
+                                _showSnackbar('Password must be at least 6 characters', _colSafety);
+                                return;
+                              }
+
+                              setStateDialog(() => _isLoading = true);
+                              try {
+                                await authService.value.resetPasswordFromCurrentPassword(
+                                  email: _userData['email'],
+                                  currentPassword: currentPassController.text,
+                                  newPassword: newPassController.text,
+                                );
+                                
+                                if (!builderContext.mounted) return;
+                                Navigator.pop(builderContext);
+                                _showSnackbar('Password changed successfully', _primaryColor);
+                              } catch (e) {
+                                _showSnackbar('Failed to change password. Check current password.', _colSafety);
+                              } finally {
+                                if (builderContext.mounted) {
+                                  setStateDialog(() => _isLoading = false);
+                                }
+                              }
+                            },
+                            child: _isLoading
+                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           );
         }
       ),
     );
   }
 
- void _showLogoutDialog() {
+  void _showLogoutDialog() {
     final parentContext = context;
 
     showDialog(
       context: parentContext,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.logout_rounded, color: _colSafety),
-            const SizedBox(width: 10),
-            Text(
-              'Sign Out?',
-              style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to sign out of the Admin Portal?',
-          style: TextStyle(color: widget.theme.subtextColor, fontSize: 16),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: widget.theme.cardColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext); // 1. Closes the dialog
-              
-              await authService.value.signOut(); // 2. Clears Firebase session
-              
-              if (!parentContext.mounted) return;
-
-              // 3. Routes to Onboarding and clears navigation stack
-              Navigator.of(parentContext).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-                (route) => false,
-              );
-              
-              if (mounted) {
-                _showSnackbar('Successfully signed out', _primaryColor);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _colSafety,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Sign Out', style: TextStyle(color: Colors.white)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: _colSafety.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: Icon(Icons.logout_rounded, color: _colSafety, size: 32),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Sign Out',
+                style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Are you sure you want to sign out of the Admin Portal?',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: widget.theme.subtextColor, fontSize: 15),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(dialogContext); 
+                        await authService.value.signOut(); 
+                        if (!parentContext.mounted) return;
+                        Navigator.of(parentContext).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                          (route) => false,
+                        );
+                        if (mounted) _showSnackbar('Successfully signed out', _primaryColor);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _colSafety,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: widget.isDarkMode ? 0 : 4,
+                        shadowColor: _colSafety.withValues(alpha: 0.4),
+                      ),
+                      child: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -843,7 +975,6 @@ class _MoreContentState extends State<MoreContent> {
 }
 
 // ==================== ADMIN VIDEO PLAYER DIALOG WIDGET ====================
-// (Your AdminGuideVideoDialog stays completely identical as well!)
 class AdminGuideVideoDialog extends StatefulWidget {
   final dynamic theme;
   final Color colSupport;
@@ -897,13 +1028,19 @@ class _AdminGuideVideoDialogState extends State<AdminGuideVideoDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: widget.theme.cardColor,
+    return Dialog(
+      backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(20),
-      contentPadding: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      content: SizedBox(
+      child: Container(
         width: double.maxFinite,
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: widget.theme.textColor.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+          ],
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -914,10 +1051,10 @@ class _AdminGuideVideoDialogState extends State<AdminGuideVideoDialog> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.black,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                     child: _hasError 
                         ? Center(
                             child: Padding(
@@ -997,7 +1134,7 @@ class _AdminGuideVideoDialogState extends State<AdminGuideVideoDialog> {
                       'Admin Training Guide', 
                       style: TextStyle(
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w800,
                         color: widget.theme.textColor,
                       ),
                     ),
