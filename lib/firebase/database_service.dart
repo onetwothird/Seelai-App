@@ -38,6 +38,7 @@ class DatabaseService {
     required String email,
     required String role,
     String? idNumber,
+    String? staffId, // ADDED: staffId parameter
     String? sex,
     DateTime? birthdate,
     String? disabilityType,
@@ -74,6 +75,7 @@ class DatabaseService {
         userData['approved'] = approved ?? false; 
       } else if (role == 'admin') {
         userData['department'] = department ?? '';
+        userData['staffId'] = staffId ?? ''; // ADDED: Mapping the staffId
         userData['sex'] = sex ?? 'Not Specified';
         userData['birthdate'] = birthdate?.toIso8601String() ?? 
             DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
@@ -161,6 +163,7 @@ class DatabaseService {
     required String userId,
     required String role,
     String? idNumber,
+    String? staffId, // ADDED: staffId parameter for updating
     String? name,
     String? sex,
     int? age,
@@ -181,6 +184,7 @@ class DatabaseService {
       };
 
       if (idNumber != null) updates['idNumber'] = idNumber;
+      if (staffId != null) updates['staffId'] = staffId; // ADDED: map staffId update
       if (name != null) updates['name'] = name;
       if (sex != null) updates['sex'] = sex;
       if (age != null) updates['age'] = age;
