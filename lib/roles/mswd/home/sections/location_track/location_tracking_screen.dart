@@ -497,9 +497,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
 
   Widget _buildMap() {
     return Listener(
-      // This detects when a user drags/swipes their finger across the map
       onPointerMove: (event) {
-        // Send a signal to the home screen to hide the menu (true = hide)
         widget.onScroll?.call(true); 
       },
       child: OSMFlutter(
