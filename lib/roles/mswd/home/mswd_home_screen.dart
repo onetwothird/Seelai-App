@@ -11,7 +11,7 @@ import 'package:seelai_app/roles/mswd/home/widgets/mswd_header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/announcement.dart';
 import 'package:seelai_app/roles/mswd/home/sections/users/users_content.dart';
-import 'package:seelai_app/roles/mswd/home/sections/requests/requests_content.dart';
+import 'package:seelai_app/roles/mswd/home/sections/requests/mswd_requests_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/profile_content/more_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/dashboard_stats.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/quick_actions.dart';
@@ -83,6 +83,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   void _onNavItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      _isNavVisible = true; // --- Ensures nav returns when switching tabs ---
     });
   }
 
@@ -96,6 +97,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
+        _isNavVisible = true; // Reset nav visibility when going back home
       });
       return false; 
     }
@@ -200,13 +202,15 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                 ),
                 
                 // ==========================================
-                // FLOATING "SHOW MENU" BUTTON
+                // FLOATING "SHOW MENU" BUTTON (RESTRICTED TO TAB 3)
                 // ==========================================
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOutCubic,
-                  // Hide it off-screen when nav is visible, slide it up when hidden
-                  bottom: _isNavVisible ? -100 : MediaQuery.of(context).padding.bottom + 20,
+                  // Hide if nav is visible OR if NOT on the Location Tracker tab
+                  bottom: (_isNavVisible || _selectedIndex != 3) 
+                      ? -100 
+                      : MediaQuery.of(context).padding.bottom + 20,
                   left: 0,
                   right: 0,
                   child: Center(
@@ -250,6 +254,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         onProfileTap: () {
           setState(() {
             _selectedIndex = 4;
+            _isNavVisible = true; // --- Ensures nav returns when tapping profile ---
           });
         },
         onNotificationTap: () {

@@ -173,6 +173,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
     _animationController.reset();
     setState(() {
       _selectedIndex = index;
+      _isNavVisible = true; // --- Ensures nav returns when switching tabs ---
     });
     _animationController.forward();
     
@@ -214,6 +215,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
+        _isNavVisible = true; // --- Reset nav visibility when going back home ---
         _animationController.reset();
         _animationController.forward();
       });
@@ -272,6 +274,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
       onProfileTap: () {
         setState(() {
           _selectedIndex = 4;
+          _isNavVisible = true; // --- Ensures nav returns when tapping profile ---
         });
       },
       textColor: theme.textColor,
@@ -378,49 +381,6 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
                       isDarkMode: _isDarkMode,
                       theme: theme,
                     ),
-
-                    // ==========================================
-                    // FLOATING "SHOW MENU" BUTTON
-                    // ==========================================
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOutCubic,
-                      // Hide it off-screen when nav is visible, slide it up when hidden
-                      bottom: _isNavVisible ? -100 : MediaQuery.of(context).padding.bottom + 20,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Semantics(
-                          label: 'Show navigation menu',
-                          button: true,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() => _isNavVisible = true);
-                              // Announce to the screen reader that the menu is back
-                              _accessibilityService.announce('Navigation menu shown');
-                            },
-                            icon: const Icon(Icons.keyboard_arrow_up, color: Color(0xFF8B5CF6)),
-                            label: Text(
-                              'Show Menu',
-                              style: TextStyle(
-                                color: theme.textColor, 
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.cardColor,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: const StadiumBorder(),
-                              elevation: 8,
-                              shadowColor: Colors.black26,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // ==========================================
-
                   ],
                 ),
               ),

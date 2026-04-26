@@ -583,6 +583,7 @@ class _RequestCaretakerFormState extends State<RequestCaretakerForm> with Single
             body: jsonEncode({
               'caretakerId': widget.caretakerId,
               'patientName': widget.userName,
+              'patientId': widget.userId,
               'priority': _selectedPriority.toLowerCase(),
               'caretakerPhone': caretakerPhone, // Passing phone number to backend
               'message': _messageController.text.isNotEmpty 
