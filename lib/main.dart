@@ -11,6 +11,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
+  // Extract the new avatar URL from the payload
+  final avatarUrl = message.data['callerAvatar'] ?? '';
+
   if (message.data['type'] == 'emergency_alarm') {
     final patientName = message.data['patientName'] ?? 'Patient';
     final requestMsg = message.data['message'] ?? 'Emergency Assistance Needed!';
@@ -18,36 +21,29 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
     final callParams = CallKitParams(
       id: requestId,
-      nameCaller: 'EMERGENCY: $patientName',
-      appName: 'SEELAI',
-      avatar: '', 
-      handle: requestMsg,
+      // Keep name clean, no "EMERGENCY:" prefix looks much more professional
+      nameCaller: patientName, 
+      appName: 'SEELAI EMERGENCY', 
+      avatar: avatarUrl, // <--- INJECTS THE PROFILE PICTURE
+      handle: '🚨 $requestMsg', // Move the alert icon to the subtitle
       type: 0, 
       duration: 30000, 
-      textAccept: 'Open App',
+      textAccept: 'Respond', // More professional than "Open App"
       textDecline: 'Dismiss',
       extra: <String, dynamic>{'requestId': requestId},
       android: const AndroidParams(
         isCustomNotification: true,
-        isShowLogo: false,
+        isShowLogo: true, // Show the SEELAI app logo
         ringtonePath: 'system_ringtone_default', 
-        backgroundColor: '#FF0000', 
-        actionColor: '#4CAF50',
+        backgroundColor: '#991B1B', // A professional, modern Deep Red (Tailwind Red 800)
+        actionColor: '#10B981', // Professional modern Green
       ),
       ios: const IOSParams(
         iconName: 'AppIcon',
-        handleType: '',
+        handleType: 'generic',
         supportsVideo: false,
-        maximumCallGroups: 1,
-        maximumCallsPerCallGroup: 1,
         audioSessionMode: 'default',
         audioSessionActive: true,
-        audioSessionPreferredSampleRate: 44100.0,
-        audioSessionPreferredIOBufferDuration: 0.005,
-        supportsDTMF: true,
-        supportsHolding: true,
-        supportsGrouping: false,
-        supportsUngrouping: false,
         ringtonePath: 'system_ringtone_default',
       ),
     );
