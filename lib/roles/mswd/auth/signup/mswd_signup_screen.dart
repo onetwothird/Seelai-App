@@ -33,11 +33,11 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   final ImagePicker _picker = ImagePicker();
 
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _idNumberController = TextEditingController();
-  final TextEditingController _ageController = TextEditingController();
+  final TextEditingController _staffIdController = TextEditingController();
+  final TextEditingController _departmentController = TextEditingController(); // Moved up logically
   final TextEditingController _phoneController = TextEditingController(); 
+  final TextEditingController _ageController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _departmentController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   
@@ -73,11 +73,11 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   void dispose() {
     _entryController.dispose();
     _nameController.dispose();
-    _idNumberController.dispose();
-    _ageController.dispose();
-    _phoneController.dispose(); 
-    _emailController.dispose();
+    _staffIdController.dispose(); 
     _departmentController.dispose();
+    _phoneController.dispose(); 
+    _ageController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -205,8 +205,13 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                       const SizedBox(height: 16),
                       _buildTextField(_nameController, 'Full Name', Icons.person_outline),
                       const SizedBox(height: 16),
-                      _buildTextField(_idNumberController, 'Staff ID Number', Icons.badge_outlined),
+                      _buildTextField(_staffIdController, 'Staff ID Number', Icons.badge_outlined),
                       const SizedBox(height: 16),
+                      
+                      // MOVED DEPARTMENT HERE
+                      _buildTextField(_departmentController, 'Department', Icons.business_outlined),
+                      const SizedBox(height: 16),
+                      
                       _buildTextField(_phoneController, 'Phone Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
                       const SizedBox(height: 16),
                       
@@ -215,19 +220,16 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            flex: 2, // Slightly smaller flex to give space to Gender text
+                            flex: 2, 
                             child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            flex: 3, // Larger flex for Gender
+                            flex: 3, 
                             child: _buildGenderDropdown(),
                           ),
                         ],
                       ),
-                      
-                      const SizedBox(height: 16),
-                      _buildTextField(_departmentController, 'Department', Icons.business_outlined),
                       
                       const SizedBox(height: 32),
 
@@ -299,7 +301,6 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
     );
   }
 
-  // UPDATED RESPONSIVE GENDER DROPDOWN
   Widget _buildGenderDropdown() {
     return Container(
       decoration: BoxDecoration(
@@ -308,7 +309,7 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonFormField<String>(
-        isExpanded: true, // Crucial for responsiveness on smaller screens
+        isExpanded: true, 
         initialValue: _selectedGender,
         icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
         decoration: const InputDecoration(
@@ -318,13 +319,13 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
           border: InputBorder.none, 
           contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
-        items: ['Male', 'Female', 'Rather not Say'] // Aligned choices with caretaker
+        items: ['Male', 'Female', 'Rather not Say'] 
             .map((sex) => DropdownMenuItem(
                   value: sex, 
                   child: Text(
                     sex, 
                     style: const TextStyle(color: Color(0xFF1E293B)),
-                    overflow: TextOverflow.ellipsis, // Added overflow protection
+                    overflow: TextOverflow.ellipsis, 
                   )
                 ))
             .toList(),
@@ -370,14 +371,14 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
   }
 
   Future<void> _handleSignup() async {
-    // 1. STRICT VALIDATION: All fields except password must be filled out
+    // 1. STRICT VALIDATION
     if (_nameController.text.trim().isEmpty || 
-        _idNumberController.text.trim().isEmpty ||
-        _ageController.text.trim().isEmpty || 
+        _staffIdController.text.trim().isEmpty || 
+        _departmentController.text.trim().isEmpty || // Moved department up logically
         _phoneController.text.trim().isEmpty ||
-        _selectedGender == null ||              // Gender Validation is enforced here
-        _emailController.text.trim().isEmpty || 
-        _departmentController.text.trim().isEmpty) {
+        _ageController.text.trim().isEmpty || 
+        _selectedGender == null ||              
+        _emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
       return;
     }
@@ -438,12 +439,12 @@ class _MSWDSignupScreenState extends State<MSWDSignupScreen> with TickerProvider
         await databaseService.createUserDocument(
           userId: finalUser.uid,
           name: _nameController.text.trim(),
-          idNumber: _idNumberController.text.trim(), 
+          staffId: _staffIdController.text.trim(), 
           age: age, 
           email: _emailController.text.trim(),
           department: _departmentController.text.trim(),
           contactNumber: _phoneController.text.trim(), 
-          sex: _selectedGender, // Pushing the required gender selection                        
+          sex: _selectedGender,                      
           role: 'admin', 
         );
       } catch (dbError) {

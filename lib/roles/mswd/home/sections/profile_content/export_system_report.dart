@@ -219,7 +219,7 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text('SEELAI', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#8B5CF6'))),
-                    pw.Text('Comprehensive System Report', style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                    pw.Text('System Report', style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
                   ],
                 ),
               ],
