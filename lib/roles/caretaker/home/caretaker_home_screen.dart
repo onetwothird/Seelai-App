@@ -188,6 +188,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     _animationController.reset();
     setState(() {
       _selectedIndex = index;
+      _isNavVisible = true; // --- Ensures nav returns when switching tabs ---
     });
     _animationController.forward();
   }
@@ -207,6 +208,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
+        _isNavVisible = true; // --- Reset nav visibility when going back home ---
         _animationController.reset();
         _animationController.forward();
       });
@@ -310,13 +312,15 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                     ),
 
                     // ==========================================
-                    // FLOATING "SHOW MENU" BUTTON
+                    // FLOATING "SHOW MENU" BUTTON (RESTRICTED TO TAB 4)
                     // ==========================================
                     AnimatedPositioned(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOutCubic,
-                      // Hide it off-screen when nav is visible, slide it up when hidden
-                      bottom: _isNavVisible ? -100 : MediaQuery.of(context).padding.bottom + 20,
+                      // Hide if nav is visible OR if NOT on the Location Tracker tab (index 4)
+                      bottom: (_isNavVisible || _selectedIndex != 4) 
+                          ? -100 
+                          : MediaQuery.of(context).padding.bottom + 20,
                       left: 0,
                       right: 0,
                       child: Center(
@@ -383,6 +387,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         onProfileTap: () {
           setState(() {
             _selectedIndex = 3; 
+            _isNavVisible = true; // --- Ensures nav returns when tapping profile ---
           });
         },
         onNotificationTap: () {

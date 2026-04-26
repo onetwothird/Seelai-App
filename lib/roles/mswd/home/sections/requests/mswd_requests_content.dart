@@ -1,4 +1,4 @@
-// File: lib/roles/mswd/home/sections/requests/requests_content.dart
+// File: lib/roles/mswd/home/sections/requests/mswd_requests_content.dart
 
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart';
@@ -43,12 +43,21 @@ class _RequestsContentState extends State<RequestsContent> {
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
+  // --- PAGINATION & DELETION VARIABLES ---
+  final int _itemsPerPage = 5;
+  final Set<String> _hiddenRequestIds = {};
+  
+  // Added index 5 for the new 'Deleted' filter chip
+  final Map<int, int> _filterPages = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1};
+
+  // Added 'Deleted' to the filters
   final List<Map<String, dynamic>> _filters = [
     {'label': 'Pending', 'status': RequestStatus.pending, 'icon': Icons.pending_actions_rounded, 'color': const Color(0xFFF5A623)},
     {'label': 'Accepted', 'status': RequestStatus.accepted, 'icon': Icons.how_to_reg_rounded, 'color': const Color(0xFF3B82F6)},
     {'label': 'Active', 'status': RequestStatus.inProgress, 'icon': Icons.sync_rounded, 'color': const Color(0xFF8B5CF6)},
     {'label': 'Completed', 'status': RequestStatus.completed, 'icon': Icons.task_alt_rounded, 'color': const Color(0xFF10B981)},
     {'label': 'Declined', 'status': RequestStatus.declined, 'icon': Icons.block_rounded, 'color': const Color(0xFFEF4444)},
+    {'label': 'Deleted', 'status': 'deleted', 'icon': Icons.delete_outline_rounded, 'color': const Color(0xFF9CA3AF)},
   ];
 
   @override
@@ -69,7 +78,6 @@ class _RequestsContentState extends State<RequestsContent> {
     });
   }
 
-  // Helper to safely extract the first name from user data
   String _getFirstName() {
     final name = widget.userData['name'] as String? ?? 'Admin';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -77,8 +85,8 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 
   List<String> _getMascotMessages() {
-    final pendingCount = _allRequests.where((r) => r.status == RequestStatus.pending).length;
-    final emergencyCount = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed).length;
+    final pendingCount = _allRequests.where((r) => r.status == RequestStatus.pending && !_hiddenRequestIds.contains(r.id)).length;
+    final emergencyCount = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed && !_hiddenRequestIds.contains(r.id)).length;
 
     List<String> msgs = [];
     if (pendingCount == 0 && emergencyCount == 0) {
@@ -152,7 +160,7 @@ class _RequestsContentState extends State<RequestsContent> {
 
     return SingleChildScrollView(
       controller: widget.scrollController,
-      physics: const AlwaysScrollableScrollPhysics(), // Scrollability ensured
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -166,7 +174,6 @@ class _RequestsContentState extends State<RequestsContent> {
           ),
           const SizedBox(height: spacingMedium),
           
-          // Edge-to-edge Mascot Banner with Bubble
           _buildMascotBanner(),
           
           Padding(
@@ -182,7 +189,8 @@ class _RequestsContentState extends State<RequestsContent> {
                 _buildFilterChips(),
                 const SizedBox(height: 24),
                 _buildRequestList(),
-                const SizedBox(height: 120), // Bottom padding
+                
+                const SizedBox(height: 120), 
               ],
             ),
           ),
@@ -226,7 +234,6 @@ class _RequestsContentState extends State<RequestsContent> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Edge-to-edge gradient background strictly tied to the top
         Positioned(
           top: 0,
           bottom: 0,
@@ -246,7 +253,6 @@ class _RequestsContentState extends State<RequestsContent> {
           ),
         ),
         
-        // Mascot and Speech Bubble
         Padding(
           padding: EdgeInsets.symmetric(
             horizontal: MediaQuery.of(context).size.width * 0.05,
@@ -254,7 +260,6 @@ class _RequestsContentState extends State<RequestsContent> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mascot Figure
               Image.asset(
                 'assets/seelai-icons/seelai4.png',
                 height: 120, 
@@ -265,7 +270,6 @@ class _RequestsContentState extends State<RequestsContent> {
                 ),
               ),
               
-              // Speech Bubble Tail (Pointing left, aligned to mouth)
               Container(
                 margin: const EdgeInsets.only(bottom: 40), 
                 child: CustomPaint(
@@ -276,7 +280,6 @@ class _RequestsContentState extends State<RequestsContent> {
                 ),
               ),
 
-              // Speech Bubble Content - Conversational Format
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 15),
@@ -307,7 +310,6 @@ class _RequestsContentState extends State<RequestsContent> {
                       ),
                       const SizedBox(height: 6),
                       
-                      // FIXED STACK TRICK
                       Stack(
                         children: [
                           Text(
@@ -342,10 +344,9 @@ class _RequestsContentState extends State<RequestsContent> {
     );
   }
 
-  // [Keep _buildQuickStats, _buildSummaryCard, _buildSearchAndFilter, _buildFilterChips, _buildRequestList, _buildRedesignedCard, _buildLoading, _buildError, _getStatusColor, _formatShortTime methods exactly the same...]
   Widget _buildQuickStats() {
-    final pending = _allRequests.where((r) => r.status == RequestStatus.pending).length;
-    final emergency = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed).length;
+    final pending = _allRequests.where((r) => r.status == RequestStatus.pending && !_hiddenRequestIds.contains(r.id)).length;
+    final emergency = _allRequests.where((r) => r.priority.toString().contains('emergency') && r.status != RequestStatus.completed && !_hiddenRequestIds.contains(r.id)).length;
 
     return Row(
       children: [
@@ -492,7 +493,12 @@ class _RequestsContentState extends State<RequestsContent> {
       child: TextField(
         controller: _searchController,
         style: TextStyle(color: widget.theme.textColor, fontSize: 14),
-        onChanged: (v) => setState(() => _searchQuery = v),
+        onChanged: (v) {
+          setState(() {
+            _searchQuery = v;
+            _filterPages[_selectedFilterIndex] = 1; // Reset to page 1 on search
+          });
+        },
         decoration: InputDecoration(
           isDense: true, 
           hintText: 'Search patients or requests...',
@@ -509,7 +515,10 @@ class _RequestsContentState extends State<RequestsContent> {
                   icon: Icon(Icons.close_rounded, color: widget.theme.subtextColor, size: 18),
                   onPressed: () {
                     _searchController.clear();
-                    setState(() => _searchQuery = '');
+                    setState(() {
+                      _searchQuery = '';
+                      _filterPages[_selectedFilterIndex] = 1;
+                    });
                   },
                 )
               : null,
@@ -577,17 +586,36 @@ class _RequestsContentState extends State<RequestsContent> {
   }
 
   Widget _buildRequestList() {
-    final targetStatus = _filters[_selectedFilterIndex]['status'] as RequestStatus;
+    final filterStatus = _filters[_selectedFilterIndex]['status'];
     
     final filtered = _allRequests.where((req) {
-      final matchesStatus = req.status == targetStatus;
       final matchesSearch = _searchQuery.isEmpty || 
           req.patientName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           req.requestType.toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesStatus && matchesSearch;
+          
+      if (!matchesSearch) return false;
+
+      // Handle the custom 'deleted' filter
+      if (filterStatus == 'deleted') {
+        return _hiddenRequestIds.contains(req.id);
+      } else {
+        final matchesStatus = req.status == filterStatus;
+        final isNotDeleted = !_hiddenRequestIds.contains(req.id);
+        return matchesStatus && isNotDeleted;
+      }
     }).toList();
 
     if (filtered.isEmpty) {
+      IconData emptyIcon = Icons.inbox_rounded;
+      String emptyTitle = 'No requests found';
+      String emptySub = 'Try adjusting your filters or search criteria.';
+
+      if (_selectedFilterIndex == 5) { // Deleted tab
+        emptyIcon = Icons.delete_outline_rounded;
+        emptyTitle = 'Trash is Empty';
+        emptySub = 'Deleted requests will appear here.';
+      }
+
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.only(top: 16),
@@ -611,14 +639,14 @@ class _RequestsContentState extends State<RequestsContent> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.inbox_rounded, 
+                emptyIcon, 
                 size: 48, 
                 color: widget.theme.subtextColor.withValues(alpha: 0.5)
               ),
             ),
             const SizedBox(height: 20),
             Text(
-              'No requests found',
+              emptyTitle,
               style: TextStyle(
                 color: widget.theme.textColor, 
                 fontSize: 18,
@@ -628,7 +656,7 @@ class _RequestsContentState extends State<RequestsContent> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Try adjusting your filters or search criteria.',
+              emptySub,
               style: TextStyle(color: widget.theme.subtextColor, fontSize: 14, fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
@@ -637,16 +665,149 @@ class _RequestsContentState extends State<RequestsContent> {
       );
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: filtered.length,
-      itemBuilder: (context, index) {
-        return _buildRedesignedCard(filtered[index]);
-      },
+    // Pagination Calculations
+    final int totalItems = filtered.length;
+    final int totalPages = (totalItems / _itemsPerPage).ceil();
+    
+    int currentPage = _filterPages[_selectedFilterIndex] ?? 1;
+    
+    if (currentPage > totalPages && totalPages > 0) {
+      currentPage = totalPages;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+         if (mounted) setState(() { _filterPages[_selectedFilterIndex] = currentPage; });
+      });
+    }
+
+    final int startIndex = (currentPage - 1) * _itemsPerPage;
+    int endIndex = startIndex + _itemsPerPage;
+    if (endIndex > totalItems) endIndex = totalItems;
+
+    final paginatedRequests = filtered.sublist(startIndex, endIndex);
+
+    return Column(
+      children: [
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero, 
+          itemCount: paginatedRequests.length,
+          itemBuilder: (context, index) {
+            final request = paginatedRequests[index];
+            final isLast = index == paginatedRequests.length - 1;
+            
+            Widget card;
+            if (_selectedFilterIndex == 5) { // Deleted tab
+              card = _buildDeletedCard(request);
+            } else {
+              card = _buildDismissibleCard(request);
+            }
+
+            // Margin is applied here so the Swipe-to-delete background matches perfectly
+            return Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 24),
+              child: card,
+            );
+          },
+        ),
+        
+        if (totalPages > 1) 
+          Padding(
+            padding: const EdgeInsets.only(top: 24.0), 
+            child: _buildPaginationControls(currentPage, totalPages, _selectedFilterIndex),
+          ),
+      ],
     );
   }
 
+  Widget _buildPaginationControls(int currentPage, int totalPages, int filterIndex) {
+    return Padding(
+      padding: EdgeInsets.zero, 
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded),
+            color: currentPage > 1 ? _primaryColor : widget.theme.subtextColor.withOpacity(0.3),
+            onPressed: currentPage > 1 ? () {
+              setState(() {
+                _filterPages[filterIndex] = currentPage - 1;
+              });
+            } : null,
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              color: _primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(24), 
+            ),
+            child: Text(
+              'Page $currentPage of $totalPages',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: _primaryColor,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right_rounded),
+            color: currentPage < totalPages ? _primaryColor : widget.theme.subtextColor.withOpacity(0.3),
+            onPressed: currentPage < totalPages ? () {
+              setState(() {
+                _filterPages[filterIndex] = currentPage + 1;
+              });
+            } : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDismissibleCard(RequestModel request) {
+    return Dismissible(
+      key: Key(request.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24.0),
+        decoration: BoxDecoration(
+          color: Colors.red[400],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 28),
+      ),
+      onDismissed: (direction) {
+        setState(() {
+          _hiddenRequestIds.add(request.id);
+        });
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Moved to Deleted', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+            backgroundColor: _primaryColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: Colors.white,
+              onPressed: () {
+                if (mounted) {
+                  setState(() {
+                    _hiddenRequestIds.remove(request.id);
+                  });
+                }
+              },
+            ),
+          ),
+        );
+      },
+      child: _buildRedesignedCard(request),
+    );
+  }
+
+  // Used for active cards
   Widget _buildRedesignedCard(RequestModel request) {
     final userData = _userDataCache[request.patientId];
     final profileImg = userData?['profileImageUrl'];
@@ -654,196 +815,353 @@ class _RequestsContentState extends State<RequestsContent> {
     final statusColor = _getStatusColor(request.status);
     final isEmergency = request.priority.toString().contains('emergency');
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: GestureDetector(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RequestDetailsScreen(
-              request: request,
-              isDarkMode: widget.isDarkMode,
-              theme: widget.theme,
-              userDataCache: _userDataCache,
-            ),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => RequestDetailsScreen(
+            request: request,
+            isDarkMode: widget.isDarkMode,
+            theme: widget.theme,
+            userDataCache: _userDataCache,
           ),
         ),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: widget.theme.cardColor,
-            borderRadius: BorderRadius.circular(20), 
-            border: Border.all(
-              color: isEmergency 
-                  ? Colors.red.withValues(alpha: 0.4) 
-                  : (widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
-              width: isEmergency ? 1.5 : 1.0,
-            ),
-            boxShadow: widget.isDarkMode ? [] : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(20), 
+          border: Border.all(
+            color: isEmergency 
+                ? Colors.red.withValues(alpha: 0.4) 
+                : (widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
+            width: isEmergency ? 1.5 : 1.0,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Hero(
-                    tag: 'avatar_${request.id}',
-                    child: Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: widget.isDarkMode ? Colors.white10 : Colors.grey[100],
-                        border: Border.all(color: widget.isDarkMode ? Colors.white24 : Colors.black12),
-                        image: profileImg != null && profileImg.isNotEmpty
-                            ? DecorationImage(
-                                image: NetworkImage(profileImg),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: (profileImg == null || profileImg.isEmpty)
-                          ? Center(
-                              child: Text(
-                                request.patientName.isNotEmpty ? request.patientName[0].toUpperCase() : '?',
-                                style: TextStyle(color: widget.theme.subtextColor, fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
+          boxShadow: widget.isDarkMode ? [] : [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Hero(
+                  tag: 'avatar_${request.id}',
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: widget.isDarkMode ? Colors.white10 : Colors.grey[100],
+                      border: Border.all(color: widget.isDarkMode ? Colors.white24 : Colors.black12),
+                      image: profileImg != null && profileImg.isNotEmpty
+                          ? DecorationImage(
+                              image: NetworkImage(profileImg),
+                              fit: BoxFit.cover,
                             )
                           : null,
                     ),
+                    child: (profileImg == null || profileImg.isEmpty)
+                        ? Center(
+                            child: Text(
+                              request.patientName.isNotEmpty ? request.patientName[0].toUpperCase() : '?',
+                              style: TextStyle(color: widget.theme.subtextColor, fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                          )
+                        : null,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          request.patientName,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: widget.theme.textColor,
-                            letterSpacing: -0.3,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.patientName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: widget.theme.textColor,
+                          letterSpacing: -0.3,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatShortTime(request.timestamp),
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: widget.theme.subtextColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      request.status.name.toUpperCase(),
-                      style: TextStyle(
-                        color: statusColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatShortTime(request.timestamp),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: widget.theme.subtextColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    request.status.name.toUpperCase(),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 20),
+            
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode ? Colors.white10 : Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.assignment_rounded, size: 16, color: widget.theme.subtextColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        request.requestType,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: widget.theme.textColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                if (isEmergency)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: widget.isDarkMode ? Colors.white10 : Colors.grey[50],
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.assignment_rounded, size: 16, color: widget.theme.subtextColor),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.warning_rounded, size: 16, color: Colors.red),
+                        const SizedBox(width: 6),
                         Text(
-                          request.requestType,
+                          'EMERGENCY',
                           style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: widget.theme.textColor,
+                            color: Colors.red,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (request.location != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on_rounded, size: 12, color: Colors.green[600]),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Location',
+                          style: TextStyle(
+                            color: Colors.green[600],
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  
-                  if (isEmergency)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // AESTHETIC CARD FOR DELETED ITEMS (Includes Restore Button)
+  Widget _buildDeletedCard(RequestModel request) {
+    final userData = _userDataCache[request.patientId];
+    final profileImg = userData?['profileImageUrl'];
+    final statusColor = _getStatusColor(request.status);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(20), 
+        border: Border.all(
+          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+          width: 1.0,
+        ),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.isDarkMode ? Colors.white10 : Colors.grey[100],
+                  border: Border.all(color: widget.isDarkMode ? Colors.white24 : Colors.black12),
+                  image: profileImg != null && profileImg.isNotEmpty
+                      ? DecorationImage(
+                          image: NetworkImage(profileImg),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: (profileImg == null || profileImg.isEmpty)
+                    ? Center(
+                        child: Text(
+                          request.patientName.isNotEmpty ? request.patientName[0].toUpperCase() : '?',
+                          style: TextStyle(color: widget.theme.subtextColor, fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.patientName,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: widget.theme.textColor,
+                        letterSpacing: -0.3,
                       ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning_rounded, size: 16, color: Colors.red),
-                          const SizedBox(width: 6),
-                          Text(
-                            'EMERGENCY',
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else if (request.location != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.location_on_rounded, size: 12, color: Colors.green[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Location',
-                            style: TextStyle(
-                              color: Colors.green[600],
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _formatShortTime(request.timestamp),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: widget.theme.subtextColor,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                ],
+                  ],
+                ),
+              ),
+              
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  request.status.name.toUpperCase(),
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
             ],
           ),
-        ),
+          
+          const SizedBox(height: 20),
+          
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: widget.isDarkMode ? Colors.white10 : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.assignment_rounded, size: 16, color: widget.theme.subtextColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      request.requestType,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: widget.theme.textColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const Spacer(),
+              
+              // RESTORE BUTTON
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.withValues(alpha: 0.1),
+                  foregroundColor: Colors.green,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.restore_rounded, size: 16),
+                label: const Text('Restore', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                onPressed: () {
+                  setState(() { _hiddenRequestIds.remove(request.id); });
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Request restored.', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+                      backgroundColor: _primaryColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      margin: const EdgeInsets.all(16),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

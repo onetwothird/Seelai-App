@@ -34,8 +34,8 @@ class RequestsContent extends StatefulWidget {
 
 class _RequestsContentState extends State<RequestsContent>
     with SingleTickerProviderStateMixin {
-  // Brand Colors - Vibrant Purple
-  final Color _primaryColor = const Color(0xFF7C3AED);
+  // Brand Colors - Updated to requested violet
+  final Color _primaryColor = const Color(0xFF8B5CF6);
 
   late TabController _tabController;
   List<RequestModel> _pendingRequests = [];
@@ -52,31 +52,32 @@ class _RequestsContentState extends State<RequestsContent>
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
+  // --- STATE VARIABLES FOR DELETION & PAGINATION ---
+  final Set<String> _hiddenRequestIds = {};
+  final Map<int, int> _tabPages = {0: 1, 1: 1, 2: 1, 3: 1}; // Added index 3 for Deleted tab
+  final int _itemsPerPage = 5;
+
   @override
   void initState() {
     super.initState();
     
-    _tabController = TabController(length: 3, vsync: this);
+    // Changed length to 4 to include the 'Deleted' tab
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
 
-    // 1. Initialize ID and save the FCM Token
     _initializeCaretakerId().then((_) {
       if (_caretakerId != null) {
         databaseService.saveUserFCMToken(_caretakerId!, 'caretaker');
       }
     });
 
-    // 2. Start the Mascot message rotation
     _startMessageTimer();
     
-    // 3. Listen for CallKit actions (when user taps "Open App" on the ringing screen)
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       switch (event!.event) {
         case Event.actionCallAccept:
-          // The app comes to the foreground. Since this widget is active,
-          // your Firebase streams below are already pulling the new emergency request!
           break;
         case Event.actionCallDecline:
           debugPrint("Alarm dismissed by user.");
@@ -87,7 +88,6 @@ class _RequestsContentState extends State<RequestsContent>
     });
   }
 
-  // Method to rotate the mascot messages every 8 seconds
   void _startMessageTimer() {
     _messageTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
       if (mounted) {
@@ -98,7 +98,6 @@ class _RequestsContentState extends State<RequestsContent>
     });
   }
 
-  // Helper to safely extract the first name from user data
   String _getFirstName() {
     final name = widget.userData['name'] as String? ?? 'Caretaker';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -245,6 +244,19 @@ class _RequestsContentState extends State<RequestsContent>
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
+  void _showBrandSnackbar(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+        backgroundColor: const Color(0xFF8B5CF6), // Enforced Brand Color
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_error != null && !_isLoading) {
@@ -266,7 +278,6 @@ class _RequestsContentState extends State<RequestsContent>
         controller: widget.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // Header & Mascot Banner Area
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,15 +291,12 @@ class _RequestsContentState extends State<RequestsContent>
                   child: _buildHeader(),
                 ),
                 const SizedBox(height: spacingMedium),
-                
-                // Edge-to-edge Mascot Banner with Bubble
                 _buildMascotBanner(),
                 const SizedBox(height: spacingMedium),
               ],
             ),
           ),
           
-          // Stats Row
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: width * 0.05),
             sliver: SliverToBoxAdapter(
@@ -296,7 +304,6 @@ class _RequestsContentState extends State<RequestsContent>
             ),
           ),
           
-          // Tabs
           SliverPadding(
             padding: EdgeInsets.only(
               left: width * 0.05, 
@@ -309,7 +316,6 @@ class _RequestsContentState extends State<RequestsContent>
             ),
           ),
           
-          // List Container
           SliverToBoxAdapter(
             child: _buildRequestListContainer(),
           ),
@@ -354,7 +360,6 @@ class _RequestsContentState extends State<RequestsContent>
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Edge-to-edge gradient background strictly tied to the top
         Positioned(
           top: 0,
           bottom: 0,
@@ -373,8 +378,6 @@ class _RequestsContentState extends State<RequestsContent>
             ),
           ),
         ),
-        
-        // Mascot and Speech Bubble
         Padding(
           padding: EdgeInsets.symmetric(
             horizontal: MediaQuery.of(context).size.width * 0.05,
@@ -382,7 +385,6 @@ class _RequestsContentState extends State<RequestsContent>
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mascot Figure
               Image.asset(
                 'assets/seelai-icons/seelai4.png',
                 height: 125, 
@@ -392,8 +394,6 @@ class _RequestsContentState extends State<RequestsContent>
                   child: Icon(Icons.image_not_supported, color: widget.theme.subtextColor),
                 ),
               ),
-              
-              // Speech Bubble Tail (Pointing left, aligned to mouth)
               Container(
                 margin: const EdgeInsets.only(bottom: 40), 
                 child: CustomPaint(
@@ -403,8 +403,6 @@ class _RequestsContentState extends State<RequestsContent>
                   ),
                 ),
               ),
-
-              // Speech Bubble Content - Conversational Format
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 15),
@@ -434,9 +432,8 @@ class _RequestsContentState extends State<RequestsContent>
                         ),
                       ),
                       const SizedBox(height: 6),
-                      // NEW TYPEWRITER TEXT WITH FIXED HEIGHT CONTAINER
                       Container(
-                        height: 65, // Fixed height to stop layout jumping and fit 3 lines
+                        height: 65, 
                         alignment: Alignment.topLeft,
                         child: TypewriterText(
                           text: displayMessage,
@@ -650,6 +647,7 @@ class _RequestsContentState extends State<RequestsContent>
         labelColor: Colors.white,
         unselectedLabelColor: widget.theme.subtextColor,
         labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: -0.2),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4), // Added to prevent overflow
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         padding: const EdgeInsets.all(4),
@@ -657,41 +655,351 @@ class _RequestsContentState extends State<RequestsContent>
           Tab(text: 'Pending'),
           Tab(text: 'Active'),
           Tab(text: 'History'),
+          Tab(text: 'Deleted'), // 4th Tab Included
         ],
       ),
     );
   }
 
   Widget _buildRequestListContainer() {
-    List<RequestModel> currentRequests;
-    switch (_tabController.index) {
-      case 0: currentRequests = _pendingRequests; break;
-      case 1: currentRequests = _activeRequests; break;
-      case 2: currentRequests = _completedRequests; break;
-      default: currentRequests = _pendingRequests;
+    List<RequestModel> visibleRequests;
+    final currentTabIndex = _tabController.index;
+
+    // Filter requests directly into `visibleRequests` based on the active tab
+    switch (currentTabIndex) {
+      case 0: 
+        visibleRequests = _pendingRequests; 
+        break;
+      case 1: 
+        visibleRequests = _activeRequests; 
+        break;
+      case 2: 
+        visibleRequests = _completedRequests.where((req) => !_hiddenRequestIds.contains(req.id)).toList(); 
+        break;
+      case 3: 
+        visibleRequests = _completedRequests.where((req) => _hiddenRequestIds.contains(req.id)).toList(); 
+        break;
+      default: 
+        visibleRequests = _pendingRequests;
     }
 
-    if (currentRequests.isEmpty) {
+    if (visibleRequests.isEmpty) {
       return SizedBox(
         height: 300,
         child: _buildEmptyState(),
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: currentRequests.length,
-      itemBuilder: (context, index) {
-        return Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: MediaQuery.of(context).size.width * 0.05, 
-            vertical: 6
+    final int totalItems = visibleRequests.length;
+    final int totalPages = (totalItems / _itemsPerPage).ceil();
+    
+    int currentPage = _tabPages[currentTabIndex] ?? 1;
+    
+    if (currentPage > totalPages && totalPages > 0) {
+      currentPage = totalPages;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+         setState(() { _tabPages[currentTabIndex] = currentPage; });
+      });
+    }
+
+    final int startIndex = (currentPage - 1) * _itemsPerPage;
+    int endIndex = startIndex + _itemsPerPage;
+    if (endIndex > totalItems) endIndex = totalItems;
+
+    final paginatedRequests = visibleRequests.sublist(startIndex, endIndex);
+    final width = MediaQuery.of(context).size.width;
+
+    return Column(
+      children: [
+        // Removed the "Restore All" button from here
+
+        ListView.builder(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: paginatedRequests.length,
+          itemBuilder: (context, index) {
+            final request = paginatedRequests[index];
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: width * 0.05, 
+                vertical: 6
+              ),
+              child: _buildCardForCurrentTab(request, currentTabIndex),
+            );
+          },
+        ),
+        
+        if (totalPages > 1) 
+          _buildPaginationControls(currentPage, totalPages, currentTabIndex),
+      ],
+    );
+  }
+
+  // Decides which card widget to render based on the current active tab
+  Widget _buildCardForCurrentTab(RequestModel request, int currentTabIndex) {
+    if (currentTabIndex == 2) {
+      return _buildDismissibleCard(request);
+    } else if (currentTabIndex == 3) {
+      return _buildDeletedCard(request);
+    } else {
+      return _buildMinimalRequestCard(request);
+    }
+  }
+
+  // --- NEW: AESTHETIC CARD FOR DELETED ITEMS ---
+  Widget _buildDeletedCard(RequestModel request) {
+    final priorityColor = request.getPriorityColor();
+    final cachedImage = _profileImageCache[request.patientId];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+        ),
+        boxShadow: widget.isDarkMode ? [] : [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: _buildMinimalRequestCard(currentRequests[index]),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Avatar, Name, Type, Priority
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: (cachedImage != null && cachedImage.isNotEmpty)
+                        ? (widget.isDarkMode ? Colors.white10 : Colors.white)
+                        : _primaryColor.withValues(alpha: 0.1), 
+                    border: Border.all(
+                      color: _primaryColor.withValues(alpha: 0.2), 
+                      width: 1.5,
+                    ), 
+                    image: cachedImage != null
+                        ? DecorationImage(
+                            image: NetworkImage(cachedImage),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: cachedImage == null
+                      ? Icon(Icons.person_rounded, color: _primaryColor, size: 24)
+                      : null,
+                ),
+                const SizedBox(width: 12),
+                
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.patientName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: widget.theme.textColor,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(request.getIcon(), size: 14, color: widget.theme.subtextColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            request.requestType,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: widget.theme.subtextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                        request.priority.name.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: priorityColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Message
+            Text(
+              request.message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                color: widget.theme.textColor.withOpacity(0.85),
+                height: 1.4,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Bottom Row: Time and RESTORE Button
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.access_time_rounded, size: 14, color: widget.theme.subtextColor),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _getTimeAgo(request.timestamp),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: widget.theme.subtextColor,
+                  ),
+                ),
+                
+                const Spacer(),
+                
+                // RESTORE BUTTON
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.withValues(alpha: 0.1),
+                    foregroundColor: Colors.green,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.restore_rounded, size: 16),
+                  label: const Text('Restore', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  onPressed: () {
+                    setState(() { _hiddenRequestIds.remove(request.id); });
+                    _showBrandSnackbar('Request restored.');
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls(int currentPage, int totalPages, int tabIndex) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded),
+            color: currentPage > 1 ? _primaryColor : widget.theme.subtextColor.withOpacity(0.3),
+            onPressed: currentPage > 1 ? () {
+              setState(() {
+                _tabPages[tabIndex] = currentPage - 1;
+              });
+            } : null,
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Page $currentPage of $totalPages',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: _primaryColor,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right_rounded),
+            color: currentPage < totalPages ? _primaryColor : widget.theme.subtextColor.withOpacity(0.3),
+            onPressed: currentPage < totalPages ? () {
+              setState(() {
+                _tabPages[tabIndex] = currentPage + 1;
+              });
+            } : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDismissibleCard(RequestModel request) {
+    return Dismissible(
+      key: Key(request.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24.0),
+        decoration: BoxDecoration(
+          color: Colors.red[400],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(Icons.delete_sweep_rounded, color: Colors.white, size: 28),
+      ),
+      onDismissed: (direction) {
+        setState(() {
+          _hiddenRequestIds.add(request.id);
+        });
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Moved to Deleted', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
+            backgroundColor: const Color(0xFF8B5CF6),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: Colors.white,
+              onPressed: () {
+                if (mounted) {
+                  setState(() {
+                    _hiddenRequestIds.remove(request.id);
+                  });
+                }
+              },
+            ),
+          ),
         );
       },
+      child: _buildMinimalRequestCard(request),
     );
   }
 
@@ -908,6 +1216,11 @@ class _RequestsContentState extends State<RequestsContent>
         title = "No History";
         sub = "Completed requests will appear here.";
         break;
+      case 3: // Newly added state
+        icon = Icons.delete_outline_rounded;
+        title = "Trash is Empty";
+        sub = "Deleted requests will appear here.";
+        break;
       default:
         icon = Icons.inbox;
         title = "No Data";
@@ -987,7 +1300,6 @@ class _RequestsContentState extends State<RequestsContent>
   }
 }
 
-// Custom Painter to draw the speech bubble tail pointing to the mascot
 class _TailPainter extends CustomPainter {
   final Color color;
 
@@ -998,10 +1310,9 @@ class _TailPainter extends CustomPainter {
     final paint = Paint()..color = color;
     final path = Path();
     
-    // Draw a triangle pointing to the left
-    path.moveTo(size.width, 0); // Top right corner
-    path.lineTo(0, size.height / 2); // Pointing left (middle)
-    path.lineTo(size.width, size.height); // Bottom right corner
+    path.moveTo(size.width, 0); 
+    path.lineTo(0, size.height / 2); 
+    path.lineTo(size.width, size.height); 
     path.close();
     
     canvas.drawPath(path, paint);
@@ -1011,9 +1322,6 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -1035,14 +1343,8 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    
-    // Dynamic speed! 40 milliseconds per character.
     int msDuration = widget.text.length * 40; 
-    
-    _controller = AnimationController(
-      vsync: this, 
-      duration: Duration(milliseconds: msDuration),
-    );
+    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: msDuration));
     _setupAnimation();
     _controller.forward();
   }
