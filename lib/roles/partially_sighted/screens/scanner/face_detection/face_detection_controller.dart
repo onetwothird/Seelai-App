@@ -236,40 +236,47 @@ class FaceDetectionController {
           lastSpeakTime = now;
           readingCompleted = false;
           
-          String? uploadedImageUrl;
-          final controller = cameraService.controller;
-          final userId = authService.value.currentUser?.uid;
-
-          if (controller != null && userId != null) {
-            try {
-              if (controller.value.isStreamingImages) {
-                await controller.stopImageStream();
-                isStreamRunning = false;
-              }
-              
-              final xFile = await controller.takePicture();
-              
-              startFaceDetection();
-              
-              uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
-                File(xFile.path), 
-                userId, 
-                'face'
-              );
-            } catch (_) {
-              if (!isStreamRunning) {
-                startFaceDetection();
-              }
-            }
-          }
-          
-          await _saveDetectedFacesToFirebase(faceCount, imageUrl: uploadedImageUrl);
-          await _flutterTts.speak(speechText);
-          
+          // 1. SPEAK IMMEDIATELY
+          _flutterTts.speak(speechText);
           _notifyStateChanged();
+
+          // 2. FIRE AND FORGET
+          _captureAndUploadInBackground(faceCount);
         }
       }
     } catch (_) { /* Ignored */ }
+  }
+
+  // NEW METHOD
+  Future<void> _captureAndUploadInBackground(int faceCount) async {
+    final controller = cameraService.controller;
+    final userId = authService.value.currentUser?.uid;
+
+    if (controller == null || userId == null) return;
+
+    try {
+      if (controller.value.isStreamingImages) {
+        await controller.stopImageStream();
+        isStreamRunning = false;
+      }
+      
+      final xFile = await controller.takePicture();
+      
+      startFaceDetection();
+      
+      final uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
+        File(xFile.path), 
+        userId, 
+        'face'
+      );
+      
+      await _saveDetectedFacesToFirebase(faceCount, imageUrl: uploadedImageUrl);
+
+    } catch (_) {
+      if (!isStreamRunning && !isDisposing) {
+        startFaceDetection();
+      }
+    }
   }
 
   Future<void> _saveDetectedFacesToFirebase(int faceCount, {String? imageUrl}) async {

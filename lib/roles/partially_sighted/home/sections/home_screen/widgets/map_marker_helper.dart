@@ -1,6 +1,3 @@
-// File: lib/roles/partially_sighted/home/sections/home_screen/widgets/map_marker_helper.dart
-
-
 import 'dart:ui' as ui;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -11,66 +8,58 @@ class MapMarkerHelper {
     required String? imageUrl,
     required String name,
     required Color borderColor,
-    double size = 120.0,
+    double size = 65.0,
+    bool isOffline = false, // ✅ ADDED: The parameter your MSWD map is looking for!
   }) async {
     try {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
 
-      // Draw shadow
-      final shadowPaint = Paint()
-        ..color = Colors.black.withValues(alpha: 0.3)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 8);
-      canvas.drawCircle(Offset(size / 2, size / 2 + 4), size / 2 - 8, shadowPaint);
-
-      // Draw white border
-      final borderPaint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 5, borderPaint);
+      // ✅ ADDED: Grayscale filter matrix for offline users
+      final paint = Paint();
+      if (isOffline) {
+        paint.colorFilter = const ColorFilter.matrix(<double>[
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0,      0,      0,      1, 0,
+        ]);
+      }
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
         try {
-          final response = await http.get(Uri.parse(imageUrl)).timeout(Duration(seconds: 5));
+          final response = await http.get(Uri.parse(imageUrl)).timeout(const Duration(seconds: 5));
           if (response.statusCode == 200) {
             final codec = await ui.instantiateImageCodec(
               response.bodyBytes,
-              targetWidth: size.toInt() - 20,
-              targetHeight: size.toInt() - 20,
+              targetWidth: size.toInt(),
+              targetHeight: size.toInt(),
             );
             final frame = await codec.getNextFrame();
             
-            // Clip to circle
+            // Just clip to a perfect circle, no borders or shadows
             final path = Path()
               ..addOval(Rect.fromCircle(
                 center: Offset(size / 2, size / 2),
-                radius: size / 2 - 10,
+                radius: size / 2,
               ));
             canvas.clipPath(path);
             
-            // Draw image
             canvas.drawImageRect(
               frame.image,
               Rect.fromLTWH(0, 0, frame.image.width.toDouble(), frame.image.height.toDouble()),
-              Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10),
-              Paint(),
+              Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2),
+              paint, // ✅ Applies the black and white filter here if offline
             );
           } else {
-            _drawDefaultAvatar(canvas, size, name, borderColor);
+            _drawDefaultAvatar(canvas, size, name, borderColor, isOffline);
           }
         } catch (e) {
-          _drawDefaultAvatar(canvas, size, name, borderColor);
+          _drawDefaultAvatar(canvas, size, name, borderColor, isOffline);
         }
       } else {
-        _drawDefaultAvatar(canvas, size, name, borderColor);
+        _drawDefaultAvatar(canvas, size, name, borderColor, isOffline);
       }
-
-      // Draw colored border
-      final coloredBorderPaint = Paint()
-        ..color = borderColor
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4;
-      canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 7, coloredBorderPaint);
 
       final picture = recorder.endRecording();
       final img = await picture.toImage(size.toInt(), size.toInt());
@@ -83,36 +72,29 @@ class MapMarkerHelper {
     }
   }
 
-  static void _drawDefaultAvatar(Canvas canvas, double size, String name, Color color) {
-    // Draw gradient background
-    final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2 - 10);
+  // ✅ ADDED: isOffline parameter to handle default letter avatars
+  static void _drawDefaultAvatar(Canvas canvas, double size, String name, Color color, bool isOffline) {
+    final rect = Rect.fromCircle(center: Offset(size / 2, size / 2), radius: size / 2);
+    
+    // If offline, default avatar turns gray instead of its usual color
+    final effectiveColor = isOffline ? Colors.grey : color;
+    
     final gradient = ui.Gradient.linear(
       Offset(rect.left, rect.top),
       Offset(rect.right, rect.bottom),
-      [color, color.withValues(alpha: 0.7)],
+      [effectiveColor, effectiveColor.withValues(alpha: 0.7)],
     );
     final paint = Paint()..shader = gradient;
-    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 10, paint);
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2, paint);
 
-    // Draw initial
     final textPainter = TextPainter(
       text: TextSpan(
         text: name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: size * 0.4,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: Colors.white, fontSize: size * 0.4, fontWeight: FontWeight.bold),
       ),
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        size / 2 - textPainter.width / 2,
-        size / 2 - textPainter.height / 2,
-      ),
-    );
+    textPainter.paint(canvas, Offset(size / 2 - textPainter.width / 2, size / 2 - textPainter.height / 2));
   }
 }
