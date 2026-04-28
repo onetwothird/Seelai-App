@@ -356,7 +356,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         LatLng(targetLat, targetLng), 17.0
       ));
 
-      // ✅ Instantly calculate distance using MSWD Admin's background location
       if (_myPosition != null && mounted) {
         double distanceMeters = Geolocator.distanceBetween(
           _myPosition!.latitude, _myPosition!.longitude, 
