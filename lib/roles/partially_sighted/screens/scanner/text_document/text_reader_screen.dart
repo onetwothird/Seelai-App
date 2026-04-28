@@ -307,6 +307,24 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     }
   }
 
+  // --- NEW BACKGROUND UPLOAD METHOD ---
+  Future<void> _uploadTextDataInBackground(String imagePath, String extractedText, int blockCount) async {
+    final userId = authService.value.currentUser?.uid;
+    if (userId == null) return;
+
+    try {
+      String? uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
+        File(imagePath), 
+        userId, 
+        'text'
+      );
+      
+      await _saveScannedTextToFirebase(extractedText, blockCount, imageUrl: uploadedImageUrl);
+    } catch (e) {
+      debugPrint('Background text upload failed: $e');
+    }
+  }
+
   Future<void> _detectAndReadText() async {
     if (_isProcessing || widget.cameraService.controller == null) return;
     
@@ -344,18 +362,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             _hasReadText = true;
             _readingCompleted = false;
             
-            String? uploadedImageUrl;
-            final userId = authService.value.currentUser?.uid;
-            if (userId != null) {
-              uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
-                File(image.path), 
-                userId, 
-                'text'
-              );
-            }
-            
-            await _saveScannedTextToFirebase(extractedText, recognizedText.blocks.length, imageUrl: uploadedImageUrl);
-            
+            // 1. SPEAK IMMEDIATELY
             await _flutterTts.speak(extractedText);
             
             if (mounted) {
@@ -367,6 +374,9 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                 ),
               );
             }
+
+            // 2. FIRE AND FORGET THE UPLOAD
+            _uploadTextDataInBackground(image.path, extractedText, recognizedText.blocks.length);
           }
         } else {
           if (!_isReading) {
