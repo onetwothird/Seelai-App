@@ -16,7 +16,7 @@ import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
-import 'package:seelai_app/roles/caretaker/home/widgets/notifications_bottom_sheet.dart';
+import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_notifications_bottom_sheet.dart';
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/communication/caretaker_missed_call_alert_section.dart';

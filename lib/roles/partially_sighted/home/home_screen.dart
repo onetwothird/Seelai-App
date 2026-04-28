@@ -96,19 +96,32 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
         .streamPatientRequests(userId)
         .listen((requests) {
       if (mounted) {
-        final acceptedRequests = requests.where((req) => 
+        final now = DateTime.now();
+
+        // 1. Calculate Unread Count (matches Bottom Sheet logic perfectly)
+        final newNotifications = requests.where((req) {
+          if (req.status == RequestStatus.accepted || req.status == RequestStatus.inProgress) return true;
+          if (req.status == RequestStatus.declined) {
+            final time = req.responseTime ?? req.timestamp;
+            return now.difference(time).inHours < 24;
+          }
+          return false;
+        }).toList();
+
+        setState(() {
+          _unreadNotificationCount = newNotifications.length;
+        });
+
+        // 2. Accessibility Announcement (only for freshly accepted requests < 1 min old)
+        final newlyAccepted = newNotifications.where((req) => 
           req.status == RequestStatus.accepted && 
           req.responseTime != null &&
-          DateTime.now().difference(req.responseTime!).inMinutes < 5
+          now.difference(req.responseTime!).inMinutes < 1
         ).toList();
         
-        setState(() {
-          _unreadNotificationCount = acceptedRequests.length;
-          
-          if (acceptedRequests.isNotEmpty) {
-            _accessibilityService.announce('Caretaker accepted your assistance request');
-          }
-        });
+        if (newlyAccepted.isNotEmpty) {
+          _accessibilityService.announce('Caretaker accepted your assistance request');
+        }
       }
     });
   }
@@ -157,6 +170,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
       ),
     ).then((_) {
       if (mounted) {
+        // Optional: clear count locally when bottom sheet closes
         setState(() {
           _unreadNotificationCount = 0;
         });
@@ -215,7 +229,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
-        _isNavVisible = true; // --- Reset nav visibility when going back home ---
+        _isNavVisible = true; 
         _animationController.reset();
         _animationController.forward();
       });
@@ -245,14 +259,14 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.of(context).pop(false); // Close the dialog
+              Navigator.of(context).pop(false); 
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) => const OnboardingScreen(),
                   ),
-                  (route) => false, // Clear the entire navigation stack
+                  (route) => false, 
                 );
               }
             },
@@ -274,12 +288,12 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
       onProfileTap: () {
         setState(() {
           _selectedIndex = 4;
-          _isNavVisible = true; // --- Ensures nav returns when tapping profile ---
+          _isNavVisible = true; 
         });
       },
       textColor: theme.textColor,
       subtextColor: theme.subtextColor,
-      unreadNotificationCount: _unreadNotificationCount,
+      unreadNotificationCount: _unreadNotificationCount, // Passed directly here!
     );
   }
 
