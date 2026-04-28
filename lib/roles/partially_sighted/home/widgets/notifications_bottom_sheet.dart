@@ -125,9 +125,21 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                   );
                 }
 
-                // Categorize into "New" (Active Responses) and "Earlier" (Finished Responses)
-                final newNotifications = notifications.where((r) => r.status == RequestStatus.accepted || r.status == RequestStatus.inProgress).toList();
-                final earlierNotifications = notifications.where((r) => r.status == RequestStatus.completed || r.status == RequestStatus.declined).toList();
+                final now = DateTime.now();
+
+                // Categorize into "New" and "Earlier"
+                final newNotifications = notifications.where((r) {
+                  if (r.status == RequestStatus.accepted || r.status == RequestStatus.inProgress) return true;
+                  
+                  // Show declined as 'New' if it happened within the last 24 hours
+                  if (r.status == RequestStatus.declined) {
+                    final time = r.responseTime ?? r.timestamp;
+                    return now.difference(time).inHours < 24;
+                  }
+                  return false;
+                }).toList();
+
+                final earlierNotifications = notifications.where((r) => !newNotifications.contains(r)).toList();
 
                 // Sort both by response timestamp (newest first)
                 newNotifications.sort((a, b) => (b.responseTime ?? b.timestamp).compareTo(a.responseTime ?? a.timestamp));
@@ -214,7 +226,7 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
       button: true,
       child: InkWell(
         onTap: () {
-          // You can navigate to a request details page if you have one for the patient side
+          // Navigate to a request details page if you have one for the patient side
         },
         child: Container(
           color: isNew ? unreadBgColor : Colors.transparent,
