@@ -40,7 +40,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   bool _isLoading = true;
   
   StreamSubscription? _locationsStream;
-  StreamSubscription<Position>? _myPositionStream; // ✅ Track MSWD Admin's Location
+  StreamSubscription<Position>? _myPositionStream; 
   Position? _myPosition;
 
   Map<String, Map<String, dynamic>> _userLocations = {};
@@ -50,16 +50,13 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   bool _showOnlyActive = false;
   String? _selectedUserId;
   
-  // Tracking state
   Set<Marker> _markers = {};
   Set<Circle> _circles = {};
   Set<Polyline> _polylines = {};
   
-  // Cache to avoid rebuilding marker images constantly
   final Map<String, BitmapDescriptor> _markerCache = {};
   final Map<String, String> _markerStateCache = {}; 
   
-  // Routing state
   double? _routeDistanceKm;
   double? _routeDurationMins;
   bool _isRouting = false;
@@ -72,7 +69,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   @override
   void initState() {
     super.initState();
-    _startTrackingMyLocation(); // ✅ Start tracking MSWD Admin instantly
+    _startTrackingMyLocation(); 
     _startLocationTracking();
     
     _uiUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
@@ -107,12 +104,33 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       _myPosition = await Geolocator.getCurrentPosition();
       if (mounted && _isMapReady) await _updateMapMarkers();
 
+      // ✅ 1. Push Initial Location to Firebase
+      final currentUserId = databaseService.currentUserId;
+      if (currentUserId != null && _myPosition != null) {
+        mswdLocationTrackingService.updateMswdLocation(
+          adminId: currentUserId,
+          latitude: _myPosition!.latitude,
+          longitude: _myPosition!.longitude,
+          accuracy: _myPosition!.accuracy,
+        );
+      }
+
+      // ✅ 2. Listen to Live Location and sync to Firebase
       _myPositionStream = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 5),
       ).listen((Position position) {
         if (mounted) {
           setState(() => _myPosition = position);
           if (_isMapReady) _updateMapMarkers();
+          
+          if (currentUserId != null) {
+            mswdLocationTrackingService.updateMswdLocation(
+              adminId: currentUserId,
+              latitude: position.latitude,
+              longitude: position.longitude,
+              accuracy: position.accuracy,
+            );
+          }
         }
       });
     } catch (e) {
@@ -129,6 +147,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       Map<String, Map<String, dynamic>> newLocations = {};
       await _processUserLocations(locationsData['patients'] ?? [], 'partially_sighted', newLocations);
       await _processUserLocations(locationsData['caretakers'] ?? [], 'caretaker', newLocations);
+      await _processUserLocations(locationsData['mswd'] ?? [], 'admin', newLocations); // ✅ Support Other Admins!
 
       if (mounted) {
         setState(() {
@@ -197,39 +216,41 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
 
     try {
       Set<Marker> newMarkers = {};
+      final currentUserId = databaseService.currentUserId;
 
-      // ✅ 1. Add MSWD Admin's Own Marker (You)
-      if (_myPosition != null) {
-        final myId = 'mswd_admin_current';
+      // 1. Add YOUR Own Marker (Drawn instantly locally so it never lags)
+      if (_myPosition != null && currentUserId != null) {
         final myImgUrl = widget.userData['profileImageUrl'] as String?;
         final myName = widget.userData['name'] ?? 'You';
 
-        String myStateKey = "${myId}_$myImgUrl";
+        String myStateKey = "${currentUserId}_$myImgUrl";
 
-        if (!_markerCache.containsKey(myId) || _markerStateCache[myId] != myStateKey) {
+        if (!_markerCache.containsKey(currentUserId) || _markerStateCache[currentUserId] != myStateKey) {
           final myMarkerBytes = await MapMarkerHelper.createProfileMarker(
-            imageUrl: myImgUrl, name: myName, borderColor: primary, // Purple border for Admin
+            imageUrl: myImgUrl, name: myName, borderColor: primary, 
             size: 35.0, isOffline: false, 
           );
           
           if (myMarkerBytes != null) {
-            _markerCache[myId] = BitmapDescriptor.bytes(myMarkerBytes);
-            _markerStateCache[myId] = myStateKey;
+            _markerCache[currentUserId] = BitmapDescriptor.bytes(myMarkerBytes);
+            _markerStateCache[currentUserId] = myStateKey;
           }
         }
 
-        if (_markerCache.containsKey(myId)) {
+        if (_markerCache.containsKey(currentUserId)) {
           newMarkers.add(Marker(
-            markerId: MarkerId(myId),
+            markerId: MarkerId(currentUserId),
             position: LatLng(_myPosition!.latitude, _myPosition!.longitude),
-            icon: _markerCache[myId]!,
-            zIndexInt: 3, // Keep Admin marker on top
+            icon: _markerCache[currentUserId]!,
+            zIndexInt: 3,
           ));
         }
       }
 
-      // ✅ 2. Add Users' Markers
+      // 2. Add Everyone Else's Markers
       final filteredList = _userLocations.entries.where((entry) {
+        if (entry.key == currentUserId) return false; // ✅ SKIP drawing yourself twice!
+
         final userType = entry.value['userType'] ?? '';
         final isActive = mswdLocationTrackingService.isLocationRecent(entry.value);
         if (_showOnlyActive && !isActive) return false;
@@ -254,6 +275,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         final isSelected = _selectedUserId == userId;
         
         Color ringColor = userType == 'partially_sighted' ? Colors.redAccent : Colors.blueAccent;
+        if (userType == 'mswd' || userType == 'admin') ringColor = primary; // Other Admins
         if (!isActive) ringColor = Colors.grey;
 
         String stateKey = "${userId}_${isActive}_${isSelected}_$currentImgUrl";
@@ -580,7 +602,11 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   }
 
   Widget _buildUserCarousel(dynamic theme) {
+    final currentUserId = databaseService.currentUserId;
+    
     final usersList = _userLocations.values.where((loc) {
+       if (loc['userId'] == currentUserId) return false; // ✅ Hide yourself from the carousel
+
        final userType = loc['userType'];
        if (_showOnlyActive && !mswdLocationTrackingService.isLocationRecent(loc)) return false;
        if (_selectedFilter == 'patients' && userType != 'partially_sighted') return false;

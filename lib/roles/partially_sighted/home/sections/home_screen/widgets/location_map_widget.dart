@@ -45,17 +45,15 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   bool _isInitializing = false; 
 
   Set<Marker> _markers = {};
-  Set<Circle> _circles = {};
 
   StreamSubscription<Position>? _positionStreamSubscription;
   StreamSubscription<ServiceStatus>? _serviceStatusStream;
   
   Position? _currentPosition;
   
-  final double _currentZoom = 17.0; // Zoomed in slightly more since it's only one person
+  final double _currentZoom = 17.0; 
   
   Timer? _updateTimer;
-  
   bool _isUpdatingMarkers = false;
 
   @override
@@ -168,75 +166,69 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     }
   }
 
+  // ✅ GUARANTEED FAST LOCATION (INDEPENDENT OF CARETAKER)
   Future<void> _startLocationTracking() async {
     _isTrackingActive = true; 
 
     try {
+      // 1. Get Last Known Position immediately for 0-second load time
+      Position? startPosition = await Geolocator.getLastKnownPosition();
+      
+      // 2. If no last known, force a high-accuracy fetch
+      if (startPosition == null) {
+        try {
+          startPosition = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+          ).timeout(const Duration(seconds: 3)); 
+        } catch (_) {}
+      }
+
+      // 3. Show whatever we got instantly!
+      if (mounted) {
+        setState(() {
+          if (startPosition != null) _currentPosition = startPosition;
+          _isLoading = false; 
+          _permissionDenied = false;
+        });
+
+        if (startPosition != null && _isMapReady) {
+          await _updateMapMarker();
+          await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+             LatLng(startPosition.latitude, startPosition.longitude), _currentZoom
+          ));
+          _updateFirebaseLocation(startPosition); // Syncs to Firebase in background without blocking UI
+        }
+      }
+
+      // 4. Start listening to live, high-accuracy GPS in the background
       _positionStreamSubscription?.cancel();
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 3, 
+          distanceFilter: 2, // Reacts to smaller movements now
         ),
       ).listen(
         (Position position) async {
           if (!mounted) return;
           
-          bool isFirstValidLock = _currentPosition == null;
-          
-          if (_hasSignificantChange(_currentPosition, position)) {
-            setState(() {
-              _currentPosition = position;
-              _isLoading = false;
-            });
+          setState(() {
+            _currentPosition = position;
+            _isLoading = false; 
+          });
 
-            if (_isMapReady) {
-              await _updateMapMarker();
-              if (isFirstValidLock) {
-                 await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-                    LatLng(position.latitude, position.longitude), _currentZoom
-                 ));
-              }
-            }
-            await _updateFirebaseLocation(position);
+          if (_isMapReady) {
+            await _updateMapMarker();
           }
+          _updateFirebaseLocation(position);
         },
-        onError: (error) {
-          debugPrint('Position stream error: $error');
-        },
+        onError: (error) => debugPrint('Position stream error: $error'),
       );
 
-      // Fast Fetch to bypass long loading times
-      Position? fastPosition = await Geolocator.getLastKnownPosition();
-      
-      if (fastPosition == null) {
-        try {
-          fastPosition = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
-          ).timeout(const Duration(seconds: 4)); 
-        } catch (_) {}
-      }
-
-      if (mounted) {
-        setState(() {
-          if (fastPosition != null) _currentPosition = fastPosition;
-          _isLoading = false; 
-          _permissionDenied = false;
-        });
-
-        if (fastPosition != null && _isMapReady) {
-          await _updateMapMarker();
-          await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-             LatLng(fastPosition.latitude, fastPosition.longitude), _currentZoom
-          ));
-          await _updateFirebaseLocation(fastPosition);
-        }
-      }
-
+      // 5. Periodically sync with Firebase every 10 seconds
       _updateTimer?.cancel();
-      _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
         if (_currentPosition != null && _isTrackingActive && mounted) {
-          await _updateFirebaseLocation(_currentPosition!);
+          _updateFirebaseLocation(_currentPosition!);
         }
       });
 
@@ -245,30 +237,21 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     }
   }
 
-  bool _hasSignificantChange(Position? oldPos, Position newPos) {
-    if (oldPos == null) return true;
-    double distance = Geolocator.distanceBetween(
-      oldPos.latitude, oldPos.longitude, newPos.latitude, newPos.longitude,
-    );
-    return distance > 2.0 || newPos.accuracy < oldPos.accuracy;
-  }
-
- Future<void> _updateMapMarker() async {
+  Future<void> _updateMapMarker() async {
     if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
     _isUpdatingMarkers = true;
 
     try {
       Set<Marker> newMarkers = {};
-      
-      // We removed the newCircles Set completely!
 
       final userLatLng = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
       
       final String? userImageUrl = _extractImageUrl(_freshUserData ?? widget.userData);
       final String userName = (_freshUserData?['name'] as String?)?.trim() ?? 'You';
 
+      // ✅ FIXED: Marker size exactly 35
       final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
-        imageUrl: userImageUrl, name: userName, borderColor: primary, size: 35,
+        imageUrl: userImageUrl, name: userName, borderColor: primary, size: 35.0,
       );
 
       if (userMarkerBytes != null) {
@@ -278,14 +261,11 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
           icon: BitmapDescriptor.bytes(userMarkerBytes),
           zIndexInt: 2, 
         ));
-        
-        // The accuracy circle code used to be here. It is now completely removed!
       }
 
       if (mounted) {
         setState(() {
           _markers = newMarkers;
-          _circles = {}; // Force the circles to clear out
         });
       }
     } finally {
@@ -320,7 +300,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     }
   }
 
- Future<void> _announceCurrentLocationAndContext() async {
+  Future<void> _announceCurrentLocationAndContext() async {
     if (_currentPosition == null) {
       await _flutterTts.speak('Scanning for GPS signal. Please wait.');
       return;
@@ -334,14 +314,12 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         Placemark place = placemarks.first;
         List<String> addressParts = [];
         
-        // Prioritize a specific building/street name
         if (place.name != null && place.name!.isNotEmpty && !place.name!.contains('+')) {
           addressParts.add(place.name!);
         } else if (place.street != null && place.street!.isNotEmpty && !place.street!.contains('+')) {
           addressParts.add(place.street!);
         }
         
-        // Add barangay/sublocality and city
         if (place.subLocality != null && place.subLocality!.isNotEmpty) addressParts.add(place.subLocality!);
         if (place.locality != null && place.locality!.isNotEmpty) addressParts.add(place.locality!);
         if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) addressParts.add(place.administrativeArea!);
@@ -353,7 +331,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         }
       }
 
-      // Speak ONLY the actual location
       await _flutterTts.speak(locationSpeech);
       
     } catch (_) {
@@ -473,7 +450,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         }
       },
       markers: _markers,
-      circles: _circles,
       myLocationEnabled: false, 
       myLocationButtonEnabled: false,
       zoomControlsEnabled: false,
