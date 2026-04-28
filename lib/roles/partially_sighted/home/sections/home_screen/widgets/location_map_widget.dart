@@ -2,11 +2,12 @@
 
 import 'dart:ui'; 
 import 'package:flutter/material.dart';
-import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';
 import 'package:flutter_tts/flutter_tts.dart'; 
 import 'map_marker_helper.dart';
@@ -32,44 +33,59 @@ class LocationMapWidget extends StatefulWidget {
 }
 
 class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindingObserver {
-  late MapController _mapController;
+  GoogleMapController? _mapController;
   late FlutterTts _flutterTts; 
+
+  Map<String, dynamic>? _freshUserData;
 
   bool _isMapReady = false;
   bool _isLoading = true;
   bool _isTrackingActive = false;
   bool _permissionDenied = false;
+  bool _isInitializing = false; 
+
+  Set<Marker> _markers = {};
 
   StreamSubscription<Position>? _positionStreamSubscription;
-  StreamSubscription? _caretakerLocationStream;
   StreamSubscription<ServiceStatus>? _serviceStatusStream;
   
   Position? _currentPosition;
-  Map<String, dynamic>? _caretakerLocation;
   
-  final double _currentZoom = 15.0; 
+  final double _currentZoom = 17.0; 
   
   Timer? _updateTimer;
-  Timer? _caretakerCheckTimer;
-  
-  static const String _userAccuracyCircleKey = 'user_accuracy_circle';
-
-  GeoPoint? _lastUserGeoPoint;
-  GeoPoint? _lastCaretakerGeoPoint;
   bool _isUpdatingMarkers = false;
 
   @override
   void initState() {
     super.initState();
+    _freshUserData = widget.userData; 
     WidgetsBinding.instance.addObserver(this);
     
     _initializeTts();
-    _initializeMap();
     _listenToServiceStatus(); 
+    _fetchFreshUserData(); 
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocationTracking();
     });
+  }
+
+  Future<void> _fetchFreshUserData() async {
+    try {
+      final freshData = await databaseService.getUserDataByRole(widget.userId, 'partially_sighted');
+      if (freshData != null && mounted) {
+        setState(() {
+          _freshUserData = freshData;
+        });
+
+        if (_isMapReady) {
+          _updateMapMarker();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching fresh user data: $e');
+    }
   }
 
   Future<void> _initializeTts() async {
@@ -86,17 +102,15 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     _flutterTts.stop(); 
     _serviceStatusStream?.cancel();
     _positionStreamSubscription?.cancel();
-    _caretakerLocationStream?.cancel();
     _updateTimer?.cancel();
-    _caretakerCheckTimer?.cancel();
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      if (!_isTrackingActive) {
+      if (!_isTrackingActive && !_isInitializing) {
         _initializeLocationTracking();
       }
     }
@@ -105,7 +119,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   void _listenToServiceStatus() {
     _serviceStatusStream = Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
       if (status == ServiceStatus.enabled) {
-        if (!_isTrackingActive) {
+        if (!_isTrackingActive && !_isInitializing) {
           if (mounted) {
             setState(() {
                _isLoading = true;
@@ -118,398 +132,154 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     });
   }
 
-  void _initializeMap() {
-    _mapController = MapController(
-      initPosition: GeoPoint(
-        latitude: 14.3167,
-        longitude: 120.7667,
-      ),
-      areaLimit: BoundingBox.world(),
-    );
-  }
-
   Future<void> _initializeLocationTracking() async {
-    if (_isTrackingActive) return;
+    if (_isTrackingActive || _isInitializing) return;
+    _isInitializing = true;
 
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _permissionDenied = true;
-          });
-        }
+        if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
         return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission();
-      
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          if (mounted) {
-            setState(() {
-              _isLoading = false;
-              _permissionDenied = true;
-            });
-          }
+          if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
           return;
         }
       }
       
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-            _permissionDenied = true;
-          });
-        }
+        if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
         return;
       }
 
       await _startLocationTracking();
-      
     } catch (e) {
       debugPrint('Error initializing location: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _permissionDenied = true;
-        });
-      }
+      if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
+    } finally {
+      _isInitializing = false;
     }
   }
 
+  // ✅ GUARANTEED FAST LOCATION (INDEPENDENT OF CARETAKER)
   Future<void> _startLocationTracking() async {
+    _isTrackingActive = true; 
+
     try {
-      // 1. Try to get cached position for immediate map centering
-      Position? cachedPosition = await Geolocator.getLastKnownPosition();
+      // 1. Get Last Known Position immediately for 0-second load time
+      Position? startPosition = await Geolocator.getLastKnownPosition();
       
-      if (cachedPosition != null && mounted) {
+      // 2. If no last known, force a high-accuracy fetch
+      if (startPosition == null) {
+        try {
+          startPosition = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+          ).timeout(const Duration(seconds: 3)); 
+        } catch (_) {}
+      }
+
+      // 3. Show whatever we got instantly!
+      if (mounted) {
         setState(() {
-          _currentPosition = cachedPosition;
-          _isLoading = false;
-          _isTrackingActive = true;
+          if (startPosition != null) _currentPosition = startPosition;
+          _isLoading = false; 
           _permissionDenied = false;
         });
-        
-        if (_isMapReady) {
-          await _updateMapWithBothLocations();
-          await _mapController.moveTo(
-            GeoPoint(latitude: cachedPosition.latitude, longitude: cachedPosition.longitude),
-            animate: false,
-          );
+
+        if (startPosition != null && _isMapReady) {
+          await _updateMapMarker();
+          await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+             LatLng(startPosition.latitude, startPosition.longitude), _currentZoom
+          ));
+          _updateFirebaseLocation(startPosition); // Syncs to Firebase in background without blocking UI
         }
       }
 
-      // 2. Initialize streams FIRST. Even if the initial fetch is slow, the stream will catch the location once GPS locks.
-      _caretakerLocationStream?.cancel();
-      _caretakerCheckTimer?.cancel();
-      _startCaretakerLocationListener();
-      
+      // 4. Start listening to live, high-accuracy GPS in the background
       _positionStreamSubscription?.cancel();
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 3, 
+          distanceFilter: 2, // Reacts to smaller movements now
         ),
       ).listen(
         (Position position) async {
           if (!mounted) return;
           
-          bool isFirstValidLock = _currentPosition == null;
-          
-          if (_hasSignificantChange(_currentPosition, position)) {
-            setState(() {
-              _currentPosition = position;
-              _isLoading = false; // Dismiss loading when GPS finally connects
-            });
+          setState(() {
+            _currentPosition = position;
+            _isLoading = false; 
+          });
 
-            if (_isMapReady) {
-              await _updateMapWithBothLocations();
-              
-              // Automatically pan to the user when the GPS locks for the very first time
-              if (isFirstValidLock) {
-                 await _mapController.moveTo(
-                  GeoPoint(latitude: position.latitude, longitude: position.longitude),
-                  animate: true,
-                );
-              }
-            }
-            await _updateFirebaseLocation(position);
+          if (_isMapReady) {
+            await _updateMapMarker();
           }
+          _updateFirebaseLocation(position);
         },
-        onError: (error) {
-          debugPrint('Position stream error: $error');
-        },
+        onError: (error) => debugPrint('Position stream error: $error'),
       );
 
+      // 5. Periodically sync with Firebase every 10 seconds
       _updateTimer?.cancel();
-      _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
         if (_currentPosition != null && _isTrackingActive && mounted) {
-          await _updateFirebaseLocation(_currentPosition!);
+          _updateFirebaseLocation(_currentPosition!);
         }
       });
-      
-      // 3. Try to get a fresh position (handle timeout gracefully)
-      try {
-        Position position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-        ).timeout(const Duration(seconds: 15)); // Increased to 15 seconds for fresh logins
 
-        if (!mounted) return;
-
-        setState(() {
-          _currentPosition = position;
-          _isTrackingActive = true;
-          _isLoading = false;
-          _permissionDenied = false;
-        });
-
-        await _updateFirebaseLocation(position);
-        
-        if (_isMapReady) {
-          await _updateMapWithBothLocations();
-          await _mapController.moveTo(
-            GeoPoint(latitude: position.latitude, longitude: position.longitude),
-            animate: true,
-          );
-        }
-      } on TimeoutException {
-        // If it times out, DO NOT hide the map. The position stream above will eventually find the user.
-        debugPrint('getCurrentPosition timed out. Relying on position stream.');
-        if (cachedPosition == null && mounted) {
-           _showSnackBar(
-            'Acquiring GPS signal. This may take a moment...',
-            Icons.gps_fixed,
-            const Color(0xFF8B5CF6),
-          );
-        }
-      }
-      
     } catch (e) {
-      debugPrint('Error starting location tracking: $e');
-      if (mounted && _currentPosition == null) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateMapMarker() async {
+    if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
+    _isUpdatingMarkers = true;
+
+    try {
+      Set<Marker> newMarkers = {};
+
+      final userLatLng = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
+      
+      final String? userImageUrl = _extractImageUrl(_freshUserData ?? widget.userData);
+      final String userName = (_freshUserData?['name'] as String?)?.trim() ?? 'You';
+
+      // ✅ FIXED: Marker size exactly 35
+      final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
+        imageUrl: userImageUrl, name: userName, borderColor: primary, size: 35.0,
+      );
+
+      if (userMarkerBytes != null) {
+        newMarkers.add(Marker(
+          markerId: const MarkerId('user_marker'),
+          position: userLatLng,
+          icon: BitmapDescriptor.bytes(userMarkerBytes),
+          zIndexInt: 2, 
+        ));
+      }
+
+      if (mounted) {
         setState(() {
-          _isLoading = false;
-          // Removed _permissionDenied = true; -> don't assume a general error means permissions were revoked
+          _markers = newMarkers;
         });
       }
+    } finally {
+      _isUpdatingMarkers = false;
     }
   }
 
-  bool _hasSignificantChange(Position? oldPos, Position newPos) {
-    if (oldPos == null) return true;
-    double distance = Geolocator.distanceBetween(
-      oldPos.latitude, oldPos.longitude, newPos.latitude, newPos.longitude,
-    );
-    return distance > 2.0 || newPos.accuracy < oldPos.accuracy;
-  }
-
-  void _startCaretakerLocationListener() {
-    final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
-    if (assignedCaretakers == null || assignedCaretakers.isEmpty) return;
-
-    final caretakerId = assignedCaretakers.keys.first.toString();
-
-    _caretakerLocationStream = locationTrackingService
-        .trackCaretakerLocation(caretakerId)
-        .listen((location) async {
-      if (location != null && mounted) {
-        if (_hasCaretakerLocationChanged(location)) {
-          setState(() => _caretakerLocation = location);
-          if (_isMapReady && _currentPosition != null) {
-            await _updateMapWithBothLocations();
-          }
-        }
-      }
-    });
-
-    _caretakerCheckTimer = Timer.periodic(const Duration(seconds: 30), (timer) async {
-      if (!mounted) return;
-      final location = await locationTrackingService.getCaretakerLocation(caretakerId);
-      if (location != null && mounted && _hasCaretakerLocationChanged(location)) {
-        setState(() => _caretakerLocation = location);
-        if (_isMapReady && _currentPosition != null) {
-          await _updateMapWithBothLocations();
-        }
-      }
-    });
-  }
-
-  bool _hasCaretakerLocationChanged(Map<String, dynamic> newLocation) {
-    if (_caretakerLocation == null) return true;
-    final oldLat = _caretakerLocation!['latitude'] as double;
-    final oldLng = _caretakerLocation!['longitude'] as double;
-    final newLat = newLocation['latitude'] as double;
-    final newLng = newLocation['longitude'] as double;
-    double distance = locationTrackingService.calculateDistance(lat1: oldLat, lon1: oldLng, lat2: newLat, lon2: newLng);
-    return distance > 3.0; 
-  }
-
-  Future<void> _updateMapWithBothLocations() async {
-  if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
-  _isUpdatingMarkers = true;
-
-  try {
-    final userGeoPoint = GeoPoint(
-      latitude: _currentPosition!.latitude,
-      longitude: _currentPosition!.longitude,
-    );
-
-    if (_lastUserGeoPoint == null || _geoPointDistance(_lastUserGeoPoint!, userGeoPoint) > 2.0) {
-      if (_lastUserGeoPoint != null) {
-        try {
-          await _mapController.removeMarker(_lastUserGeoPoint!);
-        } catch (e) {
-          debugPrint('Failed to remove previous user marker: $e');
-        }
-      }
-      try {
-        await _mapController.removeCircle(_userAccuracyCircleKey);
-      } catch (e) {
-        debugPrint('Failed to remove accuracy circle: $e');
-      }
-
-      // ✅ FIX: Safe extraction with fallback key names
-      final String? userImageUrl = _extractImageUrl(widget.userData);
-      final String userName = (widget.userData['name'] as String?)?.trim() ?? 
-                              (widget.userData['fullName'] as String?)?.trim() ?? 
-                              'You';
-
-      debugPrint('🗺️ User marker imageUrl: $userImageUrl | name: $userName');
-
-      final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
-        imageUrl: userImageUrl,
-        name: userName,
-        borderColor: primary,
-      );
-
-      if (userMarkerBytes != null && mounted) {
-        await _mapController.addMarker(
-          userGeoPoint,
-          markerIcon: MarkerIcon(
-            iconWidget: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                image: DecorationImage(
-                  image: MemoryImage(userMarkerBytes),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ),
-        );
-
-        await _mapController.drawCircle(
-          CircleOSM(
-            key: _userAccuracyCircleKey,
-            centerPoint: userGeoPoint,
-            radius: _currentPosition!.accuracy.clamp(5.0, 50.0),
-            color: primary.withValues(alpha: 0.2),
-            strokeWidth: 2,
-          ),
-        );
-        _lastUserGeoPoint = userGeoPoint;
-      }
+  String? _extractImageUrl(Map<String, dynamic> data) {
+    const possibleKeys = ['profileImageUrl', 'profileImage', 'imageUrl', 'photoUrl', 'avatarUrl', 'photo'];
+    for (final key in possibleKeys) {
+      final val = data[key];
+      if (val is String && val.trim().isNotEmpty) return val.trim();
     }
-
-    if (_caretakerLocation != null && mounted) {
-      final caretakerGeoPoint = GeoPoint(
-        latitude: _caretakerLocation!['latitude'] as double,
-        longitude: _caretakerLocation!['longitude'] as double,
-      );
-
-      if (_lastCaretakerGeoPoint == null ||
-          _geoPointDistance(_lastCaretakerGeoPoint!, caretakerGeoPoint) > 3.0) {
-        if (_lastCaretakerGeoPoint != null) {
-          try {
-            await _mapController.removeMarker(_lastCaretakerGeoPoint!);
-          } catch (e) {
-            debugPrint('Failed to remove previous caretaker marker: $e');
-          }
-        }
-
-        // ✅ FIX: Safe caretaker image extraction
-        String? caretakerImageUrl;
-        String caretakerName = 'Caretaker';
-
-        final assignedCaretakers =
-            widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
-
-        if (assignedCaretakers != null && assignedCaretakers.isNotEmpty) {
-          final caretakerData =
-              assignedCaretakers.values.first as Map<dynamic, dynamic>?;
-
-          caretakerImageUrl = _extractImageUrl(
-            caretakerData?.map((k, v) => MapEntry(k.toString(), v)) ?? {},
-          );
-          caretakerName = (caretakerData?['name'] as String?)?.trim() ??
-                          (caretakerData?['fullName'] as String?)?.trim() ??
-                          'Caretaker';
-        }
-
-        debugPrint('🗺️ Caretaker marker imageUrl: $caretakerImageUrl | name: $caretakerName');
-
-        final caretakerMarkerBytes = await MapMarkerHelper.createProfileMarker(
-          imageUrl: caretakerImageUrl,
-          name: caretakerName,
-          borderColor: Colors.blue,
-        );
-
-        if (caretakerMarkerBytes != null && mounted) {
-          await _mapController.addMarker(
-            caretakerGeoPoint,
-            markerIcon: MarkerIcon(
-              iconWidget: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  image: DecorationImage(
-                    image: MemoryImage(caretakerMarkerBytes),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-            ),
-          );
-          _lastCaretakerGeoPoint = caretakerGeoPoint;
-        }
-      }
-    }
-  } catch (e) {
-    debugPrint('Error updating map: $e');
-  } finally {
-    _isUpdatingMarkers = false;
-  }
-}
-
-String? _extractImageUrl(Map<String, dynamic> data) {
-  const possibleKeys = [
-    'profileImageUrl',
-    'profileImage',
-    'imageUrl',
-    'photoUrl',
-    'avatarUrl',
-    'photo',
-  ];
-  for (final key in possibleKeys) {
-    final val = data[key];
-    if (val is String && val.trim().isNotEmpty) {
-      return val.trim();
-    }
-  }
-  return null;
-}
-
-  double _geoPointDistance(GeoPoint p1, GeoPoint p2) {
-    return locationTrackingService.calculateDistance(
-      lat1: p1.latitude, lon1: p1.longitude, lat2: p2.latitude, lon2: p2.longitude,
-    );
+    return null;
   }
 
   Future<void> _updateFirebaseLocation(Position position) async {
@@ -518,27 +288,15 @@ String? _extractImageUrl(Map<String, dynamic> data) {
         patientId: widget.userId, latitude: position.latitude, longitude: position.longitude,
         accuracy: position.accuracy, altitude: position.altitude, speed: position.speed, heading: position.heading,
       );
-    } catch (e) {
-      debugPrint('Error updating Firebase location: $e');
-    }
-  }
-
-  void _showSnackBar(String message, IconData icon, Color backgroundColor) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(children: [Icon(icon, color: Colors.white, size: 20), const SizedBox(width: spacingSmall), Expanded(child: Text(message, style: bodyBold.copyWith(color: Colors.white)))]),
-        backgroundColor: backgroundColor, behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.only(bottom: 80, left: 20, right: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), duration: const Duration(seconds: 4),
-      ),
-    );
+    } catch (_) {}
   }
 
   Future<void> _centerOnMyLocation() async {
     await _flutterTts.speak('Centering map on your location.');
-    if (_currentPosition != null && _isMapReady) {
-      await _mapController.moveTo(GeoPoint(latitude: _currentPosition!.latitude, longitude: _currentPosition!.longitude), animate: true);
+    if (_currentPosition != null && _mapController != null) {
+      await _mapController!.animateCamera(CameraUpdate.newLatLngZoom(
+        LatLng(_currentPosition!.latitude, _currentPosition!.longitude), _currentZoom
+      ));
     }
   }
 
@@ -549,56 +307,36 @@ String? _extractImageUrl(Map<String, dynamic> data) {
     }
     
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        _currentPosition!.latitude, 
-        _currentPosition!.longitude
-      );
-      
-      String locationSpeech = "I cannot determine the exact street name.";
+      List<Placemark> placemarks = await placemarkFromCoordinates(_currentPosition!.latitude, _currentPosition!.longitude);
+      String locationSpeech = "I cannot determine your exact street name.";
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
         List<String> addressParts = [];
         
-        if (place.street != null && place.street!.isNotEmpty && !place.street!.contains('+')) {
+        if (place.name != null && place.name!.isNotEmpty && !place.name!.contains('+')) {
+          addressParts.add(place.name!);
+        } else if (place.street != null && place.street!.isNotEmpty && !place.street!.contains('+')) {
           addressParts.add(place.street!);
         }
-        if (place.subLocality != null && place.subLocality!.isNotEmpty) {
-          addressParts.add(place.subLocality!);
-        }
-        if (place.locality != null && place.locality!.isNotEmpty) {
-          addressParts.add(place.locality!);
-        }
+        
+        if (place.subLocality != null && place.subLocality!.isNotEmpty) addressParts.add(place.subLocality!);
+        if (place.locality != null && place.locality!.isNotEmpty) addressParts.add(place.locality!);
+        if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) addressParts.add(place.administrativeArea!);
 
         if (addressParts.isNotEmpty) {
-          String displayAddress = addressParts.join(', ');
-          locationSpeech = 'You are currently near $displayAddress.';
+          locationSpeech = 'You are currently located near ${addressParts.join(', ')}.';
         } else {
           locationSpeech = 'You are in ${place.locality ?? 'an unknown area'}.';
         }
       }
 
-      String caretakerSpeech = "";
-      if (_caretakerLocation != null) {
-        double distance = _geoPointDistance(
-          GeoPoint(latitude: _currentPosition!.latitude, longitude: _currentPosition!.longitude),
-          GeoPoint(latitude: _caretakerLocation!['latitude'], longitude: _caretakerLocation!['longitude']),
-        );
-        caretakerSpeech = " Your caretaker is approximately ${locationTrackingService.formatDistance(distance)} away.";
-      } else {
-        caretakerSpeech = " Your caretaker's location is currently unavailable.";
-      }
-
-      await _flutterTts.speak(locationSpeech + caretakerSpeech);
+      await _flutterTts.speak(locationSpeech);
       
-    } catch (e) {
+    } catch (_) {
       await _flutterTts.speak('Your GPS coordinates are active, but I cannot read the street name right now.');
     }
   }
-
-  // ==========================================
-  // BUILD METHODS
-  // ==========================================
 
   @override
   Widget build(BuildContext context) {
@@ -610,19 +348,12 @@ String? _extractImageUrl(Map<String, dynamic> data) {
         if (!_permissionDenied && !_isLoading) _buildControlButtons(),
         
         if (widget.isFullScreen)
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            left: 16,
-            child: _buildBackButton(),
-          ),
+          Positioned(top: MediaQuery.of(context).padding.top + 16, left: 16, child: _buildBackButton()),
       ],
     );
 
     if (widget.isFullScreen) {
-      return Scaffold(
-        backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white,
-        body: mapStack,
-      );
+      return Scaffold(backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white, body: mapStack);
     }
 
     return Semantics(
@@ -634,24 +365,16 @@ String? _extractImageUrl(Map<String, dynamic> data) {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: widget.isDarkMode 
-                  ? Colors.black.withValues(alpha: 0.3) 
-                  : Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
+              color: widget.isDarkMode ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.06),
+              blurRadius: 20, offset: const Offset(0, 6),
             ),
           ],
           border: Border.all(
-            color: widget.isDarkMode 
-                ? Colors.white.withValues(alpha: 0.1) 
-                : Colors.black.withValues(alpha: 0.05),
+            color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
             width: 1,
           ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: mapStack,
-        ),
+        child: ClipRRect(borderRadius: BorderRadius.circular(24), child: mapStack),
       ),
     );
   }
@@ -659,23 +382,11 @@ String? _extractImageUrl(Map<String, dynamic> data) {
   Widget _buildBackButton() {
     return Container(
       decoration: BoxDecoration(
-        color: widget.isDarkMode 
-            ? const Color(0xFF1A1F3A).withValues(alpha: 0.85)
-            : Colors.white.withValues(alpha: 0.9),
+        color: widget.isDarkMode ? const Color(0xFF1A1F3A).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9),
         shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
       ),
-      child: IconButton(
-        icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
-        onPressed: () => Navigator.pop(context),
-        tooltip: 'Close full screen',
-      ),
+      child: IconButton(icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor), onPressed: () => Navigator.pop(context)),
     );
   }
 
@@ -708,15 +419,13 @@ String? _extractImageUrl(Map<String, dynamic> data) {
             Icon(Icons.location_off_rounded, size: 42, color: widget.theme.subtextColor.withOpacity(0.5)),
             const SizedBox(height: spacingMedium),
             Text('Location Access Denied', style: bodyBold.copyWith(color: widget.theme.textColor, fontSize: 16), textAlign: TextAlign.center),
-            const SizedBox(height: 6),
-            Text('Required to share location with caretaker.', style: caption.copyWith(color: widget.theme.subtextColor, fontSize: 13), textAlign: TextAlign.center),
             const SizedBox(height: spacingMedium),
             ElevatedButton(
               onPressed: () async {
                 setState(() { _isLoading = true; _permissionDenied = false; });
                 await _initializeLocationTracking();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: primary, foregroundColor: Colors.white, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10)),
+              style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               child: Text('Enable', style: bodyBold.copyWith(color: Colors.white, fontSize: 14)),
             ),
           ],
@@ -726,46 +435,36 @@ String? _extractImageUrl(Map<String, dynamic> data) {
   }
 
   Widget _buildMapView() {
-    return OSMFlutter(
-      controller: _mapController,
-      osmOption: OSMOption(
-        userTrackingOption: const UserTrackingOption(enableTracking: false, unFollowUser: true),
-        zoomOption: ZoomOption(initZoom: _currentZoom, minZoomLevel: 3, maxZoomLevel: 19, stepZoom: 1.0),
-        staticPoints: const [], enableRotationByGesture: true, showZoomController: false, showDefaultInfoWindow: false,
+    return GoogleMap(
+      initialCameraPosition: const CameraPosition(
+        target: LatLng(14.3167, 120.7667), 
+        zoom: 16.0,
       ),
-      onMapIsReady: (isReady) async {
-        if (!mounted) return;
-        setState(() => _isMapReady = isReady);
-        
-        if (isReady && _currentPosition != null) {
-          await Future.delayed(const Duration(milliseconds: 300));
-          if (mounted) {
-             await _updateMapWithBothLocations();
-             
-             // NEW: Ensure the map moves to the user if the map rendered AFTER the location was found
-             await _mapController.moveTo(
-               GeoPoint(
-                 latitude: _currentPosition!.latitude, 
-                 longitude: _currentPosition!.longitude
-               ),
-               animate: true,
-             );
-          }
+      onMapCreated: (controller) {
+        _mapController = controller;
+        setState(() => _isMapReady = true);
+        if (_currentPosition != null) {
+          _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+            LatLng(_currentPosition!.latitude, _currentPosition!.longitude), _currentZoom
+          ));
         }
       },
+      markers: _markers,
+      myLocationEnabled: false, 
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      compassEnabled: false,
     );
   }
 
   Widget _buildControlButtons() {
     return Positioned(
-      right: 12,
-      bottom: widget.isFullScreen ? 24 : 12, 
+      right: 12, bottom: widget.isFullScreen ? 24 : 12, 
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 4)),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 4))],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
@@ -780,13 +479,9 @@ String? _extractImageUrl(Map<String, dynamic> data) {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildMapAction(
-                    icon: Icons.my_location_rounded, onTap: _centerOnMyLocation, tooltip: 'Center on my location', color: primary,
-                  ),
+                  _buildMapAction(icon: Icons.my_location_rounded, onTap: _centerOnMyLocation, tooltip: 'Center on my location', color: primary),
                   _buildDivider(),
-                  _buildMapAction(
-                    icon: Icons.volume_up_rounded, onTap: _announceCurrentLocationAndContext, tooltip: 'Read current address', color: const Color(0xFF8B5CF6), 
-                  ),
+                  _buildMapAction(icon: Icons.volume_up_rounded, onTap: _announceCurrentLocationAndContext, tooltip: 'Read current address', color: const Color(0xFF8B5CF6)),
                   _buildDivider(),
                   _buildMapAction(
                     icon: widget.isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded, 
@@ -794,22 +489,12 @@ String? _extractImageUrl(Map<String, dynamic> data) {
                       if (widget.isFullScreen) {
                         Navigator.pop(context); 
                       } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LocationMapWidget(
-                              isDarkMode: widget.isDarkMode,
-                              theme: widget.theme,
-                              userId: widget.userId,
-                              userData: widget.userData,
-                              isFullScreen: true, 
-                            ),
-                          ),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => LocationMapWidget(
+                          isDarkMode: widget.isDarkMode, theme: widget.theme, userId: widget.userId, userData: widget.userData, isFullScreen: true, 
+                        )));
                       }
                     },
-                    tooltip: widget.isFullScreen ? 'Minimize map' : 'Expand map',
-                    color: const Color(0xFF8B5CF6), 
+                    tooltip: widget.isFullScreen ? 'Minimize map' : 'Expand map', color: const Color(0xFF8B5CF6), 
                   ),
                 ],
               ),
@@ -820,9 +505,7 @@ String? _extractImageUrl(Map<String, dynamic> data) {
     );
   }
 
-  Widget _buildDivider() {
-    return Container(height: 1, width: 36, color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2));
-  }
+  Widget _buildDivider() => Container(height: 1, width: 36, color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2));
 
   Widget _buildMapAction({required IconData icon, required VoidCallback onTap, required String tooltip, required Color color}) {
     return Semantics(
