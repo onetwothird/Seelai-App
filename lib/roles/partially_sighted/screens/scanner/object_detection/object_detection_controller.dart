@@ -224,40 +224,51 @@ class ObjectDetectionController {
           readingCompleted = false;
           _lastSpeechTime = DateTime.now(); 
           
-          String? uploadedImageUrl;
-          final controller = cameraService.controller;
-          final userId = authService.value.currentUser?.uid;
-
-          if (controller != null && userId != null) {
-            try {
-              if (controller.value.isStreamingImages) {
-                await controller.stopImageStream();
-                isStreamRunning = false;
-              }
-              
-              final xFile = await controller.takePicture();
-              
-              startObjectDetection();
-              
-              uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
-                File(xFile.path), 
-                userId, 
-                'object'
-              );
-            } catch (_) {
-              if (!isStreamRunning) {
-                startObjectDetection();
-              }
-            }
-          }
-          
-          await _saveDetectedObjectsToFirebase(recognitions.length, imageUrl: uploadedImageUrl);
-          await _flutterTts.speak('I see $detectedObjectsText');
-          
+          // 1. SPEAK IMMEDIATELY: Don't let the user wait for the network
+          _flutterTts.speak('I see $detectedObjectsText');
           _notifyStateChanged();
+
+          // 2. FIRE AND FORGET: Handle capture and Cloudinary in the background
+          _captureAndUploadInBackground(recognitions.length);
         }
       } 
     } catch (_) { /* Ignored */ }
+  }
+
+  // NEW METHOD: Handles the heavy lifting without blocking the stream
+  Future<void> _captureAndUploadInBackground(int objectCount) async {
+    final controller = cameraService.controller;
+    final userId = authService.value.currentUser?.uid;
+
+    if (controller == null || userId == null) return;
+
+    try {
+      // Pause stream JUST long enough to snap the physical photo
+      if (controller.value.isStreamingImages) {
+        await controller.stopImageStream();
+        isStreamRunning = false;
+      }
+      
+      final xFile = await controller.takePicture();
+      
+      // RESTART STREAM IMMEDIATELY: Do not wait for the upload!
+      startObjectDetection();
+      
+      // Now do the slow network upload in the background
+      final uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
+        File(xFile.path), 
+        userId, 
+        'object'
+      );
+      
+      await _saveDetectedObjectsToFirebase(objectCount, imageUrl: uploadedImageUrl);
+
+    } catch (_) {
+      // Failsafe: Ensure stream restarts even if taking the picture fails
+      if (!isStreamRunning && !isDisposing) {
+        startObjectDetection();
+      }
+    }
   }
 
   Future<void> _saveDetectedObjectsToFirebase(int objectCount, {String? imageUrl}) async {

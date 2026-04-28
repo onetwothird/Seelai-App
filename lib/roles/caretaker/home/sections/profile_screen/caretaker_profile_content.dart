@@ -1,7 +1,6 @@
 // File: lib/roles/caretaker/home/sections/profile_screen/caretaker_profile_content.dart
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:intl/intl.dart';
@@ -173,7 +172,7 @@ class _ProfileContentState extends State<ProfileContent> {
             children: [
               _buildSettingsTile(
                 title: 'How to Use App',
-                icon: Icons.play_circle_fill_rounded,
+                icon: Icons.info_outline_rounded,
                 iconColor: _colSupport,
                 onTap: _showHowToUseDialog,
               ),
@@ -562,7 +561,6 @@ class _ProfileContentState extends State<ProfileContent> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Removed header icon as requested
                     Text(
                       'Update Profile',
                       style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
@@ -721,7 +719,6 @@ class _ProfileContentState extends State<ProfileContent> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Removed header icon as requested
                     Text(
                       'Change Password',
                       style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
@@ -845,7 +842,6 @@ class _ProfileContentState extends State<ProfileContent> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Removed header icon as requested
               Text(
                 'Sign Out',
                 style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
@@ -904,245 +900,359 @@ class _ProfileContentState extends State<ProfileContent> {
   void _showHowToUseDialog() {
     showDialog(
       context: context,
-      builder: (context) => CaretakerGuideVideoDialog(
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (context) => CaretakerGuideSliderDialog(
         theme: widget.theme,
-        colSupport: _colSupport,
-        colSafety: _colSafety,
+        isDarkMode: widget.isDarkMode,
       ),
     );
   }
 }
 
-// ==================== CARETAKER VIDEO PLAYER DIALOG WIDGET ====================
-class CaretakerGuideVideoDialog extends StatefulWidget {
+// ==================== PREMIUM RESPONSIVE IMAGE SLIDER DIALOG (CARETAKER) ====================
+class CaretakerGuideSliderDialog extends StatefulWidget {
   final dynamic theme;
-  final Color colSupport;
-  final Color colSafety;
+  final bool isDarkMode;
 
-  const CaretakerGuideVideoDialog({
+  const CaretakerGuideSliderDialog({
     super.key,
     required this.theme,
-    required this.colSupport,
-    required this.colSafety,
+    required this.isDarkMode,
   });
 
   @override
-  State<CaretakerGuideVideoDialog> createState() => _CaretakerGuideVideoDialogState();
+  State<CaretakerGuideSliderDialog> createState() => _CaretakerGuideSliderDialogState();
 }
 
-class _CaretakerGuideVideoDialogState extends State<CaretakerGuideVideoDialog> {
-  late VideoPlayerController _controller;
-  bool _isInitialized = false;
-  bool _hasError = false;
-  String _errorMessage = '';
+class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  final Color _brandPurple = const Color(0xFF8B5CF6);
 
-  @override
-  void initState() {
-    super.initState();
-    
-    _controller = VideoPlayerController.asset('assets/video/sample_vid.mp4')
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {
-            _isInitialized = true;
-          });
-        }
-      }).catchError((error) {
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = error.toString();
-          });
-        }
-      });
-  }
+  final List<Map<String, String>> _guideData = [
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic1.jpg",
+      "title": "Role Selection",
+      "description": "Select the Caretaker category to get started."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic2.jpg",
+      "title": "Login",
+      "description": "Log in to your existing Seelai account."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic3.jpg",
+      "title": "Register",
+      "description": "Fill out your details to create a new account."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic4.jpg",
+      "title": "Dashboard",
+      "description": "View statistics for Total Registered patients, Pending, In Progress, and Completed tasks."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic5.jpg",
+      "title": "Assistance & Announcements",
+      "description": "View the partially sighted users you handle and check announcements created by MSWD."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic6.jpg",
+      "title": "Voice Call",
+      "description": "Initiate or receive clear voice calls with your patients."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic7.jpg",
+      "title": "Video Call",
+      "description": "Connect face-to-face with your patients using the video call feature."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic8.jpg",
+      "title": "My Patients",
+      "description": "View your patients' age, category, and address. Easily phone call or message them."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic9.jpg",
+      "title": "Patient Profile",
+      "description": "View the complete profile information that was listed when the patient registered."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic10.jpg",
+      "title": "Location Tracking",
+      "description": "Select a specific patient from your list to view their real-time location."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic11.jpg",
+      "title": "Route & Distance",
+      "description": "View the profiles of both users and see the exact route or distance between you."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic12.jpg",
+      "title": "Assistance Requests",
+      "description": "Track Pending, Active, History, and Deleted requests along with dashboard statistics."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/caretaker/pic13.jpg",
+      "title": "Manage Requests",
+      "description": "Review pending requests to decline, accept, or update their status to in-progress or done."
+    },
+  ];
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage < _guideData.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.fastOutSlowIn,
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  void _skipToEnd() {
+    _pageController.animateToPage(
+      _guideData.length - 1,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.fastOutSlowIn,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isLastPage = _currentPage == _guideData.length - 1;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
-        width: double.maxFinite,
+        height: MediaQuery.of(context).size.height * 0.85, 
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: widget.theme.textColor.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(32), 
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
+            )
           ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            // Header Row (Close Button)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0, top: 8.0),
+              child: Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close_rounded, color: widget.theme.subtextColor, size: 18),
                   ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    child: _hasError 
-                        ? Center(
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+
+            // Main Carousel Content
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _guideData.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final item = _guideData[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      children: [
+                        // Image Presentation Area - Transparent Floating Look
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 24),
+                            color: Colors.transparent, 
                             child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                "Video failed to load.\nCheck path or run 'flutter clean'.\n\nError: $_errorMessage",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                              padding: const EdgeInsets.all(8.0), 
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  item['image']!,
+                                  fit: BoxFit.contain, 
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.image_not_supported_rounded, size: 40, color: widget.theme.subtextColor),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Image missing:\n${item['image']}',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 12),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '(Check pubspec.yaml)',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 10),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
-                          )
-                        : _isInitialized
-                            ? GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _controller.value.isPlaying
-                                        ? _controller.pause()
-                                        : _controller.play();
-                                  });
-                                },
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    SizedBox.expand(
-                                      child: FittedBox(
-                                        fit: BoxFit.cover,
-                                        child: SizedBox(
-                                          width: _controller.value.size.width,
-                                          height: _controller.value.size.height,
-                                          child: VideoPlayer(_controller),
-                                        ),
-                                      ),
-                                    ),
-                                    if (!_controller.value.isPlaying)
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.5),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        padding: const EdgeInsets.all(12),
-                                        child: Icon(
-                                          Icons.play_arrow_rounded,
-                                          color: widget.colSupport,
-                                          size: 50,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              )
-                            : Center(
-                                child: CircularProgressIndicator(
-                                  color: widget.colSupport,
-                                ),
-                              ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    child: IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+
+                        // Text Content Area
+                        Text(
+                          item['title']!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800, 
+                            color: widget.theme.textColor,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            item['description']!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: widget.theme.subtextColor,
+                              height: 1.5, 
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Getting Started', 
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: widget.theme.textColor,
+
+            // Responsive Bottom Navigation Area
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Row(
+                children: [
+                  // Flex Box 1: Skip Button (Takes up left space dynamically)
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: isLastPage ? 0.0 : 1.0,
+                        child: TextButton(
+                          onPressed: isLastPage ? null : _skipToEnd,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: widget.theme.subtextColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Learn how to monitor your patients efficiently.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: widget.theme.subtextColor,
+                  ),
+
+                  // Flex Box 2: Animated Dots (Always perfectly centered)
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(
+                      _guideData.length,
+                      (index) {
+                        final isActive = _currentPage == index;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                          height: 6,
+                          width: isActive ? 18 : 6,
+                          decoration: BoxDecoration(
+                            color: isActive ? _brandPurple : widget.theme.subtextColor.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Flex Box 3: Morphing Next/Done Button (Takes up right space dynamically)
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: GestureDetector(
+                        onTap: _nextPage,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          // Morphs from a circle to a wider pill
+                          padding: isLastPage 
+                              ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+                              : const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _brandPurple,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _brandPurple.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: isLastPage
+                              ? const Text(
+                                  "Done", 
+                                  style: TextStyle(
+                                    color: Colors.white, 
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.arrow_forward_rounded, 
+                                  color: Colors.white, 
+                                  size: 20
+                                ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    _buildGuideStep(
-                      icon: Icons.qr_code_scanner_rounded, 
-                      title: 'Connect with Patients', 
-                      description: 'Use the QR scanner or enter a Patient ID to link accounts.'
-                    ),
-                    _buildGuideStep(
-                      icon: Icons.dashboard_rounded, 
-                      title: 'Dashboard Monitoring', 
-                      description: 'View real-time location and status of assigned patients.'
-                    ),
-                    _buildGuideStep(
-                      icon: Icons.notification_important_rounded, 
-                      title: 'Emergency Alerts', 
-                      description: 'Receive instant notifications for SOS requests.',
-                      isDestructive: true,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildGuideStep({
-    required IconData icon, 
-    required String title, 
-    required String description, 
-    bool isDestructive = false
-  }) {
-    final displayIconColor = isDestructive ? widget.colSafety : widget.theme.textColor;
-    final displayContainerColor = isDestructive 
-        ? widget.colSafety.withValues(alpha: 0.15) 
-        : widget.theme.textColor.withValues(alpha: 0.05);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: displayContainerColor, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: displayIconColor, size: 22),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(color: widget.theme.textColor, fontSize: 15, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(description, style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, height: 1.4)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

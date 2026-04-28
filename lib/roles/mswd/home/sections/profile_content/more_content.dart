@@ -121,12 +121,12 @@ class _MoreContentState extends State<MoreContent> {
                     : 'MSWD General',
               ),
               _buildSettingsTile(
-                title: 'ID Number',
+                title: 'Staff ID', // UPDATED TITLE
                 icon: Icons.badge_outlined,
                 iconColor: _colVerifications,
-                value: _userData['idNumber']?.toString().isNotEmpty == true 
-                    ? _userData['idNumber'] 
-                    : 'Not provided',
+                value: _userData['staffId']?.toString().isNotEmpty == true 
+                    ? _userData['staffId'] 
+                    : (_userData['idNumber']?.toString().isNotEmpty == true ? _userData['idNumber'] : 'Not provided'),
                 isLast: true,
               ),
             ],
@@ -596,6 +596,8 @@ class _MoreContentState extends State<MoreContent> {
     final nameController = TextEditingController(text: _userData['name']);
     final phoneController = TextEditingController(text: _userData['phone'] ?? _userData['contactNumber']);
     final departmentController = TextEditingController(text: _userData['department']);
+    // ADDED: Staff ID controller to allow editing
+    final staffIdController = TextEditingController(text: _userData['staffId']?.toString() ?? _userData['idNumber']?.toString() ?? '');
     final ageController = TextEditingController(text: _userData['age']?.toString() ?? '');
     String? selectedSex = _userData['sex'];
 
@@ -636,6 +638,9 @@ class _MoreContentState extends State<MoreContent> {
                     _buildDialogTextField('Full Name', nameController, Icons.person_outline, focusColor: _primaryColor),
                     _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone, focusColor: _primaryColor),
                     _buildDialogTextField('Department', departmentController, Icons.business_center_outlined, focusColor: _primaryColor),
+                    
+                    // ADDED: Staff ID field in the UI
+                    _buildDialogTextField('Staff ID', staffIdController, Icons.badge_outlined, focusColor: _primaryColor),
                     
                     Row(
                       children: [
@@ -719,6 +724,7 @@ class _MoreContentState extends State<MoreContent> {
                                   phone: phoneController.text.trim(),
                                   contactNumber: phoneController.text.trim(),
                                   department: departmentController.text.trim(),
+                                  staffId: staffIdController.text.trim(), // UPDATED: Pass the staffId here
                                   age: int.tryParse(ageController.text.trim()),
                                   sex: selectedSex,
                                 );

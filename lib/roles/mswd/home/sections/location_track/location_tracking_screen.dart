@@ -2,16 +2,17 @@
 
 import 'dart:async';
 import 'dart:ui' as ui;
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:http/http.dart' as http; 
-import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'package:url_launcher/url_launcher.dart';
 
 // App Imports
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/widgets/map_marker_helper.dart';
 
 class MswdLocationTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -34,11 +35,14 @@ class MswdLocationTrackingScreen extends StatefulWidget {
 }
 
 class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen> with TickerProviderStateMixin {
-  late MapController _mapController;
+  GoogleMapController? _mapController;
   bool _isMapReady = false;
   bool _isLoading = true;
   
   StreamSubscription? _locationsStream;
+  StreamSubscription<Position>? _myPositionStream; 
+  Position? _myPosition;
+
   Map<String, Map<String, dynamic>> _userLocations = {};
   final Map<String, Map<String, dynamic>> _userProfiles = {};
   
@@ -46,25 +50,26 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   bool _showOnlyActive = false;
   String? _selectedUserId;
   
-  // Tracking state
-  final Map<String, GeoPoint> _lastRenderedPoints = {};
-  final Map<String, String?> _lastRenderedImageUrls = {};
+  Set<Marker> _markers = {};
+  Set<Circle> _circles = {};
+  Set<Polyline> _polylines = {};
   
-  // Routing state
-  RoadInfo? _currentRoadInfo;
+  final Map<String, BitmapDescriptor> _markerCache = {};
+  final Map<String, String> _markerStateCache = {}; 
+  
+  double? _routeDistanceKm;
+  double? _routeDurationMins;
   bool _isRouting = false;
   
   Timer? _refreshTimer;
   Timer? _uiUpdateTimer;
 
-  // LAYOUT ADJUSTMENT:
-  // Lift content 130px from bottom to fully clear the navigation menu
   final double bottomContentOffset = 130.0; 
   
   @override
   void initState() {
     super.initState();
-    _initializeMapController();
+    _startTrackingMyLocation(); 
     _startLocationTracking();
     
     _uiUpdateTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
@@ -72,23 +77,66 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     });
   }
 
-  void _initializeMapController() {
-    _mapController = MapController(
-      initPosition: GeoPoint(latitude: 14.4167, longitude: 120.9833),
-      areaLimit: BoundingBox.world(),
-    );
-  }
-
   @override
   void dispose() {
     _locationsStream?.cancel();
+    _myPositionStream?.cancel();
     _refreshTimer?.cancel();
     _uiUpdateTimer?.cancel();
-    _mapController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
   // ==================== DATA LOGIC ====================
+
+  Future<void> _startTrackingMyLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      _myPosition = await Geolocator.getCurrentPosition();
+      if (mounted && _isMapReady) await _updateMapMarkers();
+
+      // ✅ 1. Push Initial Location to Firebase
+      final currentUserId = databaseService.currentUserId;
+      if (currentUserId != null && _myPosition != null) {
+        mswdLocationTrackingService.updateMswdLocation(
+          adminId: currentUserId,
+          latitude: _myPosition!.latitude,
+          longitude: _myPosition!.longitude,
+          accuracy: _myPosition!.accuracy,
+        );
+      }
+
+      // ✅ 2. Listen to Live Location and sync to Firebase
+      _myPositionStream = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 5),
+      ).listen((Position position) {
+        if (mounted) {
+          setState(() => _myPosition = position);
+          if (_isMapReady) _updateMapMarkers();
+          
+          if (currentUserId != null) {
+            mswdLocationTrackingService.updateMswdLocation(
+              adminId: currentUserId,
+              latitude: position.latitude,
+              longitude: position.longitude,
+              accuracy: position.accuracy,
+            );
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Error tracking MSWD location: $e');
+    }
+  }
 
   Future<void> _startLocationTracking() async {
     _locationsStream = mswdLocationTrackingService
@@ -99,6 +147,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       Map<String, Map<String, dynamic>> newLocations = {};
       await _processUserLocations(locationsData['patients'] ?? [], 'partially_sighted', newLocations);
       await _processUserLocations(locationsData['caretakers'] ?? [], 'caretaker', newLocations);
+      await _processUserLocations(locationsData['mswd'] ?? [], 'admin', newLocations); // ✅ Support Other Admins!
 
       if (mounted) {
         setState(() {
@@ -166,7 +215,42 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     if (!_isMapReady || !mounted) return;
 
     try {
+      Set<Marker> newMarkers = {};
+      final currentUserId = databaseService.currentUserId;
+
+      // 1. Add YOUR Own Marker (Drawn instantly locally so it never lags)
+      if (_myPosition != null && currentUserId != null) {
+        final myImgUrl = widget.userData['profileImageUrl'] as String?;
+        final myName = widget.userData['name'] ?? 'You';
+
+        String myStateKey = "${currentUserId}_$myImgUrl";
+
+        if (!_markerCache.containsKey(currentUserId) || _markerStateCache[currentUserId] != myStateKey) {
+          final myMarkerBytes = await MapMarkerHelper.createProfileMarker(
+            imageUrl: myImgUrl, name: myName, borderColor: primary, 
+            size: 35.0, isOffline: false, 
+          );
+          
+          if (myMarkerBytes != null) {
+            _markerCache[currentUserId] = BitmapDescriptor.bytes(myMarkerBytes);
+            _markerStateCache[currentUserId] = myStateKey;
+          }
+        }
+
+        if (_markerCache.containsKey(currentUserId)) {
+          newMarkers.add(Marker(
+            markerId: MarkerId(currentUserId),
+            position: LatLng(_myPosition!.latitude, _myPosition!.longitude),
+            icon: _markerCache[currentUserId]!,
+            zIndexInt: 3,
+          ));
+        }
+      }
+
+      // 2. Add Everyone Else's Markers
       final filteredList = _userLocations.entries.where((entry) {
+        if (entry.key == currentUserId) return false; // ✅ SKIP drawing yourself twice!
+
         final userType = entry.value['userType'] ?? '';
         final isActive = mswdLocationTrackingService.isLocationRecent(entry.value);
         if (_showOnlyActive && !isActive) return false;
@@ -175,12 +259,8 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
         return true;
       }).toList();
 
-      final activeIds = <String>{};
-
       for (var entry in filteredList) {
         final userId = entry.key;
-        activeIds.add(userId);
-        
         final location = entry.value;
         final lat = location['latitude'] as double?;
         final lng = location['longitude'] as double?;
@@ -190,231 +270,125 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
 
         if (lat == null || lng == null) continue;
 
-        final newGeoPoint = GeoPoint(latitude: lat, longitude: lng);
-        bool shouldUpdate = true;
+        final isActive = mswdLocationTrackingService.isLocationRecent(location);
+        final userType = location['userType'] ?? '';
+        final isSelected = _selectedUserId == userId;
+        
+        Color ringColor = userType == 'partially_sighted' ? Colors.redAccent : Colors.blueAccent;
+        if (userType == 'mswd' || userType == 'admin') ringColor = primary; // Other Admins
+        if (!isActive) ringColor = Colors.grey;
 
-        if (_lastRenderedPoints.containsKey(userId)) {
-          double dist = mswdLocationTrackingService.calculateDistance(
-            lat1: _lastRenderedPoints[userId]!.latitude,
-            lon1: _lastRenderedPoints[userId]!.longitude,
-            lat2: lat,
-            lon2: lng,
+        String stateKey = "${userId}_${isActive}_${isSelected}_$currentImgUrl";
+
+        if (!_markerCache.containsKey(userId) || _markerStateCache[userId] != stateKey) {
+          final markerBytes = await MapMarkerHelper.createProfileMarker(
+            imageUrl: currentImgUrl, name: name, borderColor: ringColor,
+            size: isSelected ? 35.0 : 35.0, isOffline: !isActive,
           );
-
-          bool imageChanged = _lastRenderedImageUrls[userId] != currentImgUrl;
-          bool isSelected = _selectedUserId == userId;
-
-          if (dist < 5.0 && !imageChanged && !isSelected) {
-            shouldUpdate = false; 
-          }
-        }
-
-        if (shouldUpdate) {
-          if (_lastRenderedPoints.containsKey(userId)) {
-            await _mapController.removeMarker(_lastRenderedPoints[userId]!);
-          }
-
-          final isActive = mswdLocationTrackingService.isLocationRecent(location);
-          final userType = location['userType'] ?? '';
           
-          Color ringColor = userType == 'partially_sighted' ? Colors.redAccent : Colors.blueAccent;
-          if (!isActive) ringColor = Colors.grey;
-
-          Uint8List? imageBytes;
-          if (currentImgUrl != null && currentImgUrl.isNotEmpty) {
-            imageBytes = await _downloadImageBytes(currentImgUrl);
+          if (markerBytes != null) {
+            _markerCache[userId] = BitmapDescriptor.bytes(markerBytes);
+            _markerStateCache[userId] = stateKey;
           }
+        }
 
-          final markerWidget = _buildAvatarMarkerWidget(
-            imageBytes: imageBytes,
-            name: name,
-            ringColor: ringColor,
-            isActive: isActive,
-            isSelected: _selectedUserId == userId,
-          );
-
-          if (mounted) {
-            await _mapController.addMarker(
-              newGeoPoint,
-              markerIcon: MarkerIcon(iconWidget: markerWidget),
-            );
-            
-            _lastRenderedPoints[userId] = newGeoPoint;
-            _lastRenderedImageUrls[userId] = currentImgUrl;
-          }
+        if (_markerCache.containsKey(userId)) {
+          newMarkers.add(Marker(
+            markerId: MarkerId(userId),
+            position: LatLng(lat, lng),
+            icon: _markerCache[userId]!,
+            zIndexInt: isSelected ? 2 : 1, 
+            onTap: () => _selectUser(userId),
+          ));
         }
       }
 
-      final idsToRemove = _lastRenderedPoints.keys.where((id) => !activeIds.contains(id)).toList();
-      for (var id in idsToRemove) {
-        await _mapController.removeMarker(_lastRenderedPoints[id]!);
-        _lastRenderedPoints.remove(id);
-        _lastRenderedImageUrls.remove(id);
+      if (mounted) {
+        setState(() {
+          _markers = newMarkers;
+          _circles = {};
+        });
       }
-      
-      _drawAccuracyCircle();
 
     } catch (e) {
       debugPrint('Marker Update Error: $e');
     }
   }
 
-  Future<void> _drawAccuracyCircle() async {
-    if (_selectedUserId != null && _userLocations.containsKey(_selectedUserId)) {
-      final loc = _userLocations[_selectedUserId]!;
-      final lat = loc['latitude'] as double;
-      final lng = loc['longitude'] as double;
-      final accuracy = (loc['accuracy'] as num?)?.toDouble() ?? 50.0;
-      
-      if (mswdLocationTrackingService.isLocationRecent(loc)) {
-        final key = "acc_$_selectedUserId";
-        await _mapController.drawCircle(
-          CircleOSM(
-            key: key,
-            centerPoint: GeoPoint(latitude: lat, longitude: lng),
-            radius: accuracy, 
-            color: Colors.blue.withValues(alpha: 0.2),
-            strokeWidth: 1,
-          ),
-        );
-      }
-    }
-  }
-
   // ==================== ROUTING LOGIC ====================
 
-  Future<void> _drawRouteToUser(GeoPoint targetPoint) async {
+  Future<void> _drawRouteToUser(LatLng targetPoint) async {
     setState(() => _isRouting = true);
     
     try {
-      GeoPoint? myLocation = await _mapController.myLocation();
-      await _mapController.clearAllRoads();
+      _myPosition ??= await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
+      LatLng myLocation = LatLng(_myPosition!.latitude, _myPosition!.longitude);
 
-      RoadInfo roadInfo = await _mapController.drawRoad(
-        myLocation,
-        targetPoint,
-        roadType: RoadType.car, 
-        roadOption: const RoadOption(
-          roadWidth: 10,
-          roadColor: Colors.blueAccent,
-          zoomInto: true, 
-        ),
-      );
+      setState(() {
+        _polylines = {
+          Polyline(
+            polylineId: const PolylineId('route'),
+            points: [myLocation, targetPoint],
+            color: Colors.blueAccent,
+            width: 5,
+            geodesic: true,
+          )
+        };
+        _isRouting = false;
+      });
 
-      if (mounted) {
-        setState(() {
-          _currentRoadInfo = roadInfo;
-          _isRouting = false;
-        });
-      }
+      double minLat = myLocation.latitude < targetPoint.latitude ? myLocation.latitude : targetPoint.latitude;
+      double maxLat = myLocation.latitude > targetPoint.latitude ? myLocation.latitude : targetPoint.latitude;
+      double minLng = myLocation.longitude < targetPoint.longitude ? myLocation.longitude : targetPoint.longitude;
+      double maxLng = myLocation.longitude > targetPoint.longitude ? myLocation.longitude : targetPoint.longitude;
+      
+      await _mapController?.animateCamera(CameraUpdate.newLatLngBounds(
+        LatLngBounds(southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng)), 80.0
+      ));
+
     } catch (e) {
       debugPrint('Routing Error: $e');
       if (mounted) {
         setState(() => _isRouting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to calculate route. Please ensure location is enabled.')),
+          const SnackBar(content: Text('Failed to calculate route. Please ensure your location is enabled.')),
         );
       }
     }
   }
 
-  // ==================== IMAGE & WIDGET HELPERS ====================
-
-  Future<Uint8List?> _downloadImageBytes(String url) async {
-    try {
-      final response = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 4));
-      if (response.statusCode == 200) {
-        return response.bodyBytes;
-      }
-    } catch (e) {
-      // Fallback
-    }
-    return null;
-  }
-
-  Widget _buildAvatarMarkerWidget({
-    required Uint8List? imageBytes,
-    required String name,
-    required Color ringColor,
-    required bool isActive,
-    required bool isSelected,
-  }) {
-    final double size = isSelected ? 110.0 : 80.0;
-    
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: primary.withValues(alpha: 0.1),
-            boxShadow: const [
-              BoxShadow(
-                color: Colors.black45,
-                blurRadius: 8,
-                offset: Offset(0, 4),
-              )
-            ],
-          ),
-          child: ClipOval(
-            child: imageBytes != null
-                ? ColorFiltered(
-                    colorFilter: isActive 
-                        ? const ColorFilter.mode(Colors.transparent, BlendMode.multiply) 
-                        : const ColorFilter.matrix(<double>[
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0,      0,      0,      1, 0,
-                          ]),
-                    child: Image.memory(
-                      imageBytes,
-                      fit: BoxFit.cover, 
-                    ),
-                  )
-                : Center(
-                    child: Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        color: primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: size * 0.4,
-                      ),
-                    ),
-                  ),
-          ),
-        ),
-        
-        if (isActive)
-          Positioned(
-            right: 2,
-            bottom: 2,
-            child: Container(
-              width: size * 0.22,
-              height: size * 0.22,
-              decoration: BoxDecoration(
-                color: Colors.greenAccent[700],
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black26, blurRadius: 4)
-                ]
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
   // ==================== INTERACTION ====================
 
   Future<void> _selectUser(String userId) async {
-    setState(() => _selectedUserId = userId);
+    setState(() {
+      _selectedUserId = userId;
+      _routeDistanceKm = null;
+      _routeDurationMins = null;
+      _polylines.clear(); 
+    });
+    
     await _updateMapMarkers(); 
-    if (_lastRenderedPoints.containsKey(userId)) {
-      await _mapController.moveTo(_lastRenderedPoints[userId]!);
+    
+    final location = _userLocations[userId];
+    if (location != null) {
+      final targetLat = location['latitude'] as double;
+      final targetLng = location['longitude'] as double;
+
+      await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+        LatLng(targetLat, targetLng), 17.0
+      ));
+
+      if (_myPosition != null && mounted) {
+        double distanceMeters = Geolocator.distanceBetween(
+          _myPosition!.latitude, _myPosition!.longitude, 
+          targetLat, targetLng
+        );
+
+        setState(() {
+          _routeDistanceKm = distanceMeters / 1000;
+          _routeDurationMins = (_routeDistanceKm! / 30) * 60; 
+        });
+      }
     }
   }
 
@@ -423,9 +397,10 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
 
     setState(() {
       _selectedUserId = null;
-      _currentRoadInfo = null;
+      _routeDistanceKm = null;
+      _routeDurationMins = null;
+      _polylines.clear();
     });
-    await _mapController.clearAllRoads();
     _updateMapMarkers();
   }
 
@@ -447,9 +422,13 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             child: _buildGlassTopBar(theme),
           ),
 
-          Positioned(
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
             right: 16,
-            bottom: bottomContentOffset + 160, 
+            bottom: _selectedUserId != null 
+                ? bottomContentOffset + 240 
+                : bottomContentOffset + 160, 
             child: Column(
               children: [
                 _buildGlassButton(
@@ -496,56 +475,28 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   }
 
   Widget _buildMap() {
-    return Listener(
-      onPointerMove: (event) {
-        widget.onScroll?.call(true); 
-      },
-      child: OSMFlutter(
-        controller: _mapController,
-        osmOption: OSMOption(
-          userTrackingOption: const UserTrackingOption(
-            enableTracking: true,
-            unFollowUser: true,
-          ),
-          zoomOption: const ZoomOption(
-            initZoom: 15.0,
-            minZoomLevel: 4,
-            maxZoomLevel: 19,
-            stepZoom: 1.0,
-          ),
-          roadConfiguration: const RoadOption(roadColor: Colors.blueGrey),
-        ),
-        onMapIsReady: (isReady) async {
-          if (!mounted) return;
-          setState(() => _isMapReady = isReady);
-          if (isReady) {
-            await Future.delayed(const Duration(milliseconds: 500));
-            await _updateMapMarkers();
-          }
-        },
-        onGeoPointClicked: (point) {
-          widget.onRestoreMenu?.call(); 
 
-          String? closestId;
-          double minD = 10000;
-          _lastRenderedPoints.forEach((id, p) {
-             double d = mswdLocationTrackingService.calculateDistance(
-               lat1: point.latitude, lon1: point.longitude,
-               lat2: p.latitude, lon2: p.longitude
-             );
-             if (d < 150 && d < minD) {
-               minD = d;
-               closestId = id;
-             }
-          });
-          
-          if (closestId != null) {
-            _selectUser(closestId!);
-          } else {
-            _clearSelection();
-          }
-        },
+    return GoogleMap(
+      initialCameraPosition: const CameraPosition(
+        target: LatLng(14.4167, 120.9833), 
+        zoom: 12.0,
+
       ),
+      onMapCreated: (controller) {
+        _mapController = controller;
+        setState(() => _isMapReady = true);
+        _updateMapMarkers();
+      },
+      markers: _markers,
+      circles: _circles,
+      polylines: _polylines,
+      myLocationEnabled: false, 
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+      compassEnabled: false,
+      onCameraMoveStarted: () => widget.onScroll?.call(true),
+      onTap: (_) => _clearSelection(),
     );
   }
 
@@ -653,7 +604,11 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   }
 
   Widget _buildUserCarousel(dynamic theme) {
+    final currentUserId = databaseService.currentUserId;
+    
     final usersList = _userLocations.values.where((loc) {
+       if (loc['userId'] == currentUserId) return false; // ✅ Hide yourself from the carousel
+
        final userType = loc['userType'];
        if (_showOnlyActive && !mswdLocationTrackingService.isLocationRecent(loc)) return false;
        if (_selectedFilter == 'patients' && userType != 'partially_sighted') return false;
@@ -808,13 +763,13 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    if (_currentRoadInfo != null && _currentRoadInfo!.distance != null && _currentRoadInfo!.duration != null)
+                    if (_routeDistanceKm != null && _routeDurationMins != null)
                       Row(
                         children: [
                           Icon(Icons.directions_car, size: 14, color: theme.subtextColor),
                           const SizedBox(width: 4),
                           Text(
-                            '${_currentRoadInfo!.distance!.toStringAsFixed(2)} km • ${(_currentRoadInfo!.duration! / 60).toStringAsFixed(0)} mins',
+                            '${_routeDistanceKm!.toStringAsFixed(2)} km • ${_routeDurationMins!.toStringAsFixed(0)} mins',
                             style: caption.copyWith(color: Colors.blueAccent, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -846,12 +801,19 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => MswdCallService.call(
-                    context: context, 
-                    user: profile, 
-                    isDarkMode: widget.isDarkMode, 
-                    theme: theme
-                  ),
+                  onPressed: () async {
+                    final phone = profile['contactNumber'] ?? profile['phone'] ?? '';
+                    if (phone.isNotEmpty) {
+                      final Uri url = Uri.parse('tel:$phone');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url);
+                      } else {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not launch phone dialer.')));
+                      }
+                    } else {
+                      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No contact number available for this user.')));
+                    }
+                  },
                   icon: const Icon(Icons.call, size: 18),
                   label: const Text('Call Now'),
                   style: ElevatedButton.styleFrom(
@@ -869,7 +831,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                   onPressed: _isRouting ? null : () {
                     final lat = location['latitude'] as double;
                     final lng = location['longitude'] as double;
-                    _drawRouteToUser(GeoPoint(latitude: lat, longitude: lng));
+                    _drawRouteToUser(LatLng(lat, lng));
                   },
                   icon: _isRouting 
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
@@ -926,21 +888,33 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   }
 
   Future<void> _centerMapIdeally() async {
-    if (_lastRenderedPoints.isEmpty) return;
+    if (_markers.isEmpty && _myPosition == null) return;
     
-    if (_selectedUserId != null && _lastRenderedPoints.containsKey(_selectedUserId)) {
-      await _mapController.moveTo(_lastRenderedPoints[_selectedUserId]!);
+    if (_selectedUserId != null) {
+      final loc = _userLocations[_selectedUserId];
+      if (loc != null) {
+        await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+          LatLng(loc['latitude'], loc['longitude']), 17.0
+        ));
+      }
     } else {
       double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-      for (var p in _lastRenderedPoints.values) {
-        if (p.latitude < minLat) minLat = p.latitude;
-        if (p.latitude > maxLat) maxLat = p.latitude;
-        if (p.longitude < minLng) minLng = p.longitude;
-        if (p.longitude > maxLng) maxLng = p.longitude;
+      for (var marker in _markers) {
+        if (marker.position.latitude < minLat) minLat = marker.position.latitude;
+        if (marker.position.latitude > maxLat) maxLat = marker.position.latitude;
+        if (marker.position.longitude < minLng) minLng = marker.position.longitude;
+        if (marker.position.longitude > maxLng) maxLng = marker.position.longitude;
       }
-      await _mapController.zoomToBoundingBox(
-        BoundingBox(north: maxLat + 0.01, south: minLat - 0.01, east: maxLng + 0.01, west: minLng - 0.01),
-      );
+      
+      if (_markers.length == 1 && _myPosition != null) {
+         await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+          LatLng(_myPosition!.latitude, _myPosition!.longitude), 15.0
+        ));
+      } else {
+        await _mapController?.animateCamera(CameraUpdate.newLatLngBounds(
+          LatLngBounds(southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng)), 50.0
+        ));
+      }
     }
   }
 }
