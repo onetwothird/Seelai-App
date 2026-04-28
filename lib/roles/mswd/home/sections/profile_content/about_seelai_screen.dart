@@ -6,7 +6,6 @@ class AboutSeelaiScreen extends StatelessWidget {
   final dynamic theme;
   final bool isDarkMode;
   
-  // SEELAI Brand Color
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   const AboutSeelaiScreen({
