@@ -6,7 +6,7 @@ import 'package:flutter_callkit_incoming/entities/entities.dart'; // Make sure t
 import 'package:seelai_app/core/firebase_options.dart';
 import 'package:seelai_app/screens/splash_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-//copy
+
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -21,22 +21,21 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
     final callParams = CallKitParams(
       id: requestId,
-      // Keep name clean, no "EMERGENCY:" prefix looks much more professional
       nameCaller: patientName, 
       appName: 'SEELAI EMERGENCY', 
-      avatar: avatarUrl, // <--- INJECTS THE PROFILE PICTURE
-      handle: '🚨 $requestMsg', // Move the alert icon to the subtitle
+      avatar: avatarUrl, 
+      handle: '🚨 $requestMsg', 
       type: 0, 
       duration: 30000, 
-      textAccept: 'Respond', // More professional than "Open App"
+      textAccept: 'Respond', 
       textDecline: 'Dismiss',
       extra: <String, dynamic>{'requestId': requestId},
       android: const AndroidParams(
         isCustomNotification: true,
-        isShowLogo: true, // Show the SEELAI app logo
+        isShowLogo: true, 
         ringtonePath: 'system_ringtone_default', 
-        backgroundColor: '#991B1B', // A professional, modern Deep Red (Tailwind Red 800)
-        actionColor: '#10B981', // Professional modern Green
+        backgroundColor: '#991B1B',
+        actionColor: '#10B981', 
       ),
       ios: const IOSParams(
         iconName: 'AppIcon',
@@ -52,9 +51,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-// ==========================================
-// ADDED: The Permission Function
-// ==========================================
+
 Future<void> requestNotificationPermissions() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   NotificationSettings settings = await messaging.requestPermission(
@@ -73,7 +70,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
-  // Initialize Firebase
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -84,9 +80,6 @@ void main() async {
     }
   }
 
-  // ==========================================
-  // ADDED: Call the permission request here!
-  // ==========================================
   await requestNotificationPermissions();
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
