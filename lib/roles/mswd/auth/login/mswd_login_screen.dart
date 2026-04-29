@@ -318,7 +318,6 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
       ),
     );
   }
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
