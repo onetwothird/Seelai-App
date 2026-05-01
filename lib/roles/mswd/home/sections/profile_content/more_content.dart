@@ -1,7 +1,6 @@
 // File: lib/roles/mswd/home/sections/profile_content/more_content.dart
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
@@ -121,7 +120,7 @@ class _MoreContentState extends State<MoreContent> {
                     : 'MSWD General',
               ),
               _buildSettingsTile(
-                title: 'Staff ID', // UPDATED TITLE
+                title: 'Staff ID',
                 icon: Icons.badge_outlined,
                 iconColor: _colVerifications,
                 value: _userData['staffId']?.toString().isNotEmpty == true 
@@ -205,13 +204,13 @@ class _MoreContentState extends State<MoreContent> {
               _buildSettingsTile(
                 title: 'Edit Profile',
                 icon: Icons.edit_outlined,
-                iconColor: _primaryColor, // Matches the new purple theme
+                iconColor: _primaryColor, 
                 onTap: _showEditProfileDialog,
               ),
               _buildSettingsTile(
                 title: 'Change Password',
                 icon: Icons.lock_outline_rounded,
-                iconColor: _primaryColor, // Matches the new purple theme
+                iconColor: _primaryColor, 
                 onTap: _showChangePasswordDialog,
                 isLast: true,
               ),
@@ -223,7 +222,7 @@ class _MoreContentState extends State<MoreContent> {
             children: [
               _buildSettingsTile(
                 title: 'How to Use Seelai',
-                icon: Icons.play_circle_fill_rounded,
+                icon: Icons.info_outline_rounded,
                 iconColor: _colSupport,
                 onTap: _showHowToUseDialog,
               ),
@@ -249,7 +248,7 @@ class _MoreContentState extends State<MoreContent> {
               _buildSettingsTile(
                 title: 'Sign Out',
                 icon: Icons.logout_rounded,
-                iconColor: _colSafety, // Kept red for destructive action
+                iconColor: _colSafety, 
                 isDestructive: true,
                 onTap: _showLogoutDialog,
                 isLast: true,
@@ -596,7 +595,6 @@ class _MoreContentState extends State<MoreContent> {
     final nameController = TextEditingController(text: _userData['name']);
     final phoneController = TextEditingController(text: _userData['phone'] ?? _userData['contactNumber']);
     final departmentController = TextEditingController(text: _userData['department']);
-    // ADDED: Staff ID controller to allow editing
     final staffIdController = TextEditingController(text: _userData['staffId']?.toString() ?? _userData['idNumber']?.toString() ?? '');
     final ageController = TextEditingController(text: _userData['age']?.toString() ?? '');
     String? selectedSex = _userData['sex'];
@@ -634,12 +632,10 @@ class _MoreContentState extends State<MoreContent> {
                     ),
                     const SizedBox(height: 32),
                     
-                    // Input Fields using _primaryColor focus
                     _buildDialogTextField('Full Name', nameController, Icons.person_outline, focusColor: _primaryColor),
                     _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone, focusColor: _primaryColor),
                     _buildDialogTextField('Department', departmentController, Icons.business_center_outlined, focusColor: _primaryColor),
                     
-                    // ADDED: Staff ID field in the UI
                     _buildDialogTextField('Staff ID', staffIdController, Icons.badge_outlined, focusColor: _primaryColor),
                     
                     Row(
@@ -689,7 +685,6 @@ class _MoreContentState extends State<MoreContent> {
 
                     const SizedBox(height: 16),
                     
-                    // Buttons Row
                     Row(
                       children: [
                         Expanded(
@@ -724,7 +719,7 @@ class _MoreContentState extends State<MoreContent> {
                                   phone: phoneController.text.trim(),
                                   contactNumber: phoneController.text.trim(),
                                   department: departmentController.text.trim(),
-                                  staffId: staffIdController.text.trim(), // UPDATED: Pass the staffId here
+                                  staffId: staffIdController.text.trim(),
                                   age: int.tryParse(ageController.text.trim()),
                                   sex: selectedSex,
                                 );
@@ -816,7 +811,6 @@ class _MoreContentState extends State<MoreContent> {
                     
                     const SizedBox(height: 16),
                     
-                    // Buttons Row
                     Row(
                       children: [
                         Expanded(
@@ -970,258 +964,358 @@ class _MoreContentState extends State<MoreContent> {
   void _showHowToUseDialog() {
     showDialog(
       context: context,
-      builder: (context) => AdminGuideVideoDialog(
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (context) => MSWDGuideSliderDialog(
         theme: widget.theme,
-        colSupport: _colSupport,
-        colSafety: _colSafety,
-        colAdmin: _colAdmin,
+        isDarkMode: widget.isDarkMode,
       ),
     );
   }
 }
 
-// ==================== ADMIN VIDEO PLAYER DIALOG WIDGET ====================
-class AdminGuideVideoDialog extends StatefulWidget {
+// ==================== PREMIUM RESPONSIVE IMAGE SLIDER DIALOG (MSWD) ====================
+class MSWDGuideSliderDialog extends StatefulWidget {
   final dynamic theme;
-  final Color colSupport;
-  final Color colSafety;
-  final Color colAdmin;
+  final bool isDarkMode;
 
-  const AdminGuideVideoDialog({
+  const MSWDGuideSliderDialog({
     super.key,
     required this.theme,
-    required this.colSupport,
-    required this.colSafety,
-    required this.colAdmin,
+    required this.isDarkMode,
   });
 
   @override
-  State<AdminGuideVideoDialog> createState() => _AdminGuideVideoDialogState();
+  State<MSWDGuideSliderDialog> createState() => _MSWDGuideSliderDialogState();
 }
 
-class _AdminGuideVideoDialogState extends State<AdminGuideVideoDialog> {
-  late VideoPlayerController _controller;
-  bool _isInitialized = false;
-  bool _hasError = false;
-  String _errorMessage = '';
+class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  final Color _brandPurple = const Color(0xFF8B5CF6);
 
-  @override
-  void initState() {
-    super.initState();
-    
-    _controller = VideoPlayerController.asset('assets/video/sample_vid.mp4')
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() {
-            _isInitialized = true;
-          });
-        }
-      }).catchError((error) {
-        if (mounted) {
-          setState(() {
-            _hasError = true;
-            _errorMessage = error.toString();
-          });
-        }
-      });
-  }
+  final List<Map<String, String>> _guideData = [
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic1.jpg",
+      "title": "Role Selection",
+      "description": "Select the MSWD category to begin your admin session."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic2.jpg",
+      "title": "Login",
+      "description": "Securely log in to your existing Seelai MSWD account."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic3.jpg",
+      "title": "Register",
+      "description": "Fill out official details to register a new MSWD staff account."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic4.jpg",
+      "title": "Dashboard",
+      "description": "View overall statistics including Total Users, Active Now, Partially Sighted, and Caretakers."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic5.jpg",
+      "title": "Command Center",
+      "description": "Monitor activity trends, urgent alerts, and access shortcuts like Live Map, Broadcast, and Requests."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic6.jpg",
+      "title": "Announcements",
+      "description": "Review all active announcements broadcasted across the entire system."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic7.jpg",
+      "title": "Create Announcement",
+      "description": "Publish new alerts and control visibility targeting Partially Sighted, Caretakers, or All Users."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic8.jpg",
+      "title": "Add New Registry",
+      "description": "Capture and manage custom object detection and caretaker face recognition data."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic9.jpg",
+      "title": "Directory",
+      "description": "Manage registered patients, caretakers, and approve or decline pending account requests."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic10.jpg",
+      "title": "Location Tracker",
+      "description": "Select any Partially Sighted user or Caretaker from the active directory to track them."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic11.jpg",
+      "title": "Live Map",
+      "description": "View the exact real-time location and distance of the selected user relative to you."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic12.jpg",
+      "title": "System Requests",
+      "description": "Monitor all assistance requests. As an MSWD Admin, you can intervene and assist directly."
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic13.jpg",
+      "title": "Request Details",
+      "description": "Review complete request logs, including user info, messages, assigned responders, and timeline events."
+    },
+  ];
 
   @override
   void dispose() {
-    _controller.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage < _guideData.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.fastOutSlowIn,
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  void _skipToEnd() {
+    _pageController.animateToPage(
+      _guideData.length - 1,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.fastOutSlowIn,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isLastPage = _currentPage == _guideData.length - 1;
+
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
-        width: double.maxFinite,
+        height: MediaQuery.of(context).size.height * 0.85, 
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: widget.theme.textColor.withValues(alpha: 0.05)),
+          borderRadius: BorderRadius.circular(32), 
           boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
+            )
           ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            // Header Row (Close Button)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0, top: 8.0),
+              child: Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close_rounded, color: widget.theme.subtextColor, size: 18),
                   ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                    child: _hasError 
-                        ? Center(
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+
+            // Main Carousel Content
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _guideData.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final item = _guideData[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      children: [
+                        // Image Presentation Area - Transparent Floating Look
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 24),
+                            color: Colors.transparent, 
                             child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Text(
-                                "Video failed to load.\nCheck path or run 'flutter clean'.\n\nError: $_errorMessage",
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                              padding: const EdgeInsets.all(8.0), 
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  item['image']!,
+                                  fit: BoxFit.contain, 
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.image_not_supported_rounded, size: 40, color: widget.theme.subtextColor),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Image missing:\n${item['image']}',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 12),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '(Check pubspec.yaml)',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 10),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
-                          )
-                        : _isInitialized
-                            ? GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _controller.value.isPlaying
-                                        ? _controller.pause()
-                                        : _controller.play();
-                                  });
-                                },
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    SizedBox.expand(
-                                      child: FittedBox(
-                                        fit: BoxFit.cover,
-                                        child: SizedBox(
-                                          width: _controller.value.size.width,
-                                          height: _controller.value.size.height,
-                                          child: VideoPlayer(_controller),
-                                        ),
-                                      ),
-                                    ),
-                                    if (!_controller.value.isPlaying)
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.5),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        padding: const EdgeInsets.all(12),
-                                        child: Icon(
-                                          Icons.play_arrow_rounded,
-                                          color: widget.colSupport,
-                                          size: 50,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              )
-                            : Center(
-                                child: CircularProgressIndicator(
-                                  color: widget.colSupport,
-                                ),
-                              ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: CircleAvatar(
-                    backgroundColor: Colors.black.withValues(alpha: 0.5),
-                    child: IconButton(
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
-                      onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+
+                        // Text Content Area
+                        Text(
+                          item['title']!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800, 
+                            color: widget.theme.textColor,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            item['description']!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: widget.theme.subtextColor,
+                              height: 1.5, 
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                     ),
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Admin Training Guide', 
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        color: widget.theme.textColor,
+
+            // Responsive Bottom Navigation Area
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Row(
+                children: [
+                  // Flex Box 1: Skip Button
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: isLastPage ? 0.0 : 1.0,
+                        child: TextButton(
+                          onPressed: isLastPage ? null : _skipToEnd,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: widget.theme.subtextColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Learn how to effectively manage the MSWD system.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: widget.theme.subtextColor,
+                  ),
+
+                  // Flex Box 2: Animated Dots
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(
+                      _guideData.length,
+                      (index) {
+                        final isActive = _currentPage == index;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                          height: 6,
+                          width: isActive ? 18 : 6,
+                          decoration: BoxDecoration(
+                            color: isActive ? _brandPurple : widget.theme.subtextColor.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // Flex Box 3: Morphing Next/Done Button
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: GestureDetector(
+                        onTap: _nextPage,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          padding: isLastPage 
+                              ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+                              : const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _brandPurple,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _brandPurple.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              )
+                            ],
+                          ),
+                          child: isLastPage
+                              ? const Text(
+                                  "Done", 
+                                  style: TextStyle(
+                                    color: Colors.white, 
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.arrow_forward_rounded, 
+                                  color: Colors.white, 
+                                  size: 20
+                                ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    _buildGuideStep(
-                      icon: Icons.map_rounded, 
-                      title: 'Live Tracking', 
-                      description: 'Use the Command Center Map to globally track all active users.'
-                    ),
-                    _buildGuideStep(
-                      icon: Icons.people_outline_rounded, 
-                      title: 'User Management', 
-                      description: 'Access the Directory to securely review profiles and make direct communications.'
-                    ),
-                    _buildGuideStep(
-                      icon: Icons.campaign_rounded, 
-                      title: 'System Broadcasts', 
-                      description: 'Send critical announcements targeting specific groups or individuals.',
-                      colorOverride: widget.colAdmin,
-                    ),
-                    _buildGuideStep(
-                      icon: Icons.warning_rounded, 
-                      title: 'Emergency Dispatch', 
-                      description: 'Monitor the live alerts feed to coordinate critical SOS requests.',
-                      isDestructive: true,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildGuideStep({
-    required IconData icon, 
-    required String title, 
-    required String description, 
-    bool isDestructive = false,
-    Color? colorOverride,
-  }) {
-    final displayIconColor = isDestructive 
-        ? widget.colSafety 
-        : (colorOverride ?? widget.theme.textColor);
-        
-    final displayContainerColor = isDestructive 
-        ? widget.colSafety.withValues(alpha: 0.15) 
-        : (colorOverride?.withValues(alpha: 0.15) ?? widget.theme.textColor.withValues(alpha: 0.05));
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: displayContainerColor, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: displayIconColor, size: 22),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(color: widget.theme.textColor, fontSize: 15, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(description, style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, height: 1.4)),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
