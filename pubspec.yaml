@@ -76,6 +76,7 @@ flutter:
     - assets/seelai_app_logo/
     - assets/how-to-use-seelai_images/partially_sighted/
     - assets/how-to-use-seelai_images/caretaker/
+    - assets/how-to-use-seelai_images/mswd/
 
 flutter_launcher_icons:
   android: true
