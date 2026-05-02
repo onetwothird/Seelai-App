@@ -28,9 +28,8 @@ class _AddAnnouncementPageState extends State<AddAnnouncementPage> {
   
   String selectedAudience = 'All Users';
   List<String> selectedUserIds = [];
-  String selectedIconCodePoint = '0xe047'; // Default: campaign icon
-  int selectedColorValue = 0xFFFF9800; // Default: orange
-  
+  String selectedIconCodePoint = '0xe047'; 
+  int selectedColorValue = 0xFFFF9800;
   List<Map<String, dynamic>> availableUsers = [];
   bool isLoadingUsers = false;
   bool isSending = false;
