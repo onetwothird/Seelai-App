@@ -29,7 +29,6 @@ class _ProfileContentState extends State<ProfileContent> {
   late Map<String, dynamic> _userData;
   bool _isLoading = false;
   
-  // --- Color Palette ---
   final Color _colVerifications = const Color(0xFF3B82F6); 
   final Color _colTracking = const Color(0xFF8B5CF6);      
   final Color _colSafety = const Color(0xFFEF4444);        
@@ -909,7 +908,6 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 }
 
-// ==================== PREMIUM RESPONSIVE IMAGE SLIDER DIALOG (CARETAKER) ====================
 class CaretakerGuideSliderDialog extends StatefulWidget {
   final dynamic theme;
   final bool isDarkMode;
