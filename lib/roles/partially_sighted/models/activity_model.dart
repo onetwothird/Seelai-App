@@ -32,7 +32,6 @@ class ActivityModel {
     );
   }
 
-  // Convert to JSON
   Map<String, dynamic> toJson() {
     return {
       'title': title,
