@@ -20,7 +20,6 @@ class CaretakerMissedCallAlertSection extends StatefulWidget {
 class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAlertSection> {
   final Map<String, String> _callerNamesCache = {};
   
-  // Initial position for the floating widget (Top Right)
   Offset _position = const Offset(300, 100);
   bool _isPositionInitialized = false;
 
