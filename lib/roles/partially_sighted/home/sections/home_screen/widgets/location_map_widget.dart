@@ -211,6 +211,9 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         (Position position) async {
           if (!mounted) return;
           
+          // ✅ FIXED: Check if this is the very first time we are getting a location
+          bool wasNull = _currentPosition == null; 
+          
           setState(() {
             _currentPosition = position;
             _isLoading = false; 
@@ -218,6 +221,13 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
           if (_isMapReady) {
             await _updateMapMarker();
+            
+            // ✅ FIXED: Animate camera if it's the first time getting a signal
+            if (wasNull) {
+              await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
+                LatLng(position.latitude, position.longitude), _currentZoom
+              ));
+            }
           }
           _updateFirebaseLocation(position);
         },
@@ -249,7 +259,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
       final String? userImageUrl = _extractImageUrl(_freshUserData ?? widget.userData);
       final String userName = (_freshUserData?['name'] as String?)?.trim() ?? 'You';
 
-      // ✅ FIXED: Marker size exactly 35
+      // Marker size exactly 35
       final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
         imageUrl: userImageUrl, name: userName, borderColor: primary, size: 35.0,
       );
