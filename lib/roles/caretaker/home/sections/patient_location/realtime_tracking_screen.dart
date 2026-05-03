@@ -1,3 +1,5 @@
+// File: lib/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -186,11 +188,16 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     
     _locationTrackingStream = locationTrackingService.trackPatientLocation(patient.id).listen((loc) async {
       if (loc != null && mounted) {
+        // ✅ FIXED: Check if the patient location was previously missing before setting the new one
+        bool isFirstLocation = _currentPatientLocation == null; 
+
         if (_hasPatientLocationChanged(loc)) {
           setState(() => _currentPatientLocation = loc);
           _updateDistance();
           await _updateMapMarkers();
-          await _drawRoute(frameRoute: false); // Draw lines without zooming wildly
+          
+          // ✅ FIXED: Dynamically set frameRoute based on whether it's the first location
+          await _drawRoute(frameRoute: isFirstLocation); 
         }
       }
     });
@@ -235,7 +242,6 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
           newMarkers.add(Marker(
             markerId: const MarkerId('patient'), position: patientLatLng, icon: BitmapDescriptor.bytes(markerBytes), zIndexInt: 2, 
           ));
-          // REMOVED: patient_pulse Circle code from here
         }
       }
 
@@ -257,7 +263,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
       if (mounted) {
         setState(() { 
         _markers = newMarkers; 
-        _circles = {}; // Ensure circles are cleared
+        _circles = {}; 
       });
       }
     } finally {
