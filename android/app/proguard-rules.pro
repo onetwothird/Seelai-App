@@ -1,9 +1,11 @@
-# Keep all ML Kit text recognition classes
--keep class com.google.mlkit.vision.text.** { *; }
--keep class com.google.mlkit.vision.text.chinese.** { *; }
--keep class com.google.mlkit.vision.text.japanese.** { *; }
--keep class com.google.mlkit.vision.text.korean.** { *; }
--keep class com.google.mlkit.vision.text.devanagari.** { *; }
+# Keep Geolocator plugin classes
+-keep class com.baseflow.geolocator.** { *; }
+-dontwarn com.baseflow.geolocator.**
 
-# Prevent warnings
--dontwarn com.google.mlkit.**
+# Keep Location plugin classes (if using the 'location' package)
+-keep class com.lyokone.location.** { *; }
+-dontwarn com.lyokone.location.**
+
+# Keep Google Maps classes
+-keep class com.google.android.gms.maps.** { *; }
+-dontwarn com.google.android.gms.**
