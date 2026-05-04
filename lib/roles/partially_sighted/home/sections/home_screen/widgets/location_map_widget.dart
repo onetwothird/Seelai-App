@@ -132,27 +132,38 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     });
   }
 
-  Future<void> _initializeLocationTracking() async {
+ Future<void> _initializeLocationTracking() async {
     if (_isTrackingActive || _isInitializing) return;
     _isInitializing = true;
 
+    Timer(const Duration(seconds: 6), () {
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
+      }
+    });
+
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled()
+          .timeout(const Duration(seconds: 2));
+          
       if (!serviceEnabled) {
         if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission()
+          .timeout(const Duration(seconds: 2));
+          
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission()
+            .timeout(const Duration(seconds: 5));
+            
+        if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
           if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
           return;
         }
-      }
-      
-      if (permission == LocationPermission.deniedForever) {
+        await Future.delayed(const Duration(seconds: 1));
+      } else if (permission == LocationPermission.deniedForever) {
         if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
         return;
       }
@@ -160,30 +171,41 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
       await _startLocationTracking();
     } catch (e) {
       debugPrint('Error initializing location: $e');
+      // If the native code hangs, it throws a TimeoutException and lands here, unfreezing the UI!
       if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
     } finally {
       _isInitializing = false;
     }
   }
 
-  // ✅ GUARANTEED FAST LOCATION (INDEPENDENT OF CARETAKER)
   Future<void> _startLocationTracking() async {
     _isTrackingActive = true; 
 
+    // ✅ FIX 1: ULTIMATE FAILSAFE. Force loading overlay to hide after 5 seconds no matter what.
+    Timer(const Duration(seconds: 5), () {
+      if (mounted && _isLoading) {
+        setState(() => _isLoading = false);
+      }
+    });
+
     try {
-      // 1. Get Last Known Position immediately for 0-second load time
-      Position? startPosition = await Geolocator.getLastKnownPosition();
+      Position? startPosition;
       
-      // 2. If no last known, force a high-accuracy fetch
+      // ✅ FIX 2: Add strict timeout to getLastKnownPosition so it cannot freeze the app
+      try {
+        startPosition = await Geolocator.getLastKnownPosition().timeout(const Duration(seconds: 1));
+      } catch (_) {}
+      
+      // ✅ FIX 3: Use 'low' accuracy for instant initial fetch to unblock the UI immediately
       if (startPosition == null) {
         try {
           startPosition = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+            locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
           ).timeout(const Duration(seconds: 3)); 
         } catch (_) {}
       }
 
-      // 3. Show whatever we got instantly!
+      // Show whatever we got instantly!
       if (mounted) {
         setState(() {
           if (startPosition != null) _currentPosition = startPosition;
@@ -196,22 +218,22 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
           await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
              LatLng(startPosition.latitude, startPosition.longitude), _currentZoom
           ));
-          _updateFirebaseLocation(startPosition); // Syncs to Firebase in background without blocking UI
+          _updateFirebaseLocation(startPosition); 
         }
       }
 
-      // 4. Start listening to live, high-accuracy GPS in the background
+      // Start listening to live, high-accuracy GPS in the background
       _positionStreamSubscription?.cancel();
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 2, // Reacts to smaller movements now
+          accuracy: LocationAccuracy.bestForNavigation, // Automatically upgrades to precise tracking
+          distanceFilter: 2, 
         ),
       ).listen(
         (Position position) async {
           if (!mounted) return;
           
-          // ✅ FIXED: Check if this is the very first time we are getting a location
+          // Pan camera if this is the first time receiving a location
           bool wasNull = _currentPosition == null; 
           
           setState(() {
@@ -222,7 +244,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
           if (_isMapReady) {
             await _updateMapMarker();
             
-            // ✅ FIXED: Animate camera if it's the first time getting a signal
             if (wasNull) {
               await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
                 LatLng(position.latitude, position.longitude), _currentZoom
@@ -234,7 +255,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         onError: (error) => debugPrint('Position stream error: $error'),
       );
 
-      // 5. Periodically sync with Firebase every 10 seconds
+      // Periodically sync with Firebase every 10 seconds
       _updateTimer?.cancel();
       _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
         if (_currentPosition != null && _isTrackingActive && mounted) {
@@ -259,7 +280,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
       final String? userImageUrl = _extractImageUrl(_freshUserData ?? widget.userData);
       final String userName = (_freshUserData?['name'] as String?)?.trim() ?? 'You';
 
-      // Marker size exactly 35
       final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
         imageUrl: userImageUrl, name: userName, borderColor: primary, size: 35.0,
       );
