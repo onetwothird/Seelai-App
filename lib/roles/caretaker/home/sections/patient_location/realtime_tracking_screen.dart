@@ -188,16 +188,14 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     
     _locationTrackingStream = locationTrackingService.trackPatientLocation(patient.id).listen((loc) async {
       if (loc != null && mounted) {
-        // ✅ FIXED: Check if the patient location was previously missing before setting the new one
-        bool isFirstLocation = _currentPatientLocation == null; 
+        // ✅ DYNAMIC PAN FIX: Centers the camera beautifully the moment a first signal arrives
+        bool isFirstLocation = _currentPatientLocation == null;
 
         if (_hasPatientLocationChanged(loc)) {
           setState(() => _currentPatientLocation = loc);
           _updateDistance();
           await _updateMapMarkers();
-          
-          // ✅ FIXED: Dynamically set frameRoute based on whether it's the first location
-          await _drawRoute(frameRoute: isFirstLocation); 
+          await _drawRoute(frameRoute: isFirstLocation);
         }
       }
     });
