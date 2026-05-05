@@ -12,9 +12,10 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:ui' as ui;
-
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/widgets/map_marker_helper.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/select_patient.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; // <-- Add this import
 
 class RealtimeTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -302,7 +303,7 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
     });
   }
 
-  Future<void> _drawRoute({bool frameRoute = true}) async {
+ Future<void> _drawRoute({bool frameRoute = true}) async {
     if (!_isMapReady || _currentPatientLocation == null || _currentCaretakerLocation == null) return;
     if (_isLoadingRoute) return;
     
@@ -312,16 +313,52 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
       final start = LatLng(_currentCaretakerLocation!['latitude'] as double, _currentCaretakerLocation!['longitude'] as double);
       final end = LatLng(_currentPatientLocation!['latitude'] as double, _currentPatientLocation!['longitude'] as double);
 
+      // 1. Initialize PolylinePoints with your API Key (Fixes Error #1)
+      String apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+
+      PolylinePoints polylinePoints = PolylinePoints(apiKey: apiKey);     
+      List<LatLng> polylineCoordinates = [];
+
+      // 2. Create the request using RoutesApiRequest (Fixes Error #3)
+      RoutesApiRequest request = RoutesApiRequest(
+        origin: PointLatLng(start.latitude, start.longitude),
+        destination: PointLatLng(end.latitude, end.longitude),
+        travelMode: TravelMode.driving,
+      );
+
+      // 3. Fetch the route using the V2 endpoint (Fixes Error #2)
+      RoutesApiResponse response = await polylinePoints.getRouteBetweenCoordinatesV2(
+        request: request,
+      );
+
+      // 4. Convert back to Legacy Result to easily grab the points
+      PolylineResult result = polylinePoints.convertToLegacyResult(response);
+
+      // 5. Check if points were successfully fetched
+      if (result.points.isNotEmpty) {
+        for (var point in result.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+      } else {
+        debugPrint("Error fetching route: ${result.errorMessage}");
+        // Fallback to straight line if API fails
+        polylineCoordinates = [start, end]; 
+      }
+
+      // 6. Draw the polyline
       setState(() {
         _polylines = {
           Polyline(
             polylineId: const PolylineId('route'),
-            points: [start, end],
-            color: primary, width: 6, geodesic: true,
+            points: polylineCoordinates, 
+            color: primary, 
+            width: 5, 
+            geodesic: true,
           )
         };
       });
 
+      // 7. Frame the route on the map
       if (frameRoute) {
         double minLat = start.latitude < end.latitude ? start.latitude : end.latitude;
         double maxLat = start.latitude > end.latitude ? start.latitude : end.latitude;
@@ -332,11 +369,12 @@ class _RealtimeTrackingScreenState extends State<RealtimeTrackingScreen> with Ti
           LatLngBounds(southwest: LatLng(minLat, minLng), northeast: LatLng(maxLat, maxLng)), 80.0
         ));
       }
+    } catch (e) {
+      debugPrint("Error drawing route: $e");
     } finally {
       if (mounted) setState(() => _isLoadingRoute = false);
     }
   }
-
   Future<void> _centerOnPatient() async {
     if (_currentPatientLocation != null && _isMapReady) {
       await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
