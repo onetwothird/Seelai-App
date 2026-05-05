@@ -173,15 +173,15 @@ class FaceDetectionController {
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.45,
-        confThreshold: 0.5,
-        classThreshold: 0.5,
+        confThreshold: 0.65,
+        classThreshold: 0.65,
       );
 
       if (!isDisposing) {
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.5;
+            return confidence >= 0.65;
           }
           return false;
         }).toList();
