@@ -16,11 +16,11 @@ class WebRTCService {
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
 
-  // UPDATED: Added your specific Metered.ca STUN and TURN servers
   final Map<String, dynamic> _configuration = {
     'iceServers': [
       {'urls': 'stun:stun.l.google.com:19302'},
       {'urls': 'stun:stun1.l.google.com:19302'},
+      {'urls': 'stun:stun2.l.google.com:19302'},
       {'urls': 'stun:stun.relay.metered.ca:80'},
       {
         'urls': 'turn:global.relay.metered.ca:80',
@@ -37,7 +37,8 @@ class WebRTCService {
         'username': '39bd9edd6bd07b93b59e2a7c',
         'credential': 'eFiAfnch2oDDz6R5',
       }
-    ]
+    ],
+    'sdpSemantics': 'unified-plan', 
   };
 
   Function(MediaStream stream)? onAddRemoteStream;
@@ -51,27 +52,34 @@ class WebRTCService {
     await remoteRenderer.initialize();
   }
 
-  // UPDATED: Changed 'mandatory' to 'ideal' to prevent camera crashes
+  // ========================================================================
+  // FIXED CAMERA INITIALIZATION (Ideal Constraints + Safe Fallback)
+  // ========================================================================
   Future<void> openUserMedia(bool isVideo) async {
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
       'video': isVideo ? {
-        'ideal': {
-          'width': 640, 
-          'height': 480,
-          'frameRate': 30,
-        },
         'facingMode': 'user',
+        // Using 'ideal' asks the OS to provide this resolution if possible. 
+        // If it's a low-dimension screen, it gracefully downscales without crashing!
+        'width': {'ideal': 640},
+        'height': {'ideal': 480},
       } : false,
     };
 
     try {
       _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
-      localRenderer.srcObject = _localStream;
     } catch (e) {
-      debugPrint("Camera/Mic Error: Failed to open user media. $e");
-      rethrow; 
+      debugPrint("Ideal camera request failed: $e. Retrying with basic constraints...");
+      // Safe Fallback: If 'ideal' somehow fails on a very strict device, 
+      // we ask for the bare minimum to guarantee the camera turns on.
+      _localStream = await navigator.mediaDevices.getUserMedia({
+        'audio': true,
+        'video': isVideo ? {'facingMode': 'user'} : false,
+      });
     }
+    
+    localRenderer.srcObject = _localStream;
   }
 
   Future<void> _createPeerConnection(String path, String callId, bool isCaller) async {
@@ -80,10 +88,12 @@ class WebRTCService {
     
     _peerConnection = await createPeerConnection(_configuration);
 
+    // FIXED: Removed explicit 'addTransceiver' calls that were creating ghost tracks.
+    // In Unified Plan, simply adding the tracks automatically creates the correct transceivers.
     if (_localStream != null) {
-      _localStream!.getTracks().forEach((track) {
-        _peerConnection!.addTrack(track, _localStream!);
-      });
+      for (var track in _localStream!.getTracks()) {
+        await _peerConnection!.addTrack(track, _localStream!);
+      }
     }
 
     _peerConnection!.onTrack = (RTCTrackEvent event) {
@@ -115,7 +125,16 @@ class WebRTCService {
   Future<void> makeCall(String path, String callId, bool isVideo) async {
     await _createPeerConnection(path, callId, true);
 
-    RTCSessionDescription offer = await _peerConnection!.createOffer();
+    // FIXED: Enforced string constraints ('true'/'false') which are significantly 
+    // more reliable across different Android/iOS versions of WebRTC.
+    final Map<String, dynamic> offerConstraints = {
+      'mandatory': {
+        'OfferToReceiveAudio': 'true',
+        'OfferToReceiveVideo': isVideo ? 'true' : 'false',
+      },
+    };
+
+    RTCSessionDescription offer = await _peerConnection!.createOffer(offerConstraints);
     await _peerConnection!.setLocalDescription(offer);
 
     await _database.ref('$path/calls/$callId/offer').set({
@@ -145,7 +164,12 @@ class WebRTCService {
     _database.ref('$path/calls/$callId/receiverCandidates').onChildAdded.listen((event) {
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        var candidate = RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']);
+        
+        var candidate = RTCIceCandidate(
+          data['candidate'], 
+          data['sdpMid'], 
+          int.tryParse(data['sdpMLineIndex'].toString()) ?? 0,
+        );
         
         if (_isRemoteDescriptionSet) {
           _peerConnection!.addCandidate(candidate);
@@ -170,7 +194,14 @@ class WebRTCService {
           await _peerConnection!.setRemoteDescription(offer);
           _isRemoteDescriptionSet = true;
 
-          RTCSessionDescription answer = await _peerConnection!.createAnswer();
+          final Map<String, dynamic> answerConstraints = {
+            'mandatory': {
+              'OfferToReceiveAudio': 'true',
+              'OfferToReceiveVideo': isVideo ? 'true' : 'false',
+            },
+          };
+
+          RTCSessionDescription answer = await _peerConnection!.createAnswer(answerConstraints);
           await _peerConnection!.setLocalDescription(answer);
 
           await _database.ref('$path/calls/$callId/answer').set({
@@ -189,7 +220,12 @@ class WebRTCService {
     _database.ref('$path/calls/$callId/callerCandidates').onChildAdded.listen((event) {
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        var candidate = RTCIceCandidate(data['candidate'], data['sdpMid'], data['sdpMLineIndex']);
+        
+        var candidate = RTCIceCandidate(
+          data['candidate'], 
+          data['sdpMid'], 
+          int.tryParse(data['sdpMLineIndex'].toString()) ?? 0,
+        );
         
         if (_isRemoteDescriptionSet) {
           _peerConnection!.addCandidate(candidate);
@@ -201,7 +237,7 @@ class WebRTCService {
   }
 
   void toggleMic(bool mute) {
-    if (_localStream != null) {
+    if (_localStream != null && _localStream!.getAudioTracks().isNotEmpty) {
       _localStream!.getAudioTracks()[0].enabled = !mute;
     }
   }
@@ -219,15 +255,20 @@ class WebRTCService {
   }
 
   Future<void> hangUp(String path, String callId) async {
-    final event = await _database.ref('$path/calls/$callId/status').once();
-    final currentStatus = event.snapshot.value as String?;
+    try {
+      final event = await _database.ref('$path/calls/$callId/status').once();
+      final currentStatus = event.snapshot.value as String?;
 
-    if (currentStatus != 'missed' && currentStatus != 'rejected') {
-      await _database.ref('$path/calls/$callId').update({'status': 'ended'});
+      if (currentStatus != 'missed' && currentStatus != 'rejected') {
+        await _database.ref('$path/calls/$callId').update({'status': 'ended'});
+      }
+    } catch (e) {
+      debugPrint("Hangup status update failed: $e");
     }
     
     _localStream?.getTracks().forEach((track) => track.stop());
     _remoteStream?.getTracks().forEach((track) => track.stop());
+    
     await _peerConnection?.close();
     
     _peerConnection = null;
@@ -237,8 +278,5 @@ class WebRTCService {
     
     localRenderer.srcObject = null;
     remoteRenderer.srcObject = null;
-    
-    await localRenderer.dispose();
-    await remoteRenderer.dispose();
   }
 }

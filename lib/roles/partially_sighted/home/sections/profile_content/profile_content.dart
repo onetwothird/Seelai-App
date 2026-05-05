@@ -1,6 +1,7 @@
 // File: lib/roles/partially_sighted/home/sections/profile_content.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // Added flutter_tts import
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +30,9 @@ class _ProfileContentState extends State<ProfileContent> {
   late Map<String, dynamic> _currentData;
   bool _isLoading = false;
 
+  // TTS Instance
+  final FlutterTts _flutterTts = FlutterTts();
+
   // Controllers for Edit Profile
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -50,6 +54,15 @@ class _ProfileContentState extends State<ProfileContent> {
   void initState() {
     super.initState();
     _currentData = Map<String, dynamic>.from(widget.userData);
+    _initTts(); // Initialize TTS settings
+  }
+
+  // Added TTS Initialization
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("fil-PH"); 
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
   }
 
   @override
@@ -64,6 +77,7 @@ class _ProfileContentState extends State<ProfileContent> {
 
   @override
   void dispose() {
+    _flutterTts.stop(); // Stop TTS to free resources
     _nameController.dispose();
     _addressController.dispose();
     _contactController.dispose();
@@ -512,7 +526,9 @@ class _ProfileContentState extends State<ProfileContent> {
     return count > 0 ? '$count Active' : 'None';
   }
 
+  // Updated to include TTS for all SnackBar messages
   void _showSnackbar(String message, Color color) {
+    _flutterTts.speak(message); // Plays the message aloud via TTS
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -685,6 +701,7 @@ class _ProfileContentState extends State<ProfileContent> {
                                   final userId = authService.value.currentUser?.uid;
                                   if (userId == null) throw Exception("User not found");
 
+                                  // 1. Perform the Database Update
                                   await databaseService.updateUserProfile(
                                     userId: userId,
                                     role: 'partially_sighted',
@@ -695,36 +712,46 @@ class _ProfileContentState extends State<ProfileContent> {
                                     sex: _selectedSex,
                                   );
 
-                                  if (!statefulContext.mounted) return;
-                                  Navigator.pop(statefulContext);
-
-                                  if (!mounted) return;
-                                  setState(() {
-                                    _currentData['name'] = _nameController.text.trim();
-                                    _currentData['address'] = _addressController.text.trim();
-                                    _currentData['contactNumber'] = _contactController.text.trim();
-                                    _currentData['diagnosis'] = _diagnosisController.text.trim();
-                                    _currentData['sex'] = _selectedSex;
-                                  });
-                                  
-                                  _showSnackbar('Profile updated successfully', _colPersonal);
-                                  
-                                } catch (e) {
-                                  if (statefulContext.mounted) {
-                                    setStateDialog(() => _isLoading = false);
+                                  // 2. Update local UI state if database call succeeds
+                                  if (mounted) {
+                                    setState(() {
+                                      _currentData['name'] = _nameController.text.trim();
+                                      _currentData['address'] = _addressController.text.trim();
+                                      _currentData['contactNumber'] = _contactController.text.trim();
+                                      _currentData['diagnosis'] = _diagnosisController.text.trim();
+                                      _currentData['sex'] = _selectedSex;
+                                    });
                                   }
+
+                                  // 3. Close dialog and notify user
+                                  if (statefulContext.mounted) {
+                                    Navigator.pop(statefulContext);
+                                  }
+                                  _showSnackbar('Profile updated successfully', _colPersonal);
+
+                                } catch (e) {
+                                  // Error handling
                                   if (mounted) {
                                     _showSnackbar('Error updating profile: $e', _colSafety);
+                                  }
+                                } finally {
+                                  // FIX: Reset loading state regardless of success or failure
+                                  if (statefulContext.mounted) {
+                                    setStateDialog(() => _isLoading = false);
                                   }
                                 }
                               },
                               child: _isLoading
-                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  ? const SizedBox(
+                                      width: 20, 
+                                      height: 20, 
+                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                    )
                                   : const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],
-                      ),
+                      )
                     ],
                   ),
                 ),

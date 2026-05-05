@@ -127,10 +127,10 @@ class ObjectDetectionController {
     try {
       await _vision.loadYoloModel(
         labels: 'assets/object_model/labels.txt',
-        modelPath: 'assets/object_model/seelai-objects.tflite',
+        modelPath: 'assets/object_model/seelai_objects.tflite',
         modelVersion: "yolov8",
         quantization: true, 
-        useGpu: false, 
+        useGpu: true, 
         numThreads: 4,
       );
       

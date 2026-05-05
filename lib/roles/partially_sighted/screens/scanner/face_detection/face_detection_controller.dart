@@ -124,10 +124,11 @@ class FaceDetectionController {
     try {
       await _vision.loadYoloModel(
         labels: 'assets/face_model/labels.txt',
-        modelPath: 'assets/face_model/final_face.tflite',
+        modelPath: 'assets/face_model/seelai_face.tflite',
         modelVersion: "yolov8",
         numThreads: 4,
-        useGpu: true,
+        quantization: true, 
+        useGpu: true, 
       );
       
       if (!isDisposing) {

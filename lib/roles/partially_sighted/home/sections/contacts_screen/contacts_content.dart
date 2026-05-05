@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_tts/flutter_tts.dart'; 
 import 'dart:async';
 import 'contact_model.dart';
 import 'adding_contact.dart';
@@ -31,6 +32,9 @@ class _ContactsContentState extends State<ContactsContent> {
   // Brand Colors
   final Color _primaryColor = const Color(0xFF7C3AED);
 
+  // TTS Instance
+  final FlutterTts _flutterTts = FlutterTts();
+
   StreamSubscription? _caretakersSubscription;
   StreamSubscription? _emergencyContactsSubscription;
   
@@ -56,6 +60,19 @@ class _ContactsContentState extends State<ContactsContent> {
     super.initState();
     _initializePatientId();
     _startMessageTimer();
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("fil-PH");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  Future<void> _speakMessage(String message) async {
+    await _flutterTts.stop(); 
+    await _flutterTts.speak(message);
   }
   
   void _startMessageTimer() {
@@ -68,7 +85,6 @@ class _ContactsContentState extends State<ContactsContent> {
     });
   }
 
-  // Helper to safely extract the first name from user data
   String _getFirstName() {
     final name = widget.userData['name'] as String? ?? 'User';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -196,6 +212,7 @@ class _ContactsContentState extends State<ContactsContent> {
 
   @override
   void dispose() {
+    _flutterTts.stop();
     _caretakersSubscription?.cancel();
     _emergencyContactsSubscription?.cancel();
     _searchController.dispose();
@@ -229,14 +246,12 @@ class _ContactsContentState extends State<ContactsContent> {
   List<ContactModel> get _filteredContacts {
     List<ContactModel> baseList = _allContacts;
     
-    // Filter by Pill (All, Caretakers, SOS)
     if (_selectedFilterIndex == 1) {
       baseList = _caretakerContacts;
     } else if (_selectedFilterIndex == 2) {
       baseList = _emergencyContacts;
     }
 
-    // Search query filter
     if (_searchQuery.isEmpty) {
       return baseList;
     }
@@ -258,12 +273,7 @@ class _ContactsContentState extends State<ContactsContent> {
           theme: widget.theme,
           onContactAdded: () {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Contact added successfully'),
-                  backgroundColor: success,
-                ),
-              );
+              _speakMessage('Contact added successfully');
             }
           },
         ),
@@ -273,12 +283,7 @@ class _ContactsContentState extends State<ContactsContent> {
 
   Future<void> _handleCall(ContactModel contact) async {
     if (contact.phoneNumber == 'N/A') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Phone number not available for ${contact.name}'),
-          backgroundColor: error,
-        ),
-      );
+      _speakMessage('Phone number not available for ${contact.name}');
       return;
     }
 
@@ -292,12 +297,7 @@ class _ContactsContentState extends State<ContactsContent> {
 
   Future<void> _handleMessage(ContactModel contact) async {
     if (contact.phoneNumber == 'N/A') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Phone number not available for ${contact.name}'),
-          backgroundColor: error,
-        ),
-      );
+      _speakMessage('Phone number not available for ${contact.name}');
       return;
     }
 
@@ -320,12 +320,7 @@ class _ContactsContentState extends State<ContactsContent> {
           theme: widget.theme,
           onContactUpdated: () {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Contact updated successfully'),
-                  backgroundColor: success,
-                ),
-              );
+              _speakMessage('Contact updated successfully');
             }
           },
         ),
@@ -379,33 +374,18 @@ class _ContactsContentState extends State<ContactsContent> {
             patientId: _patientId!,
           );
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Caretaker removed successfully'),
-              backgroundColor: success,
-            ),
-          );
+          _speakMessage('Caretaker removed successfully');
         } else {
           await emergencyContactsService.removeEmergencyContact(
             userId: _patientId!,
             contactId: contact.id,
           );
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Contact deleted successfully'),
-              backgroundColor: success,
-            ),
-          );
+          _speakMessage('Contact deleted successfully');
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to delete contact: $e'),
-            backgroundColor: error,
-          ),
-        );
+        _speakMessage('Failed to delete contact');
       }
     }
   }
@@ -413,60 +393,63 @@ class _ContactsContentState extends State<ContactsContent> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = width < 360; 
     final isLoading = (_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty;
 
     return RefreshIndicator(
       onRefresh: _refreshContacts,
       color: _primaryColor,
-      child: SingleChildScrollView(
+      child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(
-                left: width * 0.05,
-                right: width * 0.05,
-                top: spacingLarge,
-              ),
-              child: _buildHeader(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: width * 0.05,
+                    right: width * 0.05,
+                    top: spacingLarge,
+                  ),
+                  child: _buildHeader(isSmallScreen),
+                ),
+                const SizedBox(height: spacingMedium),
+                
+                _buildMascotBanner(width, isSmallScreen),
+                
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: spacingMedium),
+                      
+                      if (_allContacts.isNotEmpty) _buildFilterTabs(),
+                      
+                      const SizedBox(height: spacingLarge),
+                      
+                      isLoading
+                          ? _buildLoadingState()
+                          : _error != null && _allContacts.isEmpty
+                              ? _buildErrorState()
+                              : _allContacts.isEmpty
+                                  ? _buildEmptyState()
+                                  : _buildContactsList(isSmallScreen),
+                                  
+                      const SizedBox(height: 100), 
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: spacingMedium),
-            
-            // Edge-to-edge Mascot Banner with Bubble
-            _buildMascotBanner(),
-            
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: width * 0.05),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: spacingMedium),
-                  
-                  // Filter Pills replacing search bar
-                  if (_allContacts.isNotEmpty) _buildFilterTabs(),
-                  
-                  const SizedBox(height: spacingLarge),
-                  
-                  isLoading
-                      ? _buildLoadingState()
-                      : _error != null && _allContacts.isEmpty
-                          ? _buildErrorState()
-                          : _allContacts.isEmpty
-                              ? _buildEmptyState()
-                              : _buildContactsList(),
-                              
-                  const SizedBox(height: 100), // Bottom padding
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isSmallScreen) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -474,20 +457,30 @@ class _ContactsContentState extends State<ContactsContent> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Contacts',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                color: widget.theme.textColor,
-                letterSpacing: -0.5,
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Contacts',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w900,
+                    color: widget.theme.textColor,
+                    letterSpacing: -0.5,
+                  ),
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             InkWell(
               onTap: _showAddContactDialog,
               borderRadius: BorderRadius.circular(20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12 : 16, 
+                  vertical: 10
+                ),
                 decoration: BoxDecoration(
                   color: _primaryColor.withValues(alpha: widget.isDarkMode ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(20),
@@ -502,7 +495,7 @@ class _ContactsContentState extends State<ContactsContent> {
                       style: TextStyle(
                         color: _primaryColor,
                         fontWeight: FontWeight.w800,
-                        fontSize: 14,
+                        fontSize: isSmallScreen ? 12 : 14,
                       ),
                     ),
                   ],
@@ -515,7 +508,7 @@ class _ContactsContentState extends State<ContactsContent> {
         Text(
           'Manage your network and SOS',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: isSmallScreen ? 12 : 14,
             color: widget.theme.subtextColor,
           ),
         ),
@@ -524,17 +517,17 @@ class _ContactsContentState extends State<ContactsContent> {
     );
   }
 
- Widget _buildMascotBanner() {
+ Widget _buildMascotBanner(double width, bool isSmallScreen) {
     final messages = _getMascotMessages();
     final displayMessage = messages[_currentMessageIndex % messages.length];
-    
-    // Find the longest message to lock the bubble size
     final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
+    
+    // Scale mascot size based on screen width
+    final double mascotSize = isSmallScreen ? 70 : 90;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Edge-to-edge gradient background strictly tied to the top
         Positioned(
           top: 0,
           bottom: 0,
@@ -554,36 +547,31 @@ class _ContactsContentState extends State<ContactsContent> {
           ),
         ),
         
-        // Mascot and Speech Bubble
         Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: MediaQuery.of(context).size.width * 0.06,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: width * 0.06),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mascot Figure
              Image.asset(
-                        'assets/seelai-icons/seelai2.png',
-                        width: 90,
-                        height: 105,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            color: _primaryColor.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.smart_toy_outlined,
-                            color: _primaryColor,
-                            size: 36,
-                          ),
-                        ),
-                      ),
+                'assets/seelai-icons/seelai2.png',
+                width: mascotSize,
+                height: mascotSize + 15,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: mascotSize,
+                  height: mascotSize,
+                  decoration: BoxDecoration(
+                    color: _primaryColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.smart_toy_outlined,
+                    color: _primaryColor,
+                    size: isSmallScreen ? 28 : 36,
+                  ),
+                ),
+              ),
               
-              // Speech Bubble Tail (Pointing left, aligned to mouth)
               Container(
                 margin: const EdgeInsets.only(bottom: 40),
                 child: CustomPaint(
@@ -594,11 +582,13 @@ class _ContactsContentState extends State<ContactsContent> {
                 ),
               ),
 
-              // Speech Bubble Content - Conversational text
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 12 : 16, 
+                    vertical: isSmallScreen ? 10 : 14
+                  ),
                   decoration: BoxDecoration(
                     color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
@@ -612,12 +602,12 @@ class _ContactsContentState extends State<ContactsContent> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Keep it compact
+                    mainAxisSize: MainAxisSize.min, 
                     children: [
                       Text(
                         'Seelai',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: isSmallScreen ? 12 : 14,
                           fontWeight: FontWeight.w800,
                           color: _primaryColor,
                           letterSpacing: 0.5,
@@ -625,25 +615,22 @@ class _ContactsContentState extends State<ContactsContent> {
                       ),
                       const SizedBox(height: 6),
                       
-                      // THE STACK TRICK - No cutting, no jumping!
                       Stack(
                         children: [
-                          // 1. Invisible text uses the LONGEST message to keep bubble size fixed
                           Text(
                             longestMessage,
-                            style: const TextStyle(
-                              fontSize: 13,
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 11 : 13,
                               fontWeight: FontWeight.w500,
                               color: Colors.transparent, 
                               height: 1.4,
                             ),
                           ),
-                          // 2. Typewriter text types out the current message
                           Positioned.fill(
                             child: TypewriterText(
                               text: displayMessage,
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: isSmallScreen ? 11 : 13,
                                 fontWeight: FontWeight.w500,
                                 color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
                                 height: 1.4,
@@ -663,16 +650,15 @@ class _ContactsContentState extends State<ContactsContent> {
     );
   }
   
-  // Pill Filters mimicking the "All, Debit, Credit" style
   Widget _buildFilterTabs() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
           Expanded(child: _buildFilterPill('All', 0)),
-          const SizedBox(width: 10),
-          Expanded(child: _buildFilterPill('Caretakers', 1)),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8), // Slightly tighter spacing for small screens
+          Expanded(flex: 2, child: _buildFilterPill('Caretakers', 1)), // Give more room to longer text
+          const SizedBox(width: 8),
           Expanded(child: _buildFilterPill('SOS', 2)),
         ],
       ),
@@ -682,17 +668,13 @@ class _ContactsContentState extends State<ContactsContent> {
   Widget _buildFilterPill(String label, int index) {
     bool isSelected = _selectedFilterIndex == index;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilterIndex = index;
-        });
-      },
+      onTap: () => setState(() => _selectedFilterIndex = index),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4), 
         decoration: BoxDecoration(
           color: isSelected ? _primaryColor : widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(24), // Pill shape
+          borderRadius: BorderRadius.circular(24), 
           border: Border.all(
             color: isSelected 
                 ? _primaryColor 
@@ -708,13 +690,17 @@ class _ContactsContentState extends State<ContactsContent> {
           ] : [],
         ),
         alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : widget.theme.subtextColor,
-            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-            fontSize: 13,
-            letterSpacing: 0.3,
+        // FittedBox ensures "Caretakers" won't overflow its pill on tiny screens
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : widget.theme.subtextColor,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 13,
+              letterSpacing: 0.3,
+            ),
           ),
         ),
       ),
@@ -867,7 +853,7 @@ class _ContactsContentState extends State<ContactsContent> {
     );
   }
 
-  Widget _buildContactsList() {
+  Widget _buildContactsList(bool isSmallScreen) {
     final filteredContacts = _filteredContacts;
     
     if (filteredContacts.isEmpty) {
@@ -906,7 +892,7 @@ class _ContactsContentState extends State<ContactsContent> {
           const SizedBox(height: spacingMedium),
           ...caretakers.map((contact) => Padding(
             padding: const EdgeInsets.only(bottom: spacingMedium),
-            child: _buildContactCard(contact),
+            child: _buildContactCard(contact, isSmallScreen),
           )),
           if (emergencyContacts.isNotEmpty && _selectedFilterIndex == 0)
             const SizedBox(height: spacingLarge),
@@ -917,7 +903,7 @@ class _ContactsContentState extends State<ContactsContent> {
           const SizedBox(height: spacingMedium),
           ...emergencyContacts.map((contact) => Padding(
             padding: const EdgeInsets.only(bottom: spacingMedium),
-            child: _buildContactCard(contact),
+            child: _buildContactCard(contact, isSmallScreen),
           )),
         ],
       ],
@@ -935,7 +921,7 @@ class _ContactsContentState extends State<ContactsContent> {
     );
   }
 
-  Widget _buildContactCard(ContactModel contact) {
+  Widget _buildContactCard(ContactModel contact, bool isSmallScreen) {
     return Container(
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
@@ -960,12 +946,12 @@ class _ContactsContentState extends State<ContactsContent> {
           onTap: () => _showContactOptions(contact),
           borderRadius: BorderRadius.circular(radiusXLarge),
           child: Padding(
-            padding: const EdgeInsets.all(spacingLarge),
+            padding: EdgeInsets.all(isSmallScreen ? spacingMedium : spacingLarge),
             child: Column(
               children: [
                 Row(
                   children: [
-                    _buildProfileAvatar(contact),
+                    _buildProfileAvatar(contact, isSmallScreen),
                     const SizedBox(width: spacingMedium),
 
                     Expanded(
@@ -978,13 +964,15 @@ class _ContactsContentState extends State<ContactsContent> {
                                 child: Text(
                                   contact.name,
                                   style: bodyBold.copyWith(
-                                    fontSize: 18,
+                                    fontSize: isSmallScreen ? 16 : 18,
                                     color: widget.theme.textColor,
                                     fontWeight: FontWeight.w700,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-
+                              const SizedBox(width: 4),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: spacingSmall,
@@ -997,7 +985,7 @@ class _ContactsContentState extends State<ContactsContent> {
                                 child: Text(
                                   contact.isCaretaker ? 'CARETAKER' : 'SOS',
                                   style: caption.copyWith(
-                                    fontSize: 10,
+                                    fontSize: isSmallScreen ? 9 : 10,
                                     color: contact.color,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.5,
@@ -1012,14 +1000,18 @@ class _ContactsContentState extends State<ContactsContent> {
                           Row(
                             children: [
                               Icon(Icons.badge_rounded,
-                                  size: 14, color: widget.theme.subtextColor),
+                                  size: isSmallScreen ? 12 : 14, color: widget.theme.subtextColor),
                               const SizedBox(width: 4),
-                              Text(
-                                contact.relationship,
-                                style: caption.copyWith(
-                                  fontSize: 13,
-                                  color: widget.theme.subtextColor,
-                                  fontWeight: FontWeight.w400,
+                              Expanded(
+                                child: Text(
+                                  contact.relationship,
+                                  style: caption.copyWith(
+                                    fontSize: isSmallScreen ? 12 : 13,
+                                    color: widget.theme.subtextColor,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -1030,13 +1022,13 @@ class _ContactsContentState extends State<ContactsContent> {
                           Row(
                             children: [
                               Icon(Icons.phone_rounded,
-                                  size: 14, color: widget.theme.subtextColor),
+                                  size: isSmallScreen ? 12 : 14, color: widget.theme.subtextColor),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
                                   contact.phoneNumber,
                                   style: caption.copyWith(
-                                    fontSize: 13,
+                                    fontSize: isSmallScreen ? 12 : 13,
                                     color: widget.theme.subtextColor,
                                     fontWeight: FontWeight.w400,
                                   ),
@@ -1053,7 +1045,7 @@ class _ContactsContentState extends State<ContactsContent> {
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: widget.theme.subtextColor.withValues(alpha: 0.5),
-                      size: 18,
+                      size: isSmallScreen ? 14 : 18,
                     ),
                   ],
                 ),
@@ -1062,7 +1054,7 @@ class _ContactsContentState extends State<ContactsContent> {
                 Divider(height: 1, color: widget.theme.subtextColor.withValues(alpha: 0.15)),
                 const SizedBox(height: spacingMedium),
 
-                // Quick Actions
+                // Quick Actions with FittedBox text scaling
                 Row(
                   children: [
                     Expanded(
@@ -1070,6 +1062,7 @@ class _ContactsContentState extends State<ContactsContent> {
                         icon: Icons.phone_rounded,
                         label: 'Call',
                         color: Colors.green,
+                        isSmallScreen: isSmallScreen,
                         onTap: () => _handleCall(contact),
                       ),
                     ),
@@ -1080,6 +1073,7 @@ class _ContactsContentState extends State<ContactsContent> {
                         label: 'Message',
                         color: contact.color,
                         isOutlined: true,
+                        isSmallScreen: isSmallScreen,
                         onTap: () => _handleMessage(contact),
                       ),
                     ),
@@ -1098,6 +1092,7 @@ class _ContactsContentState extends State<ContactsContent> {
     required String label,
     required Color color,
     bool isOutlined = false,
+    required bool isSmallScreen,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -1107,7 +1102,7 @@ class _ContactsContentState extends State<ContactsContent> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(radiusMedium),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 10 : 12),
           decoration: BoxDecoration(
             border: isOutlined ? Border.all(color: color, width: 1.5) : null,
             borderRadius: BorderRadius.circular(radiusMedium),
@@ -1117,15 +1112,20 @@ class _ContactsContentState extends State<ContactsContent> {
             children: [
               Icon(
                 icon,
-                size: 18,
+                size: isSmallScreen ? 16 : 18,
                 color: isOutlined ? color : white,
               ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: bodyBold.copyWith(
-                  fontSize: 14,
-                  color: isOutlined ? color : white,
+              const SizedBox(width: 6),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: bodyBold.copyWith(
+                      fontSize: isSmallScreen ? 12 : 14,
+                      color: isOutlined ? color : white,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1183,13 +1183,14 @@ class _ContactsContentState extends State<ContactsContent> {
     );
   }
 
-  Widget _buildProfileAvatar(ContactModel contact) {
+  Widget _buildProfileAvatar(ContactModel contact, bool isSmallScreen) {
     final hasProfileImage = contact.profileImageUrl != null && 
                             contact.profileImageUrl!.isNotEmpty;
+    final double avatarSize = isSmallScreen ? 50 : 64;
 
     return Container(
-      width: 64,
-      height: 64,
+      width: avatarSize,
+      height: avatarSize,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
@@ -1222,7 +1223,7 @@ class _ContactsContentState extends State<ContactsContent> {
                     child: Icon(
                       contact.avatar,
                       color: Colors.white,
-                      size: 28,
+                      size: isSmallScreen ? 22 : 28,
                     ),
                   );
                 },
@@ -1257,14 +1258,13 @@ class _ContactsContentState extends State<ContactsContent> {
                     colors: [_primaryColor, _primaryColor.withValues(alpha: 0.8)],
                   ),
                 ),
-                child: Icon(contact.avatar, color: Colors.white, size: 28),
+                child: Icon(contact.avatar, color: Colors.white, size: isSmallScreen ? 22 : 28),
               ),
       ),
     );
   }
 }
 
-// Custom Painter to draw the speech bubble tail pointing to the mascot
 class _TailPainter extends CustomPainter {
   final Color color;
 
@@ -1287,9 +1287,6 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -1311,8 +1308,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    // THE FIX: Dynamic speed! 40 milliseconds per character.
-    // Long messages and short messages will now type at the exact same natural speed.
     int msDuration = widget.text.length * 40; 
     
     _controller = AnimationController(
@@ -1353,7 +1348,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       animation: _characterCount,
       builder: (context, child) {
         int end = _characterCount.value;
-        // Strict safety check to prevent out-of-bounds text duplication
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
         

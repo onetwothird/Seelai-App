@@ -1,6 +1,7 @@
 // File: lib/roles/caretaker/home/sections/profile_screen/caretaker_profile_content.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // ADDED: TTS Import
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:intl/intl.dart';
@@ -29,6 +30,9 @@ class _ProfileContentState extends State<ProfileContent> {
   late Map<String, dynamic> _userData;
   bool _isLoading = false;
   
+  // ADDED: TTS Instance
+  final FlutterTts _flutterTts = FlutterTts();
+
   final Color _colVerifications = const Color(0xFF3B82F6); 
   final Color _colTracking = const Color(0xFF8B5CF6);      
   final Color _colSafety = const Color(0xFFEF4444);        
@@ -39,6 +43,21 @@ class _ProfileContentState extends State<ProfileContent> {
   void initState() {
     super.initState();
     _userData = Map<String, dynamic>.from(widget.userData);
+    _initTts(); // ADDED: Initialize TTS settings
+  }
+
+  // ADDED: TTS Initialization function
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("fil-PH"); 
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop(); // ADDED: Stop TTS to free resources
+    super.dispose();
   }
 
   @override
@@ -394,7 +413,7 @@ class _ProfileContentState extends State<ProfileContent> {
                       ),
                     ),
                   ),
-                  
+              
                   if (value != null) ...[
                     const SizedBox(width: 16),
                     Expanded(
@@ -491,7 +510,9 @@ class _ProfileContentState extends State<ProfileContent> {
     }
   }
 
+  // ADDED: Speaks the message through TTS
   void _showSnackbar(String message, Color color) {
+    _flutterTts.speak(message); // Plays the message aloud via TTS
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -528,7 +549,7 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  // ==================== NEW UI: EDIT PROFILE DIALOG ====================
+  // ==================== FIXED UI: EDIT PROFILE DIALOG ====================
 
   void _showEditProfileDialog() {
     final parentContext = context; 
@@ -648,7 +669,7 @@ class _ProfileContentState extends State<ProfileContent> {
                             ),
                             onPressed: _isLoading ? null : () async {
                               setStateDialog(() => _isLoading = true);
-                              Navigator.pop(dialogContext);
+                              // FIXED: Prevent dialog pop early so loading spinner shows
 
                               try {
                                 await databaseService.updateUserProfile(
@@ -664,13 +685,21 @@ class _ProfileContentState extends State<ProfileContent> {
 
                                 await _refreshUserData();
 
-                                if (!mounted) return;
-                                _showSnackbar('Profile updated successfully', _primaryColor);
+                                if (dialogContext.mounted) {
+                                  Navigator.pop(dialogContext); // Wait until done to close it
+                                }
+                                if (mounted) {
+                                  _showSnackbar('Profile updated successfully', _primaryColor);
+                                }
                               } catch (e) {
-                                if (!mounted) return;
-                                _showSnackbar('Error updating profile: $e', _colSafety);
+                                if (mounted) {
+                                  _showSnackbar('Error updating profile: $e', _colSafety);
+                                }
                               } finally {
-                                if (mounted) setState(() => _isLoading = false);
+                                // FIXED: Properly reset state within safe context
+                                if (dialogContext.mounted) {
+                                  setStateDialog(() => _isLoading = false);
+                                }
                               }
                             },
                             child: _isLoading
@@ -690,7 +719,7 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  // ==================== NEW UI: CHANGE PASSWORD DIALOG ====================
+  // ==================== FIXED UI: CHANGE PASSWORD DIALOG ====================
 
   void _showChangePasswordDialog() {
     final currentPassController = TextEditingController();
@@ -790,11 +819,16 @@ class _ProfileContentState extends State<ProfileContent> {
                                   newPassword: newPassController.text,
                                 );
                                 
-                                if (!builderContext.mounted) return;
-                                Navigator.pop(builderContext);
-                                _showSnackbar('Password changed successfully', _primaryColor);
+                                if (builderContext.mounted) {
+                                  Navigator.pop(builderContext);
+                                }
+                                if (mounted) {
+                                  _showSnackbar('Password changed successfully', _primaryColor);
+                                }
                               } catch (e) {
-                                _showSnackbar('Failed to change password. Check current password.', _colSafety);
+                                if (mounted) {
+                                  _showSnackbar('Failed to change password. Check current password.', _colSafety);
+                                }
                               } finally {
                                 if (builderContext.mounted) {
                                   setStateDialog(() => _isLoading = false);

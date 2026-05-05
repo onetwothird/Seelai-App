@@ -29,7 +29,7 @@ class MyPatientsSection extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'My Asssistance',
+              'My Assistance', // FIXED: Typo in "Assistance"
               style: TextStyle(
                 fontSize: 20,
                 color: theme.textColor,
@@ -47,51 +47,57 @@ class MyPatientsSection extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        if (isLoadingPatients)
-          Center(
-            child: Padding(
-              padding: EdgeInsets.all(spacingLarge), 
-              child: CircularProgressIndicator(color: primary),
-            ),
-          )
-        else if (assignedPatients.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.subtextColor.withOpacity(0.1)),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.group_off_rounded, size: 40, color: theme.subtextColor.withOpacity(0.5)),
-                const SizedBox(height: 12),
-                Text(
-                  'No patients assigned yet',
-                  style: TextStyle(color: theme.subtextColor, fontWeight: FontWeight.w500),
-                ),
-              ],
-            ),
-          )
-        else
-          SizedBox(
-            height: 165, 
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              itemCount: assignedPatients.length,
-              itemBuilder: (context, index) {
-                final patient = assignedPatients[index];
-                return _PatientCard(
-                  patient: patient,
-                  theme: theme,
-                  isDarkMode: isDarkMode,
-                  isBottomSheet: false, // Tells the card it's NOT in the bottom sheet
-                );
-              },
-            ),
-          ),
+        // Added AnimatedSwitcher to prevent UI from "jumping" or "bugging" between states
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: isLoadingPatients
+              ? Center(
+                  key: const ValueKey('loading'),
+                  child: Padding(
+                    padding: EdgeInsets.all(spacingLarge), 
+                    child: CircularProgressIndicator(color: primary),
+                  ),
+                )
+              : assignedPatients.isEmpty
+                  ? Container(
+                      key: const ValueKey('empty'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: theme.cardColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: theme.subtextColor.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.group_off_rounded, size: 40, color: theme.subtextColor.withOpacity(0.5)),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No patients assigned yet',
+                            style: TextStyle(color: theme.subtextColor, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    )
+                  : SizedBox(
+                      key: const ValueKey('list'),
+                      height: 175, // INCREASED: Gives slightly more room to prevent text overflow bugs
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: assignedPatients.length,
+                        itemBuilder: (context, index) {
+                          final patient = assignedPatients[index];
+                          return _PatientCard(
+                            patient: patient,
+                            theme: theme,
+                            isDarkMode: isDarkMode,
+                            isBottomSheet: false, 
+                          );
+                        },
+                      ),
+                    ),
+        ),
       ],
     );
   }
@@ -159,7 +165,7 @@ class MyPatientsSection extends StatelessWidget {
                     crossAxisCount: 3,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 0.70, 
+                    childAspectRatio: 0.65, // DECREASED: Prevents bottom overflow crash in grid
                   ),
                   itemCount: assignedPatients.length,
                   itemBuilder: (context, index) {
@@ -167,7 +173,7 @@ class MyPatientsSection extends StatelessWidget {
                       patient: assignedPatients[index],
                       theme: theme,
                       isDarkMode: isDarkMode,
-                      isBottomSheet: true, // Tells the card it IS in the bottom sheet
+                      isBottomSheet: true, 
                     );
                   },
                 ),
@@ -198,10 +204,8 @@ class _PatientCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final patientName = patient['name'] ?? 'Unknown';
     final patientId = patient['userId'] ?? '';
-    // Safely extract the profile image URL
     final profileImageUrl = patient['profileImageUrl'] as String?; 
     
-    // The exact purple color
     final Color primaryPurple = const Color(0xFF8B5CF6);
 
     return Container(
@@ -225,7 +229,8 @@ class _PatientCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // === PROFILE IMAGE ===
+          // === FIXED PROFILE IMAGE ===
+          // Removed DecorationImage to prevent crashes on broken network URLs
           Container(
             width: 50,
             height: 50,
@@ -238,22 +243,24 @@ class _PatientCard extends StatelessWidget {
                 color: isDarkMode ? Colors.white30 : Colors.black, 
                 width: 1.0,
               ), 
-              image: (profileImageUrl != null && profileImageUrl.isNotEmpty)
-                  ? DecorationImage(
-                      image: NetworkImage(profileImageUrl),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
             ),
-            child: (profileImageUrl == null || profileImageUrl.isEmpty)
-                ? const Center(
-                    child: Icon(
-                      Icons.person,
-                      color: Colors.white,
-                      size: 28, 
+            child: ClipOval(
+              child: (profileImageUrl != null && profileImageUrl.isNotEmpty)
+                  ? Image.network(
+                      profileImageUrl,
+                      fit: BoxFit.cover,
+                      // Gracefully handles missing/broken images without crashing the UI
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: primaryPurple,
+                        child: const Center(
+                          child: Icon(Icons.person, color: Colors.white, size: 28),
+                        ),
+                      ),
+                    )
+                  : const Center(
+                      child: Icon(Icons.person, color: Colors.white, size: 28),
                     ),
-                  )
-                : null,
+            ),
           ),
           const SizedBox(height: 10),
           
@@ -307,14 +314,14 @@ class _PatientCard extends StatelessWidget {
           
           const SizedBox(height: 10),
           
-          // === NEW: ACTION BUTTONS WITH OVERLAY FIX ===
+          // === ACTION BUTTONS ===
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildSmallActionButton(
                 icon: Icons.call_rounded,
                 color: primaryPurple,
-                isDarkMode: isDarkMode, // Pass dark mode flag
+                isDarkMode: isDarkMode, 
                 onTap: () {
                   if (isBottomSheet) Navigator.pop(context); 
                   CaretakerVoiceCallScreen.startCall(context, patient);
@@ -324,7 +331,7 @@ class _PatientCard extends StatelessWidget {
               _buildSmallActionButton(
                 icon: Icons.videocam_rounded,
                 color: primaryPurple,
-                isDarkMode: isDarkMode, // Pass dark mode flag
+                isDarkMode: isDarkMode, 
                 onTap: () {
                   if (isBottomSheet) Navigator.pop(context); 
                   CaretakerVideoCallScreen.startCall(context, patient);
@@ -337,7 +344,6 @@ class _PatientCard extends StatelessWidget {
     );
   }
 
-  // Helper widget to keep the buttons tiny and clean
   Widget _buildSmallActionButton({
     required IconData icon,
     required Color color,
@@ -349,16 +355,14 @@ class _PatientCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(6), 
         decoration: BoxDecoration(
-          // Set to white in light mode, transparent in dark mode
           color: isDarkMode ? Colors.transparent : Colors.white,
           shape: BoxShape.circle,
-          // Slightly increased border alpha (0.4) so it pops nicely against the white background
           border: Border.all(color: color.withValues(alpha: 0.4)),
         ),
         child: Icon(
           icon,
           size: 16, 
-          color: color, // Icon stays purple
+          color: color, 
         ),
       ),
     );

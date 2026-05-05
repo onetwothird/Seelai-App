@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // ADDED: TTS Import
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
@@ -34,7 +35,6 @@ class RequestsContent extends StatefulWidget {
 
 class _RequestsContentState extends State<RequestsContent>
     with SingleTickerProviderStateMixin {
-  // Brand Colors - Updated to requested violet
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   late TabController _tabController;
@@ -48,24 +48,27 @@ class _RequestsContentState extends State<RequestsContent>
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
   final Map<String, String?> _profileImageCache = {};
 
-  // Animation State for Mascot Messages
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
-  // --- STATE VARIABLES FOR DELETION & PAGINATION ---
   final Set<String> _hiddenRequestIds = {};
-  final Map<int, int> _tabPages = {0: 1, 1: 1, 2: 1, 3: 1}; // Added index 3 for Deleted tab
+  final Map<int, int> _tabPages = {0: 1, 1: 1, 2: 1, 3: 1}; 
   final int _itemsPerPage = 5;
+
+  // ADDED: Initialize the TTS instance
+  final FlutterTts _flutterTts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
     
-    // Changed length to 4 to include the 'Deleted' tab
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
+
+    // ADDED: Call the TTS initializer
+    _initializeTts();
 
     _initializeCaretakerId().then((_) {
       if (_caretakerId != null) {
@@ -86,6 +89,29 @@ class _RequestsContentState extends State<RequestsContent>
           break;
       }
     });
+  }
+
+  // ADDED: Your TTS Initialization Logic
+  Future<void> _initializeTts() async {
+    try {
+      await _flutterTts.setLanguage("fil-PH"); 
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+    } catch (e) {
+      debugPrint("Error initializing TTS: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    // ADDED: Safely stop TTS if the user leaves the screen
+    _flutterTts.stop();
+    
+    _messageTimer?.cancel();
+    _tabController.dispose();
+    _requestsSubscription?.cancel();
+    super.dispose();
   }
 
   void _startMessageTimer() {
@@ -228,14 +254,6 @@ class _RequestsContentState extends State<RequestsContent>
     }
   }
 
-  @override
-  void dispose() {
-    _messageTimer?.cancel();
-    _tabController.dispose();
-    _requestsSubscription?.cancel();
-    super.dispose();
-  }
-
   Future<void> _refreshRequests() async {
     if (_caretakerId == null) {
       await _initializeCaretakerId();
@@ -249,7 +267,7 @@ class _RequestsContentState extends State<RequestsContent>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-        backgroundColor: const Color(0xFF8B5CF6), // Enforced Brand Color
+        backgroundColor: const Color(0xFF8B5CF6),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         margin: const EdgeInsets.all(16),
@@ -647,7 +665,7 @@ class _RequestsContentState extends State<RequestsContent>
         labelColor: Colors.white,
         unselectedLabelColor: widget.theme.subtextColor,
         labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: -0.2),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 4), // Added to prevent overflow
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4), 
         indicatorSize: TabBarIndicatorSize.tab,
         dividerColor: Colors.transparent,
         padding: const EdgeInsets.all(4),
@@ -655,7 +673,7 @@ class _RequestsContentState extends State<RequestsContent>
           Tab(text: 'Pending'),
           Tab(text: 'Active'),
           Tab(text: 'History'),
-          Tab(text: 'Deleted'), // 4th Tab Included
+          Tab(text: 'Deleted'), 
         ],
       ),
     );
@@ -665,7 +683,6 @@ class _RequestsContentState extends State<RequestsContent>
     List<RequestModel> visibleRequests;
     final currentTabIndex = _tabController.index;
 
-    // Filter requests directly into `visibleRequests` based on the active tab
     switch (currentTabIndex) {
       case 0: 
         visibleRequests = _pendingRequests; 
@@ -711,8 +728,6 @@ class _RequestsContentState extends State<RequestsContent>
 
     return Column(
       children: [
-        // Removed the "Restore All" button from here
-
         ListView.builder(
           padding: EdgeInsets.zero,
           shrinkWrap: true,
@@ -736,7 +751,6 @@ class _RequestsContentState extends State<RequestsContent>
     );
   }
 
-  // Decides which card widget to render based on the current active tab
   Widget _buildCardForCurrentTab(RequestModel request, int currentTabIndex) {
     if (currentTabIndex == 2) {
       return _buildDismissibleCard(request);
@@ -747,7 +761,6 @@ class _RequestsContentState extends State<RequestsContent>
     }
   }
 
-  // --- NEW: AESTHETIC CARD FOR DELETED ITEMS ---
   Widget _buildDeletedCard(RequestModel request) {
     final priorityColor = request.getPriorityColor();
     final cachedImage = _profileImageCache[request.patientId];
@@ -772,7 +785,6 @@ class _RequestsContentState extends State<RequestsContent>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: Avatar, Name, Type, Priority
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -854,7 +866,6 @@ class _RequestsContentState extends State<RequestsContent>
             
             const SizedBox(height: 16),
             
-            // Message
             Text(
               request.message,
               maxLines: 2,
@@ -868,7 +879,6 @@ class _RequestsContentState extends State<RequestsContent>
             
             const SizedBox(height: 16),
             
-            // Bottom Row: Time and RESTORE Button
             Row(
               children: [
                 Container(
@@ -905,6 +915,8 @@ class _RequestsContentState extends State<RequestsContent>
                   onPressed: () {
                     setState(() { _hiddenRequestIds.remove(request.id); });
                     _showBrandSnackbar('Request restored.');
+                    // ADDED: Speak text when restored from deleted tab
+                    _flutterTts.speak("Request restored"); 
                   },
                 ),
               ],
@@ -977,6 +989,9 @@ class _RequestsContentState extends State<RequestsContent>
           _hiddenRequestIds.add(request.id);
         });
 
+        // ADDED: Speak text when moved to deleted
+        _flutterTts.speak("Moved to deleted");
+
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -993,6 +1008,8 @@ class _RequestsContentState extends State<RequestsContent>
                   setState(() {
                     _hiddenRequestIds.remove(request.id);
                   });
+                  // ADDED: Speak text when undo is pressed
+                  _flutterTts.speak("Request restored"); 
                 }
               },
             ),
@@ -1216,7 +1233,7 @@ class _RequestsContentState extends State<RequestsContent>
         title = "No History";
         sub = "Completed requests will appear here.";
         break;
-      case 3: // Newly added state
+      case 3: 
         icon = Icons.delete_outline_rounded;
         title = "Trash is Empty";
         sub = "Deleted requests will appear here.";
