@@ -13,6 +13,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/widgets/map_marker_helper.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class MswdLocationTrackingScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -57,8 +59,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   final Map<String, BitmapDescriptor> _markerCache = {};
   final Map<String, String> _markerStateCache = {}; 
   
-  double? _routeDistanceKm;
-  double? _routeDurationMins;
   bool _isRouting = false;
   
   Timer? _refreshTimer;
@@ -317,26 +317,62 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
 
   // ==================== ROUTING LOGIC ====================
 
-  Future<void> _drawRouteToUser(LatLng targetPoint) async {
+ Future<void> _drawRouteToUser(LatLng targetPoint) async {
     setState(() => _isRouting = true);
     
     try {
       _myPosition ??= await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high));
       LatLng myLocation = LatLng(_myPosition!.latitude, _myPosition!.longitude);
 
-      setState(() {
-        _polylines = {
-          Polyline(
-            polylineId: const PolylineId('route'),
-            points: [myLocation, targetPoint],
-            color: Colors.blueAccent,
-            width: 5,
-            geodesic: true,
-          )
-        };
-        _isRouting = false;
-      });
+      // 1. Fetch API Key from .env
+      String apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
+      // 2. Initialize PolylinePoints
+      PolylinePoints polylinePoints = PolylinePoints(apiKey: apiKey);
+      List<LatLng> polylineCoordinates = [];
+
+      // 3. Create the request using RoutesApiRequest
+      RoutesApiRequest request = RoutesApiRequest(
+        origin: PointLatLng(myLocation.latitude, myLocation.longitude),
+        destination: PointLatLng(targetPoint.latitude, targetPoint.longitude),
+        travelMode: TravelMode.driving, 
+      );
+
+      // 4. Fetch the route using the V2 endpoint
+      RoutesApiResponse response = await polylinePoints.getRouteBetweenCoordinatesV2(
+        request: request,
+      );
+
+      // 5. Convert and extract points
+      PolylineResult result = polylinePoints.convertToLegacyResult(response);
+
+      if (result.points.isNotEmpty) {
+        for (var point in result.points) {
+          polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+        }
+      } else {
+        debugPrint("Error fetching route: ${result.errorMessage}");
+        // Fallback to straight line if API fails
+        polylineCoordinates = [myLocation, targetPoint];
+      }
+
+      // 6. Draw the route on the map
+      if (mounted) {
+        setState(() {
+          _polylines = {
+            Polyline(
+              polylineId: const PolylineId('route'),
+              points: polylineCoordinates, // <-- Using decoded road points
+              color: primary,    // Kept your original styling
+              width: 5,
+              geodesic: true,
+            )
+          };
+          _isRouting = false;
+        });
+      }
+
+      // 7. Frame the route on the camera
       double minLat = myLocation.latitude < targetPoint.latitude ? myLocation.latitude : targetPoint.latitude;
       double maxLat = myLocation.latitude > targetPoint.latitude ? myLocation.latitude : targetPoint.latitude;
       double minLng = myLocation.longitude < targetPoint.longitude ? myLocation.longitude : targetPoint.longitude;
@@ -362,8 +398,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
   Future<void> _selectUser(String userId) async {
     setState(() {
       _selectedUserId = userId;
-      _routeDistanceKm = null;
-      _routeDurationMins = null;
       _polylines.clear(); 
     });
     
@@ -379,14 +413,12 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
       ));
 
       if (_myPosition != null && mounted) {
-        double distanceMeters = Geolocator.distanceBetween(
+        Geolocator.distanceBetween(
           _myPosition!.latitude, _myPosition!.longitude, 
           targetLat, targetLng
         );
 
         setState(() {
-          _routeDistanceKm = distanceMeters / 1000;
-          _routeDurationMins = (_routeDistanceKm! / 30) * 60; 
         });
       }
     }
@@ -397,8 +429,6 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
 
     setState(() {
       _selectedUserId = null;
-      _routeDistanceKm = null;
-      _routeDurationMins = null;
       _polylines.clear();
     });
     _updateMapMarkers();
@@ -714,7 +744,7 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
     );
   }
 
-  Widget _buildDetailCard(dynamic theme) {
+ Widget _buildDetailCard(dynamic theme) {
     if (_selectedUserId == null) return const SizedBox.shrink();
     
     final location = _userLocations[_selectedUserId];
@@ -723,7 +753,24 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
 
     final isActive = mswdLocationTrackingService.isLocationRecent(location);
     final lastUpdate = DateTime.fromMillisecondsSinceEpoch(location['lastUpdateMillis'] ?? 0);
-    final accuracy = location['accuracy']?.toStringAsFixed(0) ?? '?';
+
+    // 1. Calculate Real-Time Distance and Time dynamically
+    String distanceText = '...';
+    String timeText = '...';
+
+    if (_myPosition != null) {
+      double distanceMeters = Geolocator.distanceBetween(
+        _myPosition!.latitude, _myPosition!.longitude, 
+        location['latitude'] as double, location['longitude'] as double
+      );
+      
+      double distanceKm = distanceMeters / 1000;
+      double timeInMinutes = (distanceKm / 30) * 60; // Assumes driving at ~30km/h
+
+      // Format to look exactly like the Caretaker screen
+      distanceText = distanceKm < 1 ? '${distanceMeters.toStringAsFixed(0)} m' : '${distanceKm.toStringAsFixed(2)} km';
+      timeText = timeInMinutes < 1 ? 'Less than 1 min' : '${timeInMinutes.round()} min';
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
@@ -763,28 +810,17 @@ class _MswdLocationTrackingScreenState extends State<MswdLocationTrackingScreen>
                       maxLines: 1, overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    if (_routeDistanceKm != null && _routeDurationMins != null)
-                      Row(
-                        children: [
-                          Icon(Icons.directions_car, size: 14, color: theme.subtextColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${_routeDistanceKm!.toStringAsFixed(2)} km • ${_routeDurationMins!.toStringAsFixed(0)} mins',
-                            style: caption.copyWith(color: Colors.blueAccent, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      )
-                    else
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 14, color: theme.subtextColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Accuracy: ${accuracy}m',
-                            style: caption.copyWith(color: theme.subtextColor),
-                          ),
-                        ],
-                      ),
+                    // 2. Replace Accuracy with Distance/Time Row
+                    Row(
+                      children: [
+                        Icon(Icons.directions_car, size: 14, color: theme.subtextColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$distanceText • $timeText',
+                          style: caption.copyWith(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
