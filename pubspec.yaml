@@ -21,7 +21,6 @@ dependencies:
   url_launcher: ^6.3.2
   flutter_launcher_icons: ^0.14.4
   animated_splash_screen: ^1.3.0
-  lottie: ^3.3.2
   flutter_native_splash: ^2.4.7
   firebase_storage: ^13.0.4
   http: ^1.6.0
@@ -61,10 +60,8 @@ flutter:
     - .env
     - assets/
     - assets/icons/
-    - assets/object_model/seelai_objects.tflite
-    - assets/object_model/labels.txt
-    - assets/face_model/seelai_face.tflite
-    - assets/face_model/labels.txt
+    - assets/object_model/
+    - assets/face_model/
     - assets/emergency_images/
     - assets/icons/
     - assets/seelai-icons/
