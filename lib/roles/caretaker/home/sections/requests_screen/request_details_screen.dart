@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_tts/flutter_tts.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
@@ -30,6 +31,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   bool _isProcessing = false;
   late RequestModel _currentRequest;
   String? _profileImageUrl;
+  
+  final FlutterTts _flutterTts = FlutterTts();
 
   @override
   void initState() {
@@ -37,8 +40,27 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     _currentRequest = widget.request;
     _profileImageUrl = widget.preloadedProfileImage;
     
+    _initializeTts();
+
     if (_profileImageUrl == null) {
       _loadProfileImage();
+    }
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
+  }
+
+  Future<void> _initializeTts() async {
+    try {
+      await _flutterTts.setLanguage("fil-PH"); 
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+    } catch (e) {
+      debugPrint("Error initializing TTS: $e");
     }
   }
 
@@ -75,6 +97,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           );
         });
         _showSnackbar('Request accepted!', Colors.green);
+        
+        await _flutterTts.speak("REQUEST ACCEPTED");
       }
     }
   }
@@ -89,6 +113,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           _currentRequest = _currentRequest.copyWith(status: RequestStatus.inProgress);
         });
         _showSnackbar('Marked as in progress', accent);
+        
+        // ADDED: Trigger TTS for In Progress
+        await _flutterTts.speak("REQUEST IN PROGRESS");
       }
     }
   }
@@ -107,6 +134,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       if (success) {
         Navigator.pop(context);
         _showSnackbar('Request completed!', Colors.green);
+        
+        // ADDED: Trigger TTS for Completed
+        await _flutterTts.speak("REQUEST COMPLETED");
       }
     }
   }
@@ -133,13 +163,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // --- UPDATED: FORCED WHITE BACKGROUND THEME ---
     const bgColor = Colors.white; 
     const cardColor = Colors.white; 
     const textColor = Colors.black87; 
     final subColor = Colors.grey[600];
     
-    // Responsive calculations
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 360;
     final horizontalPadding = isSmallScreen ? 16.0 : 20.0;
@@ -153,7 +181,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: CircleAvatar(
-            backgroundColor: Colors.grey[100], // Slight contrast for back button
+            backgroundColor: Colors.grey[100], 
             child: IconButton(
               icon: const Icon(Icons.arrow_back_rounded, color: textColor, size: 20),
               onPressed: () => Navigator.pop(context),
@@ -187,22 +215,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     padding: EdgeInsets.fromLTRB(horizontalPadding, 10, horizontalPadding, 20),
                     child: Column(
                       children: [
-                        // 1. MSWD Style Profile Header (Hero)
                         _buildProfileHeader(textColor, subColor!),
-                        
                         const SizedBox(height: 24),
-                        
-                        // 2. MSWD Style Stats Grid
                         _buildKeyStatsGrid(cardColor, textColor, subColor),
-                        
                         const SizedBox(height: 24),
-                        
-                        // 3. Message Bubble
                         _buildMessageBubble(cardColor, textColor, subColor),
-                        
                         const SizedBox(height: 24),
-
-                        // 4. Location Card
                         if (_currentRequest.location != null)
                           _buildLocationCard(cardColor, textColor),
                       ],
@@ -212,8 +230,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               ],
             ),
           ),
-          
-          // 5. Fixed Bottom Action Area
           _buildBottomActionArea(cardColor),
         ],
       ),
@@ -300,7 +316,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        // Force shadow for white-on-white contrast
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -424,7 +439,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            // Use light grey for message bubble to stand out on white bg
             color: const Color(0xFFF3F4F6), 
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
@@ -571,7 +585,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (_currentRequest.status == RequestStatus.pending) {
       return Row(
         children: [
-          // DECLINE BUTTON
           Expanded(
             flex: 1, 
             child: _buildButton(
@@ -584,7 +597,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          // ACCEPT BUTTON
           Expanded(
             flex: 1, 
             child: _buildButton(
@@ -707,7 +719,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   
   Future<String?> _showDeclineDialog() {
     final controller = TextEditingController();
-    // Enforced white dialogs
     return showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
