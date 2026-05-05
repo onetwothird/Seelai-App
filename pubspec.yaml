@@ -61,16 +61,12 @@ flutter:
     - .env
     - assets/
     - assets/icons/
-    - assets/object_model/objects.tflite
+    - assets/object_model/seelai_objects.tflite
     - assets/object_model/labels.txt
-    - assets/face_model/face_detection.tflite
+    - assets/face_model/seelai_face.tflite
     - assets/face_model/labels.txt
-    - assets/face_model/face.tflite
-    - assets/object_model/seelai-objects.tflite
-    - assets/face_model/final_face.tflite
     - assets/emergency_images/
     - assets/icons/
-    - assets/video/sample_vid.mp4
     - assets/seelai-icons/
     - assets/onboarding_icons/
     - assets/seelai_app_logo/
