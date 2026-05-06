@@ -53,7 +53,7 @@ class _MoreContentState extends State<MoreContent> {
 
   // ADDED: TTS Initialization function
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("en-US"); // Using English for the admin interface
+    await _flutterTts.setLanguage("fil-PH"); // Using English for the admin interface
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
