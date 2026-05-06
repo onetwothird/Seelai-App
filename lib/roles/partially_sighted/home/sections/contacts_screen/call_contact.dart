@@ -6,22 +6,29 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // ADDED TTS
 import 'contact_model.dart';
 
 class CallContact {
+  static Future<void> _speak(String message) async {
+    final FlutterTts flutterTts = FlutterTts();
+    await flutterTts.setLanguage("fil-PH");
+    await flutterTts.setSpeechRate(0.5);
+    await flutterTts.setVolume(1.0);
+    await flutterTts.setPitch(1.0);
+    await flutterTts.speak(message);
+  }
+
   static Future<void> call({
     required BuildContext context,
     required ContactModel contact,
     required bool isDarkMode,
     required dynamic theme,
   }) async {
-    // Clean the phone number (remove spaces, dashes, etc.)
     String cleanPhoneNumber = contact.phoneNumber
         .replaceAll(RegExp(r'[\s\-()]'), '')
         .trim();
 
-    // Ensure the phone number has the correct format
-    // Clean number for PH format without +63
     if (cleanPhoneNumber.startsWith('+63')) {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(3)}';
     } else if (cleanPhoneNumber.startsWith('63')) {
@@ -29,13 +36,11 @@ class CallContact {
     } else if (cleanPhoneNumber.length == 10 && !cleanPhoneNumber.startsWith('0')) {
       cleanPhoneNumber = '0$cleanPhoneNumber'; 
     }
-    // else: already correct (starts with 0)
 
     final Uri telUri = Uri(scheme: 'tel', path: cleanPhoneNumber);
     
     try {
       if (await canLaunchUrl(telUri)) {
-        // Log the call activity
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
           await activityLogsService.logActivity(
@@ -47,9 +52,10 @@ class CallContact {
 
         await launchUrl(telUri);
         
-        // GUARD: Check if the context is still mounted after async operations
         if (!context.mounted) return;
         
+        await _speak('Calling ${contact.name}');
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Calling ${contact.name}...'),
@@ -62,11 +68,8 @@ class CallContact {
       }
     } catch (e) {
       debugPrint('Error making call: $e');
-      
-      // GUARD: Check if context is mounted before showing the dialog
       if (!context.mounted) return;
       
-      // Show fallback options
       _showCallOptions(context, contact, cleanPhoneNumber, isDarkMode, theme);
     }
   }
@@ -78,12 +81,10 @@ class CallContact {
     bool isDarkMode,
     dynamic theme,
   ) {
-    // 1. Capture the parent context
     final parentContext = context;
 
     showDialog(
       context: parentContext,
-      // 2. Rename to dialogContext to avoid shadowing
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.cardColor,
         title: Text(
@@ -112,14 +113,12 @@ class CallContact {
         ),
         actions: [
           TextButton(
-            // Use dialogContext to pop the dialog
             onPressed: () => Navigator.pop(dialogContext),
             child: Text('Cancel', style: body.copyWith(color: theme.subtextColor)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              // Pass the parent context down to the next method
               _copyPhoneNumber(parentContext, contact.phoneNumber);
             },
             style: ElevatedButton.styleFrom(
@@ -131,7 +130,6 @@ class CallContact {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              // Pass the parent context down
               await _tryAlternativeCall(parentContext, phoneNumber, contact);
             },
             style: ElevatedButton.styleFrom(
@@ -148,8 +146,9 @@ class CallContact {
   static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     
-    // GUARD: Check if the context is mounted after awaiting Clipboard
     if (!context.mounted) return;
+
+    await _speak('Phone number copied to clipboard');
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -165,19 +164,20 @@ class CallContact {
     String phoneNumber,
     ContactModel contact,
   ) async {
-    // Try alternative method
     final Uri alternativeUri = Uri.parse('tel://$phoneNumber');
     
     try {
       if (await canLaunchUrl(alternativeUri)) {
         await launchUrl(alternativeUri);
+        await _speak('Calling ${contact.name}');
       } else {
         throw Exception('Could not launch phone dialer');
       }
     } catch (e) {
-      // GUARD: Check if the context is mounted if an error is caught
       if (!context.mounted) return;
       
+      await _speak('Unable to make call. Please use your phone dialer.');
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Unable to make call. Please use your phone dialer.'),
