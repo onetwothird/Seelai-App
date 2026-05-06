@@ -1,6 +1,7 @@
 // File: lib/roles/mswd/home/sections/dashboard/urgent_alerts_section.dart
 
 import 'package:flutter/material.dart';
+import 'dart:async'; // ADDED: For StreamSubscription
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
@@ -23,12 +24,82 @@ class UrgentAlertsSection extends StatefulWidget {
 }
 
 class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
-  late Stream<List<RequestModel>> _alertsStream;
+  StreamSubscription<List<RequestModel>>? _requestsSubscription;
+  List<RequestModel> _topEmergencies = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+  
+  // ADDED: Cache to store patient and caretaker data to pass to RequestDetailsScreen
+  final Map<String, Map<String, dynamic>> _userDataCache = {};
 
   @override
   void initState() {
     super.initState();
-    _alertsStream = assistanceRequestService.streamAllRequests();
+    _loadRequests();
+  }
+
+  // ADDED: Replaced StreamBuilder approach with StreamSubscription to allow data preloading
+  void _loadRequests() {
+    _requestsSubscription = assistanceRequestService.streamAllRequests().listen(
+      (requests) async {
+        if (mounted) {
+          final emergencies = requests.where((req) => 
+            req.priority.toString().contains('emergency') && 
+            req.status != RequestStatus.completed
+          ).toList();
+
+          emergencies.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          final topEmergencies = emergencies.take(3).toList();
+
+          // Fetch caretaker/patient details before updating UI
+          await _preloadUserData(topEmergencies);
+
+          if (mounted) {
+            setState(() {
+              _topEmergencies = topEmergencies;
+              _isLoading = false;
+              _hasError = false;
+            });
+          }
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _hasError = true;
+            _isLoading = false;
+          });
+        }
+      },
+    );
+  }
+
+  // ADDED: Preload function identical to the one in mswd_requests_content.dart
+  Future<void> _preloadUserData(List<RequestModel> requests) async {
+    for (var request in requests) {
+      if (!_userDataCache.containsKey(request.patientId)) {
+        try {
+          final data = await databaseService.getUserData(request.patientId);
+          if (data != null && mounted) {
+            setState(() => _userDataCache[request.patientId] = data);
+          }
+        } catch (_) {}
+      }
+      if (request.caretakerId != null && !_userDataCache.containsKey(request.caretakerId!)) {
+        try {
+          final data = await databaseService.getUserData(request.caretakerId!);
+          if (data != null && mounted) {
+            setState(() => _userDataCache[request.caretakerId!] = data);
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _requestsSubscription?.cancel();
+    super.dispose();
   }
 
   String _formatShortTime(DateTime dt) {
@@ -72,42 +143,31 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
             ),
           ],
         ),
-        // Increased spacing before the cards start
         const SizedBox(height: 16), 
-        StreamBuilder<List<RequestModel>>(
-          stream: _alertsStream,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Center(child: CircularProgressIndicator(color: Color(0xFFEF4444))),
-              );
-            }
-
-            if (snapshot.hasError) {
-              return _buildEmptyState('Error loading alerts');
-            }
-
-            final allRequests = snapshot.data ?? [];
-            
-            final emergencies = allRequests.where((req) => 
-              req.priority.toString().contains('emergency') && 
-              req.status != RequestStatus.completed
-            ).toList();
-
-            emergencies.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-            final topEmergencies = emergencies.take(3).toList();
-
-            if (topEmergencies.isEmpty) {
-              return _buildEmptyState('No active emergencies right now.');
-            }
-
-            return Column(
-              children: topEmergencies.map((request) => _buildAlertCard(request)).toList(),
-            );
-          },
-        ),
+        _buildContent(),
       ],
+    );
+  }
+
+  // ADDED: Sub-builder method to handle the state manually
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Center(child: CircularProgressIndicator(color: Color(0xFFEF4444))),
+      );
+    }
+
+    if (_hasError) {
+      return _buildEmptyState('Error loading alerts');
+    }
+
+    if (_topEmergencies.isEmpty) {
+      return _buildEmptyState('No active emergencies right now.');
+    }
+
+    return Column(
+      children: _topEmergencies.map((request) => _buildAlertCard(request)).toList(),
     );
   }
 
@@ -148,10 +208,9 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
   }
 
   Widget _buildAlertCard(RequestModel request) {
-    const color = Color(0xFFEF4444); // Red icon/text color
+    const color = Color(0xFFEF4444); 
 
     return Padding(
-      // Increased spacing between the individual alert cards
       padding: const EdgeInsets.only(bottom: 16), 
       child: Material(
         color: Colors.transparent,
@@ -164,7 +223,7 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
                   request: request,
                   isDarkMode: widget.isDarkMode,
                   theme: widget.theme,
-                  userDataCache: const {}, 
+                  userDataCache: _userDataCache, // FIXED: Now passes the populated cache instead of const {}
                 ),
               ),
             );
@@ -175,14 +234,12 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(16),
-              // Removed the red border, replaced with standard subtle border
               border: Border.all(
                 color: widget.isDarkMode 
                     ? Colors.white.withValues(alpha: 0.05) 
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
-              // Removed the red shadow, replaced with standard soft shadow
               boxShadow: widget.isDarkMode ? [] : softShadow,
             ),
             child: Row(
