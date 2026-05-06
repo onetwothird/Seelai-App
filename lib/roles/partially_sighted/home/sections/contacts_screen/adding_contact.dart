@@ -1,4 +1,4 @@
-// File: C:\seelai_app\lib\roles\partially_sighted\home\sections\contacts_screen\adding_contact.dart
+// File: lib/roles/partially_sighted/home/sections/contacts_screen/adding_contact.dart
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/storage/cloudinary_service.dart'; 
+import 'package:flutter_tts/flutter_tts.dart'; // ADDED TTS
 
 class AddContactDialog extends StatefulWidget {
   final String patientId;
@@ -36,11 +37,28 @@ class _AddContactDialogState extends State<AddContactDialog> {
   bool _isLoading = false;
   final ImagePicker _picker = ImagePicker();
   
+  // TTS Instance
+  final FlutterTts _flutterTts = FlutterTts();
+  
   // Brand Color
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
+  void initState() {
+    super.initState();
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("fil-PH");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  @override
   void dispose() {
+    _flutterTts.stop();
     _nameController.dispose();
     _relationshipController.dispose();
     _phoneController.dispose();
@@ -63,7 +81,6 @@ class _AddContactDialogState extends State<AddContactDialog> {
       try {
         String? imageUrl;
 
-        // 1. Upload to Cloudinary if an image is selected
         if (_selectedImage != null) {
           imageUrl = await cloudinaryService.uploadContactImage(
             _selectedImage!, 
@@ -71,7 +88,6 @@ class _AddContactDialogState extends State<AddContactDialog> {
           );
         }
 
-        // 2. Save to Firebase 
         await emergencyContactsService.addEmergencyContact(
           userId: widget.patientId,
           contactName: _nameController.text,
@@ -85,6 +101,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
         widget.onContactAdded?.call();
         Navigator.pop(context);
       } catch (e) {
+        await _flutterTts.speak('Failed to add contact.');
         if (!mounted) return;
         
         ScaffoldMessenger.of(context).showSnackBar(
