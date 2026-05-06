@@ -6,17 +6,27 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // ADDED TTS
 import 'contact_model.dart';
 
 class MessageContact {
+  static Future<void> _speak(String message) async {
+    final FlutterTts flutterTts = FlutterTts();
+    await flutterTts.setLanguage("fil-PH");
+    await flutterTts.setSpeechRate(0.5);
+    await flutterTts.setVolume(1.0);
+    await flutterTts.setPitch(1.0);
+    await flutterTts.speak(message);
+  }
+
   static Future<void> message({
     required BuildContext context,
     required ContactModel contact,
     required bool isDarkMode,
     required dynamic theme,
   }) async {
-    // Check if phone number is available
     if (contact.phoneNumber == 'N/A' || contact.phoneNumber.isEmpty) {
+      await _speak('Phone number not available');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Phone number not available for ${contact.name}'),
@@ -26,25 +36,18 @@ class MessageContact {
       return;
     }
 
-    // Clean the phone number (remove spaces, dashes, parentheses)
     String cleanPhoneNumber = contact.phoneNumber
         .replaceAll(RegExp(r'[\s\-()]'), '')
         .trim();
 
-    // Format for Philippines numbers
     if (cleanPhoneNumber.startsWith('+63')) {
-      // Convert +63 to 0 format
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(3)}';
     } else if (cleanPhoneNumber.startsWith('63') && cleanPhoneNumber.length == 12) {
-      // Convert 63 to 0 format (if it's a full PH number without +)
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(2)}';
     } else if (cleanPhoneNumber.length == 10 && !cleanPhoneNumber.startsWith('0')) {
-      // Add leading 0 if missing
       cleanPhoneNumber = '0$cleanPhoneNumber';
     }
-    // else: already in correct format (starts with 0)
 
-    // Create SMS URI
     final Uri smsUri = Uri(
       scheme: 'sms',
       path: cleanPhoneNumber,
@@ -52,7 +55,6 @@ class MessageContact {
 
     try {
       if (await canLaunchUrl(smsUri)) {
-        // Log the message activity
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
           await activityLogsService.logActivity(
@@ -62,13 +64,12 @@ class MessageContact {
           );
         }
 
-        // Open SMS app
         await launchUrl(smsUri);
         
-        // GUARD: Check if context is mounted
         if (!context.mounted) return;
 
-        // Show success message
+        await _speak('Opening message for ${contact.name}');
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -89,10 +90,8 @@ class MessageContact {
           ),
         );
       } else {
-        // GUARD: Check if context is mounted before showing options
         if (!context.mounted) return;
 
-        // Fallback: Show options
         _showMessageOptions(
           context: context,
           contact: contact,
@@ -104,10 +103,8 @@ class MessageContact {
     } catch (e) {
       debugPrint('Error opening SMS: $e');
       
-      // GUARD: Check if context is mounted
       if (!context.mounted) return;
 
-      // Show fallback options
       _showMessageOptions(
         context: context,
         contact: contact,
@@ -125,12 +122,10 @@ class MessageContact {
     required bool isDarkMode,
     required dynamic theme,
   }) {
-    // 1. Capture the parent context
     final parentContext = context;
 
     showDialog(
       context: parentContext,
-      // 2. Rename to dialogContext to avoid shadowing
       builder: (dialogContext) => AlertDialog(
         backgroundColor: theme.cardColor,
         title: Text(
@@ -167,18 +162,15 @@ class MessageContact {
         ),
         actions: [
           TextButton(
-            // Use dialogContext to pop the dialog
             onPressed: () => Navigator.pop(dialogContext),
             child: Text('Cancel', style: body.copyWith(color: theme.subtextColor)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              // Pass the parent context down
               _copyPhoneNumber(parentContext, contact.phoneNumber);
             },
             style: ElevatedButton.styleFrom(
-              // Fixed deprecation and removed ignore comment
               backgroundColor: primary.withValues(alpha: 0.1),
               foregroundColor: primary,
             ),
@@ -187,7 +179,6 @@ class MessageContact {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
-              // Pass the parent context down
               await _tryAlternativeSMS(parentContext, phoneNumber, contact);
             },
             style: ElevatedButton.styleFrom(
@@ -204,8 +195,9 @@ class MessageContact {
   static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     
-    // GUARD: Check if context is mounted
     if (!context.mounted) return;
+
+    await _speak('Phone number copied to clipboard');
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -221,24 +213,25 @@ class MessageContact {
     String phoneNumber,
     ContactModel contact,
   ) async {
-    // Try alternative SMS URI format
     final Uri alternativeUri = Uri.parse('sms:$phoneNumber');
     
     try {
       if (await canLaunchUrl(alternativeUri)) {
         await launchUrl(alternativeUri);
+        await _speak('Opening message for ${contact.name}');
       } else {
-        // Try with tel: scheme as fallback
         final Uri telUri = Uri(scheme: 'tel', path: phoneNumber);
         if (await canLaunchUrl(telUri)) {
           await launchUrl(telUri);
+          await _speak('Calling ${contact.name}');
         } else {
           throw Exception('Could not launch messaging app');
         }
       }
     } catch (e) {
-      // GUARD: Check if context is mounted
       if (!context.mounted) return;
+
+      await _speak('Unable to open messaging app. Please use your device SMS app.');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
