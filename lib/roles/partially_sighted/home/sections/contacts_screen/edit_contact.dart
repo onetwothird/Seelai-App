@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // ADDED TTS
 import 'contact_model.dart';
 
 class EditContactDialog extends StatefulWidget {
@@ -30,17 +31,29 @@ class _EditContactDialogState extends State<EditContactDialog> {
   late TextEditingController _relationshipController;
   late TextEditingController _phoneController;
   final _formKey = GlobalKey<FormState>();
+  
+  // TTS Instance
+  final FlutterTts _flutterTts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
+    _initTts();
     _nameController = TextEditingController(text: widget.contact.name);
     _relationshipController = TextEditingController(text: widget.contact.relationship);
     _phoneController = TextEditingController(text: widget.contact.phoneNumber);
   }
 
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("fil-PH");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
   @override
   void dispose() {
+    _flutterTts.stop();
     _nameController.dispose();
     _relationshipController.dispose();
     _phoneController.dispose();
@@ -58,19 +71,18 @@ class _EditContactDialogState extends State<EditContactDialog> {
           relationship: _relationshipController.text,
         );
 
-        // GUARD: Check if the widget is still mounted before popping
         if (!mounted) return;
 
         widget.onContactUpdated?.call();
         Navigator.pop(context);
       } catch (e) {
-        // GUARD: Check if the widget is still mounted before showing the error
+        await _flutterTts.speak('Failed to update contact.');
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update contact: $e'),
-            backgroundColor: error, // Assuming 'error' is defined in your constants
+            backgroundColor: error, 
           ),
         );
       }
