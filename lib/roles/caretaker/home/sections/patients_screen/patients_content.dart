@@ -9,11 +9,9 @@ import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
-// Import the new call and message functions
 import 'call_patients.dart';
 import 'message_patients.dart';
 
-/// Real-Time Patients Content - Redesigned with Communications
 class PatientsContent extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
@@ -35,7 +33,6 @@ class PatientsContent extends StatefulWidget {
 }
 
 class _PatientsContentState extends State<PatientsContent> {
-  // Brand Colors - Vibrant Purple
   final Color _primaryColor = const Color(0xFF7C3AED);
 
   StreamSubscription? _patientsSubscription;
@@ -46,7 +43,6 @@ class _PatientsContentState extends State<PatientsContent> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // Animation State for Mascot Messages
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
@@ -57,7 +53,6 @@ class _PatientsContentState extends State<PatientsContent> {
     _startMessageTimer();
   }
 
-  // Helper to safely extract the first name from user data
   String _getFirstName() {
     final name = widget.userData['name'] as String? ?? 'Caretaker';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -65,7 +60,6 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   void _startMessageTimer() {
-    // Cycle through messages every 4 seconds just like the header
     _messageTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (mounted) {
         final messagesCount = _getMascotMessages().length;
@@ -118,6 +112,15 @@ class _PatientsContentState extends State<PatientsContent> {
       return;
     }
 
+    // ADDED: Failsafe timeout to prevent infinite loading if stream hangs
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && _isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+
     _patientsSubscription = caretakerPatientService
         .streamCaretakerPatients(_caretakerId!)
         .listen(
@@ -132,7 +135,7 @@ class _PatientsContentState extends State<PatientsContent> {
                 disabilityType: patientData['disabilityType'] ?? 'Not specified',
                 contactNumber: patientData['contactNumber'] ?? patientData['phone'] ?? 'N/A',
                 address: patientData['address'] ?? 'No address',
-                isOnline: false, // Hook this up to real presence data if needed
+                isOnline: false, 
                 lastActive: DateTime.now(),
                 profileImageUrl: patientData['profileImageUrl'] as String?,
               );
@@ -208,7 +211,6 @@ class _PatientsContentState extends State<PatientsContent> {
             ),
             const SizedBox(height: spacingMedium),
             
-            // Edge-to-edge Mascot Banner with Bubble
             _buildMascotBanner(),
             
             Padding(
@@ -218,13 +220,11 @@ class _PatientsContentState extends State<PatientsContent> {
                 children: [
                   const SizedBox(height: spacingMedium),
                   
-                  // Search Bar (only show if there are patients)
                   if (_patients.isNotEmpty) ...[
                     _buildSearchBar(),
                     const SizedBox(height: spacingLarge),
                   ],
                   
-                  // Content
                   _isLoading && _patients.isEmpty
                       ? _buildLoadingState()
                       : _error != null && _patients.isEmpty
@@ -233,7 +233,7 @@ class _PatientsContentState extends State<PatientsContent> {
                               ? _buildEmptyState()
                               : _buildPatientsList(),
                               
-                  const SizedBox(height: 100), // Bottom padding
+                  const SizedBox(height: 100), 
                 ],
               ),
             ),
@@ -276,7 +276,6 @@ class _PatientsContentState extends State<PatientsContent> {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Edge-to-edge gradient background strictly tied to the top
         Positioned(
           top: 0,
           bottom: 0,
@@ -296,7 +295,6 @@ class _PatientsContentState extends State<PatientsContent> {
           ),
         ),
         
-        // Mascot and Speech Bubble
         Padding(
           padding: EdgeInsets.symmetric(
             horizontal: MediaQuery.of(context).size.width * 0.05,
@@ -304,10 +302,9 @@ class _PatientsContentState extends State<PatientsContent> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mascot Figure
               Image.asset(
                 'assets/seelai-icons/seelai2.png',
-                height: 120, // Slightly reduced to fit better
+                height: 120, 
                 errorBuilder: (context, error, stackTrace) => Container(
                   height: 100, width: 100,
                   alignment: Alignment.bottomCenter,
@@ -315,9 +312,8 @@ class _PatientsContentState extends State<PatientsContent> {
                 ),
               ),
               
-              // Speech Bubble Tail (Pointing left, aligned to mouth)
               Container(
-                margin: const EdgeInsets.only(bottom: 40), // Adjusted to connect perfectly
+                margin: const EdgeInsets.only(bottom: 40), 
                 child: CustomPaint(
                   size: const Size(12, 16),
                   painter: _TailPainter(
@@ -326,7 +322,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 ),
               ),
 
-              // Speech Bubble Content - Conversational text
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 20),
@@ -344,7 +339,7 @@ class _PatientsContentState extends State<PatientsContent> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Keep it compact
+                    mainAxisSize: MainAxisSize.min, 
                     children: [
                       Text(
                         'Seelai',
@@ -356,9 +351,8 @@ class _PatientsContentState extends State<PatientsContent> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      // NEW TYPEWRITER TEXT WITH FIXED HEIGHT CONTAINER
                       Container(
-                        height: 65, // Fixed height keeps the bubble static and fits 3 lines
+                        height: 65, 
                         alignment: Alignment.topLeft,
                         child: TypewriterText(
                           text: displayMessage,
@@ -676,7 +670,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Profile Avatar
                     Stack(
                       children: [
                         _buildProfileAvatar(patient),
@@ -701,7 +694,6 @@ class _PatientsContentState extends State<PatientsContent> {
                     ),
                     const SizedBox(width: spacingMedium),
                     
-                    // Main Info Column
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -718,10 +710,8 @@ class _PatientsContentState extends State<PatientsContent> {
                           ),
                           const SizedBox(height: 6),
                           
-                          // Tags Row
                           Row(
                             children: [
-                              // Age Tag
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: spacingSmall,
@@ -753,7 +743,6 @@ class _PatientsContentState extends State<PatientsContent> {
                               ),
                               const SizedBox(width: spacingSmall),
                               
-                              // Disability Tag
                               Flexible(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -792,7 +781,6 @@ class _PatientsContentState extends State<PatientsContent> {
                             ],
                           ),
                           
-                          // Address Row
                           if (patient.address != null && patient.address != 'No address') ...[
                             const SizedBox(height: 6),
                             Row(
@@ -822,7 +810,6 @@ class _PatientsContentState extends State<PatientsContent> {
                       ),
                     ),
                     
-                    // Arrow Icon
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: widget.theme.subtextColor.withOpacity(0.5),
@@ -835,7 +822,6 @@ class _PatientsContentState extends State<PatientsContent> {
                 Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
                 const SizedBox(height: spacingMedium),
                 
-                // Quick Actions
                 Row(
                   children: [
                     Expanded(
@@ -955,8 +941,8 @@ class _PatientsContentState extends State<PatientsContent> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF9333EA), // Purple
-            Color(0xFF7C3AED), // Darker purple
+            Color(0xFF9333EA), 
+            Color(0xFF7C3AED), 
           ],
         ),
       ),
@@ -972,7 +958,6 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 }
 
-// Custom Painter to draw the speech bubble tail pointing to the mascot
 class _TailPainter extends CustomPainter {
   final Color color;
 
@@ -983,10 +968,9 @@ class _TailPainter extends CustomPainter {
     final paint = Paint()..color = color;
     final path = Path();
     
-    // Draw a triangle pointing to the left
-    path.moveTo(size.width, 0); // Top right corner
-    path.lineTo(0, size.height / 2); // Pointing left (middle)
-    path.lineTo(size.width, size.height); // Bottom right corner
+    path.moveTo(size.width, 0); 
+    path.lineTo(0, size.height / 2); 
+    path.lineTo(size.width, size.height); 
     path.close();
     
     canvas.drawPath(path, paint);
@@ -996,9 +980,6 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -1020,8 +1001,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    // THE FIX: Dynamic speed! 40 milliseconds per character.
-    // Long messages and short messages will now type at the exact same natural speed.
     int msDuration = widget.text.length * 40; 
     
     _controller = AnimationController(
@@ -1062,7 +1041,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       animation: _characterCount,
       builder: (context, child) {
         int end = _characterCount.value;
-        // Strict safety check to prevent out-of-bounds text duplication
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
         
