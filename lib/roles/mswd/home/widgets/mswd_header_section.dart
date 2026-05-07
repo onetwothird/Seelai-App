@@ -333,9 +333,8 @@ class _HeaderSectionState extends State<HeaderSection> {
                     children: [
                       // Mascot Figure - Using the fourth variation for Admin
                       Image.asset(
-                        'assets/seelai-icons/seelai1.png',
-                        width: 90,
-                        height: 105,
+                        'assets/seelai-icons/seelai0.png',
+                        height: 120,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Container(
                           width: 90,
@@ -368,8 +367,8 @@ class _HeaderSectionState extends State<HeaderSection> {
                       // Speech Bubble Body
                       Expanded(
                         child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(21),
                           decoration: BoxDecoration(
                             color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
                             borderRadius: BorderRadius.circular(20),
