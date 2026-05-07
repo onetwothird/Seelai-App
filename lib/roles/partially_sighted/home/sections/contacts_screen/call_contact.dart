@@ -51,10 +51,10 @@ class CallContact {
         }
 
         await launchUrl(telUri);
-        
-        if (!context.mounted) return;
-        
         await _speak('Calling ${contact.name}');
+        
+        // MOVED: The mounted check must be immediately before using the context
+        if (!context.mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -145,10 +145,10 @@ class CallContact {
 
   static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
-    
-    if (!context.mounted) return;
-
     await _speak('Phone number copied to clipboard');
+    
+    // MOVED: The mounted check must be immediately before using the context
+    if (!context.mounted) return;
     
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -174,9 +174,10 @@ class CallContact {
         throw Exception('Could not launch phone dialer');
       }
     } catch (e) {
-      if (!context.mounted) return;
-      
       await _speak('Unable to make call. Please use your phone dialer.');
+      
+      // MOVED: The mounted check must be immediately before using the context
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
