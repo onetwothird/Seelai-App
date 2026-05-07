@@ -405,7 +405,7 @@ class _RequestsContentState extends State<RequestsContent>
             children: [
               Image.asset(
                 'assets/seelai-icons/seelai4.png',
-                height: 125, 
+                height: 120,
                 errorBuilder: (context, error, stackTrace) => Container(
                   height: 100, width: 100,
                   alignment: Alignment.bottomCenter,
