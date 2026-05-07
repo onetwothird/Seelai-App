@@ -305,8 +305,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
               // Mascot Figure
                Image.asset(
                         'assets/seelai-icons/seelai3.png',
-                        width: 90,
-                        height: 105,
+                        height: 120,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Container(
                           width: 90,
@@ -338,7 +337,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 15),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
                   decoration: BoxDecoration(
                     color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
