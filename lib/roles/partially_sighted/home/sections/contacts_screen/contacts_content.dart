@@ -554,8 +554,7 @@ class _ContactsContentState extends State<ContactsContent> {
             children: [
              Image.asset(
                 'assets/seelai-icons/seelai2.png',
-                width: mascotSize,
-                height: mascotSize + 15,
+                height: 120,
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) => Container(
                   width: mascotSize,
