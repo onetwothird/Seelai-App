@@ -350,12 +350,11 @@ class _HeaderSectionState extends State<HeaderSection> {
                     children: [
                       // Mascot Figure
                       Image.asset(
-                        'assets/seelai-icons/seelai1.png',
-                        width: 90,
-                        height: 105,
+                        'assets/seelai-icons/seelai0.png',
+                        height: 120,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Container(
-                          width: 90,
+                          width: 100,
                           height: 90,
                           decoration: BoxDecoration(
                             color: primary.withValues(alpha: 0.15),
