@@ -27,6 +27,10 @@ class MessageContact {
   }) async {
     if (contact.phoneNumber == 'N/A' || contact.phoneNumber.isEmpty) {
       await _speak('Phone number not available');
+      
+      // ADDED: Guard before using context after await _speak
+      if (!context.mounted) return; 
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Phone number not available for ${contact.name}'),
@@ -65,10 +69,10 @@ class MessageContact {
         }
 
         await launchUrl(smsUri);
-        
-        if (!context.mounted) return;
-
         await _speak('Opening message for ${contact.name}');
+        
+        // MOVED: Guard must be immediately before context usage, after all awaits
+        if (!context.mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -194,10 +198,10 @@ class MessageContact {
 
   static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
-    
-    if (!context.mounted) return;
-
     await _speak('Phone number copied to clipboard');
+    
+    // MOVED: Guard must be immediately before context usage
+    if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -229,9 +233,10 @@ class MessageContact {
         }
       }
     } catch (e) {
-      if (!context.mounted) return;
-
       await _speak('Unable to open messaging app. Please use your device SMS app.');
+      
+      // MOVED: Guard must be immediately before context usage, after the await _speak
+      if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
