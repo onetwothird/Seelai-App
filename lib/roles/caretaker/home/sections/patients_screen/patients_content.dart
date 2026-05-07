@@ -304,7 +304,7 @@ class _PatientsContentState extends State<PatientsContent> {
             children: [
               Image.asset(
                 'assets/seelai-icons/seelai2.png',
-                height: 120, 
+                height: 120,
                 errorBuilder: (context, error, stackTrace) => Container(
                   height: 100, width: 100,
                   alignment: Alignment.bottomCenter,
@@ -710,75 +710,96 @@ class _PatientsContentState extends State<PatientsContent> {
                           ),
                           const SizedBox(height: 6),
                           
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: spacingSmall,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _primaryColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(radiusSmall),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.cake_rounded,
-                                      size: 12,
-                                      color: _primaryColor,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${patient.age} y/o',
-                                      style: caption.copyWith(
-                                        fontSize: 12,
-                                        color: _primaryColor,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: spacingSmall),
-                              
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: spacingSmall,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: accent.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(radiusSmall),
-                                  ),
+                          // THE FIX: Smooth Fade-out Mask + Horizontal Scroll
+                          SizedBox(
+                            width: double.infinity,
+                            child: ShaderMask(
+                              shaderCallback: (Rect bounds) {
+                                return const LinearGradient(
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                  colors: [Colors.white, Colors.white, Colors.transparent],
+                                  // Starts fading out in the last 15% of the space
+                                  stops: [0.0, 0.85, 1.0], 
+                                ).createShader(bounds);
+                              },
+                              blendMode: BlendMode.dstIn,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: Padding(
+                                  // Extra right padding so the pill clears the arrow icon when scrolled
+                                  padding: const EdgeInsets.only(right: 32.0),
                                   child: Row(
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(
-                                        Icons.visibility_off_rounded,
-                                        size: 12,
-                                        color: accent,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          patient.disabilityType,
-                                          style: caption.copyWith(
-                                            fontSize: 12,
-                                            color: accent,
-                                            fontWeight: FontWeight.w500,
+                                      // 1. Birthday Pill (Primary Purple)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _primaryColor.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: _primaryColor.withValues(alpha: 0.2),
+                                            width: 0.5,
                                           ),
-                                          overflow: TextOverflow.ellipsis,
-                                          maxLines: 1,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.cake_rounded, size: 12, color: _primaryColor),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${patient.age} y/o',
+                                              style: caption.copyWith(
+                                                fontSize: 12,
+                                                color: _primaryColor,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      
+                                      const SizedBox(width: 8),
+                                      
+                                      // 2. Disability Pill (Accent Teal)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: accent.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: accent.withValues(alpha: 0.2),
+                                            width: 0.5,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.visibility_off_rounded, size: 12, color: accent),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              patient.disabilityType,
+                                              style: caption.copyWith(
+                                                fontSize: 12,
+                                                color: accent,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
                           
                           if (patient.address != null && patient.address != 'No address') ...[
@@ -812,14 +833,14 @@ class _PatientsContentState extends State<PatientsContent> {
                     
                     Icon(
                       Icons.arrow_forward_ios_rounded,
-                      color: widget.theme.subtextColor.withOpacity(0.5),
+                      color: widget.theme.subtextColor.withValues(alpha: 0.5),
                       size: 18,
                     ),
                   ],
                 ),
                 
                 const SizedBox(height: spacingMedium),
-                Divider(height: 1, color: widget.theme.subtextColor.withOpacity(0.15)),
+                Divider(height: 1, color: widget.theme.subtextColor.withValues(alpha: 0.15)),
                 const SizedBox(height: spacingMedium),
                 
                 Row(
