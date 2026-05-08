@@ -9,3 +9,11 @@
 # Keep Google Maps classes
 -keep class com.google.android.gms.maps.** { *; }
 -dontwarn com.google.android.gms.**
+
+# --- NEW: FIREBASE & gRPC RULES (Fixes release mode streams hanging) ---
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class io.grpc.** { *; }
+-dontwarn io.grpc.**
+-keep class com.google.cloud.** { *; }
+-dontwarn com.google.cloud.**
