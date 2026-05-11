@@ -1,7 +1,8 @@
 // File: lib/roles/mswd/home/sections/profile_content/more_content.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // ADDED: TTS Import
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
@@ -32,8 +33,8 @@ class MoreContent extends StatefulWidget {
 class _MoreContentState extends State<MoreContent> {
   late Map<String, dynamic> _userData;
   bool _isLoading = false;
+  bool _isSimulatingLoad = true; // Added skeleton state
   
-  // ADDED: TTS Instance
   final FlutterTts _flutterTts = FlutterTts();
 
   // --- Color Palette ---
@@ -48,12 +49,18 @@ class _MoreContentState extends State<MoreContent> {
   void initState() {
     super.initState();
     _userData = Map<String, dynamic>.from(widget.userData);
-    _initTts(); // ADDED: Initialize TTS settings
+    _initTts();
+
+    // Trigger skeleton loader
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _isSimulatingLoad = false);
+      }
+    });
   }
 
-  // ADDED: TTS Initialization function
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("fil-PH"); // Using English for the admin interface
+    await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -61,7 +68,7 @@ class _MoreContentState extends State<MoreContent> {
 
   @override
   void dispose() {
-    _flutterTts.stop(); // ADDED: Stop TTS to free resources
+    _flutterTts.stop();
     super.dispose();
   }
 
@@ -89,8 +96,52 @@ class _MoreContentState extends State<MoreContent> {
     }
   }
 
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonProfile() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 200, height: 32, color: Colors.white),
+            const SizedBox(height: 24),
+            
+            // Avatar
+            Center(child: Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white))),
+            const SizedBox(height: 20),
+            Center(child: Container(width: 150, height: 24, color: Colors.white)),
+            const SizedBox(height: 32),
+            
+            // Group 1
+            Container(width: 150, height: 12, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(height: 260, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            const SizedBox(height: 24),
+            
+            // Group 2
+            Container(width: 130, height: 12, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_isSimulatingLoad) {
+      return _buildSkeletonProfile();
+    }
+
     return Padding(
       padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
       child: Column(
@@ -587,9 +638,8 @@ class _MoreContentState extends State<MoreContent> {
     }
   }
 
-  // ADDED: Speaks the message through TTS before showing the visual snackbar
   void _showSnackbar(String message, Color color) {
-    _flutterTts.speak(message); 
+    // Removed TTS here so other snackbars (like logout) don't speak
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -608,9 +658,7 @@ class _MoreContentState extends State<MoreContent> {
     Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyScreen(theme: widget.theme, isDarkMode: widget.isDarkMode)));
   }
 
-  // ==================== NEW UI: EDIT PROFILE DIALOG ====================
   void _showEditProfileDialog() {
-    _flutterTts.speak("Update Profile. You can modify your administrative details here."); // ADDED: Audio context 
     final parentContext = context; 
 
     final nameController = TextEditingController(text: _userData['name']);
@@ -730,7 +778,6 @@ class _MoreContentState extends State<MoreContent> {
                             ),
                             onPressed: _isLoading ? null : () async {
                               setStateDialog(() => _isLoading = true);
-                              // Wait until done before popping to ensure safe context (matches Caretaker Logic)
                               
                               try {
                                 await databaseService.updateUserProfile(
@@ -751,11 +798,13 @@ class _MoreContentState extends State<MoreContent> {
                                   Navigator.pop(dialogContext);
                                 }
                                 if (mounted) {
-                                  _showSnackbar('Profile updated successfully', _primaryColor); // Spoken via TTS
+                                  // ONLY TTS, removed _showSnackbar
+                                  _flutterTts.speak('Profile updated successfully');
                                 }
                               } catch (e) {
                                 if (mounted) {
-                                  _showSnackbar('Error updating profile: $e', _colSafety); // Spoken via TTS
+                                  // ONLY TTS, removed _showSnackbar
+                                  _flutterTts.speak('Error updating profile');
                                 }
                               } finally {
                                 if (dialogContext.mounted) {
@@ -780,10 +829,7 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
-  // ==================== NEW UI: CHANGE PASSWORD DIALOG ====================
   void _showChangePasswordDialog() {
-    _flutterTts.speak("Change Password. Please enter your current and new password."); // ADDED: Audio context 
-    
     final currentPassController = TextEditingController();
     final newPassController = TextEditingController();
     final confirmPassController = TextEditingController();
@@ -809,7 +855,6 @@ class _MoreContentState extends State<MoreContent> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                   
                     Text(
                       'Change Password',
                       style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
@@ -865,11 +910,13 @@ class _MoreContentState extends State<MoreContent> {
                             ),
                             onPressed: _isLoading ? null : () async {
                               if (newPassController.text != confirmPassController.text) {
-                                _showSnackbar('New passwords do not match', _colSafety); // Spoken via TTS
+                                // ONLY TTS, removed _showSnackbar
+                                _flutterTts.speak('New passwords do not match');
                                 return;
                               }
                               if (newPassController.text.length < 6) {
-                                _showSnackbar('Password must be at least 6 characters', _colSafety); // Spoken via TTS
+                                // ONLY TTS, removed _showSnackbar
+                                _flutterTts.speak('Password must be at least 6 characters');
                                 return;
                               }
 
@@ -885,11 +932,13 @@ class _MoreContentState extends State<MoreContent> {
                                   Navigator.pop(builderContext);
                                 }
                                 if (mounted) {
-                                  _showSnackbar('Password changed successfully', _primaryColor); // Spoken via TTS
+                                  // ONLY TTS, removed _showSnackbar
+                                  _flutterTts.speak('Password changed successfully');
                                 }
                               } catch (e) {
                                 if (mounted) {
-                                  _showSnackbar('Failed to change password. Check current password.', _colSafety); // Spoken via TTS
+                                  // ONLY TTS, removed _showSnackbar
+                                  _flutterTts.speak('Failed to change password. Check current password.');
                                 }
                               } finally {
                                 if (builderContext.mounted) {
@@ -915,7 +964,6 @@ class _MoreContentState extends State<MoreContent> {
   }
 
   void _showLogoutDialog() {
-    _flutterTts.speak("Sign out confirmation"); // ADDED: Audio context 
     final parentContext = context;
 
     showDialog(
@@ -976,7 +1024,7 @@ class _MoreContentState extends State<MoreContent> {
                           MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                           (route) => false,
                         );
-                        if (mounted) _showSnackbar('Successfully signed out', _primaryColor); // Spoken via TTS
+                        if (mounted) _showSnackbar('Successfully signed out', _primaryColor);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _colSafety,
@@ -1009,7 +1057,6 @@ class _MoreContentState extends State<MoreContent> {
   }
 }
 
-// ==================== PREMIUM RESPONSIVE IMAGE SLIDER DIALOG (MSWD) ====================
 class MSWDGuideSliderDialog extends StatefulWidget {
   final dynamic theme;
   final bool isDarkMode;
