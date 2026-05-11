@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/themes/constants.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -24,11 +25,17 @@ class DetectionDetailScreen extends StatefulWidget {
 class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
   final FlutterTts _flutterTts = FlutterTts();
   bool _isSpeaking = false;
+  bool _isSimulatingLoad = true; // Added loading state
 
   @override
   void initState() {
     super.initState();
     _initializeTts();
+
+    // Simulate a brief loading period to show the skeleton
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _isSimulatingLoad = false);
+    });
   }
 
   @override
@@ -54,6 +61,93 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
     _flutterTts.setErrorHandler((msg) {
       if (mounted) setState(() => _isSpeaking = false);
     });
+  }
+
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonDetail() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hero Image Placeholder
+            Container(
+              width: double.infinity,
+              height: 280,
+              margin: EdgeInsets.symmetric(horizontal: spacingLarge, vertical: spacingSmall),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(radiusLarge),
+              ),
+            ),
+
+            // Title & Action Row Placeholder
+            Padding(
+              padding: EdgeInsets.fromLTRB(spacingLarge, spacingMedium, spacingLarge, spacingMedium),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(width: 200, height: 28, color: Colors.white),
+                        SizedBox(height: 8),
+                        Container(width: 140, height: 16, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(width: 40, height: 40, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                      SizedBox(width: 8),
+                      Container(width: 40, height: 40, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Dynamic Details Content Placeholder
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: spacingLarge),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: spacingMedium),
+                  Container(width: 150, height: 20, color: Colors.white),
+                  SizedBox(height: spacingMedium),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                      SizedBox(width: spacingSmall),
+                      Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                      SizedBox(width: spacingSmall),
+                      Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                    ],
+                  ),
+                  SizedBox(height: spacingXLarge),
+                  Container(width: 130, height: 20, color: Colors.white),
+                  SizedBox(height: spacingMedium),
+                  Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium))),
+                  SizedBox(height: spacingMedium),
+                  Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium))),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -92,68 +186,70 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Hero Image Section
-            if (imageUrl != null && imageUrl.isNotEmpty)
-              _buildHeroImage(imageUrl, color)
-            else
-              _buildFallbackHeader(color, type),
+      body: _isSimulatingLoad
+        ? _buildSkeletonDetail()
+        : SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Hero Image Section
+                if (imageUrl != null && imageUrl.isNotEmpty)
+                  _buildHeroImage(imageUrl, color)
+                else
+                  _buildFallbackHeader(color, type),
 
-            // 2. Title & Action Row
-            Padding(
-              // Reduced bottom padding here so the Summary sits tighter against the header
-              padding: EdgeInsets.fromLTRB(spacingLarge, spacingMedium, spacingLarge, spacingMedium),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _getTypeLabel(type),
-                          style: h2.copyWith(
-                            fontSize: 24,
-                            color: widget.theme.textColor,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        SizedBox(height: 6),
-                        Row(
+                // 2. Title & Action Row
+                Padding(
+                  // Reduced bottom padding here so the Summary sits tighter against the header
+                  padding: EdgeInsets.fromLTRB(spacingLarge, spacingMedium, spacingLarge, spacingMedium),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.calendar_today_rounded, size: 14, color: widget.theme.subtextColor),
-                            SizedBox(width: 6),
                             Text(
-                              _formatDateTime(timestamp),
-                              style: bodyBold.copyWith(
-                                fontSize: 13,
-                                color: widget.theme.subtextColor,
+                              _getTypeLabel(type),
+                              style: h2.copyWith(
+                                fontSize: 24,
+                                color: widget.theme.textColor,
+                                fontWeight: FontWeight.w800,
                               ),
+                            ),
+                            SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_today_rounded, size: 14, color: widget.theme.subtextColor),
+                                SizedBox(width: 6),
+                                Text(
+                                  _formatDateTime(timestamp),
+                                  style: bodyBold.copyWith(
+                                    fontSize: 13,
+                                    color: widget.theme.subtextColor,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
+                      ),
+                      _buildActionButtons(type, color),
+                    ],
                   ),
-                  _buildActionButtons(type, color),
-                ],
-              ),
-            ),
+                ),
 
-            // 3. Dynamic Details Content (Summary & List)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: spacingLarge),
-              child: _buildDetailsContent(type, color),
-            ),
+                // 3. Dynamic Details Content (Summary & List)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: spacingLarge),
+                  child: _buildDetailsContent(type, color),
+                ),
 
-            SizedBox(height: spacingXLarge * 2), // Bottom padding
-          ],
-        ),
-      ),
+                SizedBox(height: spacingXLarge * 2), // Bottom padding
+              ],
+            ),
+          ),
     );
   }
 

@@ -8,18 +8,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RoboflowService {
   static String get _apiKey => dotenv.env['ROBOFLOW_API_KEY'] ?? '';  
-  static const String _faceProjectId = 'seelai-face';
-  static const String _objectProjectId = 'seelai-objects';
+  
+  // Updated with the correct SEELAI workspace project IDs
+  static const String _faceProjectId = 'seelai-face-eordb';
+  static const String _objectProjectId = 'seelai-objects-s7rir';
 
   static Future<bool> uploadImage(XFile imageFile, String subjectType) async {
     try {
-      debugPrint('Starting upload to Roboflow...');
-
       final String targetProjectId = (subjectType == 'face') 
           ? _faceProjectId 
           : _objectProjectId;
-
-      debugPrint('Routing upload to project: $targetProjectId');
 
       List<int> imageBytes = await imageFile.readAsBytes();
       String base64Image = base64Encode(imageBytes);
@@ -45,7 +43,6 @@ class RoboflowService {
         return true;
       } else {
         debugPrint('Upload Failed. Status Code: ${response.statusCode}');
-        debugPrint('Response: ${response.body}');
         return false;
       }
     } catch (e) {

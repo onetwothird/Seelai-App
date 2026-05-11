@@ -1,6 +1,7 @@
 // File: lib/roles/caretaker/home/sections/patients_screen/patients_content.dart
 
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -32,7 +33,7 @@ class PatientsContent extends StatefulWidget {
   State<PatientsContent> createState() => _PatientsContentState();
 }
 
-class _PatientsContentState extends State<PatientsContent> {
+class _PatientsContentState extends State<PatientsContent> with SingleTickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF7C3AED);
 
   StreamSubscription? _patientsSubscription;
@@ -46,11 +47,46 @@ class _PatientsContentState extends State<PatientsContent> {
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
+  bool _isSimulatingLoad = true;
+
+  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
+  late AnimationController _entryController;
+  late Animation<double> _headerOpacity;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
+
   @override
   void initState() {
     super.initState();
     _initializeCaretakerId();
     _startMessageTimer();
+
+    // === Initialize Animations ===
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    // Header fades & slides in
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)));
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)));
+    
+    // Mascot and Bubble pop in
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)));
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)));
+
+    // Start header animations immediately
+    _entryController.forward();
+
+    // Trigger the skeleton animation for 600ms on load
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingLoad = false;
+        });
+      }
+    });
   }
 
   String _getFirstName() {
@@ -84,7 +120,7 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   Future<void> _initializeCaretakerId() async {
-    String? caretakerId = widget.userData['uid'] as String?;
+    String? caretakerId = widget.userData['userId'] as String? ?? widget.userData['uid'] as String?;
     
     if (caretakerId == null || caretakerId.isEmpty) {
       final user = FirebaseAuth.instance.currentUser;
@@ -104,20 +140,11 @@ class _PatientsContentState extends State<PatientsContent> {
   }
 
   void _setupPatientsStream() {
-    if (_caretakerId == null) {
-      setState(() {
-        _error = 'Caretaker ID not found';
-        _isLoading = false;
-      });
-      return;
-    }
+    if (_caretakerId == null) return;
 
-    // ADDED: Failsafe timeout to prevent infinite loading if stream hangs
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted && _isLoading) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     });
 
@@ -128,18 +155,26 @@ class _PatientsContentState extends State<PatientsContent> {
         if (mounted) {
           setState(() {
             _patients = patientsData.map((patientData) {
+              int parsedAge = 0;
+              if (patientData['age'] != null) {
+                parsedAge = patientData['age'] is int 
+                    ? patientData['age'] 
+                    : int.tryParse(patientData['age'].toString()) ?? 0;
+              }
+
               return PatientModel(
-                id: patientData['userId'] ?? '',
-                name: patientData['name'] ?? 'Unknown',
-                age: patientData['age'] ?? 0,
-                disabilityType: patientData['disabilityType'] ?? 'Not specified',
-                contactNumber: patientData['contactNumber'] ?? patientData['phone'] ?? 'N/A',
-                address: patientData['address'] ?? 'No address',
+                id: patientData['userId']?.toString() ?? '',
+                name: patientData['name']?.toString() ?? 'Unknown',
+                age: parsedAge,
+                disabilityType: patientData['disabilityType']?.toString() ?? 'Not specified',
+                contactNumber: (patientData['contactNumber'] ?? patientData['phone'])?.toString() ?? 'N/A',
+                address: patientData['address']?.toString() ?? 'No address',
                 isOnline: false, 
                 lastActive: DateTime.now(),
-                profileImageUrl: patientData['profileImageUrl'] as String?,
+                profileImageUrl: patientData['profileImageUrl']?.toString(),
               );
             }).toList();
+            
             _isLoading = false;
             _error = null;
           });
@@ -159,6 +194,7 @@ class _PatientsContentState extends State<PatientsContent> {
 
   @override
   void dispose() {
+    _entryController.dispose();
     _messageTimer?.cancel();
     _patientsSubscription?.cancel();
     _searchController.dispose();
@@ -188,57 +224,120 @@ class _PatientsContentState extends State<PatientsContent> {
     }).toList();
   }
 
+  // ==========================================
+  // WIDGETS: Skeleton Loaders
+  // ==========================================
+  Widget _buildSkeletonSearchBar() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        height: 56, 
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonPatientsList() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(3, (index) => Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Container(
+            height: 180, 
+            decoration: BoxDecoration(
+              color: Colors.white, 
+              borderRadius: BorderRadius.circular(24)
+            ),
+          ),
+        )),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final bool showSkeleton = _isSimulatingLoad || (_isLoading && _patients.isEmpty);
 
     return RefreshIndicator(
       onRefresh: _refreshPatients,
       color: _primaryColor,
-      child: SingleChildScrollView(
+      child: CustomScrollView(
         controller: widget.scrollController, 
         physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: EdgeInsets.only(
-                left: width * 0.05,
-                right: width * 0.05,
-                top: spacingLarge,
-              ),
-              child: _buildHeader(),
+        slivers: [
+          // 1. Top Section (Header & Mascot) - Always Animates In
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FadeTransition(
+                  opacity: _headerOpacity,
+                  child: SlideTransition(
+                    position: _headerSlide,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.05,
+                        right: width * 0.05,
+                        top: spacingLarge,
+                      ),
+                      child: _buildHeader(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: spacingMedium),
+                _buildMascotBanner(),
+              ],
             ),
-            const SizedBox(height: spacingMedium),
-            
-            _buildMascotBanner(),
-            
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+          ),
+          
+          // 2. Middle Section (Search & List) - Skeleton shows instantly
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+            sliver: SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: spacingMedium),
                   
-                  if (_patients.isNotEmpty) ...[
+                  // Search Bar conditionally shows skeleton
+                  if (showSkeleton) 
+                    _buildSkeletonSearchBar()
+                  else if (_patients.isNotEmpty)
                     _buildSearchBar(),
-                    const SizedBox(height: spacingLarge),
-                  ],
                   
-                  _isLoading && _patients.isEmpty
-                      ? _buildLoadingState()
-                      : _error != null && _patients.isEmpty
-                          ? _buildErrorState()
-                          : _patients.isEmpty
-                              ? _buildEmptyState()
-                              : _buildPatientsList(),
-                              
-                  const SizedBox(height: 100), 
+                  const SizedBox(height: spacingLarge),
+                  
+                  // Content conditionally shows skeleton
+                  if (_error != null && _patients.isEmpty && !showSkeleton)
+                    _buildErrorState()
+                  else if (showSkeleton)
+                    _buildSkeletonPatientsList()
+                  else if (_patients.isEmpty)
+                    _buildEmptyState()
+                  else
+                    _buildPatientsList(),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+          
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 100),
+          ),
+        ],
       ),
     );
   }
@@ -272,6 +371,15 @@ class _PatientsContentState extends State<PatientsContent> {
     final messages = _getMascotMessages();
     final safeIndex = _currentMessageIndex % messages.length;
     final displayMessage = messages[safeIndex];
+    
+    final longestMessage = messages.isNotEmpty 
+        ? messages.reduce((a, b) => a.length > b.length ? a : b) 
+        : '';
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
+    final double tailBottomMargin = mascotSize * 0.285; 
+    final double bubbleBottomMargin = mascotSize * 0.142;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -281,15 +389,18 @@ class _PatientsContentState extends State<PatientsContent> {
           bottom: 0,
           left: 0,
           right: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
-                  _primaryColor.withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          child: FadeTransition(
+            opacity: _headerOpacity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ),
@@ -297,76 +408,113 @@ class _PatientsContentState extends State<PatientsContent> {
         
         Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: MediaQuery.of(context).size.width * 0.05,
+            horizontal: screenWidth * 0.05,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Image.asset(
-                'assets/seelai-icons/seelai2.png',
-                height: 120,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 100, width: 100,
-                  alignment: Alignment.bottomCenter,
-                  child: Icon(Icons.image_not_supported, color: widget.theme.subtextColor),
+              ScaleTransition(
+                scale: _mascotScale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai2.png',
+                  height: mascotSize, 
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: mascotSize * 0.7, 
+                    width: mascotSize * 0.7,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.image_not_supported, 
+                      color: widget.theme.subtextColor, 
+                      size: mascotSize * 0.25
+                    ),
+                  ),
                 ),
               ),
               
               Container(
-                margin: const EdgeInsets.only(bottom: 40), 
-                child: CustomPaint(
-                  size: const Size(12, 16),
-                  painter: _TailPainter(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                child: ScaleTransition(
+                  scale: _bubbleScale,
+                  alignment: Alignment.bottomRight,
+                  child: CustomPaint(
+                    size: const Size(12, 16),
+                    painter: _TailPainter(
+                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    ),
                   ),
                 ),
               ),
 
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: widget.isDarkMode ? [] : [
-                      BoxShadow(
-                        color: _primaryColor.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, 
-                    children: [
-                      Text(
-                        'Seelai',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: _primaryColor,
-                          letterSpacing: 0.5,
-                        ),
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  child: ScaleTransition(
+                    scale: _bubbleScale,
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: widget.isDarkMode ? [] : [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Container(
-                        height: 65, 
-                        alignment: Alignment.topLeft,
-                        child: TypewriterText(
-                          text: displayMessage,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: widget.isDarkMode
-                                ? Colors.white.withValues(alpha: 0.85)
-                                : Colors.black87,
-                            height: 1.4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min, 
+                        children: [
+                          Text(
+                            'Seelai',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: _primaryColor,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          
+                          Stack(
+                            children: [
+                              Text(
+                                longestMessage,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.transparent, 
+                                  height: 1.4,
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: TypewriterText(
+                                  key: ValueKey(displayMessage),
+                                  text: displayMessage,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : Colors.black87,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -423,29 +571,6 @@ class _PatientsContentState extends State<PatientsContent> {
             horizontal: spacingMedium,
             vertical: spacingMedium,
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 80),
-        child: Column(
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
-              strokeWidth: 3,
-            ),
-            const SizedBox(height: spacingLarge),
-            Text(
-              'Loading patients...',
-              style: body.copyWith(
-                color: widget.theme.subtextColor,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -710,7 +835,6 @@ class _PatientsContentState extends State<PatientsContent> {
                           ),
                           const SizedBox(height: 6),
                           
-                          // THE FIX: Smooth Fade-out Mask + Horizontal Scroll
                           SizedBox(
                             width: double.infinity,
                             child: ShaderMask(
@@ -719,7 +843,6 @@ class _PatientsContentState extends State<PatientsContent> {
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
                                   colors: [Colors.white, Colors.white, Colors.transparent],
-                                  // Starts fading out in the last 15% of the space
                                   stops: [0.0, 0.85, 1.0], 
                                 ).createShader(bounds);
                               },
@@ -728,11 +851,9 @@ class _PatientsContentState extends State<PatientsContent> {
                                 scrollDirection: Axis.horizontal,
                                 physics: const BouncingScrollPhysics(),
                                 child: Padding(
-                                  // Extra right padding so the pill clears the arrow icon when scrolled
                                   padding: const EdgeInsets.only(right: 32.0),
                                   child: Row(
                                     children: [
-                                      // 1. Birthday Pill (Primary Purple)
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -765,7 +886,6 @@ class _PatientsContentState extends State<PatientsContent> {
                                       
                                       const SizedBox(width: 8),
                                       
-                                      // 2. Disability Pill (Accent Teal)
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -801,7 +921,7 @@ class _PatientsContentState extends State<PatientsContent> {
                               ),
                             ),
                           ),
-                          
+
                           if (patient.address != null && patient.address != 'No address') ...[
                             const SizedBox(height: 6),
                             Row(
@@ -1029,7 +1149,11 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    _controller.forward();
+    
+    // Sync with bubble pop-in
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override

@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:shimmer/shimmer.dart'; 
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
 import 'user_profile_screen.dart';
 
 class UsersContent extends StatefulWidget {
@@ -26,9 +28,7 @@ class UsersContent extends StatefulWidget {
   State<UsersContent> createState() => _UsersContentState();
 }
 
-class _UsersContentState extends State<UsersContent>
-    with SingleTickerProviderStateMixin {
-  // Brand Colors - Your requested purple!
+class _UsersContentState extends State<UsersContent> with TickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   late TabController _tabController;
@@ -44,9 +44,17 @@ class _UsersContentState extends State<UsersContent>
   bool _isLoadingCT = true;
   bool _isLoadingPending = true;
 
-  // Animation State
+  bool _isSimulatingLoad = true; 
+
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
+
+  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
+  late AnimationController _entryController;
+  late Animation<double> _headerOpacity;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
 
   @override
   void initState() {
@@ -59,6 +67,40 @@ class _UsersContentState extends State<UsersContent>
     });
     _loadUsers();
     _startMessageTimer();
+
+    // === Initialize the staggered entry animation ===
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    // 1. Header Row - Fades & slides in from the left
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+    );
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
+    );
+
+    // 2. Mascot - Pops up playfully
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)),
+    );
+
+    // 3. Speech Bubble - Pops out from the mascot
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)),
+    );
+
+    // Start header animations immediately
+    _entryController.forward();
+
+    // Keep the skeleton animation for 600ms on load so it looks completely natural
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() => _isSimulatingLoad = false);
+      }
+    });
   }
   
   void _startMessageTimer() {
@@ -72,7 +114,6 @@ class _UsersContentState extends State<UsersContent>
     });
   }
 
-  // Helper to safely extract the first name from user data
   String _getFirstName() {
     final name = widget.userData['name'] as String? ?? 'Admin';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -95,7 +136,25 @@ class _UsersContentState extends State<UsersContent>
     _messageTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
+    _entryController.dispose(); 
     super.dispose();
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() {
+      _isSimulatingLoad = true;
+    });
+    
+    await _loadUsers();
+    
+    await Future.delayed(const Duration(milliseconds: 600));
+    if (mounted) {
+      setState(() {
+        _isSimulatingLoad = false;
+      });
+      _entryController.reset();
+      _entryController.forward();
+    }
   }
 
   Future<void> _loadUsers() async {
@@ -176,32 +235,113 @@ class _UsersContentState extends State<UsersContent>
     _loadUsers(); 
   }
 
+  // ==========================================
+  // WIDGETS: Skeleton Loaders
+  // ==========================================
+  Widget _buildSkeletonSearchBar() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        height: 56, 
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonTabBar() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        height: 68, 
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonList() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(4, (index) => Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                Container(width: 60, height: 60, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: 140, height: 16, color: Colors.white),
+                      const SizedBox(height: 8),
+                      Container(width: 100, height: 12, color: Colors.white),
+                    ],
+                  ),
+                ),
+                Container(width: 16, height: 16, color: Colors.white),
+              ],
+            ),
+          ),
+        )),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
     return RefreshIndicator(
-      onRefresh: _loadUsers,
+      onRefresh: _handleRefresh,
       color: _primaryColor,
       child: SingleChildScrollView(
         controller: widget.scrollController,
-        physics: const AlwaysScrollableScrollPhysics(), // Scrollability ensured
+        physics: const AlwaysScrollableScrollPhysics(), 
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: EdgeInsets.only(
-                left: width * 0.05,
-                right: width * 0.05,
-                top: spacingLarge,
+            // === HEADER ONLY SLIDE ===
+            FadeTransition(
+              opacity: _headerOpacity,
+              child: SlideTransition(
+                position: _headerSlide,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: width * 0.05,
+                    right: width * 0.05,
+                    top: spacingLarge,
+                  ),
+                  child: _buildHeader(),
+                ),
               ),
-              child: _buildHeader(),
             ),
             const SizedBox(height: spacingMedium),
             
-            // Edge-to-edge Mascot Banner with Bubble
             _buildMascotBanner(),
             
+            // === NO MORE CONTENT SLIDE - Skeleton shows instantly ===
             Padding(
               padding: EdgeInsets.symmetric(horizontal: width * 0.05),
               child: Column(
@@ -209,15 +349,15 @@ class _UsersContentState extends State<UsersContent>
                 children: [
                   const SizedBox(height: spacingMedium),
                   
-                  _buildSearchBar(),
+                  _isSimulatingLoad ? _buildSkeletonSearchBar() : _buildSearchBar(),
                   const SizedBox(height: 24),
                   
-                  _buildTabBar(width),
+                  _isSimulatingLoad ? _buildSkeletonTabBar() : _buildTabBar(width),
                   const SizedBox(height: 24),
                   
-                  _buildTabContent(),
+                  _isSimulatingLoad ? _buildSkeletonList() : _buildTabContent(),
                   
-                  const SizedBox(height: 120), // Bottom padding
+                  const SizedBox(height: 120), 
                 ],
               ),
             ),
@@ -256,117 +396,151 @@ class _UsersContentState extends State<UsersContent>
     final messages = _getMascotMessages();
     final safeIndex = _currentMessageIndex % messages.length;
     final displayMessage = messages[safeIndex];
-    final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
+    
+    final longestMessage = messages.isNotEmpty 
+        ? messages.reduce((a, b) => a.length > b.length ? a : b) 
+        : '';
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double mascotSize = (screenWidth * 0.32).clamp(90.0, 130.0);
+    final double tailBottomMargin = mascotSize * 0.333; 
+    final double bubbleBottomMargin = mascotSize * 0.166;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Edge-to-edge gradient background strictly tied to the top
         Positioned(
           top: 0,
           bottom: 0,
           left: 0,
           right: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
-                  _primaryColor.withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          child: FadeTransition(
+            opacity: _headerOpacity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ),
         ),
         
-        // Mascot and Speech Bubble
         Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: MediaQuery.of(context).size.width * 0.05,
+            horizontal: screenWidth * 0.05,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mascot Figure
-              Image.asset(
-                'assets/seelai-icons/seelai2.png',
-                height: 120, 
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 100, width: 100,
-                  alignment: Alignment.bottomCenter,
-                  child: Icon(Icons.image_not_supported, color: widget.theme.subtextColor),
+              // === MASCOT SCALE ===
+              ScaleTransition(
+                scale: _mascotScale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai2.png',
+                  height: mascotSize, 
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: mascotSize * 0.8, 
+                    width: mascotSize * 0.8,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.image_not_supported, 
+                      color: widget.theme.subtextColor,
+                      size: mascotSize * 0.3
+                    ),
+                  ),
                 ),
               ),
               
-              // Speech Bubble Tail (Pointing left, aligned to mouth)
+              // === TAIL SCALE ===
               Container(
-                margin: const EdgeInsets.only(bottom: 40), 
-                child: CustomPaint(
-                  size: const Size(12, 16),
-                  painter: _TailPainter(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                child: ScaleTransition(
+                  scale: _bubbleScale,
+                  alignment: Alignment.bottomRight,
+                  child: CustomPaint(
+                    size: const Size(12, 16),
+                    painter: _TailPainter(
+                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    ),
                   ),
                 ),
               ),
 
-              // Speech Bubble Content - Conversational text
+              // === BUBBLE SCALE ===
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: widget.isDarkMode ? [] : [
-                      BoxShadow(
-                        color: _primaryColor.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Keep it compact
-                    children: [
-                      Text(
-                        'Seelai',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: _primaryColor,
-                          letterSpacing: 0.5,
-                        ),
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  child: ScaleTransition(
+                    scale: _bubbleScale,
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: widget.isDarkMode ? [] : [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      
-                      // FIXED STACK TRICK
-                      Stack(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min, 
                         children: [
                           Text(
-                            longestMessage,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.transparent, 
-                              height: 1.4,
+                            'Seelai',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: _primaryColor,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          TypewriterText(
-                            key: ValueKey(displayMessage),
-                            text: displayMessage,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
-                              height: 1.4,
-                            ),
+                          const SizedBox(height: 6),
+                          
+                          Stack(
+                            children: [
+                              Text(
+                                longestMessage,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.transparent, 
+                                  height: 1.4,
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: TypewriterText(
+                                  key: ValueKey(displayMessage),
+                                  text: displayMessage,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -377,7 +551,6 @@ class _UsersContentState extends State<UsersContent>
     );
   }
 
-  // [Keep _buildSearchBar, _buildTabBar, _buildTab, _buildTabContent, _buildPartiallySightedList, _buildCaretakersList, _buildPendingList, _buildUserCard, _buildCaretakerCard, _buildDefaultAvatarText methods exactly the same...]
   Widget _buildSearchBar() {
     return Container(
       decoration: BoxDecoration(
@@ -534,7 +707,7 @@ class _UsersContentState extends State<UsersContent>
   }
 
   Widget _buildPartiallySightedList() {
-    if (_isLoadingVI) return Center(child: Padding(padding: const EdgeInsets.all(40), child: CircularProgressIndicator(color: _primaryColor)));
+    if (_isLoadingVI) return _buildSkeletonList(); 
 
     final filteredUsers = _getFilteredUsers(_partiallySightedUsers);
 
@@ -550,19 +723,27 @@ class _UsersContentState extends State<UsersContent>
       );
     }
 
-    return Column(
-      children: List.generate(
-        filteredUsers.length,
-        (index) => Padding(
-          padding: const EdgeInsets.only(bottom: spacingMedium),
-          child: _buildUserCard(filteredUsers[index]),
+    return AnimationLimiter(
+      child: Column(
+        children: AnimationConfiguration.toStaggeredList(
+          duration: const Duration(milliseconds: 375),
+          childAnimationBuilder: (widget) => SlideAnimation(
+            verticalOffset: 50.0,
+            child: FadeInAnimation(child: widget),
+          ),
+          children: filteredUsers.map((user) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: spacingMedium),
+              child: _buildUserCard(user),
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
   Widget _buildCaretakersList() {
-    if (_isLoadingCT) return Center(child: Padding(padding: const EdgeInsets.all(40), child: CircularProgressIndicator(color: _primaryColor)));
+    if (_isLoadingCT) return _buildSkeletonList(); 
 
     final filteredCaretakers = _getFilteredUsers(_caretakersUsers);
 
@@ -578,19 +759,27 @@ class _UsersContentState extends State<UsersContent>
       );
     }
 
-    return Column(
-      children: List.generate(
-        filteredCaretakers.length,
-        (index) => Padding(
-          padding: const EdgeInsets.only(bottom: spacingMedium),
-          child: _buildCaretakerCard(filteredCaretakers[index], isPending: false),
+    return AnimationLimiter(
+      child: Column(
+        children: AnimationConfiguration.toStaggeredList(
+          duration: const Duration(milliseconds: 375),
+          childAnimationBuilder: (widget) => SlideAnimation(
+            verticalOffset: 50.0,
+            child: FadeInAnimation(child: widget),
+          ),
+          children: filteredCaretakers.map((caretaker) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: spacingMedium),
+              child: _buildCaretakerCard(caretaker, isPending: false),
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
   Widget _buildPendingList() {
-    if (_isLoadingPending) return Center(child: Padding(padding: const EdgeInsets.all(40), child: CircularProgressIndicator(color: _primaryColor)));
+    if (_isLoadingPending) return _buildSkeletonList(); 
 
     final filteredPending = _getFilteredUsers(_pendingCaretakers);
 
@@ -610,12 +799,20 @@ class _UsersContentState extends State<UsersContent>
       );
     }
 
-    return Column(
-      children: List.generate(
-        filteredPending.length,
-        (index) => Padding(
-          padding: const EdgeInsets.only(bottom: spacingMedium),
-          child: _buildCaretakerCard(filteredPending[index], isPending: true),
+    return AnimationLimiter(
+      child: Column(
+        children: AnimationConfiguration.toStaggeredList(
+          duration: const Duration(milliseconds: 375),
+          childAnimationBuilder: (widget) => SlideAnimation(
+            verticalOffset: 50.0,
+            child: FadeInAnimation(child: widget),
+          ),
+          children: filteredPending.map((pending) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: spacingMedium),
+              child: _buildCaretakerCard(pending, isPending: true),
+            );
+          }).toList(),
         ),
       ),
     );
@@ -643,7 +840,6 @@ class _UsersContentState extends State<UsersContent>
             padding: const EdgeInsets.all(spacingLarge),
             child: Row(
               children: [
-                // Avatar
                 Container(
                   width: 60, height: 60,
                   decoration: BoxDecoration(
@@ -657,7 +853,6 @@ class _UsersContentState extends State<UsersContent>
                   ),
                 ),
                 const SizedBox(width: spacingMedium),
-                // Info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -831,9 +1026,6 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -861,7 +1053,10 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    _controller.forward();
+    
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override

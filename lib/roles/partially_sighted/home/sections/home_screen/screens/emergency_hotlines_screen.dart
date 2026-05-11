@@ -1,6 +1,8 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/screens/emergency_hotlines_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; 
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';
 import 'package:seelai_app/firebase/partially_sighted/emergency_hotline_service.dart';
@@ -30,7 +32,6 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
     _initializePredefinedHotlines();
   }
 
-  /// Initialize predefined hotlines if needed
   Future<void> _initializePredefinedHotlines() async {
     setState(() => _isInitializing = true);
     
@@ -38,24 +39,16 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
       final needsInit = await _service.needsPredefinedInitialization();
       
       if (needsInit) {
-        debugPrint('🔄 User needs predefined hotlines initialization');
-        
         final success = await _service.initializePredefinedHotlines();
-        
-        if (success) {
-          debugPrint('✅ Predefined hotlines initialized successfully');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Emergency hotlines have been set up for you'),
-                backgroundColor: Colors.green,
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
+        if (success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Emergency hotlines have been set up for you'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
         }
-      } else {
-        debugPrint('ℹ️ Predefined hotlines already initialized');
       }
     } catch (e) {
       debugPrint('❌ Error during initialization: $e');
@@ -64,6 +57,32 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
         setState(() => _isInitializing = false);
       }
     }
+  }
+
+  Widget _buildSkeletonList() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(spacingLarge),
+      itemCount: 6, 
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: spacingMedium),
+          child: Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              height: 92, 
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(radiusLarge),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -97,35 +116,16 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
       body: Container(
         color: widget.theme.backgroundColor,
         child: _isInitializing
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const CircularProgressIndicator(color: primary),
-                    const SizedBox(height: spacingMedium),
-                    Text(
-                      'Setting up emergency hotlines...',
-                      style: body.copyWith(color: widget.theme.textColor),
-                    ),
-                  ],
-                ),
-              )
+            ? _buildSkeletonList() 
             : StreamBuilder<List<EmergencyHotline>>(
                 stream: _service.streamHotlines(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: primary),
-                    );
+                    return _buildSkeletonList(); 
                   }
 
                   if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Error loading hotlines',
-                        style: body.copyWith(color: error),
-                      ),
-                    );
+                    return Center(child: Text('Error loading hotlines', style: body.copyWith(color: error)));
                   }
 
                   final hotlines = snapshot.data ?? [];
@@ -134,13 +134,24 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                     return _buildEmptyState();
                   }
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(spacingLarge),
-                    itemCount: hotlines.length,
-                    itemBuilder: (context, index) {
-                      final hotline = hotlines[index];
-                      return _buildHotlineCard(hotline);
-                    },
+                  return AnimationLimiter(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(spacingLarge),
+                      itemCount: hotlines.length,
+                      itemBuilder: (context, index) {
+                        final hotline = hotlines[index];
+                        return AnimationConfiguration.staggeredList(
+                          position: index,
+                          duration: const Duration(milliseconds: 375),
+                          child: SlideAnimation(
+                            verticalOffset: 50.0,
+                            child: FadeInAnimation(
+                              child: _buildHotlineCard(hotline),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),
@@ -175,7 +186,6 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
               padding: const EdgeInsets.all(spacingMedium),
               child: Row(
                 children: [
-                  // --- IMAGE/ICON CONTAINER START ---
                   Container(
                     width: 60,
                     height: 60, 
@@ -196,11 +206,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                         ? null 
                         : Icon(hotline.icon, color: hotline.color, size: 26),
                   ),
-                  // --- IMAGE/ICON CONTAINER END ---
-                  
                   const SizedBox(width: spacingMedium),
-                  
-                  // Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,13 +256,8 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                       ],
                     ),
                   ),
-                  
-                  // Actions (Edit/Delete)
                   PopupMenuButton<String>(
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      color: widget.theme.subtextColor,
-                    ),
+                    icon: Icon(Icons.more_vert_rounded, color: widget.theme.subtextColor),
                     color: widget.theme.cardColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     onSelected: (value) {
@@ -305,15 +306,9 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
         children: [
           Icon(Icons.phone_in_talk_rounded, size: 80, color: widget.theme.subtextColor.withValues(alpha: 0.5)),
           const SizedBox(height: spacingMedium),
-          Text(
-            'No emergency hotlines yet',
-            style: h3.copyWith(color: widget.theme.textColor),
-          ),
+          Text('No emergency hotlines yet', style: h3.copyWith(color: widget.theme.textColor)),
           const SizedBox(height: spacingSmall),
-          Text(
-            'Add your first emergency hotline',
-            style: body.copyWith(color: widget.theme.subtextColor),
-          ),
+          Text('Add your first emergency hotline', style: body.copyWith(color: widget.theme.subtextColor)),
           const SizedBox(height: spacingLarge),
           ElevatedButton.icon(
             onPressed: _addNewHotline,
@@ -322,10 +317,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: primary,
               foregroundColor: white,
-              padding: const EdgeInsets.symmetric(
-                horizontal: spacingLarge,
-                vertical: spacingMedium,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: spacingLarge, vertical: spacingMedium),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
@@ -335,43 +327,24 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
   }
 
   Future<void> _callHotline(EmergencyHotline hotline) async {
-    final success = await _service.makeEmergencyCall(
-      hotline.phoneNumber,
-      hotline.departmentName,
-    );
-
+    final success = await _service.makeEmergencyCall(hotline.phoneNumber, hotline.departmentName);
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to make call'),
-          backgroundColor: error,
-        ),
+        const SnackBar(content: Text('Unable to make call'), backgroundColor: error)
       );
     }
   }
 
   Future<void> _addNewHotline() async {
     final result = await Navigator.push<EmergencyHotline>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditHotlineScreen(
-          isDarkMode: widget.isDarkMode,
-          theme: widget.theme,
-        ),
-      ),
+      context, 
+      MaterialPageRoute(builder: (context) => EditHotlineScreen(isDarkMode: widget.isDarkMode, theme: widget.theme)),
     );
-
     if (result != null) {
       final success = await _service.saveHotline(result);
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? 'Hotline added successfully' : 'Failed to add hotline',
-            ),
-            backgroundColor: success ? Colors.green : error,
-          ),
+          SnackBar(content: Text(success ? 'Hotline added successfully' : 'Failed to add hotline'), backgroundColor: success ? Colors.green : error)
         );
       }
     }
@@ -379,27 +352,14 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
 
   Future<void> _editHotline(EmergencyHotline hotline) async {
     final result = await Navigator.push<EmergencyHotline>(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditHotlineScreen(
-          hotline: hotline,
-          isDarkMode: widget.isDarkMode,
-          theme: widget.theme,
-        ),
-      ),
+      context, 
+      MaterialPageRoute(builder: (context) => EditHotlineScreen(hotline: hotline, isDarkMode: widget.isDarkMode, theme: widget.theme)),
     );
-
     if (result != null) {
       final success = await _service.updateHotline(result);
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? 'Hotline updated successfully' : 'Failed to update hotline',
-            ),
-            backgroundColor: success ? Colors.green : error,
-          ),
+          SnackBar(content: Text(success ? 'Hotline updated successfully' : 'Failed to update hotline'), backgroundColor: success ? Colors.green : error)
         );
       }
     }
@@ -412,34 +372,18 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
         backgroundColor: widget.theme.cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text('Delete Hotline', style: TextStyle(color: widget.theme.textColor)),
-        content: Text(
-          'Are you sure you want to delete "${hotline.departmentName}"?${hotline.isPredefined ? '\n\nThis is an official hotline.' : ''}',
-          style: TextStyle(color: widget.theme.subtextColor),
-        ),
+        content: Text('Are you sure you want to delete "${hotline.departmentName}"?${hotline.isPredefined ? '\n\nThis is an official hotline.' : ''}', style: TextStyle(color: widget.theme.subtextColor)),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: error)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: error))),
         ],
       ),
     );
-
     if (confirm == true) {
       final success = await _service.deleteHotline(hotline.id);
-      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success ? 'Hotline deleted successfully' : 'Failed to delete hotline',
-            ),
-            backgroundColor: success ? Colors.green : error,
-          ),
+          SnackBar(content: Text(success ? 'Hotline deleted successfully' : 'Failed to delete hotline'), backgroundColor: success ? Colors.green : error)
         );
       }
     }

@@ -1,6 +1,7 @@
 // File: lib/roles/mswd/home/sections/dashboard/announcement.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // Added TTS import
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/mswd/announcement_service.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
@@ -23,13 +24,34 @@ class AnnouncementSection extends StatefulWidget {
 
 class _AnnouncementSectionState extends State<AnnouncementSection> {
   final AnnouncementService _announcementService = AnnouncementService();
+  final FlutterTts _flutterTts = FlutterTts(); // Added TTS instance
   late Stream<List<AnnouncementModel>> _announcementStream;
   final int maxDisplayedAnnouncements = 5;
 
   @override
   void initState() {
     super.initState();
+    _initTts(); // Initialize TTS
     _initializeStream();
+  }
+
+  // Added TTS initialization method
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US"); 
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop(); // Stop TTS on dispose
+    super.dispose();
+  }
+
+  // Added TTS helper method
+  void _speakMessage(String message) {
+    _flutterTts.speak(message);
   }
 
   void _initializeStream() {
@@ -42,8 +64,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     });
   }
 
-  // --- NEW HELPER METHOD ---
-  // Keeps tree-shaking intact by using constant IconData mapping.
   IconData _getSafeIcon(String hexCode) {
     final Map<String, IconData> safeIcons = {
       '0xef4c': Icons.notifications,
@@ -52,11 +72,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       '0xe88a': Icons.home,
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
-      // Add more known icons here...
     };
     
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; // Fallback icon
+    return safeIcons[formattedCode] ?? Icons.notifications; 
   }
 
   @override
@@ -108,11 +127,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         ),
         SizedBox(height: spacingMedium),
       
-        // Display announcements from Firebase
         StreamBuilder<List<AnnouncementModel>>(
           stream: _announcementStream,
           builder: (context, snapshot) {
-            // Show loading only on initial load
             if (snapshot.connectionState == ConnectionState.waiting && 
                 !snapshot.hasData) {
               return Center(
@@ -170,13 +187,11 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
               );
             }
             
-            // Show only first 5 announcements
             final displayedAnnouncements = allAnnouncements.take(maxDisplayedAnnouncements).toList();
             final hasMoreAnnouncements = allAnnouncements.length > maxDisplayedAnnouncements;
             
             return Column(
               children: [
-                // Display announcement cards
                 ...displayedAnnouncements.map((announcement) {
                   return Padding(
                     padding: EdgeInsets.only(bottom: spacingMedium),
@@ -187,7 +202,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                   );
                 }),
                 
-                // "View All Announcements" button if more than 5
                 if (hasMoreAnnouncements)
                   Padding(
                     padding: EdgeInsets.only(top: spacingSmall),
@@ -274,7 +288,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     required AnnouncementModel announcement,
   }) {
     String timeAgo = _getTimeAgo(announcement.timestamp);
-    // FIX: Replaced dynamic IconData instantiation with the safe helper map
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
     
@@ -283,11 +296,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
-        // Removed glowy colored shadow, using a neutral soft shadow
-        boxShadow: widget.isDarkMode
-            ? []
-            : softShadow,
-        // Replaced colored border with a neutral border to match the requested design
+        boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
           color: widget.isDarkMode 
               ? Colors.white.withValues(alpha: 0.05) 
@@ -437,12 +446,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   }
 
   void _deleteAnnouncement(String id) {
-    // 1. Capture the parent context for the SnackBar
     final parentContext = context;
 
     showDialog(
       context: parentContext,
-      // 2. Rename to dialogContext to avoid shadowing
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           backgroundColor: widget.theme.cardColor,
@@ -463,7 +470,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
           ),
           actions: [
             TextButton(
-              // Use dialogContext to close the popup
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Cancel',
@@ -472,25 +478,13 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // Execute the async operation
                 final success = await _announcementService.deleteAnnouncement(id);
                 
-                // 3. GUARD: Check if the dialog is still open before popping
                 if (!dialogContext.mounted) return;
                 Navigator.of(dialogContext).pop();
                 
-                // 4. GUARD: Check if the main screen is still active before showing the SnackBar
                 if (!parentContext.mounted) return;
-                ScaffoldMessenger.of(parentContext).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success 
-                          ? 'Announcement deleted' 
-                          : 'Failed to delete announcement'
-                    ),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
+                _speakMessage(success ? 'Announcement deleted' : 'Failed to delete announcement');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

@@ -2,6 +2,8 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; 
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'detection_detail_screen.dart';
@@ -23,51 +25,95 @@ class ViewRecentActivities extends StatefulWidget {
   State<ViewRecentActivities> createState() => _ViewRecentActivitiesState();
 }
 
-class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
-  // Brand Colors - Vibrant Purple
+class _ViewRecentActivitiesState extends State<ViewRecentActivities> with SingleTickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF7C3AED);
 
   final int maxDisplayedDetections = 5;
   String _selectedFilter = 'All';
   bool _isRefreshing = false;
   bool _isLoading = true;
+  
+  bool _isSimulatingLoad = true;
 
-  // State lists for our real-time data
   List<Map<String, dynamic>> _faces = [];
   List<Map<String, dynamic>> _objects = [];
   List<Map<String, dynamic>> _texts = [];
   List<Map<String, dynamic>> _allDetections = [];
 
-  // Subscriptions to clean up when we leave the screen
   StreamSubscription? _facesSub;
   StreamSubscription? _objectsSub;
   StreamSubscription? _textsSub;
 
-  // Animation State
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
+
+  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
+  late AnimationController _entryController;
+  late Animation<double> _headerOpacity;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
+  late Animation<double> _gradientOpacity;
 
   @override
   void initState() {
     super.initState();
     _setupRealtimeStreams();
     _startMessageTimer();
-  }
+    
+    // === Initialize the staggered entry animation ===
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
 
-  void _startMessageTimer() {
-    // Cycle through messages every 5 seconds
-    _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    // 1. Header Row (Title & Refresh) - Fades & slides RIGHT
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+    );
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
+    );
+
+    // 2. Gradient Background
+    _gradientOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOut)),
+    );
+
+    // 3. Mascot
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)),
+    );
+
+    // 4. Speech Bubble
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)),
+    );
+
+    // Start header/mascot animations immediately
+    _entryController.forward();
+    
+    // Trigger the skeleton animation for 600ms on load
+    Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
-          _currentMessageIndex = (_currentMessageIndex + 1) % 2; // Cycles between 2 messages
+          _isSimulatingLoad = false;
         });
       }
     });
   }
 
-  // We listen to the streams exactly once when the widget loads
+  void _startMessageTimer() {
+    _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex = (_currentMessageIndex + 1) % 2; 
+        });
+      }
+    });
+  }
+
   void _setupRealtimeStreams() {
-    // 1. Listen to Faces
     _facesSub = faceDetectionService.streamDetectedFaces(widget.userId).listen((faces) {
       _faces = faces.map((face) => {
         ...face,
@@ -78,7 +124,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
       _combineAndSortDetections();
     });
 
-    // 2. Listen to Objects
     _objectsSub = objectDetectionService.streamDetectedObjects(widget.userId).listen((objects) {
       _objects = objects.map((obj) => {
         ...obj,
@@ -89,7 +134,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
       _combineAndSortDetections();
     });
 
-    // 3. Listen to Texts
     _textsSub = textScanService.streamScannedTexts(widget.userId).listen((texts) {
       _texts = texts.map((text) => {
         ...text,
@@ -101,14 +145,13 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     });
   }
 
-  // Merges the three lists together and sorts them by date
   void _combineAndSortDetections() {
     final combined = [..._faces, ..._objects, ..._texts];
     
     combined.sort((a, b) {
       final aTime = DateTime.parse(a['timestamp'] as String);
       final bTime = DateTime.parse(b['timestamp'] as String);
-      return bTime.compareTo(aTime); // Newest first
+      return bTime.compareTo(aTime); 
     });
 
     if (mounted) {
@@ -121,11 +164,11 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
 
   @override
   void dispose() {
-    // Prevent memory leaks by canceling streams when leaving the screen
     _facesSub?.cancel();
     _objectsSub?.cancel();
     _textsSub?.cancel();
     _messageTimer?.cancel();
+    _entryController.dispose();
     super.dispose();
   }
 
@@ -135,132 +178,156 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
       'Tip: You can tap on any detection card below to view its full details.',
     ];
   }
+  
+  Widget _buildSkeletonList(double width) {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: spacingMedium),
+          Row(
+            children: List.generate(4, (index) => Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: Shimmer.fromColors(
+                baseColor: baseColor,
+                highlightColor: highlightColor,
+                child: Container(
+                  width: 70, 
+                  height: 36, 
+                  decoration: BoxDecoration(
+                    color: Colors.white, 
+                    borderRadius: BorderRadius.circular(24)
+                  )
+                ),
+              ),
+            )),
+          ),
+          const SizedBox(height: spacingLarge),
+          ...List.generate(3, (index) => Padding(
+            padding: const EdgeInsets.only(bottom: spacingMedium),
+            child: Shimmer.fromColors(
+              baseColor: baseColor,
+              highlightColor: highlightColor,
+              child: Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(radiusLarge),
+                ),
+              ),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final bool showSkeleton = _isLoading || _isSimulatingLoad;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 100),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Padding(
-            padding: EdgeInsets.only(
-              left: width * 0.06,
-              right: width * 0.06,
-              top: spacingLarge,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Recent Detections',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: widget.theme.textColor,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Your scanning history',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: widget.theme.subtextColor,
-                        ),
-                      ),
-                    ],
-                  ),
+          // 1. Top Section (Header) - Always animates immediately
+          FadeTransition(
+            opacity: _headerOpacity,
+            child: SlideTransition(
+              position: _headerSlide,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: width * 0.06,
+                  right: width * 0.06,
+                  top: spacingLarge,
                 ),
-                Semantics(
-                  label: 'Refresh detections',
-                  button: true,
-                  hint: 'Double tap to refresh',
-                  child: IconButton(
-                    onPressed: _refreshDetections,
-                    icon: AnimatedRotation(
-                      turns: _isRefreshing ? 1 : 0,
-                      duration: const Duration(milliseconds: 600),
-                      child: Icon(
-                        Icons.refresh_rounded,
-                        color: _primaryColor,
-                        size: 26,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Recent Detections',
+                            style: TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w900,
+                              color: widget.theme.textColor,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Your scanning history',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: widget.theme.subtextColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    tooltip: 'Refresh detections',
-                  ),
+                    Semantics(
+                      label: 'Refresh detections',
+                      button: true,
+                      hint: 'Double tap to refresh',
+                      child: IconButton(
+                        onPressed: _refreshDetections,
+                        icon: AnimatedRotation(
+                          turns: _isRefreshing ? 1 : 0,
+                          duration: const Duration(milliseconds: 600),
+                          child: Icon(
+                            Icons.refresh_rounded,
+                            color: _primaryColor,
+                            size: 26,
+                          ),
+                        ),
+                        tooltip: 'Refresh detections',
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           
           const SizedBox(height: spacingLarge),
           
-          // Show loader if waiting for Firebase, otherwise show content
-          _isLoading 
-            ? Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(spacingLarge),
-                  child: CircularProgressIndicator(color: _primaryColor),
-                ),
-              )
-            : Column(
+          // Mascot Banner
+          _buildMascotBanner(_allDetections), 
+          
+          // 2. Main Content Area - Instantly shows skeleton or data
+          if (showSkeleton)
+            _buildSkeletonList(width)
+          else
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Edge-to-edge Mascot Banner with Bubble
-                  _buildMascotBanner(_allDetections),
+                  const SizedBox(height: spacingMedium),
                   
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: width * 0.06),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: spacingMedium),
-                        
-                        // Filter Pills
-                        _buildFilterTabs(),
-                        
-                        const SizedBox(height: spacingLarge),
-                        
-                        // Detections List with animation
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 300),
-                          switchInCurve: Curves.easeInOut,
-                          switchOutCurve: Curves.easeInOut,
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0, 0.05),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
-                              ),
-                            );
-                          },
-                          // We pass our state list directly now! No StreamBuilder needed!
-                          child: _buildDetectionsList(_allDetections),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildFilterTabs(),
+                  
+                  const SizedBox(height: spacingLarge),
+                  
+                  _buildDetectionsList(_allDetections),
                 ],
               ),
+            ),
         ],
       ),
     );
   }
 
   Widget _buildMascotBanner(List<Map<String, dynamic>> detections) {
-    // Calculate counts for the speech bubble
     int faceCount = detections.where((d) => d['type'] == 'face').length;
     int objectCount = detections.where((d) => d['type'] == 'object').length;
     int textCount = detections.where((d) => d['type'] == 'text').length;
@@ -268,130 +335,143 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     final messages = _getMascotMessages(faceCount, objectCount, textCount);
     final displayMessage = messages[_currentMessageIndex % messages.length];
     
-    // Find the longest message to lock the bubble size
     final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    
+    final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
+    
+    final double tailBottomMargin = mascotSize * 0.285; 
+    final double bubbleBottomMargin = mascotSize * 0.242;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Edge-to-edge gradient background strictly tied to the top
         Positioned(
           top: 0,
           bottom: 0,
           left: 0,
           right: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
-                  _primaryColor.withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          child: FadeTransition(
+            opacity: _gradientOpacity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ),
         ),
         
-        // Mascot and Speech Bubble
         Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: MediaQuery.of(context).size.width * 0.05,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Mascot Figure
-               Image.asset(
-                        'assets/seelai-icons/seelai3.png',
-                        height: 120,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            color: _primaryColor.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.smart_toy_outlined,
-                            color: _primaryColor,
-                            size: 36,
-                          ),
-                        ),
-                      ),
+              ScaleTransition(
+                scale: _mascotScale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai3.png',
+                  height: mascotSize, 
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: mascotSize * 0.65,
+                    height: mascotSize * 0.65,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.smart_toy_outlined,
+                      color: _primaryColor,
+                      size: mascotSize * 0.25, 
+                    ),
+                  ),
+                ),
+              ),
               
-              // Speech Bubble Tail (Pointing left, aligned to mouth)
               Container(
-                margin: const EdgeInsets.only(bottom: 40), 
-                child: CustomPaint(
-                  size: const Size(12, 16),
-                  painter: _TailPainter(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                child: ScaleTransition(
+                  scale: _bubbleScale,
+                  alignment: Alignment.bottomRight,
+                  child: CustomPaint(
+                    size: const Size(14, 16),
+                    painter: _TailPainter(
+                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    ),
                   ),
                 ),
               ),
 
-              // Speech Bubble Content - Conversational Format
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 15),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 22),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: widget.isDarkMode ? [] : [
-                      BoxShadow(
-                        color: _primaryColor.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, 
-                    children: [
-                      Text(
-                        'Seelai',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: _primaryColor,
-                          letterSpacing: 0.5,
-                        ),
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  child: ScaleTransition(
+                    scale: _bubbleScale,
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: widget.isDarkMode ? [] : [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      
-                      // THE STACK TRICK - No cutting, no jumping!
-                      Stack(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min, 
                         children: [
-                          // 1. Invisible text uses the LONGEST message to keep bubble size fixed
                           Text(
-                            longestMessage,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.transparent, 
-                              height: 1.4,
+                            'Seelai',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: _primaryColor,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          // 2. Typewriter text types out the current message
-                          Positioned.fill(
-                            child: TypewriterText(
-                              text: displayMessage,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
-                                height: 1.4,
+                          const SizedBox(height: 6),
+                          
+                          Stack(
+                            children: [
+                              Text(
+                                longestMessage,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.transparent, 
+                                  height: 1.4,
+                                ),
                               ),
-                            ),
+                              Positioned.fill(
+                                child: TypewriterText(
+                                  text: displayMessage,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -432,7 +512,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
                   color: isSelected ? _primaryColor : widget.theme.cardColor,
-                  borderRadius: BorderRadius.circular(24), // Pill shape
+                  borderRadius: BorderRadius.circular(24), 
                   border: Border.all(
                     color: isSelected 
                         ? _primaryColor 
@@ -479,57 +559,37 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
     final displayedDetections = filteredDetections.take(maxDisplayedDetections).toList();
     final hasMoreDetections = filteredDetections.length > maxDisplayedDetections;
 
-    return Column(
-      key: ValueKey(_selectedFilter), // Forces animation when switching tabs
-      children: [
-        ...displayedDetections.asMap().entries.map((entry) {
-          final index = entry.key;
-          final detection = entry.value;
-          return TweenAnimationBuilder<double>(
-            duration: Duration(milliseconds: 300 + (index * 50)),
-            tween: Tween(begin: 0.0, end: 1.0),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: child,
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: spacingMedium),
-              child: _buildDetectionCard(detection),
-            ),
-          );
-        }),
-
-        if (hasMoreDetections)
-          TweenAnimationBuilder<double>(
-            duration: Duration(milliseconds: 300 + (displayedDetections.length * 50)),
-            tween: Tween(begin: 0.0, end: 1.0),
-            curve: Curves.easeOutCubic,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: child,
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.only(top: spacingSmall),
-              child: _buildViewAllButton(filteredDetections),
-            ),
+    return AnimationLimiter(
+      key: ValueKey(_selectedFilter), 
+      child: Column(
+        children: AnimationConfiguration.toStaggeredList(
+          duration: const Duration(milliseconds: 375),
+          childAnimationBuilder: (widget) => SlideAnimation(
+            verticalOffset: 50.0,
+            child: FadeInAnimation(child: widget),
           ),
-      ],
+          children: [
+            ...displayedDetections.map((detection) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: spacingMedium),
+                child: _buildDetectionCard(detection),
+              );
+            }),
+            if (hasMoreDetections)
+              Padding(
+                padding: const EdgeInsets.only(top: spacingSmall),
+                child: _buildViewAllButton(filteredDetections),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
   List<Map<String, dynamic>> _filterDetections(List<Map<String, dynamic>> detections) {
-    if (_selectedFilter == 'All') return detections;
+    if (_selectedFilter == 'All') {
+      return detections;
+    }
     
     return detections.where((detection) {
       switch (_selectedFilter) {
@@ -637,7 +697,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Image Thumbnail 
                 Container(
                   width: 70,
                   height: 70,
@@ -670,7 +729,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
                 ),
                 const SizedBox(width: spacingMedium),
                 
-                // Text Details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -929,21 +987,20 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> {
   void _refreshDetections() {
     setState(() {
       _isRefreshing = true;
+      _isSimulatingLoad = true;
     });
     
-    // With pure streams, we don't need to manually re-fetch here
-    // But we keep the UI animation to acknowledge the user's tap
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
           _isRefreshing = false;
+          _isSimulatingLoad = false;
         });
       }
     });
   }
 }
 
-// Custom Painter to draw the speech bubble tail pointing to the mascot
 class _TailPainter extends CustomPainter {
   final Color color;
 
@@ -966,9 +1023,6 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -990,8 +1044,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    // THE FIX: Dynamic speed! 40 milliseconds per character.
-    // Long messages and short messages will now type at the exact same natural speed.
     int msDuration = widget.text.length * 40; 
     
     _controller = AnimationController(
@@ -999,7 +1051,10 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    _controller.forward();
+    
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override
@@ -1032,9 +1087,12 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       animation: _characterCount,
       builder: (context, child) {
         int end = _characterCount.value;
-        // Strict safety check to prevent out-of-bounds text duplication
-        if (end > widget.text.length) end = widget.text.length;
-        if (end < 0) end = 0;
+        if (end > widget.text.length) {
+          end = widget.text.length;
+        }
+        if (end < 0) {
+          end = 0;
+        }
         
         return Text(
           widget.text.substring(0, end),

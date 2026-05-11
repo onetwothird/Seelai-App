@@ -1,10 +1,12 @@
 // File: lib/roles/mswd/home/sections/requests/requests_details.dart
 
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; 
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // Add TTS import
 
 class RequestDetailsScreen extends StatefulWidget {
   final RequestModel request;
@@ -29,38 +31,64 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   Map<String, dynamic>? _caretakerData;
   late RequestModel _currentRequest;
   bool _isUpdating = false;
+  
+  bool _isSimulatingLoad = true; 
+
+  // --- TTS STATE ---
+  final FlutterTts _flutterTts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
+    _initTts(); // Initialize TTS
+
     _currentRequest = widget.request;
     _patientData = widget.userDataCache[_currentRequest.patientId];
     if (_currentRequest.caretakerId != null) {
       _caretakerData = widget.userDataCache[_currentRequest.caretakerId!];
     }
+    
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _isSimulatingLoad = false);
+    });
   }
 
-  // ==========================================
-  // LAUNCHER ACTIONS (PHONE & MAPS)
-  // ==========================================
+  // === TTS METHODS ===
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  // Replaces the old snackbar method completely
+  Future<void> _speakMessage(String message) async {
+    await _flutterTts.speak(message);
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop(); // Stop TTS
+    super.dispose();
+  }
+
   Future<void> _launchUrl(Uri uri, String fallbackMessage) async {
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        _showSnackBar(fallbackMessage);
+        _speakMessage(fallbackMessage); // Use TTS
       }
     } catch (e) {
-      _showSnackBar('Action failed: $e');
+      _speakMessage('Action failed: $e'); // Use TTS
     }
   }
 
   void _callPhone(String? phone) {
     if (phone == null || phone.isEmpty || phone == 'Not Provided') {
-      _showSnackBar('No valid phone number available.');
+      _speakMessage('No valid phone number available.'); // Use TTS
       return;
     }
-    // Remove any non-numeric characters for the dialer
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
     _launchUrl(Uri(scheme: 'tel', path: cleanPhone), 'Could not open phone dialer.');
   }
@@ -68,32 +96,15 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   void _openMap() {
     final loc = _currentRequest.location;
     if (loc == null || loc['latitude'] == null || loc['longitude'] == null) {
-      _showSnackBar('No exact GPS coordinates available.');
+      _speakMessage('No exact GPS coordinates available.'); // Use TTS
       return;
     }
     final lat = loc['latitude'];
     final lng = loc['longitude'];
-    
-    // Opens Google Maps or default map handler with a pin
     final url = Uri.parse('http://googleusercontent.com/maps.google.com/maps?q=$lat,$lng');
     _launchUrl(url, 'Could not open maps application.');
   }
 
-  void _showSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: const Color(0xFF7C3AED),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  // ==========================================
-  // ADMIN STATUS OVERRIDE
-  // ==========================================
   void _showAdminStatusUpdateDialog() {
     showModalBottomSheet(
       context: context,
@@ -123,7 +134,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                 style: TextStyle(fontSize: 13, color: widget.theme.subtextColor),
               ),
               const SizedBox(height: 24),
-              // FIX: Removed the unnecessary .toList() at the end here
               ...RequestStatus.values.map((status) => _buildStatusOption(status)),
             ],
           ),
@@ -143,8 +153,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
         setState(() => _isUpdating = true);
         try {
-          // FIX: Passed arguments positionally instead of using named parameters
-          // FIX: Passed the 'status' enum directly as required by your service
           await assistanceRequestService.updateRequestStatus(
             _currentRequest.id,
             status,
@@ -155,12 +163,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               _currentRequest = _currentRequest.copyWith(status: status);
               _isUpdating = false;
             });
-            _showSnackBar('Status forcefully updated to ${status.name.toUpperCase()}');
+            _speakMessage('Status forcefully updated to ${status.name.toUpperCase()}'); // Use TTS
           }
         } catch (e) {
           if (mounted) {
             setState(() => _isUpdating = false);
-            _showSnackBar('Failed to update status.');
+            _speakMessage('Failed to update status.'); // Use TTS
           }
         }
       },
@@ -195,9 +203,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  // ==========================================
-  // BUILDERS
-  // ==========================================
   IconData _getRequestIcon(String type) {
     final t = type.toLowerCase();
     if (t.contains('medical') || t.contains('health')) return Icons.medical_services_rounded;
@@ -215,6 +220,37 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (p.contains('medium')) return const Color(0xFF3B82F6);
     if (p.contains('low')) return const Color(0xFF10B981);
     return Colors.grey;
+  }
+
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonDetails() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+        child: Column(
+          children: [
+            Container(width: 110, height: 110, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+            const SizedBox(height: 16),
+            Container(width: 180, height: 24, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(width: 140, height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            const SizedBox(height: 24),
+            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            const SizedBox(height: 24),
+            Container(height: 120, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            const SizedBox(height: 24),
+            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -271,27 +307,29 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           )
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
-        child: Column(
-          children: [
-            _buildPatientProfileHeader(primaryColor),
-            const SizedBox(height: 24),
-            _buildKeyStatsGrid(primaryColor),
-            const SizedBox(height: 24),
-            _buildMessageBubble(),
-            const SizedBox(height: 24),
-            _buildLocationCard(),
-            const SizedBox(height: 24),
-            _buildCaretakerCard(primaryColor),
-            const SizedBox(height: 24),
-            _buildTimelineSection(primaryColor),
-            const SizedBox(height: 40),
-            _buildAdminControls(primaryColor),
-          ],
-        ),
-      ),
+      body: _isSimulatingLoad 
+          ? _buildSkeletonDetails() 
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+              child: Column(
+                children: [
+                  _buildPatientProfileHeader(primaryColor),
+                  const SizedBox(height: 24),
+                  _buildKeyStatsGrid(primaryColor),
+                  const SizedBox(height: 24),
+                  _buildMessageBubble(),
+                  const SizedBox(height: 24),
+                  _buildLocationCard(),
+                  const SizedBox(height: 24),
+                  _buildCaretakerCard(primaryColor),
+                  const SizedBox(height: 24),
+                  _buildTimelineSection(primaryColor),
+                  const SizedBox(height: 40),
+                  _buildAdminControls(primaryColor),
+                ],
+              ),
+            ),
     );
   }
 
@@ -500,7 +538,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           child: Text('GPS LOCATION', style: _sectionHeaderStyle()),
         ),
         InkWell(
-          onTap: _openMap, // Working Map Action
+          onTap: _openMap, 
           borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -606,7 +644,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         child: IconButton(
                           icon: const Icon(Icons.phone_in_talk_rounded, size: 20),
                           color: Colors.green,
-                          onPressed: () => _callPhone(caretakerPhone), // Call caretaker
+                          onPressed: () => _callPhone(caretakerPhone), 
                         ),
                       ),
                   ],

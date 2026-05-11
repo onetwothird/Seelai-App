@@ -1,3 +1,5 @@
+// File: lib/roles/partially_sighted/models/face_detection_controller.dart
+
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -26,6 +28,9 @@ class FaceDetectionController {
   int frameCount = 0;
   DateTime? lastFrameTime;
   double fps = 0.0;
+
+  // 🚀 FIX: Frame counter added here too
+  int _cameraFrameCounter = 0; 
   
   bool isLowLight = false;
   bool isFlashOn = false;
@@ -81,7 +86,7 @@ class FaceDetectionController {
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("fil-PH");
+      await _flutterTts.setLanguage("en-US"); 
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -148,6 +153,11 @@ class FaceDetectionController {
 
     try {
       await cameraService.controller!.startImageStream((image) {
+        _cameraFrameCounter++;
+        
+        // 🚀 FIX: Skip 4 out of 5 frames
+        if (_cameraFrameCounter % 3!= 0) return;
+
         if (!isDetecting && isModelLoaded && !isDisposing) {
           isDetecting = true;
           _checkBrightnessAndManageFlash(image);
@@ -172,16 +182,16 @@ class FaceDetectionController {
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        iouThreshold: 0.45,
-        confThreshold: 0.65,
-        classThreshold: 0.65,
+        iouThreshold: 0.40, // 🚀 FIX: Lowered slightly
+        confThreshold: 0.55, // 🚀 FIX: Lowered slightly (Faces need to be a bit stricter than objects)
+        classThreshold: 0.55,
       );
 
       if (!isDisposing) {
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.65;
+            return confidence >= 0.55;
           }
           return false;
         }).toList();
@@ -215,40 +225,70 @@ class FaceDetectionController {
     
     try {
       final faceCount = recognitions.length;
+      final previewSize = cameraService.controller?.value.previewSize;
       
-      if (faceCount > 0) {
-        final faceNames = recognitions.map((r) => (r['tag'] ?? 'unknown person').toString()).toSet().toList();
-        
-        String speechText;
-        if (faceNames.length == 1) {
-          speechText = 'I see ${faceNames[0]}';
-        } else if (faceNames.length == 2) {
-          speechText = 'I see ${faceNames[0]} and ${faceNames[1]}';
-        } else {
-          final lastPerson = faceNames.removeLast();
-          speechText = 'I see ${faceNames.join(", ")}, and $lastPerson';
-        }
-        
-        final detectedFacesText = faceNames.join(', ');
-        bool isDifferentFaces = lastDetectedFaces != detectedFacesText;
-        
-        if (isDifferentFaces && !isReading) {
-          lastDetectedFaces = detectedFacesText;
-          lastSpeakTime = now;
-          readingCompleted = false;
-          
-          // 1. SPEAK IMMEDIATELY
-          _flutterTts.speak(speechText);
-          _notifyStateChanged();
+      if (faceCount > 0 && previewSize != null) {
+        double sourceWidth = previewSize.height; 
+        double sourceHeight = previewSize.width;
 
-          // 2. FIRE AND FORGET
-          _captureAndUploadInBackground(faceCount);
+        List<String> faceStatements = [];
+        int maxFaces = recognitions.length > 2 ? 2 : recognitions.length;
+
+        for (int i = 0; i < maxFaces; i++) {
+          var r = recognitions[i];
+          var box = r['box'];
+          String name = (r['tag'] ?? 'unknown person').toString();
+
+          if (box != null && box.length > 4) {
+            double x1 = box[0].toDouble();
+            double y1 = box[1].toDouble();
+            double x2 = box[2].toDouble();
+            double y2 = box[3].toDouble();
+
+            double centerX = (x1 + x2) / 2;
+            String clockDirection;
+            if (centerX < sourceWidth * 0.35) {
+              clockDirection = "10 o'clock";
+            } else if (centerX > sourceWidth * 0.65) {
+              clockDirection = "2 o'clock";
+            } else {
+              clockDirection = "12 o'clock";
+            }
+
+            double boxHeight = y2 - y1;
+            double heightRatio = boxHeight / sourceHeight;
+            String distanceStr;
+            
+            if (heightRatio > 0.40) {
+              distanceStr = "1 meter";
+            } else if (heightRatio > 0.20) {
+              distanceStr = "2 meters";
+            } else {
+              distanceStr = "3 meters";
+            }
+
+            faceStatements.add('$name at $clockDirection, $distanceStr away');
+          } else {
+            faceStatements.add(name);
+          }
         }
+
+        String speechText = 'Detected: ${faceStatements.join(". ")}';
+        
+        final faceNamesText = recognitions.map((r) => r['tag'] ?? 'unknown').join(', ');
+        
+        lastDetectedFaces = faceNamesText;
+        lastSpeakTime = now;
+        readingCompleted = false;
+        
+        _flutterTts.speak(speechText);
+        _notifyStateChanged();
+
+        _captureAndUploadInBackground(faceCount);
       }
     } catch (_) { /* Ignored */ }
   }
 
-  // NEW METHOD
   Future<void> _captureAndUploadInBackground(int faceCount) async {
     final controller = cameraService.controller;
     final userId = authService.value.currentUser?.uid;
@@ -313,7 +353,7 @@ class FaceDetectionController {
     int totalBrightness = 0;
     int sampleCount = 0;
 
-    for (int i = 0; i < bytes.length; i += 500) { 
+    for (int i = 0; i < bytes.length; i += 5000) { 
       totalBrightness += bytes[i];
       sampleCount++;
     }

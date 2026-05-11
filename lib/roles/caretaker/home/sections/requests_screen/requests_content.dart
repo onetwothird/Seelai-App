@@ -2,7 +2,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // ADDED: TTS Import
+import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:shimmer/shimmer.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
@@ -34,7 +35,7 @@ class RequestsContent extends StatefulWidget {
 }
 
 class _RequestsContentState extends State<RequestsContent>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   late TabController _tabController;
@@ -55,8 +56,16 @@ class _RequestsContentState extends State<RequestsContent>
   final Map<int, int> _tabPages = {0: 1, 1: 1, 2: 1, 3: 1}; 
   final int _itemsPerPage = 5;
 
-  // ADDED: Initialize the TTS instance
   final FlutterTts _flutterTts = FlutterTts();
+
+  bool _isSimulatingLoad = true;
+
+  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
+  late AnimationController _entryController;
+  late Animation<double> _headerOpacity;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
 
   @override
   void initState() {
@@ -67,7 +76,6 @@ class _RequestsContentState extends State<RequestsContent>
       if (mounted) setState(() {});
     });
 
-    // ADDED: Call the TTS initializer
     _initializeTts();
 
     _initializeCaretakerId().then((_) {
@@ -77,6 +85,32 @@ class _RequestsContentState extends State<RequestsContent>
     });
 
     _startMessageTimer();
+
+    // === Initialize Animations ===
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    // Header fades & slides in
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)));
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)));
+    
+    // Mascot and Bubble pop in
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)));
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)));
+
+    // Start header animations immediately
+    _entryController.forward();
+
+    // Trigger the skeleton animation for 600ms on load
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingLoad = false;
+        });
+      }
+    });
     
     FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
       switch (event!.event) {
@@ -91,10 +125,9 @@ class _RequestsContentState extends State<RequestsContent>
     });
   }
 
-  // ADDED: Your TTS Initialization Logic
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("fil-PH"); 
+      await _flutterTts.setLanguage("en-US"); 
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -105,9 +138,8 @@ class _RequestsContentState extends State<RequestsContent>
 
   @override
   void dispose() {
-    // ADDED: Safely stop TTS if the user leaves the screen
+    _entryController.dispose();
     _flutterTts.stop();
-    
     _messageTimer?.cancel();
     _tabController.dispose();
     _requestsSubscription?.cancel();
@@ -262,32 +294,81 @@ class _RequestsContentState extends State<RequestsContent>
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  void _showBrandSnackbar(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-        backgroundColor: const Color(0xFF8B5CF6),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
+  // ==========================================
+  // WIDGETS: Skeleton Loaders
+  // ==========================================
+  Widget _buildSkeletonStats() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonTabs() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonRequestList() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(4, (index) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Container(
+            height: 140, 
+            decoration: BoxDecoration(
+              color: Colors.white, 
+              borderRadius: BorderRadius.circular(20)
+            )
+          ),
+        )),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null && !_isLoading) {
-      return _buildErrorState();
-    }
-
-    if (_isLoading && _pendingRequests.isEmpty) {
-      return Center(
-        child: CircularProgressIndicator(color: _primaryColor),
-      );
-    }
-
     final width = MediaQuery.of(context).size.width;
+    final bool showSkeleton = _isSimulatingLoad || (_isLoading && _pendingRequests.isEmpty);
 
     return RefreshIndicator(
       onRefresh: _refreshRequests,
@@ -296,17 +377,24 @@ class _RequestsContentState extends State<RequestsContent>
         controller: widget.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+          // 1. Header & Mascot - Always animates immediately
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: width * 0.05,
-                    right: width * 0.05,
-                    top: spacingLarge,
+                FadeTransition(
+                  opacity: _headerOpacity,
+                  child: SlideTransition(
+                    position: _headerSlide,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.05,
+                        right: width * 0.05,
+                        top: spacingLarge,
+                      ),
+                      child: _buildHeader(),
+                    ),
                   ),
-                  child: _buildHeader(),
                 ),
                 const SizedBox(height: spacingMedium),
                 _buildMascotBanner(),
@@ -315,13 +403,17 @@ class _RequestsContentState extends State<RequestsContent>
             ),
           ),
           
+          // 2. Stats Section - No slide animation, shows skeleton instantly
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: width * 0.05),
             sliver: SliverToBoxAdapter(
-              child: _buildMinimalStats(),
+              child: showSkeleton 
+                  ? _buildSkeletonStats() 
+                  : _buildMinimalStats(),
             ),
           ),
           
+          // 3. Tabs Section - Shows skeleton instantly
           SliverPadding(
             padding: EdgeInsets.only(
               left: width * 0.05, 
@@ -330,20 +422,29 @@ class _RequestsContentState extends State<RequestsContent>
               bottom: spacingMedium
             ),
             sliver: SliverToBoxAdapter(
-              child: _buildMinimalTabs(),
+              child: showSkeleton 
+                  ? _buildSkeletonTabs() 
+                  : _buildMinimalTabs(),
             ),
           ),
           
+          // 4. Request List Section - Shows skeleton instantly
           SliverToBoxAdapter(
-            child: _buildRequestListContainer(),
+            child: _error != null && !_isLoading && !showSkeleton
+                ? _buildErrorState()
+                : showSkeleton
+                    ? Padding(
+                        padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+                        child: _buildSkeletonRequestList(),
+                      )
+                    : _buildRequestListContainer(),
           ),
+          
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );
   }
-
-  // ==================== UI COMPONENTS ====================
 
   Widget _buildHeader() {
     return Column(
@@ -375,6 +476,15 @@ class _RequestsContentState extends State<RequestsContent>
     final safeIndex = _currentMessageIndex % messages.length;
     final displayMessage = messages[safeIndex];
 
+    final longestMessage = messages.isNotEmpty 
+        ? messages.reduce((a, b) => a.length > b.length ? a : b) 
+        : '';
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
+    final double tailBottomMargin = mascotSize * 0.285; 
+    final double bubbleBottomMargin = mascotSize * 0.107;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -383,89 +493,130 @@ class _RequestsContentState extends State<RequestsContent>
           bottom: 0,
           left: 0,
           right: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
-                  _primaryColor.withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          child: FadeTransition(
+            opacity: _headerOpacity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ),
         ),
         Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: MediaQuery.of(context).size.width * 0.05,
+            horizontal: screenWidth * 0.05,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Image.asset(
-                'assets/seelai-icons/seelai4.png',
-                height: 120,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 100, width: 100,
-                  alignment: Alignment.bottomCenter,
-                  child: Icon(Icons.image_not_supported, color: widget.theme.subtextColor),
-                ),
-              ),
-              Container(
-                margin: const EdgeInsets.only(bottom: 40), 
-                child: CustomPaint(
-                  size: const Size(12, 16),
-                  painter: _TailPainter(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+              ScaleTransition(
+                scale: _mascotScale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai4.png',
+                  height: mascotSize, 
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: mascotSize * 0.7, 
+                    width: mascotSize * 0.7,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.image_not_supported, 
+                      color: widget.theme.subtextColor, 
+                      size: mascotSize * 0.25
+                    ),
                   ),
                 ),
               ),
+              
+              Container(
+                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                child: ScaleTransition(
+                  scale: _bubbleScale,
+                  alignment: Alignment.bottomRight,
+                  child: CustomPaint(
+                    size: const Size(12, 16),
+                    painter: _TailPainter(
+                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 15),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: widget.isDarkMode ? [] : [
-                      BoxShadow(
-                        color: _primaryColor.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, 
-                    children: [
-                      Text(
-                        'Seelai',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: _primaryColor,
-                          letterSpacing: 0.5,
-                        ),
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  child: ScaleTransition(
+                    scale: _bubbleScale,
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: widget.isDarkMode ? [] : [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
                       ),
-                      const SizedBox(height: 6),
-                      Container(
-                        height: 65, 
-                        alignment: Alignment.topLeft,
-                        child: TypewriterText(
-                          text: displayMessage,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: widget.isDarkMode
-                                ? Colors.white.withValues(alpha: 0.85)
-                                : Colors.black87,
-                            height: 1.4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min, 
+                        children: [
+                          Text(
+                            'Seelai',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: _primaryColor,
+                              letterSpacing: 0.5,
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 6),
+                          
+                          Stack(
+                            children: [
+                              Text(
+                                longestMessage,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.transparent, 
+                                  height: 1.4,
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: TypewriterText(
+                                  text: displayMessage,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : Colors.black87,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -901,7 +1052,6 @@ class _RequestsContentState extends State<RequestsContent>
                 
                 const Spacer(),
                 
-                // RESTORE BUTTON
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.withValues(alpha: 0.1),
@@ -914,8 +1064,7 @@ class _RequestsContentState extends State<RequestsContent>
                   label: const Text('Restore', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   onPressed: () {
                     setState(() { _hiddenRequestIds.remove(request.id); });
-                    _showBrandSnackbar('Request restored.');
-                    // ADDED: Speak text when restored from deleted tab
+                    // FIXED: Removed visual snackbar popup, relying purely on TTS
                     _flutterTts.speak("Request restored"); 
                   },
                 ),
@@ -989,32 +1138,8 @@ class _RequestsContentState extends State<RequestsContent>
           _hiddenRequestIds.add(request.id);
         });
 
-        // ADDED: Speak text when moved to deleted
+        // FIXED: Removed visual snackbar entirely. The user can restore from the "Deleted" tab.
         _flutterTts.speak("Moved to deleted");
-
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Moved to Deleted', style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white)),
-            backgroundColor: const Color(0xFF8B5CF6),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-            action: SnackBarAction(
-              label: 'UNDO',
-              textColor: Colors.white,
-              onPressed: () {
-                if (mounted) {
-                  setState(() {
-                    _hiddenRequestIds.remove(request.id);
-                  });
-                  // ADDED: Speak text when undo is pressed
-                  _flutterTts.speak("Request restored"); 
-                }
-              },
-            ),
-          ),
-        );
       },
       child: _buildMinimalRequestCard(request),
     );
@@ -1363,7 +1488,11 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
     int msDuration = widget.text.length * 40; 
     _controller = AnimationController(vsync: this, duration: Duration(milliseconds: msDuration));
     _setupAnimation();
-    _controller.forward();
+    
+    // Sync with bubble pop-in
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override

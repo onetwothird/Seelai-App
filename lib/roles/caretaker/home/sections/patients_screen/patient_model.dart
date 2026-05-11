@@ -25,22 +25,32 @@ class PatientModel {
     this.isOnline = false,
     this.profileImageUrl, 
     this.patientProfileImageUrl, // Add this line
-
   });
 
   factory PatientModel.fromJson(Map<String, dynamic> json, String id) {
+    // CRITICAL FIX: Safely parse age to prevent silent crashes in release mode
+    // if Firestore accidentally returns it as a String (e.g., "25") instead of an int.
+    int parsedAge = 0;
+    if (json['age'] != null) {
+      parsedAge = json['age'] is int 
+          ? json['age'] 
+          : int.tryParse(json['age'].toString()) ?? 0;
+    }
+
     return PatientModel(
       id: id,
-      name: json['name'] as String,
-      age: json['age'] as int,
-      disabilityType: json['disabilityType'] as String? ?? 'Not specified',
-      contactNumber: json['contactNumber'] as String?,
-      address: json['address'] as String?,
+      name: json['name']?.toString() ?? 'Unknown',
+      age: parsedAge,
+      disabilityType: json['disabilityType']?.toString() ?? 'Not specified',
+      contactNumber: json['contactNumber']?.toString(),
+      address: json['address']?.toString(),
       lastLocation: json['lastLocation'] as Map<String, dynamic>?,
       lastActive: json['lastActive'] != null
-          ? DateTime.parse(json['lastActive'] as String)
+          ? DateTime.tryParse(json['lastActive'].toString())
           : null,
-      isOnline: json['isOnline'] as bool? ?? false,
+      isOnline: json['isOnline'] == true,
+      profileImageUrl: json['profileImageUrl']?.toString(),
+      patientProfileImageUrl: json['patientProfileImageUrl']?.toString(),
     );
   }
 
@@ -54,6 +64,8 @@ class PatientModel {
       'lastLocation': lastLocation,
       'lastActive': lastActive?.toIso8601String(),
       'isOnline': isOnline,
+      'profileImageUrl': profileImageUrl,
+      'patientProfileImageUrl': patientProfileImageUrl,
     };
   }
 
@@ -67,6 +79,8 @@ class PatientModel {
     Map<String, dynamic>? lastLocation,
     DateTime? lastActive,
     bool? isOnline,
+    String? profileImageUrl,
+    String? patientProfileImageUrl,
   }) {
     return PatientModel(
       id: id ?? this.id,
@@ -78,6 +92,8 @@ class PatientModel {
       lastLocation: lastLocation ?? this.lastLocation,
       lastActive: lastActive ?? this.lastActive,
       isOnline: isOnline ?? this.isOnline,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      patientProfileImageUrl: patientProfileImageUrl ?? this.patientProfileImageUrl,
     );
   }
 }

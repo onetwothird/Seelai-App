@@ -1,6 +1,8 @@
 // File: lib/roles/mswd/home/sections/dashboard/all_announcements.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // Added TTS import
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
 
@@ -23,9 +25,39 @@ class AllAnnouncementsPage extends StatefulWidget {
 }
 
 class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
+  bool _isSimulatingLoad = true;
+  final FlutterTts _flutterTts = FlutterTts(); // Added TTS instance
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts(); // Initialize TTS
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        setState(() => _isSimulatingLoad = false);
+      }
+    });
+  }
+
+  // Added TTS initialization method
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US"); 
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop(); // Stop TTS on dispose
+    super.dispose();
+  }
+
+  // Added TTS helper method
+  void _speakMessage(String message) {
+    _flutterTts.speak(message);
+  }
   
-  // --- NEW HELPER METHOD ---
-  // Keeps tree-shaking intact by using constant IconData mapping.
   IconData _getSafeIcon(String hexCode) {
     final Map<String, IconData> safeIcons = {
       '0xef4c': Icons.notifications,
@@ -34,11 +66,69 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
       '0xe88a': Icons.home,
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
-      // Add more known icons here that you use in your app...
     };
     
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; // Fallback icon
+    return safeIcons[formattedCode] ?? Icons.notifications; 
+  }
+
+  Widget _buildSkeletonList() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: ListView.builder(
+        padding: EdgeInsets.all(spacingLarge),
+        itemCount: widget.announcements.isEmpty ? 5 : widget.announcements.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: spacingMedium),
+            child: Container(
+              padding: EdgeInsets.all(spacingMedium),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(radiusLarge),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium))),
+                      SizedBox(width: spacingMedium),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(width: 150, height: 16, color: Colors.white),
+                            SizedBox(height: 8),
+                            Container(width: 80, height: 20, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusSmall))),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: spacingMedium),
+                  Container(width: double.infinity, height: 14, color: Colors.white),
+                  SizedBox(height: 4),
+                  Container(width: double.infinity, height: 14, color: Colors.white),
+                  SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(width: 60, height: 12, color: Colors.white),
+                      Container(width: 20, height: 20, color: Colors.white),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -61,20 +151,22 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
           ),
         ),
       ),
-      body: ListView.builder(
-        padding: EdgeInsets.all(spacingLarge),
-        itemCount: widget.announcements.length,
-        itemBuilder: (context, index) {
-          final announcement = widget.announcements[index];
-          return Padding(
-            padding: EdgeInsets.only(bottom: spacingMedium),
-            child: _buildAnnouncementCard(
-              context: context,
-              announcement: announcement,
-            ),
-          );
-        },
-      ),
+      body: _isSimulatingLoad 
+        ? _buildSkeletonList() 
+        : ListView.builder(
+            padding: EdgeInsets.all(spacingLarge),
+            itemCount: widget.announcements.length,
+            itemBuilder: (context, index) {
+              final announcement = widget.announcements[index];
+              return Padding(
+                padding: EdgeInsets.only(bottom: spacingMedium),
+                child: _buildAnnouncementCard(
+                  context: context,
+                  announcement: announcement,
+                ),
+              );
+            },
+          ),
     );
   }
 
@@ -83,8 +175,6 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
     required AnnouncementModel announcement,
   }) {
     String timeAgo = _getTimeAgo(announcement.timestamp);
-    
-    // FIX: Using the safe constant map instead of int.parse
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
     
@@ -93,11 +183,7 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
-        // Removed glowy colored shadow
-        boxShadow: widget.isDarkMode
-            ? []
-            : softShadow,
-        // Using the same clean, neutral border as the main dashboard
+        boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
           color: widget.isDarkMode 
               ? Colors.white.withValues(alpha: 0.05) 
@@ -221,29 +307,19 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
 
   IconData _getAudienceIcon(String audience) {
     switch (audience) {
-      case 'Caretakers':
-        return Icons.volunteer_activism_rounded;
-      case 'Partially Sighted':
-        return Icons.visibility_off_rounded;
-      case 'Specific Users':
-        return Icons.person_rounded;
-      default:
-        return Icons.people_rounded;
+      case 'Caretakers': return Icons.volunteer_activism_rounded;
+      case 'Partially Sighted': return Icons.visibility_off_rounded;
+      case 'Specific Users': return Icons.person_rounded;
+      default: return Icons.people_rounded;
     }
   }
 
   String _getTimeAgo(DateTime timestamp) {
     Duration difference = DateTime.now().difference(timestamp);
-    
-    if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} minutes ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} hours ago';
-    } else if (difference.inDays < 30) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${(difference.inDays / 30).floor()} months ago';
-    }
+    if (difference.inMinutes < 60) return '${difference.inMinutes} minutes ago';
+    if (difference.inHours < 24) return '${difference.inHours} hours ago';
+    if (difference.inDays < 30) return '${difference.inDays} days ago';
+    return '${(difference.inDays / 30).floor()} months ago';
   }
 
   void _showDeleteDialog(String id) {
@@ -270,30 +346,20 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                'Cancel',
-                style: bodyBold.copyWith(color: widget.theme.subtextColor),
-              ),
+              child: Text('Cancel', style: bodyBold.copyWith(color: widget.theme.subtextColor)),
             ),
             ElevatedButton(
               onPressed: () async {
                 widget.onDelete(id);
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.of(context).pop(); // Go back to main page
+                Navigator.of(context).pop(); 
+                Navigator.of(context).pop(); 
                 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Announcement deleted'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                _speakMessage('Announcement deleted');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(radiusMedium),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMedium)),
               ),
               child: Text('Delete'),
             ),

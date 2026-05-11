@@ -1,3 +1,5 @@
+// File: lib/roles/caretaker/home/caretaker_home_screen.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'; 
@@ -188,7 +190,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     _animationController.reset();
     setState(() {
       _selectedIndex = index;
-      _isNavVisible = true; // --- Ensures nav returns when switching tabs ---
+      _isNavVisible = true; 
     });
     _animationController.forward();
   }
@@ -208,7 +210,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
-        _isNavVisible = true; // --- Reset nav visibility when going back home ---
+        _isNavVisible = true; 
         _animationController.reset();
         _animationController.forward();
       });
@@ -257,14 +259,12 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     )) ?? false;   
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
 
-    final theme = _isDarkMode 
-      ? _getDarkTheme() 
-      : _getLightTheme();
+    final theme = _isDarkMode ? _getDarkTheme() : _getLightTheme();
 
     return IncomingCallListener(
       userRole: 'caretaker', 
@@ -311,13 +311,10 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                       theme: theme,
                     ),
 
-                    // ==========================================
                     // FLOATING "SHOW MENU" BUTTON (RESTRICTED TO TAB 4)
-                    // ==========================================
                     AnimatedPositioned(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOutCubic,
-                      // Hide if nav is visible OR if NOT on the Location Tracker tab (index 4)
                       bottom: (_isNavVisible || _selectedIndex != 4) 
                           ? -100 
                           : MediaQuery.of(context).padding.bottom + 20,
@@ -387,7 +384,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         onProfileTap: () {
           setState(() {
             _selectedIndex = 3; 
-            _isNavVisible = true; // --- Ensures nav returns when tapping profile ---
+            _isNavVisible = true; 
           });
         },
         onNotificationTap: () {
@@ -416,11 +413,10 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       );
     }
 
-    return IndexedStack(
-      index: _selectedIndex,
-      children: [
-        // Index 0: Home
-        SingleChildScrollView(
+    Widget content;
+    switch (_selectedIndex) {
+      case 0:
+        content = SingleChildScrollView(
           physics: const ClampingScrollPhysics(), 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -436,16 +432,18 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
               ),
             ],
           ),
-        ),
-        // Index 1: Patients
-        PatientsContent(
+        );
+        break;
+      case 1:
+        content = PatientsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           locationService: _locationService,
-        ),
-        // Index 2: Requests
-        RequestsContent(
+        );
+        break;
+      case 2:
+        content = RequestsContent(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
@@ -461,24 +459,25 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
               });
             }
           },
-        ),
-        // Index 3: Profile
-        SingleChildScrollView(
+        );
+        break;
+      case 3:
+        content = SingleChildScrollView(
           physics: const ClampingScrollPhysics(), 
           child: ProfileContent(
             userData: widget.userData,
             isDarkMode: _isDarkMode,
             theme: theme,
           ),
-        ),
-        // Index 4: LOCATION TRACKING
-        RealtimeTrackingScreen(
+        );
+        break;
+      case 4:
+        content = RealtimeTrackingScreen(
           isDarkMode: _isDarkMode,
           theme: theme,
           userData: widget.userData,
           locationService: _locationService,
           onScroll: (isScrollingDown) {
-            // Hide navbar when interacting with the map
             if (isScrollingDown && _isNavVisible) {
               setState(() => _isNavVisible = false);
             } else if (!isScrollingDown && !_isNavVisible) {
@@ -486,13 +485,34 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             }
           },
           onRestoreMenu: () {
-            // Restore navbar when map click stops
             if (!_isNavVisible) {
               setState(() => _isNavVisible = true);
             }
           },
-        ),
-      ],
+        );
+        break;
+      default:
+        content = const SizedBox.shrink();
+    }
+
+    // === CHANGED LOGIC: Use AnimatedSwitcher so menu switches trigger init state for skeletons! ===
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      switchInCurve: Curves.easeInOutCubic,
+      switchOutCurve: Curves.easeInOutCubic,
+      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+        return Stack(
+          alignment: Alignment.topCenter,
+          children: <Widget>[
+            ...previousChildren,
+            ?currentChild,
+          ],
+        );
+      },
+      child: SizedBox(
+        key: ValueKey<int>(_selectedIndex),
+        child: content,
+      ),
     );
   }
 

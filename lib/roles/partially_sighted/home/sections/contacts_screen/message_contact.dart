@@ -12,7 +12,7 @@ import 'contact_model.dart';
 class MessageContact {
   static Future<void> _speak(String message) async {
     final FlutterTts flutterTts = FlutterTts();
-    await flutterTts.setLanguage("fil-PH");
+    await flutterTts.setLanguage("en-US");
     await flutterTts.setSpeechRate(0.5);
     await flutterTts.setVolume(1.0);
     await flutterTts.setPitch(1.0);

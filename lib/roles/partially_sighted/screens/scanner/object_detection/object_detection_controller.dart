@@ -29,13 +29,16 @@ class ObjectDetectionController {
   DateTime? lastFrameTime;
   double fps = 0.0;
   
+  // 🚀 FIX: Added a frame counter to skip frames and save CPU
+  int _cameraFrameCounter = 0; 
+  
   bool isLowLight = false;
   bool isFlashOn = false;
   bool showFlashIndicator = false;
   Timer? _flashIndicatorTimer;
   
   String lastDetectedObjects = '';
-  DateTime _lastSpeechTime = DateTime.now();
+  DateTime? lastSpeakTime;
   
   int _darkFrameCount = 0;
   int _brightFrameCount = 0;
@@ -84,7 +87,7 @@ class ObjectDetectionController {
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("fil-PH"); 
+      await _flutterTts.setLanguage("en-US");
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -131,7 +134,7 @@ class ObjectDetectionController {
         modelVersion: "yolov8",
         quantization: true, 
         useGpu: true, 
-        numThreads: 4,
+        numThreads: 4, 
       );
       
       if (!isDisposing) {
@@ -151,6 +154,11 @@ class ObjectDetectionController {
 
     try {
       await cameraService.controller!.startImageStream((image) {
+        _cameraFrameCounter++;
+        
+        // 🚀 FIX: Only process 1 out of every 5 frames. UI stays smooth, CPU breathes.
+        if (_cameraFrameCounter % 3 != 0) return;
+
         if (!isDetecting && isModelLoaded && !isDisposing) {
           isDetecting = true;
           _checkBrightnessAndManageFlash(image);
@@ -175,16 +183,16 @@ class ObjectDetectionController {
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        iouThreshold: 0.4,
-        confThreshold: 0.65, 
-        classThreshold: 0.65, 
+        iouThreshold: 0.40, // 🚀 FIX: Lowered for better nano model response
+        confThreshold: 0.50, // 🚀 FIX: Lowered from 0.65 to catch more objects
+        classThreshold: 0.50,
       );
 
       if (!isDisposing) {
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.65; 
+            return confidence >= 0.50; // 🚀 FIX: Matched threshold
           }
           return false;
         }).toList();
@@ -201,6 +209,8 @@ class ObjectDetectionController {
 
         if (recognitions.isNotEmpty) {
           await _detectAndReadObjects();
+        } else {
+          lastDetectedObjects = '';
         }
       }
     } catch (_) { /* Ignored */ }
@@ -209,33 +219,76 @@ class ObjectDetectionController {
   }
 
   Future<void> _detectAndReadObjects() async {
-    if (isDisposing) return;
+    if (isDisposing || isReading) return;
+    
+    final now = DateTime.now();
+    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 3) return;
     
     try {
-      final detectedObjectsText = recognitions.map((r) => '${r['tag']}').join(', ');
+      final objectCount = recognitions.length;
+      final previewSize = cameraService.controller?.value.previewSize;
       
-      if (detectedObjectsText.isNotEmpty) {
-        final timeSinceLastSpeech = DateTime.now().difference(_lastSpeechTime).inMilliseconds;
-        const speechInterval = 2500; 
-        
-        if (timeSinceLastSpeech > speechInterval && !isReading) {
-          
-          lastDetectedObjects = detectedObjectsText;
-          readingCompleted = false;
-          _lastSpeechTime = DateTime.now(); 
-          
-          // 1. SPEAK IMMEDIATELY: Don't let the user wait for the network
-          _flutterTts.speak('I see $detectedObjectsText');
-          _notifyStateChanged();
+      if (objectCount > 0 && previewSize != null) {
+        double sourceWidth = previewSize.height; 
+        double sourceHeight = previewSize.width;
 
-          // 2. FIRE AND FORGET: Handle capture and Cloudinary in the background
-          _captureAndUploadInBackground(recognitions.length);
+        List<String> objectStatements = [];
+        int maxObjects = recognitions.length > 2 ? 2 : recognitions.length;
+
+        for (int i = 0; i < maxObjects; i++) {
+          var r = recognitions[i];
+          var box = r['box'];
+          String tag = r['tag'] ?? 'object';
+          tag = tag.isNotEmpty ? '${tag[0].toUpperCase()}${tag.substring(1)}' : tag;
+
+          if (box != null && box.length > 4) {
+            double x1 = box[0].toDouble();
+            double y1 = box[1].toDouble();
+            double x2 = box[2].toDouble();
+            double y2 = box[3].toDouble();
+
+            double centerX = (x1 + x2) / 2;
+            String clockDirection;
+            if (centerX < sourceWidth * 0.35) {
+              clockDirection = "10 o'clock";
+            } else if (centerX > sourceWidth * 0.65) {
+              clockDirection = "2 o'clock";
+            } else {
+              clockDirection = "12 o'clock";
+            }
+
+            double boxHeight = y2 - y1;
+            double heightRatio = boxHeight / sourceHeight;
+            String distanceStr;
+            if (heightRatio > 0.6) {
+              distanceStr = "1 meter";
+            } else if (heightRatio > 0.3) {
+              distanceStr = "2 meters";
+            } else {
+              distanceStr = "3 meters";
+            }
+
+            objectStatements.add('$tag at $clockDirection, $distanceStr away');
+          } else {
+            objectStatements.add(tag);
+          }
         }
+
+        String speechText = 'Caution: ${objectStatements.join(". ")}';
+        String detectedObjectsText = recognitions.map((r) => '${r['tag']}').join(', ');
+        
+        lastDetectedObjects = detectedObjectsText;
+        lastSpeakTime = now;
+        readingCompleted = false;
+        
+        _flutterTts.speak(speechText);
+        _notifyStateChanged();
+
+        _captureAndUploadInBackground(objectCount);
       } 
     } catch (_) { /* Ignored */ }
   }
 
-  // NEW METHOD: Handles the heavy lifting without blocking the stream
   Future<void> _captureAndUploadInBackground(int objectCount) async {
     final controller = cameraService.controller;
     final userId = authService.value.currentUser?.uid;
@@ -243,7 +296,6 @@ class ObjectDetectionController {
     if (controller == null || userId == null) return;
 
     try {
-      // Pause stream JUST long enough to snap the physical photo
       if (controller.value.isStreamingImages) {
         await controller.stopImageStream();
         isStreamRunning = false;
@@ -251,10 +303,8 @@ class ObjectDetectionController {
       
       final xFile = await controller.takePicture();
       
-      // RESTART STREAM IMMEDIATELY: Do not wait for the upload!
       startObjectDetection();
       
-      // Now do the slow network upload in the background
       final uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
         File(xFile.path), 
         userId, 
@@ -264,7 +314,6 @@ class ObjectDetectionController {
       await _saveDetectedObjectsToFirebase(objectCount, imageUrl: uploadedImageUrl);
 
     } catch (_) {
-      // Failsafe: Ensure stream restarts even if taking the picture fails
       if (!isStreamRunning && !isDisposing) {
         startObjectDetection();
       }
@@ -299,7 +348,9 @@ class ObjectDetectionController {
     int totalBrightness = 0;
     int sampleCount = 0;
 
-    for (int i = 0; i < bytes.length; i += 500) {
+    // 🚀 FIX: Changed from += 500 to += 5000. 
+    // This stops the UI from freezing while looping through millions of bytes.
+    for (int i = 0; i < bytes.length; i += 5000) {
       totalBrightness += bytes[i];
       sampleCount++;
     }

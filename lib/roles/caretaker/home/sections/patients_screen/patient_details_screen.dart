@@ -1,6 +1,7 @@
 // File: lib/roles/caretaker/home/sections/patients_screen/patient_details_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -75,6 +76,84 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     super.dispose();
   }
 
+  // ==================== SKELETON BUILDERS ====================
+
+  Widget _buildSkeletonDetails() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+        child: Column(
+          children: [
+            // Avatar Skeleton
+            Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+            const SizedBox(height: 16),
+            // Name Skeleton
+            Container(width: 160, height: 24, color: Colors.white),
+            const SizedBox(height: 8),
+            // Status Pill Skeleton
+            Container(width: 100, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            const SizedBox(height: 24),
+
+            // Quick Info Row Skeleton
+            Row(
+              children: [
+                Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                const SizedBox(width: 12),
+                Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Cards Skeleton
+            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            const SizedBox(height: 16),
+            Container(height: 160, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            const SizedBox(height: 16),
+            Container(height: 160, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonBottomBar(Color cardColor) {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Shimmer.fromColors(
+          baseColor: baseColor,
+          highlightColor: highlightColor,
+          child: Row(
+            children: [
+              Expanded(child: Container(height: 54, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+              const SizedBox(width: 16),
+              Expanded(child: Container(height: 54, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // ==================== UI BUILDER ====================
 
   @override
@@ -139,7 +218,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         children: [
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: primary))
+                ? _buildSkeletonDetails()
                 : SingleChildScrollView(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
@@ -206,7 +285,10 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           ),
           
           // 6. Bottom Action Bar
-          if (!_isLoading) _buildBottomActionBar(cardColor, textColor),
+          if (_isLoading)
+            _buildSkeletonBottomBar(cardColor)
+          else
+            _buildBottomActionBar(cardColor, textColor),
         ],
       ),
     );
