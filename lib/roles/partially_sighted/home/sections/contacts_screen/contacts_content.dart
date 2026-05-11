@@ -1,6 +1,8 @@
 // File: lib/roles/partially_sighted/home/sections/contacts_screen/contacts_content.dart
 
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; 
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,11 +30,8 @@ class ContactsContent extends StatefulWidget {
   State<ContactsContent> createState() => _ContactsContentState();
 }
 
-class _ContactsContentState extends State<ContactsContent> {
-  // Brand Colors
+class _ContactsContentState extends State<ContactsContent> with TickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF7C3AED);
-
-  // TTS Instance
   final FlutterTts _flutterTts = FlutterTts();
 
   StreamSubscription? _caretakersSubscription;
@@ -43,17 +42,23 @@ class _ContactsContentState extends State<ContactsContent> {
   
   bool _isLoadingCaretakers = true;
   bool _isLoadingEmergency = true;
+  bool _isSimulatingLoad = true; 
+
   String? _error;
   String? _patientId;
   final String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // 0 = All, 1 = Caretakers, 2 = SOS
   int _selectedFilterIndex = 0; 
-  
-  // Animation State
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
+
+  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
+  late AnimationController _entryController;
+  late Animation<double> _headerOpacity;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
 
   @override
   void initState() {
@@ -61,10 +66,36 @@ class _ContactsContentState extends State<ContactsContent> {
     _initializePatientId();
     _startMessageTimer();
     _initTts();
+
+    // === Initialize Animations ===
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    // Header fades & slides in
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)));
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)));
+    
+    // Mascot and Bubble pop in
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)));
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)));
+
+    // Start header animations immediately
+    _entryController.forward();
+
+    // Trigger the skeleton animation for 600ms on load
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingLoad = false;
+        });
+      }
+    });
   }
 
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("fil-PH");
+    await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -88,7 +119,11 @@ class _ContactsContentState extends State<ContactsContent> {
   String _getFirstName() {
     final name = widget.userData['name'] as String? ?? 'User';
     final parts = name.trim().split(RegExp(r'\s+'));
-    return parts.isNotEmpty ? parts.first : 'User';
+    if (parts.isNotEmpty) {
+      return parts.first;
+    } else {
+      return 'User';
+    }
   }
   
   List<String> _getMascotMessages() {
@@ -154,7 +189,6 @@ class _ContactsContentState extends State<ContactsContent> {
         }
       },
       onError: (error) {
-        debugPrint('Error loading caretakers: $error');
         if (mounted) {
           setState(() {
             _error = 'Failed to load caretakers: $error';
@@ -199,7 +233,6 @@ class _ContactsContentState extends State<ContactsContent> {
         }
       },
       onError: (err) {
-        debugPrint('Error loading emergency contacts: $err');
         if (mounted) {
           setState(() {
             _error = 'Failed to load emergency contacts: $err';
@@ -212,6 +245,7 @@ class _ContactsContentState extends State<ContactsContent> {
 
   @override
   void dispose() {
+    _entryController.dispose();
     _flutterTts.stop();
     _caretakersSubscription?.cancel();
     _emergencyContactsSubscription?.cancel();
@@ -229,15 +263,19 @@ class _ContactsContentState extends State<ContactsContent> {
     setState(() {
       _isLoadingCaretakers = true;
       _isLoadingEmergency = true;
+      _isSimulatingLoad = true;
     });
     
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 600));
     
     if (mounted) {
       setState(() {
         _isLoadingCaretakers = false;
         _isLoadingEmergency = false;
+        _isSimulatingLoad = false;
       });
+      _entryController.reset();
+      _entryController.forward();
     }
   }
 
@@ -273,7 +311,7 @@ class _ContactsContentState extends State<ContactsContent> {
           theme: widget.theme,
           onContactAdded: () {
             if (mounted) {
-              _speakMessage('Contact added successfully');
+              _speakMessage('Contact added');
             }
           },
         ),
@@ -373,28 +411,123 @@ class _ContactsContentState extends State<ContactsContent> {
             caretakerId: contact.id,
             patientId: _patientId!,
           );
-          if (!mounted) return;
-          _speakMessage('Caretaker removed successfully');
+          if (mounted) {
+            _speakMessage('Caretaker removed successfully');
+          }
         } else {
           await emergencyContactsService.removeEmergencyContact(
             userId: _patientId!,
             contactId: contact.id,
           );
-          if (!mounted) return;
-          _speakMessage('Contact deleted successfully');
+          if (mounted) {
+            _speakMessage('Contact deleted successfully');
+          }
         }
       } catch (e) {
-        if (!mounted) return;
-        _speakMessage('Failed to delete contact');
+        if (mounted) {
+          _speakMessage('Failed to delete contact');
+        }
       }
     }
+  }
+
+  // ==========================================
+  // WIDGETS: Skeleton Loaders
+  // ==========================================
+  Widget _buildSkeletonTabs() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Expanded(child: Container(height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)))),
+            const SizedBox(width: 8), 
+            Expanded(flex: 2, child: Container(height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)))), 
+            const SizedBox(width: 8),
+            Expanded(child: Container(height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonContactsList(bool isSmallScreen) {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(width: 150, height: 20, color: Colors.white), 
+          const SizedBox(height: spacingMedium),
+          ...List.generate(3, (index) => Padding(
+            padding: const EdgeInsets.only(bottom: spacingMedium),
+            child: Container(
+              padding: EdgeInsets.all(isSmallScreen ? spacingMedium : spacingLarge),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(radiusXLarge),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: isSmallScreen ? 50 : 64,
+                        height: isSmallScreen ? 50 : 64,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: spacingMedium),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(width: double.infinity, height: 16, color: Colors.white),
+                            const SizedBox(height: 8),
+                            Container(width: 100, height: 12, color: Colors.white),
+                            const SizedBox(height: 8),
+                            Container(width: 120, height: 12, color: Colors.white),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: spacingMedium),
+                  Container(width: double.infinity, height: 1, color: Colors.white),
+                  const SizedBox(height: spacingMedium),
+                  Row(
+                    children: [
+                      Expanded(child: Container(height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                      const SizedBox(width: spacingSmall),
+                      Expanded(child: Container(height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          )),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final bool isSmallScreen = width < 360; 
-    final isLoading = (_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty;
+    
+    final isLoading = _isSimulatingLoad || ((_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty);
 
     return RefreshIndicator(
       onRefresh: _refreshContacts,
@@ -402,46 +535,62 @@ class _ContactsContentState extends State<ContactsContent> {
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+          // 1. Top Section (Header & Mascot) - Always animates immediately
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: EdgeInsets.only(
-                    left: width * 0.05,
-                    right: width * 0.05,
-                    top: spacingLarge,
+                FadeTransition(
+                  opacity: _headerOpacity,
+                  child: SlideTransition(
+                    position: _headerSlide,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.05,
+                        right: width * 0.05,
+                        top: spacingLarge,
+                      ),
+                      child: _buildHeader(isSmallScreen),
+                    ),
                   ),
-                  child: _buildHeader(isSmallScreen),
                 ),
                 const SizedBox(height: spacingMedium),
                 
                 _buildMascotBanner(width, isSmallScreen),
-                
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: width * 0.05),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: spacingMedium),
-                      
-                      if (_allContacts.isNotEmpty) _buildFilterTabs(),
-                      
-                      const SizedBox(height: spacingLarge),
-                      
-                      isLoading
-                          ? _buildLoadingState()
-                          : _error != null && _allContacts.isEmpty
-                              ? _buildErrorState()
-                              : _allContacts.isEmpty
-                                  ? _buildEmptyState()
-                                  : _buildContactsList(isSmallScreen),
-                                  
-                      const SizedBox(height: 100), 
-                    ],
-                  ),
-                ),
               ],
+            ),
+          ),
+          
+          // 2. Main Content Area - Instantly shows skeleton or data
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: spacingMedium),
+                  
+                  // Filter Tabs
+                  if (isLoading) 
+                    _buildSkeletonTabs()
+                  else if (_allContacts.isNotEmpty) 
+                    _buildFilterTabs(),
+                  
+                  const SizedBox(height: spacingLarge),
+                  
+                  // Content List
+                  if (isLoading)
+                    _buildSkeletonContactsList(isSmallScreen)
+                  else if (_error != null && _allContacts.isEmpty)
+                    _buildErrorState()
+                  else if (_allContacts.isEmpty)
+                    _buildEmptyState()
+                  else
+                    _buildContactsList(isSmallScreen),
+                          
+                  const SizedBox(height: 100), 
+                ],
+              ),
             ),
           ),
         ],
@@ -522,8 +671,9 @@ class _ContactsContentState extends State<ContactsContent> {
     final displayMessage = messages[_currentMessageIndex % messages.length];
     final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
     
-    // Scale mascot size based on screen width
-    final double mascotSize = isSmallScreen ? 70 : 90;
+    final double mascotSize = (width * 0.32).clamp(100.0, 140.0);
+    final double tailBottomMargin = mascotSize * 0.214; 
+    final double bubbleBottomMargin = mascotSize * 0.128;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -533,15 +683,18 @@ class _ContactsContentState extends State<ContactsContent> {
           bottom: 0,
           left: 0,
           right: 0,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
-                  _primaryColor.withValues(alpha: 0.0),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+          child: FadeTransition(
+            opacity: _headerOpacity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
             ),
           ),
@@ -552,93 +705,107 @@ class _ContactsContentState extends State<ContactsContent> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-             Image.asset(
-                'assets/seelai-icons/seelai2.png',
-                height: 120,
-                fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: mascotSize,
-                  height: mascotSize,
-                  decoration: BoxDecoration(
-                    color: _primaryColor.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.smart_toy_outlined,
-                    color: _primaryColor,
-                    size: isSmallScreen ? 28 : 36,
+             ScaleTransition(
+                scale: _mascotScale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai2.png',
+                  height: mascotSize, 
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: mascotSize * 0.7,
+                    height: mascotSize * 0.65,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.smart_toy_outlined,
+                      color: _primaryColor,
+                      size: mascotSize * 0.3, 
+                    ),
                   ),
                 ),
               ),
               
               Container(
-                margin: const EdgeInsets.only(bottom: 40),
-                child: CustomPaint(
-                  size: const Size(12, 16),
-                  painter: _TailPainter(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                child: ScaleTransition(
+                  scale: _bubbleScale,
+                  alignment: Alignment.bottomRight,
+                  child: CustomPaint(
+                    size: const Size(12, 16),
+                    painter: _TailPainter(
+                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                    ),
                   ),
                 ),
               ),
 
               Expanded(
                 child: Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 12 : 16, 
-                    vertical: isSmallScreen ? 10 : 14
-                  ),
-                  decoration: BoxDecoration(
-                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: widget.isDarkMode ? [] : [
-                      BoxShadow(
-                        color: _primaryColor.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, 
-                    children: [
-                      Text(
-                        'Seelai',
-                        style: TextStyle(
-                          fontSize: isSmallScreen ? 12 : 14,
-                          fontWeight: FontWeight.w800,
-                          color: _primaryColor,
-                          letterSpacing: 0.5,
-                        ),
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  child: ScaleTransition(
+                    scale: _bubbleScale,
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 12 : 18, 
+                        vertical: isSmallScreen ? 10 : 20
                       ),
-                      const SizedBox(height: 6),
-                      
-                      Stack(
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: widget.isDarkMode ? [] : [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.1),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min, 
                         children: [
                           Text(
-                            longestMessage,
+                            'Seelai',
                             style: TextStyle(
-                              fontSize: isSmallScreen ? 11 : 13,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.transparent, 
-                              height: 1.4,
+                              fontSize: isSmallScreen ? 12 : 14,
+                              fontWeight: FontWeight.w800,
+                              color: _primaryColor,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          Positioned.fill(
-                            child: TypewriterText(
-                              text: displayMessage,
-                              style: TextStyle(
-                                fontSize: isSmallScreen ? 11 : 13,
-                                fontWeight: FontWeight.w500,
-                                color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
-                                height: 1.4,
+                          const SizedBox(height: 6),
+                          
+                          Stack(
+                            children: [
+                              Text(
+                                longestMessage,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 11 : 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.transparent, 
+                                  height: 1.4,
+                                ),
                               ),
-                            ),
+                              Positioned.fill(
+                                child: TypewriterText(
+                                  text: displayMessage,
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 11 : 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -655,8 +822,8 @@ class _ContactsContentState extends State<ContactsContent> {
       child: Row(
         children: [
           Expanded(child: _buildFilterPill('All', 0)),
-          const SizedBox(width: 8), // Slightly tighter spacing for small screens
-          Expanded(flex: 2, child: _buildFilterPill('Caretakers', 1)), // Give more room to longer text
+          const SizedBox(width: 8), 
+          Expanded(flex: 2, child: _buildFilterPill('Caretakers', 1)), 
           const SizedBox(width: 8),
           Expanded(child: _buildFilterPill('SOS', 2)),
         ],
@@ -667,7 +834,11 @@ class _ContactsContentState extends State<ContactsContent> {
   Widget _buildFilterPill(String label, int index) {
     bool isSelected = _selectedFilterIndex == index;
     return GestureDetector(
-      onTap: () => setState(() => _selectedFilterIndex = index),
+      onTap: () {
+        setState(() {
+          _selectedFilterIndex = index;
+        });
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4), 
@@ -689,7 +860,6 @@ class _ContactsContentState extends State<ContactsContent> {
           ] : [],
         ),
         alignment: Alignment.center,
-        // FittedBox ensures "Caretakers" won't overflow its pill on tiny screens
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
@@ -701,29 +871,6 @@ class _ContactsContentState extends State<ContactsContent> {
               letterSpacing: 0.3,
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 80),
-        child: Column(
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
-              strokeWidth: 3,
-            ),
-            const SizedBox(height: spacingLarge),
-            Text(
-              'Loading contacts...',
-              style: body.copyWith(
-                color: widget.theme.subtextColor,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -883,29 +1030,57 @@ class _ContactsContentState extends State<ContactsContent> {
     final caretakers = filteredContacts.where((c) => c.isCaretaker).toList();
     final emergencyContacts = filteredContacts.where((c) => c.isEmergencyContact).toList();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (caretakers.isNotEmpty) ...[
-          if (_selectedFilterIndex == 0) _buildSectionLabel('My Caretakers', _primaryColor),
-          const SizedBox(height: spacingMedium),
-          ...caretakers.map((contact) => Padding(
-            padding: const EdgeInsets.only(bottom: spacingMedium),
-            child: _buildContactCard(contact, isSmallScreen),
-          )),
-          if (emergencyContacts.isNotEmpty && _selectedFilterIndex == 0)
-            const SizedBox(height: spacingLarge),
-        ],
+    int globalIndex = 0; 
 
-        if (emergencyContacts.isNotEmpty) ...[
-          if (_selectedFilterIndex == 0) _buildSectionLabel('Emergency Contacts', error),
-          const SizedBox(height: spacingMedium),
-          ...emergencyContacts.map((contact) => Padding(
-            padding: const EdgeInsets.only(bottom: spacingMedium),
-            child: _buildContactCard(contact, isSmallScreen),
-          )),
+    return AnimationLimiter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (caretakers.isNotEmpty) ...[
+            if (_selectedFilterIndex == 0) _buildSectionLabel('My Caretakers', _primaryColor),
+            const SizedBox(height: spacingMedium),
+            ...caretakers.map((contact) {
+              final widget = AnimationConfiguration.staggeredList(
+                position: globalIndex++,
+                duration: const Duration(milliseconds: 375),
+                child: SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: spacingMedium),
+                      child: _buildContactCard(contact, isSmallScreen),
+                    ),
+                  ),
+                ),
+              );
+              return widget;
+            }),
+            if (emergencyContacts.isNotEmpty && _selectedFilterIndex == 0)
+              const SizedBox(height: spacingLarge),
+          ],
+
+          if (emergencyContacts.isNotEmpty) ...[
+            if (_selectedFilterIndex == 0) _buildSectionLabel('Emergency Contacts', error),
+            const SizedBox(height: spacingMedium),
+            ...emergencyContacts.map((contact) {
+              final widget = AnimationConfiguration.staggeredList(
+                position: globalIndex++,
+                duration: const Duration(milliseconds: 375),
+                child: SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: spacingMedium),
+                      child: _buildContactCard(contact, isSmallScreen),
+                    ),
+                  ),
+                ),
+              );
+              return widget;
+            }),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -1053,7 +1228,6 @@ class _ContactsContentState extends State<ContactsContent> {
                 Divider(height: 1, color: widget.theme.subtextColor.withValues(alpha: 0.15)),
                 const SizedBox(height: spacingMedium),
 
-                // Quick Actions with FittedBox text scaling
                 Row(
                   children: [
                     Expanded(
@@ -1314,7 +1488,11 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    _controller.forward();
+    
+    // Delay typewriter to sync with bubble pop-in
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override

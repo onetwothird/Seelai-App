@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:shimmer/shimmer.dart'; // NEW
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
@@ -171,7 +172,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
       await _startLocationTracking();
     } catch (e) {
       debugPrint('Error initializing location: $e');
-      // If the native code hangs, it throws a TimeoutException and lands here, unfreezing the UI!
       if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
     } finally {
       _isInitializing = false;
@@ -181,7 +181,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   Future<void> _startLocationTracking() async {
     _isTrackingActive = true; 
 
-    // ✅ FIX 1: ULTIMATE FAILSAFE. Force loading overlay to hide after 5 seconds no matter what.
     Timer(const Duration(seconds: 5), () {
       if (mounted && _isLoading) {
         setState(() => _isLoading = false);
@@ -191,12 +190,10 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     try {
       Position? startPosition;
       
-      // ✅ FIX 2: Add strict timeout to getLastKnownPosition so it cannot freeze the app
       try {
         startPosition = await Geolocator.getLastKnownPosition().timeout(const Duration(seconds: 1));
       } catch (_) {}
       
-      // ✅ FIX 3: Use 'low' accuracy for instant initial fetch to unblock the UI immediately
       if (startPosition == null) {
         try {
           startPosition = await Geolocator.getCurrentPosition(
@@ -205,7 +202,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         } catch (_) {}
       }
 
-      // Show whatever we got instantly!
       if (mounted) {
         setState(() {
           if (startPosition != null) _currentPosition = startPosition;
@@ -222,18 +218,16 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         }
       }
 
-      // Start listening to live, high-accuracy GPS in the background
       _positionStreamSubscription?.cancel();
       _positionStreamSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation, // Automatically upgrades to precise tracking
+          accuracy: LocationAccuracy.bestForNavigation,
           distanceFilter: 2, 
         ),
       ).listen(
         (Position position) async {
           if (!mounted) return;
           
-          // Pan camera if this is the first time receiving a location
           bool wasNull = _currentPosition == null; 
           
           setState(() {
@@ -255,7 +249,6 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         onError: (error) => debugPrint('Position stream error: $error'),
       );
 
-      // Periodically sync with Firebase every 10 seconds
       _updateTimer?.cancel();
       _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
         if (_currentPosition != null && _isTrackingActive && mounted) {
@@ -420,18 +413,19 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     );
   }
 
+  // === UPDATED SKELETON LOADING OVERLAY ===
   Widget _buildLoadingOverlay() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
     return Positioned.fill(
-      child: Container(
-        color: widget.isDarkMode ? const Color(0xFF1A1F3A).withValues(alpha: 0.7) : const Color(0xFFF4F4F5).withValues(alpha: 0.7),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40, width: 40, child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)), strokeWidth: 3)),
-              const SizedBox(height: 16),
-              Text('Locating...', style: TextStyle(fontWeight: FontWeight.bold, color: widget.theme.textColor, fontSize: 15, letterSpacing: 0.5)),
-            ],
+      child: Shimmer.fromColors(
+        baseColor: baseColor,
+        highlightColor: highlightColor,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white, 
+            borderRadius: BorderRadius.circular(24),
           ),
         ),
       ),

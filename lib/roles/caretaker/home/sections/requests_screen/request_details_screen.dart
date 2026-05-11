@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:shimmer/shimmer.dart'; // NEW: Imported Shimmer
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
@@ -34,6 +35,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   
   final FlutterTts _flutterTts = FlutterTts();
 
+  // === NEW: ARTIFICIAL DELAY FOR SKELETON ===
+  bool _isSimulatingLoad = true;
+
   @override
   void initState() {
     super.initState();
@@ -45,6 +49,14 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (_profileImageUrl == null) {
       _loadProfileImage();
     }
+
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingLoad = false;
+        });
+      }
+    });
   }
 
   @override
@@ -55,7 +67,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("fil-PH"); 
+      await _flutterTts.setLanguage("en-US"); 
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -96,8 +108,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             responseTime: DateTime.now(),
           );
         });
-        _showSnackbar('Request accepted!', Colors.green);
-        
+        // FIXED: showContainer is false, only TTS will trigger
+        _showSnackbar('Request accepted!', Colors.green, showContainer: false);
         await _flutterTts.speak("REQUEST ACCEPTED");
       }
     }
@@ -112,9 +124,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         setState(() {
           _currentRequest = _currentRequest.copyWith(status: RequestStatus.inProgress);
         });
-        _showSnackbar('Marked as in progress', accent);
-        
-        // ADDED: Trigger TTS for In Progress
+        // FIXED: showContainer is false
+        _showSnackbar('Marked as in progress', accent, showContainer: false);
         await _flutterTts.speak("REQUEST IN PROGRESS");
       }
     }
@@ -133,9 +144,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       setState(() => _isProcessing = false);
       if (success) {
         Navigator.pop(context);
-        _showSnackbar('Request completed!', Colors.green);
-        
-        // ADDED: Trigger TTS for Completed
+        // FIXED: showContainer is false
+        _showSnackbar('Request completed!', Colors.green, showContainer: false);
         await _flutterTts.speak("REQUEST COMPLETED");
       }
     }
@@ -154,9 +164,38 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       setState(() => _isProcessing = false);
       if (success) {
         Navigator.pop(context);
-        _showSnackbar('Request declined', error);
+        // FIXED: showContainer is false, and added TTS for decline feedback
+        _showSnackbar('Request declined', error, showContainer: false);
+        await _flutterTts.speak("REQUEST DECLINED");
       }
     }
+  }
+
+  // === NEW: SKELETON LOADER ===
+  Widget _buildSkeletonRequestDetails() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+        child: Column(
+          children: [
+            Container(width: 110, height: 110, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+            const SizedBox(height: 16),
+            Container(width: 200, height: 28, color: Colors.white),
+            const SizedBox(height: 6),
+            Container(width: 150, height: 16, color: Colors.white),
+            const SizedBox(height: 24),
+            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            const SizedBox(height: 24),
+            Container(height: 120, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          ],
+        ),
+      ),
+    );
   }
 
   // ==================== UI BUILDER ====================
@@ -207,36 +246,36 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       body: Column(
         children: [
           Expanded(
-            child: CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(horizontalPadding, 10, horizontalPadding, 20),
-                    child: Column(
-                      children: [
-                        _buildProfileHeader(textColor, subColor!),
-                        const SizedBox(height: 24),
-                        _buildKeyStatsGrid(cardColor, textColor, subColor),
-                        const SizedBox(height: 24),
-                        _buildMessageBubble(cardColor, textColor, subColor),
-                        const SizedBox(height: 24),
-                        if (_currentRequest.location != null)
-                          _buildLocationCard(cardColor, textColor),
-                      ],
-                    ),
+            child: _isSimulatingLoad 
+                ? _buildSkeletonRequestDetails()
+                : CustomScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(horizontalPadding, 10, horizontalPadding, 20),
+                          child: Column(
+                            children: [
+                              _buildProfileHeader(textColor, subColor!),
+                              const SizedBox(height: 24),
+                              _buildKeyStatsGrid(cardColor, textColor, subColor),
+                              const SizedBox(height: 24),
+                              _buildMessageBubble(cardColor, textColor, subColor),
+                              const SizedBox(height: 24),
+                              if (_currentRequest.location != null)
+                                _buildLocationCard(cardColor, textColor),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
           ),
-          _buildBottomActionArea(cardColor),
+          if (!_isSimulatingLoad) _buildBottomActionArea(cardColor),
         ],
       ),
     );
   }
-
-  // ==================== WIDGETS ====================
 
   Widget _buildProfileHeader(Color textColor, Color subColor) {
     return Column(
@@ -781,16 +820,19 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  void _showSnackbar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+  // FIXED: Added showContainer parameter to control visual popup vs TTS only
+  void _showSnackbar(String message, Color color, {bool showContainer = true}) {
+    if (showContainer) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: color,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
   }
 
   Color _getStatusColor(RequestStatus status) {

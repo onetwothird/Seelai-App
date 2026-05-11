@@ -3,10 +3,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/storage/cloudinary_service.dart'; 
-import 'package:flutter_tts/flutter_tts.dart'; // ADDED TTS
+import 'package:flutter_tts/flutter_tts.dart'; 
 
 class AddContactDialog extends StatefulWidget {
   final String patientId;
@@ -50,7 +51,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
   }
 
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("fil-PH");
+    await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -58,7 +59,7 @@ class _AddContactDialogState extends State<AddContactDialog> {
 
   @override
   void dispose() {
-    _flutterTts.stop();
+    // FIXED: Removed _flutterTts.stop() to prevent cutting off the parent's TTS
     _nameController.dispose();
     _relationshipController.dispose();
     _phoneController.dispose();
@@ -118,6 +119,31 @@ class _AddContactDialogState extends State<AddContactDialog> {
     }
   }
 
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonForm() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 90, height: 90, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+          const SizedBox(height: 24),
+          Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+          const SizedBox(height: 16),
+          Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+          const SizedBox(height: 16),
+          Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
@@ -166,93 +192,98 @@ class _AddContactDialogState extends State<AddContactDialog> {
         style: h3.copyWith(color: widget.theme.textColor),
       ),
       content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Stack(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: _isLoading 
+            ? _buildSkeletonForm()
+            : Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        color: widget.isDarkMode ? Colors.white10 : Colors.black12,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: _primaryColor.withValues(alpha: 0.5), width: 2),
-                        image: _selectedImage != null
-                            ? DecorationImage(
-                                image: FileImage(_selectedImage!),
-                                fit: BoxFit.cover,
-                              )
-                            : null,
-                      ),
-                      child: _selectedImage == null
-                          ? Icon(Icons.person_outline_rounded, size: 40, color: widget.theme.subtextColor)
-                          : null,
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _pickImage,
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: _primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: widget.theme.cardColor, width: 2),
+                    Center(
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 90,
+                            height: 90,
+                            decoration: BoxDecoration(
+                              color: widget.isDarkMode ? Colors.white10 : Colors.black12,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: _primaryColor.withValues(alpha: 0.5), width: 2),
+                              image: _selectedImage != null
+                                  ? DecorationImage(
+                                      image: FileImage(_selectedImage!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : null,
+                            ),
+                            child: _selectedImage == null
+                                ? Icon(Icons.person_outline_rounded, size: 40, color: widget.theme.subtextColor)
+                                : null,
                           ),
-                          child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
-                        ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: _primaryColor,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: widget.theme.cardColor, width: 2),
+                                ),
+                                child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildTextField(
+                      controller: _nameController,
+                      label: 'Full Name',
+                      icon: Icons.person_outline,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _relationshipController,
+                      label: 'Relationship',
+                      icon: Icons.family_restroom_rounded,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a relationship';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a phone number';
+                        }
+                        if (!RegExp(r'^[0-9+]{10,15}$').hasMatch(value)) {
+                          return 'Please enter a valid phone number';
+                        }
+                        return null;
+                      },
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              _buildTextField(
-                controller: _nameController,
-                label: 'Full Name',
-                icon: Icons.person_outline,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _relationshipController,
-                label: 'Relationship',
-                icon: Icons.family_restroom_rounded,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a relationship';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _phoneController,
-                label: 'Phone Number',
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a phone number';
-                  }
-                  if (!RegExp(r'^[0-9+]{10,15}$').hasMatch(value)) {
-                    return 'Please enter a valid phone number';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
         ),
       ),
       actions: [

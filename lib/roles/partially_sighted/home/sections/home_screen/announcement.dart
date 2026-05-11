@@ -1,6 +1,8 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/announcement.dart
 
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart'; 
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/mswd/announcement_service.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
@@ -46,8 +48,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     });
   }
 
-  // --- NEW HELPER METHOD ---
-  // Keeps tree-shaking intact by using constant IconData mapping.
   IconData _getSafeIcon(String hexCode) {
     final Map<String, IconData> safeIcons = {
       '0xef4c': Icons.notifications,
@@ -56,11 +56,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       '0xe88a': Icons.home,
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
-      // Add more known icons here...
     };
     
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; // Fallback icon
+    return safeIcons[formattedCode] ?? Icons.notifications; 
   }
 
   @override
@@ -103,14 +102,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         StreamBuilder<List<AnnouncementModel>>(
           stream: _announcementStream,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && 
-                !snapshot.hasData) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(spacingLarge),
-                  child: CircularProgressIndicator(color: primary),
-                ),
-              );
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return _buildSkeletonList();
             }
 
             if (snapshot.hasError) {
@@ -143,65 +136,128 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             final displayedAnnouncements = allAnnouncements.take(maxDisplayedAnnouncements).toList();
             final hasMoreAnnouncements = allAnnouncements.length > maxDisplayedAnnouncements;
 
-            return Column(
-              children: [
-                ...displayedAnnouncements.map((announcement) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: spacingMedium),
-                    child: _buildAnnouncementCard(announcement),
-                  );
-                }),
-
-                if (hasMoreAnnouncements)
-                  Padding(
-                    padding: const EdgeInsets.only(top: spacingSmall),
-                    child: Semantics(
-                      label: 'View all ${allAnnouncements.length} announcements',
-                      button: true,
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () => _navigateToAllAnnouncements(context, allAnnouncements),
-                          borderRadius: BorderRadius.circular(radiusMedium),
-                          child: Container(
-                            padding: const EdgeInsets.all(spacingMedium),
-                            decoration: BoxDecoration(
-                              color: widget.theme.cardColor,
-                              borderRadius: BorderRadius.circular(radiusMedium),
-                              border: Border.all(
-                                color: widget.isDarkMode 
-                                    ? Colors.white.withValues(alpha: 0.05) 
-                                    : Colors.black.withValues(alpha: 0.05),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.view_list_rounded, color: primary, size: 20),
-                                const SizedBox(width: spacingSmall),
-                                Text(
-                                  'View All Announcements (${allAnnouncements.length})',
-                                  style: bodyBold.copyWith(
-                                    fontSize: 14,
-                                    color: primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: spacingSmall),
-                                const Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+            return AnimationLimiter(
+              child: Column(
+                children: AnimationConfiguration.toStaggeredList(
+                  duration: const Duration(milliseconds: 375),
+                  childAnimationBuilder: (widget) => SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(child: widget),
                   ),
-              ],
+                  children: [
+                    ...displayedAnnouncements.map((announcement) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: spacingMedium),
+                        child: _buildAnnouncementCard(announcement),
+                      );
+                    }),
+
+                    if (hasMoreAnnouncements)
+                      Padding(
+                        padding: const EdgeInsets.only(top: spacingSmall),
+                        child: _buildViewAllButton(allAnnouncements),
+                      ),
+                  ],
+                ),
+              ),
             );
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildSkeletonList() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Column(
+      children: List.generate(3, (index) => Padding(
+        padding: const EdgeInsets.only(bottom: spacingMedium),
+        child: Shimmer.fromColors(
+          baseColor: baseColor,
+          highlightColor: highlightColor,
+          child: Container(
+            padding: const EdgeInsets.all(spacingMedium),
+            decoration: BoxDecoration(
+              color: widget.isDarkMode ? Colors.black : Colors.white,
+              borderRadius: BorderRadius.circular(radiusLarge),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(radiusMedium),
+                  ),
+                ),
+                const SizedBox(width: spacingMedium),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: double.infinity, height: 16, color: Colors.white),
+                      const SizedBox(height: 8),
+                      Container(width: 100, height: 12, color: Colors.white),
+                      const SizedBox(height: 16),
+                      Container(width: double.infinity, height: 12, color: Colors.white),
+                      const SizedBox(height: 4),
+                      Container(width: 150, height: 12, color: Colors.white),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          ),
+        ),
+      )),
+    );
+  }
+
+  Widget _buildViewAllButton(List<AnnouncementModel> allAnnouncements) {
+    return Semantics(
+      label: 'View all ${allAnnouncements.length} announcements',
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToAllAnnouncements(context, allAnnouncements),
+          borderRadius: BorderRadius.circular(radiusMedium),
+          child: Container(
+            padding: const EdgeInsets.all(spacingMedium),
+            decoration: BoxDecoration(
+              color: widget.theme.cardColor,
+              borderRadius: BorderRadius.circular(radiusMedium),
+              border: Border.all(
+                color: widget.isDarkMode 
+                    ? Colors.white.withValues(alpha: 0.05) 
+                    : Colors.black.withValues(alpha: 0.05),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.view_list_rounded, color: primary, size: 20),
+                const SizedBox(width: spacingSmall),
+                Text(
+                  'View All Announcements (${allAnnouncements.length})',
+                  style: bodyBold.copyWith(
+                    fontSize: 14,
+                    color: primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: spacingSmall),
+                const Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -274,7 +330,6 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   Widget _buildAnnouncementCard(AnnouncementModel announcement) {
     String timeAgo = _getTimeAgo(announcement.timestamp);
     
-    // FIX: Using the safe constant map instead of int.parse
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
 

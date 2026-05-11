@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'; 
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shimmer/shimmer.dart'; 
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/urgent_alerts_section.dart';
 import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -42,6 +43,10 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   StreamSubscription<DatabaseEvent>? _requestsSubscription;
   late Future<Map<String, int>> _dashboardStatsFuture; 
   
+  // Loading State for Skeleton
+  bool _isSimulatingDashboardLoad = true;
+  bool _isLoadingStats = true;
+  
   // Scroll Navigation State
   bool _isNavVisible = true;
 
@@ -49,7 +54,24 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   void initState() {
     super.initState();
     _startPendingRequestsListener();
+    
+    // Track the future completion for the skeleton
     _dashboardStatsFuture = adminService.getUserStatistics(); 
+    _dashboardStatsFuture.then((_) {
+      if (mounted) setState(() => _isLoadingStats = false);
+    }).catchError((error) {
+      debugPrint('Error loading stats: $error');
+      if (mounted) setState(() => _isLoadingStats = false);
+    });
+
+    // Simulate an initial load to ensure a smooth transition
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingDashboardLoad = false;
+        });
+      }
+    });
   }
 
   void _startPendingRequestsListener() {
@@ -80,11 +102,32 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     });
   }
 
+  // ==========================================
+  // UPDATED: Navigation Logic to Trigger Skeleton
+  // ==========================================
   void _onNavItemTapped(int index) {
+    if (_selectedIndex == index) return; // Prevent reloading if tapping the same tab
+
     setState(() {
       _selectedIndex = index;
-      _isNavVisible = true; // --- Ensures nav returns when switching tabs ---
+      _isNavVisible = true; 
+      
+      // Force the skeleton to turn ON whenever we switch back to the Dashboard
+      if (index == 0) {
+        _isSimulatingDashboardLoad = true;
+      }
     });
+
+    // Turn the skeleton OFF after a short delay to create the loading animation
+    if (index == 0) {
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          setState(() {
+            _isSimulatingDashboardLoad = false;
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -157,7 +200,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       child: Scaffold(
         extendBody: true,
         
-        // --- ONLY SHOW "ADD FACE/OBJECT" HERE ---
         floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
         floatingActionButton: _isNavVisible 
             ? (_selectedIndex != 2 ? _buildAddFaceObjectFab(context) : null)
@@ -167,7 +209,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           decoration: BoxDecoration(gradient: theme.backgroundGradient),
           child: SafeArea(
             bottom: false,
-            // --- WE WRAPPED THIS IN A STACK SO WE CAN PIN THE BUTTON TO THE BOTTOM ---
             child: Stack(
               children: [
                 Positioned.fill(
@@ -201,13 +242,9 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                   ),
                 ),
                 
-                // ==========================================
-                // FLOATING "SHOW MENU" BUTTON (RESTRICTED TO TAB 3)
-                // ==========================================
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOutCubic,
-                  // Hide if nav is visible OR if NOT on the Location Tracker tab
                   bottom: (_isNavVisible || _selectedIndex != 3) 
                       ? -100 
                       : MediaQuery.of(context).padding.bottom + 20,
@@ -217,7 +254,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                     child: _buildShowMenuFab(),
                   ),
                 ),
-                // ==========================================
               ],
             ),
           ),
@@ -254,7 +290,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         onProfileTap: () {
           setState(() {
             _selectedIndex = 4;
-            _isNavVisible = true; // --- Ensures nav returns when tapping profile ---
+            _isNavVisible = true; 
           });
         },
         onNotificationTap: () {
@@ -339,21 +375,109 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         );
     }
     
-    // Tab 1 (Users), Tab 2 (Requests), and Tab 3 (Location) 
-    // already have their own built-in scrolling mechanics.
     if (_selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 3) {
       return content;
     }
     
-    // Only wrap Tab 0 (Dashboard) and Tab 4 (More/Profile) 
-    // in the global scroll view.
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(), 
       child: content,
     );
   }
 
- Widget _buildDashboardContent(double width, _AppTheme theme) {
+  // =========================================================================
+  // DASHBOARD SKELETON BUILDER
+  // =========================================================================
+
+  Widget _buildSkeletonDashboard(double width, _AppTheme theme) {
+    final baseColor = _isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = _isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: width * 0.05,
+          right: width * 0.05,
+          top: 16, 
+          bottom: 120, 
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Dashboard Stats Skeleton 
+            Row(
+              children: [
+                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+                const SizedBox(width: 12),
+                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+                const SizedBox(width: 12),
+                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(height: 220, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            
+            const SizedBox(height: 32),
+
+            // Quick Actions Skeleton
+            Container(width: 130, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            const SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.generate(4, (index) => Padding(
+                  padding: const EdgeInsets.only(right: 24),
+                  child: Column(
+                    children: [
+                      Container(width: 60, height: 60, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                      const SizedBox(height: 8),
+                      Container(width: 50, height: 12, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                    ],
+                  ),
+                )),
+              ),
+            ),
+
+            const SizedBox(height: 40),
+
+            // Urgent Alerts Skeleton
+            Container(width: 160, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            const SizedBox(height: 16),
+            Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+
+            const SizedBox(height: 32),
+
+            // Announcements Skeleton
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(width: 140, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+                Container(width: 80, height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            const SizedBox(height: 12),
+            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDashboardContent(double width, _AppTheme theme) {
+    if (_isSimulatingDashboardLoad || _isLoadingStats) {
+      return _buildSkeletonDashboard(width, theme);
+    }
+
     return Padding(
       padding: EdgeInsets.only(
         left: width * 0.05,

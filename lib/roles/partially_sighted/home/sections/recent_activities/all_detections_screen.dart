@@ -1,6 +1,8 @@
 // File: lib/roles/partially_sighted/home/sections/recent_activities/all_detections_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
+import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/themes/constants.dart';
 import 'detection_detail_screen.dart';
 
@@ -25,12 +27,18 @@ class AllDetectionsScreen extends StatefulWidget {
 class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
   String _selectedFilter = 'All';
   List<Map<String, dynamic>> _filteredDetections = [];
+  bool _isSimulatingLoad = true; // Added loading state
 
   @override
   void initState() {
     super.initState();
     _selectedFilter = widget.selectedFilter;
     _updateFilteredDetections();
+
+    // Simulate a brief loading period to show the skeleton
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) setState(() => _isSimulatingLoad = false);
+    });
   }
 
   void _updateFilteredDetections() {
@@ -52,6 +60,77 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
         }).toList();
       }
     });
+  }
+
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonList(double width) {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: ListView.builder(
+        padding: EdgeInsets.only(
+          left: width * 0.06,
+          right: width * 0.06,
+          bottom: spacingLarge,
+          top: spacingMedium,
+        ),
+        itemCount: 4,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: EdgeInsets.only(bottom: spacingLarge),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(radiusLarge),
+                border: Border.all(
+                  color: widget.theme.subtextColor.withOpacity(0.15),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image/Gradient Placeholder
+                  Container(
+                    width: double.infinity,
+                    height: 180,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(radiusLarge)),
+                    ),
+                  ),
+                  // Text Content Placeholder
+                  Padding(
+                    padding: EdgeInsets.all(spacingLarge),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(width: 120, height: 20, color: Colors.white),
+                            Container(width: 60, height: 14, color: Colors.white),
+                          ],
+                        ),
+                        SizedBox(height: spacingSmall),
+                        Container(width: double.infinity, height: 14, color: Colors.white),
+                        SizedBox(height: 4),
+                        Container(width: 200, height: 14, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   @override
@@ -87,7 +166,6 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
       ),
       body: Column(
         children: [
-          // Filter chips
           Container(
             padding: EdgeInsets.symmetric(
               horizontal: width * 0.06,
@@ -96,7 +174,6 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
             child: _buildFilterChips(),
           ),
 
-          // Detection count
           Padding(
             padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: spacingSmall),
             child: Row(
@@ -113,26 +190,38 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
             ),
           ),
 
-          // Detections Feed
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              child: _filteredDetections.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      key: ValueKey(_selectedFilter),
-                      padding: EdgeInsets.only(
-                        left: width * 0.06,
-                        right: width * 0.06,
-                        bottom: spacingLarge,
-                        top: spacingMedium,
+              child: _isSimulatingLoad
+                ? _buildSkeletonList(width)
+                : _filteredDetections.isEmpty
+                    ? _buildEmptyState()
+                    : AnimationLimiter(
+                        child: ListView.builder(
+                          key: ValueKey(_selectedFilter),
+                          padding: EdgeInsets.only(
+                            left: width * 0.06,
+                            right: width * 0.06,
+                            bottom: spacingLarge,
+                            top: spacingMedium,
+                          ),
+                          itemCount: _filteredDetections.length,
+                          itemBuilder: (context, index) {
+                            final detection = _filteredDetections[index];
+                            return AnimationConfiguration.staggeredList(
+                              position: index,
+                              duration: const Duration(milliseconds: 375),
+                              child: SlideAnimation(
+                                verticalOffset: 50.0,
+                                child: FadeInAnimation(
+                                  child: _buildVisualFeedCard(detection),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                      itemCount: _filteredDetections.length,
-                      itemBuilder: (context, index) {
-                        final detection = _filteredDetections[index];
-                        return _buildVisualFeedCard(detection);
-                      },
-                    ),
             ),
           ),
         ],
@@ -159,7 +248,12 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
               onTap: () {
                 setState(() {
                   _selectedFilter = filter['label'] as String;
+                  _isSimulatingLoad = true; // Trigger skeleton on filter change
                   _updateFilteredDetections();
+                  
+                  Future.delayed(const Duration(milliseconds: 400), () {
+                    if (mounted) setState(() => _isSimulatingLoad = false);
+                  });
                 });
               },
               borderRadius: BorderRadius.circular(radiusLarge),
@@ -206,7 +300,6 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
     );
   }
 
-  // 👇 The entirely new, highly visual feed card design
   Widget _buildVisualFeedCard(Map<String, dynamic> detection) {
     final type = detection['type'] as String;
     final color = detection['color'] as Color;
@@ -232,7 +325,11 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
           final firstObject = objects.first['label'] as String;
           detectedLabel = '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
           final conf = objects.first['confidence'];
-          description = conf != null ? 'Confidence: ${(conf * 100).toStringAsFixed(1)}%' : 'Detected successfully';
+          if (conf != null) {
+            description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
+          } else {
+            description = 'Detected successfully';
+          }
         } else {
           detectedLabel = 'Object';
           description = 'No objects found';
@@ -242,7 +339,11 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
         final text = detection['text'] as String? ?? '';
         title = 'Text Scan';
         detectedLabel = 'Document';
-        description = text.length > 50 ? '${text.substring(0, 50)}...' : text;
+        if (text.length > 50) {
+          description = '${text.substring(0, 50)}...';
+        } else {
+          description = text;
+        }
         break;
     }
 
@@ -276,7 +377,6 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Full Width Image Header
               if (imageUrl != null && imageUrl.isNotEmpty)
                 Container(
                   width: double.infinity,
@@ -294,7 +394,6 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                           child: Icon(Icons.broken_image_rounded, size: 40, color: widget.theme.subtextColor),
                         ),
                       ),
-                      // Type Badge Overlay
                       Positioned(
                         top: spacingMedium,
                         right: spacingMedium,
@@ -326,7 +425,6 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                   ),
                 )
               else
-                // Fallback Header
                 Container(
                   width: double.infinity,
                   height: 100,
@@ -342,7 +440,6 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                   ),
                 ),
 
-              // 2. Info Section
               Padding(
                 padding: EdgeInsets.all(spacingLarge),
                 child: Column(

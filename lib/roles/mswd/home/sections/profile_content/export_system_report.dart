@@ -1,11 +1,12 @@
 // File: lib/roles/mswd/home/sections/profile_content/export_system_report.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Needed to load assets for the PDF
+import 'package:flutter/services.dart'; 
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/firebase/firebase_services.dart';
 
 class ExportSystemReportScreen extends StatefulWidget {
@@ -32,8 +33,18 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
   bool _includePendingApprovals = true;
   String _selectedDateRange = 'Last 30 Days';
   bool _isGenerating = false;
+  
+  bool _isSimulatingLoad = true; // Added skeleton state
 
   final List<String> _dateRanges = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'All Time'];
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) setState(() => _isSimulatingLoad = false);
+    });
+  }
 
   Future<void> _generateAndDownloadReport() async {
     if (!_includeUserStats && !_includeRecentLogs && !_includePendingApprovals) {
@@ -50,7 +61,6 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
       final adminName = widget.userData['name'] ?? 'MSWD Administrator';
       final department = widget.userData['department'] ?? 'MSWD General';
       
-      // 1. Load the SEELAI Logo from assets
       pw.MemoryImage? logoImage;
       try {
         final ByteData bytes = await rootBundle.load('assets/seelai_app_logo/seelai_app_logo.png');
@@ -59,7 +69,6 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
         debugPrint('Could not load logo image for PDF: $e');
       }
 
-      // 2. Fetch Data based on selections
       Map<String, int>? userStats;
       List<Map<String, dynamic>>? logs;
       List<Map<String, dynamic>>? pendingCaretakers;
@@ -87,7 +96,6 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
         pendingCaretakers = await adminService.getPendingCaretakers();
       }
 
-      // 3. Build the PDF
       doc.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -196,7 +204,6 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
     }
   }
 
-  // --- PDF Helper Widgets ---
   pw.Widget _buildPdfHeader(String adminName, String department, pw.MemoryImage? logoImage) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -205,12 +212,11 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           crossAxisAlignment: pw.CrossAxisAlignment.end,
           children: [
-            // Left Side: Logo and Title
             pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
                 if (logoImage != null) ...[
-                  pw.ClipOval( // Makes the logo circular
+                  pw.ClipOval(
                     child: pw.Image(logoImage, width: 38, height: 38, fit: pw.BoxFit.cover),
                   ),
                   pw.SizedBox(width: 12),
@@ -224,7 +230,6 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                 ),
               ],
             ),
-            // Right Side: Metadata
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
@@ -267,7 +272,40 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
     );
   }
 
-  // --- Flutter UI ---
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonExport() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 250, height: 24, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(width: double.infinity, height: 14, color: Colors.white),
+            const SizedBox(height: 4),
+            Container(width: 200, height: 14, color: Colors.white),
+            const SizedBox(height: 32),
+            Container(height: 220, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            const SizedBox(height: 24),
+            Container(width: 180, height: 16, color: Colors.white),
+            const SizedBox(height: 12),
+            Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            const SizedBox(height: 48),
+            Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final Color bgColor = widget.isDarkMode ? const Color(0xFF121212) : Colors.white;
@@ -290,149 +328,148 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
           style: TextStyle(color: textColor, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5),
         ),
       ),
-      body: _isGenerating 
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(color: _primaryColor),
-                const SizedBox(height: 20),
-                Text('Compiling system data...', style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Text('This may take a moment depending on the data size.', style: TextStyle(color: subTextColor, fontSize: 13)),
-              ],
-            ),
-          )
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Configure Report Options',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Select the specific modules and timeframes you want to include in your official exported document.',
-                  style: TextStyle(fontSize: 14, color: subTextColor, height: 1.5),
-                ),
-                const SizedBox(height: 32),
-
-                // Checkboxes
-                Container(
-                  decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                    boxShadow: widget.isDarkMode ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+      body: _isSimulatingLoad 
+        ? _buildSkeletonExport() 
+        : _isGenerating 
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: _primaryColor),
+                  const SizedBox(height: 20),
+                  Text('Compiling system data...', style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Text('This may take a moment depending on the data size.', style: TextStyle(color: subTextColor, fontSize: 13)),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Configure Report Options',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor),
                   ),
-                  child: Column(
-                    children: [
-                      _buildCheckboxTile(
-                        title: 'User Demographics & Statistics',
-                        subtitle: 'Total counts of patients, caretakers, and active statuses.',
-                        icon: Icons.pie_chart_rounded,
-                        value: _includeUserStats,
-                        onChanged: (val) => setState(() => _includeUserStats = val ?? false),
-                        textColor: textColor,
-                        subTextColor: subTextColor,
-                      ),
-                      Divider(height: 1, indent: 56, color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                      _buildCheckboxTile(
-                        title: 'Pending Caretaker Approvals',
-                        subtitle: 'List of caretakers currently awaiting MSWD verification.',
-                        icon: Icons.how_to_reg_rounded,
-                        value: _includePendingApprovals,
-                        onChanged: (val) => setState(() => _includePendingApprovals = val ?? false),
-                        textColor: textColor,
-                        subTextColor: subTextColor,
-                      ),
-                      Divider(height: 1, indent: 56, color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                      _buildCheckboxTile(
-                        title: 'System Activity Logs',
-                        subtitle: 'Detailed chronological record of system events and alerts.',
-                        icon: Icons.history_rounded,
-                        value: _includeRecentLogs,
-                        onChanged: (val) => setState(() => _includeRecentLogs = val ?? false),
-                        textColor: textColor,
-                        subTextColor: subTextColor,
-                      ),
-                    ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'Select the specific modules and timeframes you want to include in your official exported document.',
+                    style: TextStyle(fontSize: 14, color: subTextColor, height: 1.5),
                   ),
-                ),
+                  const SizedBox(height: 32),
 
-                const SizedBox(height: 24),
-
-                // Date Range Dropdown
-                AnimatedOpacity(
-                  opacity: _includeRecentLogs ? 1.0 : 0.3,
-                  duration: const Duration(milliseconds: 200),
-                  child: IgnorePointer(
-                    ignoring: !_includeRecentLogs,
+                  Container(
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                      boxShadow: widget.isDarkMode ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Data Timeframe (For Logs)',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor),
+                        _buildCheckboxTile(
+                          title: 'User Demographics & Statistics',
+                          subtitle: 'Total counts of patients, caretakers, and active statuses.',
+                          icon: Icons.pie_chart_rounded,
+                          value: _includeUserStats,
+                          onChanged: (val) => setState(() => _includeUserStats = val ?? false),
+                          textColor: textColor,
+                          subTextColor: subTextColor,
                         ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade300),
+                        Divider(height: 1, indent: 56, color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                        _buildCheckboxTile(
+                          title: 'Pending Caretaker Approvals',
+                          subtitle: 'List of caretakers currently awaiting MSWD verification.',
+                          icon: Icons.how_to_reg_rounded,
+                          value: _includePendingApprovals,
+                          onChanged: (val) => setState(() => _includePendingApprovals = val ?? false),
+                          textColor: textColor,
+                          subTextColor: subTextColor,
+                        ),
+                        Divider(height: 1, indent: 56, color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                        _buildCheckboxTile(
+                          title: 'System Activity Logs',
+                          subtitle: 'Detailed chronological record of system events and alerts.',
+                          icon: Icons.history_rounded,
+                          value: _includeRecentLogs,
+                          onChanged: (val) => setState(() => _includeRecentLogs = val ?? false),
+                          textColor: textColor,
+                          subTextColor: subTextColor,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  AnimatedOpacity(
+                    opacity: _includeRecentLogs ? 1.0 : 0.3,
+                    duration: const Duration(milliseconds: 200),
+                    child: IgnorePointer(
+                      ignoring: !_includeRecentLogs,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Data Timeframe (For Logs)',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor),
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              isExpanded: true,
-                              value: _selectedDateRange,
-                              dropdownColor: cardColor,
-                              icon: Icon(Icons.calendar_today_rounded, color: _primaryColor, size: 18),
-                              style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
-                              items: _dateRanges.map((String value) {
-                                return DropdownMenuItem<String>(value: value, child: Text(value));
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) setState(() => _selectedDateRange = newValue);
-                              },
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: cardColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade300),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                isExpanded: true,
+                                value: _selectedDateRange,
+                                dropdownColor: cardColor,
+                                icon: Icon(Icons.calendar_today_rounded, color: _primaryColor, size: 18),
+                                style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                                items: _dateRanges.map((String value) {
+                                  return DropdownMenuItem<String>(value: value, child: Text(value));
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  if (newValue != null) setState(() => _selectedDateRange = newValue);
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 48),
+                  const SizedBox(height: 48),
 
-                // Generate Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _generateAndDownloadReport,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: widget.isDarkMode ? 0 : 4,
-                      shadowColor: _primaryColor.withValues(alpha: 0.4),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(Icons.auto_awesome_rounded, color: Colors.white),
-                        SizedBox(width: 12),
-                        Text('Generate & Export Document', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                      ],
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _generateAndDownloadReport,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        elevation: widget.isDarkMode ? 0 : 4,
+                        shadowColor: _primaryColor.withValues(alpha: 0.4),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.auto_awesome_rounded, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text('Generate & Export Document', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
     );
   }
 

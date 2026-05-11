@@ -38,25 +38,19 @@ class PartiallySightedHomeScreen extends StatefulWidget {
 
 class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen> 
     with SingleTickerProviderStateMixin {
-  // Services
   late final CameraService _cameraService;
   late final PermissionService _permissionService;
   late final AccessibilityService _accessibilityService;
   late final AssistanceRequestService _assistanceRequestService;
   
-  // UI State
   bool _isDarkMode = false;
   int _selectedIndex = 0;
   int _unreadNotificationCount = 0;
   
-  // Animation
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   
-  // Scroll Navigation State
   bool _isNavVisible = true;
-  
-  // Stream subscription
   StreamSubscription? _requestsSubscription;
 
   @override
@@ -90,7 +84,9 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
 
   void _setupRequestListener() {
     final userId = widget.userData['uid'] as String?;
-    if (userId == null || userId.isEmpty) return;
+    if (userId == null || userId.isEmpty) {
+      return;
+    }
 
     _requestsSubscription = _assistanceRequestService
         .streamPatientRequests(userId)
@@ -98,9 +94,10 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
       if (mounted) {
         final now = DateTime.now();
 
-        // 1. Calculate Unread Count (matches Bottom Sheet logic perfectly)
         final newNotifications = requests.where((req) {
-          if (req.status == RequestStatus.accepted || req.status == RequestStatus.inProgress) return true;
+          if (req.status == RequestStatus.accepted || req.status == RequestStatus.inProgress) {
+            return true;
+          }
           if (req.status == RequestStatus.declined) {
             final time = req.responseTime ?? req.timestamp;
             return now.difference(time).inHours < 24;
@@ -112,7 +109,6 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
           _unreadNotificationCount = newNotifications.length;
         });
 
-        // 2. Accessibility Announcement (only for freshly accepted requests < 1 min old)
         final newlyAccepted = newNotifications.where((req) => 
           req.status == RequestStatus.accepted && 
           req.responseTime != null &&
@@ -128,11 +124,8 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
 
   Future<void> _requestPermissionsAndInitialize() async {
     final result = await _permissionService.requestAllPermissions();
-    
-    if (mounted) {
-      if (result.hasAllPermissions) {
-        await _initializeCamera();
-      }
+    if (mounted && result.hasAllPermissions) {
+      await _initializeCamera();
     }
   }
 
@@ -144,17 +137,15 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
     setState(() {
       _isDarkMode = !_isDarkMode;
     });
-    
-    _accessibilityService.announce(
-      _isDarkMode ? 'Dark mode enabled' : 'Light mode enabled'
-    );
+    _accessibilityService.announce(_isDarkMode ? 'Dark mode enabled' : 'Light mode enabled');
   }
 
   void _openNotifications() {
     _accessibilityService.announce('Opening notifications');
-    
     final userId = widget.userData['uid'] as String?;
-    if (userId == null) return;
+    if (userId == null) {
+      return;
+    }
 
     showModalBottomSheet(
       context: context,
@@ -170,7 +161,6 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
       ),
     ).then((_) {
       if (mounted) {
-        // Optional: clear count locally when bottom sheet closes
         setState(() {
           _unreadNotificationCount = 0;
         });
@@ -187,7 +177,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
     _animationController.reset();
     setState(() {
       _selectedIndex = index;
-      _isNavVisible = true; // --- Ensures nav returns when switching tabs ---
+      _isNavVisible = true; 
     });
     _animationController.forward();
     
@@ -263,9 +253,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) => const OnboardingScreen(),
-                  ),
+                  MaterialPageRoute(builder: (context) => const OnboardingScreen()),
                   (route) => false, 
                 );
               }
@@ -293,7 +281,7 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
       },
       textColor: theme.textColor,
       subtextColor: theme.subtextColor,
-      unreadNotificationCount: _unreadNotificationCount, // Passed directly here!
+      unreadNotificationCount: _unreadNotificationCount, 
     );
   }
 
@@ -310,7 +298,9 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
       child: PopScope(
         canPop: false, 
         onPopInvokedWithResult: (bool didPop, Object? result) async {
-          if (didPop) return; 
+          if (didPop) {
+            return; 
+          }
 
           final bool shouldPop = await _onWillPop();
           
@@ -374,9 +364,13 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
               child: NotificationListener<UserScrollNotification>(
                 onNotification: (notification) {
                   if (notification.direction == ScrollDirection.forward) {
-                    if (!_isNavVisible) setState(() => _isNavVisible = true);
+                    if (!_isNavVisible) {
+                      setState(() => _isNavVisible = true);
+                    }
                   } else if (notification.direction == ScrollDirection.reverse) {
-                    if (_isNavVisible) setState(() => _isNavVisible = false);
+                    if (_isNavVisible) {
+                      setState(() => _isNavVisible = false);
+                    }
                   }
                   return false; 
                 },
@@ -424,61 +418,71 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
   Widget _buildMainContent(double width, double height, _AppTheme theme, String userName) {
     final userId = widget.userData['uid'] as String? ?? '';
     
+    // === NEW LOGIC: ALL TABS LAZY LOAD SO ANIMATIONS REPLAY ===
     return IndexedStack(
       index: _selectedIndex,
       children: [
-        // Tab 0: Home Content
-        SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(theme, userName),
-              HomeContent(
-                cameraService: _cameraService,
-                permissionService: _permissionService,
-                isDarkMode: _isDarkMode,
-                theme: theme,
-                onNotificationUpdate: _updateNotification,
-                userData: widget.userData,
-              ),
-            ],
-          ),
-        ),
+        // Tab 0: Home Content (Now conditionally rendered so it replays animations!)
+        _selectedIndex == 0
+            ? SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(theme, userName),
+                    HomeContent(
+                      cameraService: _cameraService,
+                      permissionService: _permissionService,
+                      isDarkMode: _isDarkMode,
+                      theme: theme,
+                      onNotificationUpdate: _updateNotification,
+                      userData: widget.userData,
+                    ),
+                  ],
+                ),
+              )
+            : const SizedBox.shrink(),
         
         // Tab 1: Contacts Content 
-        ContactsContent(
-          isDarkMode: _isDarkMode,
-          theme: theme,
-          userData: widget.userData,
-        ),
-        
-        // Tab 2: Scanner 
-        const SizedBox.shrink(),
-        
-        // Tab 3: Recent Activities
-        SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ViewRecentActivities(
+        _selectedIndex == 1 
+            ? ContactsContent(
                 isDarkMode: _isDarkMode,
                 theme: theme,
-                userId: userId, 
-              ),
-            ],
-          ),
-        ),
+                userData: widget.userData,
+              )
+            : const SizedBox.shrink(),
+        
+        // Tab 2: Scanner (Managed separately)
+        const SizedBox.shrink(),
+        
+        // Tab 3: Recent Activities 
+        _selectedIndex == 3
+            ? SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ViewRecentActivities(
+                      isDarkMode: _isDarkMode,
+                      theme: theme,
+                      userId: userId, 
+                    ),
+                  ],
+                ),
+              )
+            : const SizedBox.shrink(),
+
         // Tab 4: Profile Content 
-        SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          child: ProfileContent(
-            userData: widget.userData,
-            isDarkMode: _isDarkMode,
-            theme: theme,
-          ),
-        ),
+        _selectedIndex == 4
+            ? SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ProfileContent(
+                  userData: widget.userData,
+                  isDarkMode: _isDarkMode,
+                  theme: theme,
+                ),
+              )
+            : const SizedBox.shrink(),
       ],
     );
   }

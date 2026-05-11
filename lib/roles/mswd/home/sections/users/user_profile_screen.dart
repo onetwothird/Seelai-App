@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_tts/flutter_tts.dart'; 
 
 class UserProfileScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -28,15 +30,29 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? _fullUserData;
   bool _isLoading = true;
-  bool _isProcessingAction = false; // For approve/reject loading state
+  bool _isProcessingAction = false; 
   final ScrollController _scrollController = ScrollController();
   bool _isScrolled = false;
+  
+  final FlutterTts _flutterTts = FlutterTts();
 
   @override
   void initState() {
     super.initState();
     _loadFullUserData();
     _scrollController.addListener(_onScroll);
+    _initTts();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5); 
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  Future<void> _speak(String text) async {
+    await _flutterTts.speak(text);
   }
 
   void _onScroll() {
@@ -52,7 +68,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final userId = widget.selectedUser['userId'] ?? widget.selectedUser['uid'];
       final role = widget.selectedUser['role'];
 
-      // If we don't have enough info to load detailed data, just use what we have
       if (userId == null || role == null) {
         setState(() {
           _fullUserData = widget.selectedUser;
@@ -65,7 +80,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (mounted) {
         setState(() {
           _fullUserData = data;
-          // Ensure ID is preserved if missing in fetched data but present in selectedUser
           _fullUserData?['userId'] = userId; 
           _isLoading = false;
         });
@@ -78,6 +92,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   void dispose() {
+    _flutterTts.stop(); 
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
@@ -85,6 +100,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _handleCallUser() async {
     if (_fullUserData == null) return;
+    
+    final name = _fullUserData?['name'] ?? 'the user';
+    await _speak("Calling $name");
+    
+    // GUARD FOR ASYNC GAP
+    if (!mounted) return;
     
     await MswdCallService.call(
       context: context,
@@ -94,8 +115,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  // ==================== VERIFICATION HANDLERS ====================
-
   Future<void> _handleApproveCaretaker() async {
     final userId = _fullUserData?['userId'];
     if (userId == null) return;
@@ -104,11 +123,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       await adminService.approveCaretaker(userId);
       
+      // GUARD FOR ASYNC GAP (Already handled by if (mounted))
       if (mounted) {
+        _speak("Caretaker approved successfully");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Caretaker approved successfully'), backgroundColor: Colors.green),
         );
-        // Refresh local data to show updated status
         await _loadFullUserData();
         if (widget.onDataChanged != null) widget.onDataChanged!();
       }
@@ -127,7 +147,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final userId = _fullUserData?['userId'];
     if (userId == null) return;
 
-    // Show confirmation dialog for rejection
     final shouldReject = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -150,11 +169,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     try {
       await adminService.rejectCaretaker(userId);
       
+      // GUARD FOR ASYNC GAP
       if (mounted) {
+        _speak("Caretaker application rejected");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Caretaker application rejected'), backgroundColor: Colors.orange),
         );
-        Navigator.pop(context); // Close profile screen
+        Navigator.pop(context); 
         if (widget.onDataChanged != null) widget.onDataChanged!();
       }
     } catch (e) {
@@ -167,20 +188,48 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  // ==================== UI BUILDER ====================
+  Widget _buildProfileSkeleton() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
+        child: Column(
+          children: [
+            Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+            const SizedBox(height: 16),
+            Container(width: 150, height: 24, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(width: 80, height: 20, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                const SizedBox(width: 12),
+                Expanded(child: Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            const SizedBox(height: 16),
+            Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Theme Colors matching PatientDetailsScreen logic
     final bgColor = widget.isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
     final cardColor = widget.theme.cardColor;
     final textColor = widget.theme.textColor;
     
-    // Determine Role for UI logic
     final role = widget.selectedUser['role'];
     final isCaretaker = role == 'caretaker';
-    
-    // Check if Pending (Caretaker AND approved is explicitly false)
     final isPending = isCaretaker && (_fullUserData?['approved'] == false);
 
     return Scaffold(
@@ -234,14 +283,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         children: [
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: primary))
+                ? _buildProfileSkeleton()
                 : SingleChildScrollView(
                     controller: _scrollController,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
                     child: Column(
                       children: [
-                        // PENDING BANNER
                         if (isPending) ...[
                           Container(
                             width: double.infinity,
@@ -276,22 +324,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           const SizedBox(height: 24),
                         ],
 
-                        // 1. Header Profile
                         _buildProfileHeader(textColor),
-                        
                         const SizedBox(height: 24),
-                        
-                        // 2. Quick Info Row (Age/Gender)
                         _buildQuickInfoRow(cardColor, textColor),
-
                         const SizedBox(height: 20),
 
-                        // 3. Medical Information Card (Only for Patients)
                         if (!isCaretaker) ...[
                           _buildSectionCard(
                             title: 'Medical Information',
                             icon: Icons.medical_services_rounded,
-                            color: const Color(0xFF8B5CF6), // Updated purple color
+                            color: const Color(0xFF8B5CF6), 
                             children: [
                               _buildInfoRow('Disability', _fullUserData?['disabilityType'] ?? 'N/A', textColor),
                               _buildInfoRow('Diagnosis', _fullUserData?['diagnosis'] ?? 'Not specified', textColor),
@@ -302,11 +344,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           const SizedBox(height: 16),
                         ],
 
-                        // 4. Contact Information Card
                         _buildSectionCard(
                           title: 'Contact Details',
                           icon: Icons.contact_phone_rounded,
-                          color: const Color(0xFF8B5CF6), // Updated purple color
+                          color: const Color(0xFF8B5CF6), 
                           children: [
                             _buildInfoRow('Phone', _fullUserData?['contactNumber'] ?? 'N/A', textColor),
                             _buildInfoRow('Address', _fullUserData?['address'] ?? 'N/A', textColor, isMultiline: true),
@@ -319,11 +360,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
                         const SizedBox(height: 16),
 
-                        // 5. Account/System Info
                         _buildSectionCard(
                           title: 'Account Info',
                           icon: Icons.shield_rounded,
-                          color: const Color(0xFF8B5CF6), // Updated purple color
+                          color: const Color(0xFF8B5CF6), 
                           children: [
                             _buildInfoRow('Status', (_fullUserData?['isActive'] ?? true) ? 'Active' : 'Inactive', textColor),
                              if (isCaretaker)
@@ -340,17 +380,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ),
           ),
           
-          // 6. Bottom Action Bar (Conditional)
           if (!_isLoading) 
              isPending 
-                ? _buildVerificationBar(cardColor) // Show Approve/Reject
-                : _buildBottomActionBar(cardColor, textColor), // Standard Call/Location
+                ? _buildVerificationBar(cardColor) 
+                : _buildBottomActionBar(cardColor, textColor), 
         ],
       ),
     );
   }
-
-  // ==================== WIDGETS ====================
 
   Widget _buildProfileHeader(Color textColor) {
     final profileImageUrl = _fullUserData?['profileImageUrl'];
@@ -451,7 +488,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildQuickInfoRow(Color cardColor, Color textColor) {
     final sex = _fullUserData?['sex'] ?? 'N/A';
-    const iconColor = Color(0xFF8B5CF6); // Updated purple color
+    const iconColor = Color(0xFF8B5CF6); 
     
     return Row(
       children: [
@@ -638,11 +675,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: SizedBox(
                 height: 54,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Navigate to location if callback is provided
+                  onPressed: () async {
+                    final name = _fullUserData?['name'] ?? 'user';
+                    await _speak("Opening location for $name");
+                    
+                    // GUARD FOR ASYNC GAP
+                    if (!mounted) return;
+                    
                     if (widget.onViewLocation != null) {
-                      Navigator.pop(context); // Close profile first
-                      widget.onViewLocation!(); // Then navigate
+                      Navigator.pop(context); 
+                      widget.onViewLocation!(); 
                     }
                   },
                   icon: const Icon(Icons.location_on_rounded),
@@ -663,7 +705,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  // NEW: Bar for approving/rejecting caretakers
   Widget _buildVerificationBar(Color cardColor) {
     if (_isProcessingAction) {
       return Container(
@@ -731,8 +772,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       ),
     );
   }
-
-  // ==================== HELPERS ====================
 
   String _formatDate(dynamic date) {
     if (date == null) return 'Unknown';

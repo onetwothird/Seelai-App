@@ -1,7 +1,8 @@
 // File: lib/roles/partially_sighted/home/sections/profile_content.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // Added flutter_tts import
+import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:shimmer/shimmer.dart'; // NEW: Imported Shimmer
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:intl/intl.dart';
@@ -26,26 +27,24 @@ class ProfileContent extends StatefulWidget {
 }
 
 class _ProfileContentState extends State<ProfileContent> {
-  // Local state to handle immediate UI updates
   late Map<String, dynamic> _currentData;
   bool _isLoading = false;
+  
+  // === NEW: ARTIFICIAL DELAY FOR SKELETON ===
+  bool _isSimulatingLoad = true;
 
-  // TTS Instance
   final FlutterTts _flutterTts = FlutterTts();
 
-  // Controllers for Edit Profile
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _contactController = TextEditingController();
   final _diagnosisController = TextEditingController();
   String? _selectedSex;
 
-  // Controllers for Change Password
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  // Color Palette 
   final Color _colPersonal = const Color(0xFF8B5CF6);
   final Color _colSupport = const Color(0xFF06B6D4);  
   final Color _colSafety = const Color(0xFFEF4444);   
@@ -54,12 +53,20 @@ class _ProfileContentState extends State<ProfileContent> {
   void initState() {
     super.initState();
     _currentData = Map<String, dynamic>.from(widget.userData);
-    _initTts(); // Initialize TTS settings
+    _initTts(); 
+    
+    // Force skeleton loader to show for 400ms for premium transition
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingLoad = false;
+        });
+      }
+    });
   }
 
-  // Added TTS Initialization
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("fil-PH"); 
+    await _flutterTts.setLanguage("en-US"); 
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -77,7 +84,7 @@ class _ProfileContentState extends State<ProfileContent> {
 
   @override
   void dispose() {
-    _flutterTts.stop(); // Stop TTS to free resources
+    _flutterTts.stop(); 
     _nameController.dispose();
     _addressController.dispose();
     _contactController.dispose();
@@ -87,31 +94,70 @@ class _ProfileContentState extends State<ProfileContent> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
+  
+  // === NEW: SKELETON LOADER ===
+  Widget _buildSkeletonProfile() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 250, height: 32, color: Colors.white),
+            const SizedBox(height: 32),
+            Center(
+              child: Column(
+                children: [
+                  Container(width: 100, height: 100, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                  const SizedBox(height: 16),
+                  Container(width: 150, height: 24, color: Colors.white),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Container(width: 150, height: 14, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(height: 250, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            const SizedBox(height: 24),
+            Container(width: 150, height: 14, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(height: 150, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isSimulatingLoad) {
+      return _buildSkeletonProfile();
+    }
+
     return Padding(
       padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ==================== PAGE HEADER ====================
           Text(
             'Profile & Settings',
             style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            color: widget.theme.textColor,
-            letterSpacing: -0.5,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: widget.theme.textColor,
+              letterSpacing: -0.5,
             ),
           ),
           const SizedBox(height: 32),
 
-          // ==================== PROFILE IMAGE & NAME ====================
           _buildCenteredProfileImage(),
           const SizedBox(height: 32),
           
-          // ==================== PERSONAL INFORMATION ====================
           _buildSettingsGroup(
             title: 'Personal Information',
             children: [
@@ -147,7 +193,6 @@ class _ProfileContentState extends State<ProfileContent> {
             ],
           ),
 
-          // ==================== MEDICAL & CARE ====================
           _buildSettingsGroup(
             title: 'Medical & Care',
             children: [
@@ -175,7 +220,6 @@ class _ProfileContentState extends State<ProfileContent> {
             ],
           ),
 
-          // ==================== ACCOUNT & SECURITY ====================
           _buildSettingsGroup(
             title: 'Account & Security',
             children: [
@@ -195,7 +239,6 @@ class _ProfileContentState extends State<ProfileContent> {
             ],
           ),
 
-          // ==================== SUPPORT & INFO ====================
           _buildSettingsGroup(
             title: 'Support & Information',
             children: [
@@ -221,7 +264,6 @@ class _ProfileContentState extends State<ProfileContent> {
             ],
           ),          
           
-          // ==================== DANGER ZONE ====================
           _buildSettingsGroup(
             title: 'Danger Zone',
             children: [
@@ -239,8 +281,6 @@ class _ProfileContentState extends State<ProfileContent> {
       ),
     );
   }
-
-  // ==================== UI COMPONENTS ====================
 
   Widget _buildCenteredProfileImage() {
     final profileUrl = _currentData['profileImageUrl'] as String?;
@@ -276,7 +316,9 @@ class _ProfileContentState extends State<ProfileContent> {
                         return _buildGradientFallback(initial);
                       },
                       loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
+                        if (loadingProgress == null) {
+                          return child;
+                        }
                         return _buildGradientFallback('', isLoading: true);
                       },
                     )
@@ -508,10 +550,10 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  // ==================== HELPERS ====================
-
   String _formatDate(dynamic dateString) {
-    if (dateString == null || dateString.toString().isEmpty) return 'Not specified';
+    if (dateString == null || dateString.toString().isEmpty) {
+      return 'Not specified';
+    }
     try {
       final date = DateTime.parse(dateString.toString());
       return DateFormat('MMM dd, yyyy').format(date);
@@ -523,23 +565,29 @@ class _ProfileContentState extends State<ProfileContent> {
   String _getCaretakerStatus() {
     final map = _currentData['assignedCaretakers'] as Map?;
     final count = map?.length ?? 0;
-    return count > 0 ? '$count Active' : 'None';
+    if (count > 0) {
+      return '$count Active';
+    } else {
+      return 'None';
+    }
   }
 
-  // Updated to include TTS for all SnackBar messages
-  void _showSnackbar(String message, Color color) {
-    _flutterTts.speak(message); // Plays the message aloud via TTS
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: color,
-      ),
-    );
+  // FIXED: Added an optional 'showContainer' flag (defaults to true)
+  // so we can bypass the SnackBar for specific messages and only use TTS.
+  void _showSnackbar(String message, Color color, {bool showContainer = true}) {
+    _flutterTts.speak(message); 
+    
+    if (showContainer) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: color,
+        ),
+      );
+    }
   }
-
-  // ==================== NAVIGATION DIALOGS ====================
 
   void _showAboutDialog() {
     Navigator.push(
@@ -568,15 +616,13 @@ class _ProfileContentState extends State<ProfileContent> {
   void _showAppGuideDialog() {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.6), // Darker barrier to make it pop
+      barrierColor: Colors.black.withValues(alpha: 0.6), 
       builder: (context) => AppGuideSliderDialog(
         theme: widget.theme,
         isDarkMode: widget.isDarkMode,
       ),
     );
   }
-
-  // ==================== EDIT PROFILE DIALOG ====================
 
   void _showEditProfileDialog() {
     final parentContext = context;
@@ -699,9 +745,10 @@ class _ProfileContentState extends State<ProfileContent> {
                                 setStateDialog(() => _isLoading = true);
                                 try {
                                   final userId = authService.value.currentUser?.uid;
-                                  if (userId == null) throw Exception("User not found");
+                                  if (userId == null) {
+                                    throw Exception("User not found");
+                                  }
 
-                                  // 1. Perform the Database Update
                                   await databaseService.updateUserProfile(
                                     userId: userId,
                                     role: 'partially_sighted',
@@ -712,7 +759,6 @@ class _ProfileContentState extends State<ProfileContent> {
                                     sex: _selectedSex,
                                   );
 
-                                  // 2. Update local UI state if database call succeeds
                                   if (mounted) {
                                     setState(() {
                                       _currentData['name'] = _nameController.text.trim();
@@ -723,19 +769,18 @@ class _ProfileContentState extends State<ProfileContent> {
                                     });
                                   }
 
-                                  // 3. Close dialog and notify user
                                   if (statefulContext.mounted) {
                                     Navigator.pop(statefulContext);
                                   }
-                                  _showSnackbar('Profile updated successfully', _colPersonal);
+                                  
+                                  // FIXED: showContainer set to false. This triggers TTS but skips the visual SnackBar popup.
+                                  _showSnackbar('Profile updated successfully', _colPersonal, showContainer: false);
 
                                 } catch (e) {
-                                  // Error handling
                                   if (mounted) {
                                     _showSnackbar('Error updating profile: $e', _colSafety);
                                   }
                                 } finally {
-                                  // FIX: Reset loading state regardless of success or failure
                                   if (statefulContext.mounted) {
                                     setStateDialog(() => _isLoading = false);
                                   }
@@ -762,8 +807,6 @@ class _ProfileContentState extends State<ProfileContent> {
       },
     );
   }
-
-  // ==================== CHANGE PASSWORD DIALOG ====================
 
   void _showChangePasswordDialog() {
     _currentPasswordController.clear();
@@ -858,7 +901,9 @@ class _ProfileContentState extends State<ProfileContent> {
                                 setStateDialog(() => _isLoading = true);
                                 try {
                                   final email = authService.value.currentUser?.email;
-                                  if (email == null) throw Exception("Email not found");
+                                  if (email == null) {
+                                    throw Exception("Email not found");
+                                  }
 
                                   await authService.value.resetPasswordFromCurrentPassword(
                                     email: email,
@@ -866,7 +911,9 @@ class _ProfileContentState extends State<ProfileContent> {
                                     newPassword: _newPasswordController.text,
                                   );
 
-                                  if (!statefulContext.mounted) return;
+                                  if (!statefulContext.mounted) {
+                                    return;
+                                  }
                                   Navigator.pop(statefulContext);
                                   
                                   if (mounted) {
@@ -899,8 +946,6 @@ class _ProfileContentState extends State<ProfileContent> {
       },
     );
   }
-
-  // ==================== LOGOUT DIALOG ====================
 
   void _showLogoutDialog() {
     showDialog(
@@ -950,7 +995,9 @@ class _ProfileContentState extends State<ProfileContent> {
                       onPressed: () async {
                         Navigator.pop(dialogContext); 
                         await authService.value.signOut(); 
-                        if (!mounted) return; 
+                        if (!mounted) {
+                          return; 
+                        }
 
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute(builder: (context) => const OnboardingScreen()),
@@ -979,7 +1026,6 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 }
 
-// ==================== PREMIUM RESPONSIVE IMAGE SLIDER DIALOG ====================
 class AppGuideSliderDialog extends StatefulWidget {
   final dynamic theme;
   final bool isDarkMode;
@@ -1025,7 +1071,6 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
       "title": "Voice Call",
       "description": "Initiate a quick voice call directly with your assigned caretaker."
     },
-    
     {
       "image": "assets/how-to-use-seelai_images/partially_sighted/pic5.jpg",
       "title": "Video Call",
@@ -1125,7 +1170,6 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
         ),
         child: Column(
           children: [
-            // Header Row (Close Button)
             Padding(
               padding: const EdgeInsets.only(right: 8.0, top: 8.0),
               child: Align(
@@ -1143,8 +1187,6 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
                 ),
               ),
             ),
-
-            // Main Carousel Content
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -1160,12 +1202,10 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
                     child: Column(
                       children: [
-                        // Image Presentation Area - UPDATED TO BE CLEAN
                         Expanded(
                           child: Container(
                             width: double.infinity,
                             margin: const EdgeInsets.only(bottom: 24),
-                            // Removing background, border, and shadows for a clean "floating" look
                             color: Colors.transparent, 
                             child: Padding(
                               padding: const EdgeInsets.all(8.0), 
@@ -1195,8 +1235,6 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
                             ),
                           ),
                         ),
-
-                        // Text Content Area
                         Text(
                           item['title']!,
                           textAlign: TextAlign.center,
@@ -1227,13 +1265,10 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
                 },
               ),
             ),
-
-            // Responsive Bottom Navigation Area
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
               child: Row(
                 children: [
-                  // Flex Box 1: Skip Button (Takes up left space dynamically)
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerLeft,
@@ -1259,8 +1294,6 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
                       ),
                     ),
                   ),
-
-                  // Flex Box 2: Animated Dots (Always perfectly centered)
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(
@@ -1281,8 +1314,6 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
                       },
                     ),
                   ),
-
-                  // Flex Box 3: Morphing Next/Done Button (Takes up right space dynamically)
                   Expanded(
                     child: Align(
                       alignment: Alignment.centerRight,
@@ -1291,7 +1322,6 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
-                          // Morphs from a circle to a wider pill
                           padding: isLastPage 
                               ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
                               : const EdgeInsets.all(12),

@@ -10,7 +10,7 @@ Future<void> callPatient(BuildContext context, {String? patientName}) async {
   final FlutterTts flutterTts = FlutterTts();
 
   try {
-    await flutterTts.setLanguage("fil-PH");
+    await flutterTts.setLanguage("en-US");
     await flutterTts.setSpeechRate(0.5);
     await flutterTts.setVolume(1.0);
     await flutterTts.setPitch(1.0);
@@ -43,7 +43,7 @@ Future<void> callPatientAlt(BuildContext context) async {
   final FlutterTts flutterTts = FlutterTts();
 
   try {
-    await flutterTts.setLanguage("fil-PH");
+    await flutterTts.setLanguage("en-US");
     await flutterTts.setSpeechRate(0.5);
     await flutterTts.setVolume(1.0);
     await flutterTts.setPitch(1.0);

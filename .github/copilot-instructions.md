@@ -12,7 +12,7 @@ Seelai is a Flutter mobile app for visually impaired users, featuring real-time 
 ## Key Patterns
 - **Service Pattern**: Firebase services follow CRUD ops with error handling. Example: `ObjectDetectionService.saveDetectedObjects()` mirrors `TextScanService` structure.
 - **Controller Pattern**: For ML features, controllers manage camera, model loading, and TTS. Example: `ObjectDetectionController` initializes `FlutterVision`, loads YOLOv8 model with quantization enabled.
-- **TTS Integration**: Use Filipino language (`"fil-PH"`) for accurate pronunciation of local terms. Set speech rate to 0.5 for clarity.
+- **TTS Integration**: Use Filipino language (`""en-US""`) for accurate pronunciation of local terms. Set speech rate to 0.5 for clarity.
 - **Activity Logging**: All user actions logged via `ActivityLogsService` for admin monitoring.
 - **Asset Management**: ML models and labels in `assets/` subdirs; declare in `pubspec.yaml` under `flutter.assets`.
 

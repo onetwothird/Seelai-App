@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/firebase/firebase_services.dart';
 
 class SystemActivityLogsScreen extends StatefulWidget {
@@ -117,6 +118,87 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
     }
   }
 
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonLogs() {
+    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(width: 200, height: 26, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(width: double.infinity, height: 14, color: Colors.white),
+            const SizedBox(height: 4),
+            Container(width: 250, height: 14, color: Colors.white),
+            const SizedBox(height: 32),
+
+            // Dropdown skeleton
+            Container(width: 120, height: 16, color: Colors.white),
+            const SizedBox(height: 12),
+            Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            const SizedBox(height: 32),
+
+            // List skeleton
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: List.generate(6, (index) => Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(width: 20, height: 20, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(width: 150, height: 16, color: Colors.white),
+                                const SizedBox(height: 8),
+                                Container(width: double.infinity, height: 12, color: Colors.white),
+                                const SizedBox(height: 4),
+                                Container(width: 100, height: 12, color: Colors.white),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(width: 50, height: 14, color: Colors.white),
+                              const SizedBox(height: 6),
+                              Container(width: 70, height: 10, color: Colors.white),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (index < 5)
+                      Divider(height: 1, indent: 52, color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                  ],
+                )),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Exact color matching from export_system_report.dart
@@ -143,16 +225,7 @@ class _SystemActivityLogsScreenState extends State<SystemActivityLogsScreen> {
         ),
       ),
       body: _isLoading 
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(color: _primaryColor),
-                const SizedBox(height: 20),
-                Text('Retrieving activity records...', style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          )
+        ? _buildSkeletonLogs()
         : SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(

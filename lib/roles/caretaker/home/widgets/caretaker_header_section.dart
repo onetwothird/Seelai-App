@@ -12,7 +12,7 @@ class HeaderSection extends StatefulWidget {
   final String? profileImageUrl;
   final bool isDarkMode;
   final int pendingRequestsCount;
-  final int activeRequestsCount; // Added this so you can track active ones too!
+  final int activeRequestsCount;
   final VoidCallback onToggleDarkMode;
   final VoidCallback? onProfileTap;
   final VoidCallback? onNotificationTap;
@@ -25,7 +25,7 @@ class HeaderSection extends StatefulWidget {
     this.profileImageUrl,
     required this.isDarkMode,
     required this.pendingRequestsCount,
-    this.activeRequestsCount = 0, // Defaults to 0 so it won't break your existing Home Screen
+    this.activeRequestsCount = 0,
     required this.onToggleDarkMode,
     this.onProfileTap,
     this.onNotificationTap,
@@ -37,28 +37,71 @@ class HeaderSection extends StatefulWidget {
   State<HeaderSection> createState() => _HeaderSectionState();
 }
 
-class _HeaderSectionState extends State<HeaderSection> {
-  // State to handle the temporary "mark as read" double check animation
+// === ADDED: SingleTickerProviderStateMixin for the entry animation ===
+class _HeaderSectionState extends State<HeaderSection> with SingleTickerProviderStateMixin {
   bool _showDoubleCheck = false;
   
-  // Animation State
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
+
+  // === NEW: Animation Controllers & Tweens ===
+  late AnimationController _entryController;
+  late Animation<double> _topRowOpacity;
+  late Animation<Offset> _topRowSlide;
+  late Animation<double> _textOpacity;
+  late Animation<Offset> _textSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
 
   @override
   void initState() {
     super.initState();
     _startMessageTimer();
+
+    // === NEW: Initialize the staggered entry animation ===
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    // 1. Top Row (Buttons) - Fades & slides down early
+    _topRowOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+    );
+    _topRowSlide = Tween<Offset>(begin: const Offset(0, -0.4), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
+    );
+
+    // 2. Text Row (Greeting) - Fades & slides in from left
+    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOut)),
+    );
+    _textSlide = Tween<Offset>(begin: const Offset(-0.15, 0), end: Offset.zero).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic)),
+    );
+
+    // 3. Mascot - Pops up playfully
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.8, curve: Curves.easeOutBack)),
+    );
+
+    // 4. Speech Bubble - Pops out from the mascot
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entryController, curve: const Interval(0.5, 1.0, curve: Curves.easeOutBack)),
+    );
+
+    // Start the animation immediately when the header loads
+    _entryController.forward();
   }
 
   @override
   void dispose() {
     _messageTimer?.cancel();
+    _entryController.dispose(); // === NEW: Dispose controller ===
     super.dispose();
   }
 
   void _startMessageTimer() {
-    // Cycle through alert messages every 4 seconds
     _messageTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (mounted) {
         final messagesCount = _getMascotMessages().length;
@@ -71,7 +114,6 @@ class _HeaderSectionState extends State<HeaderSection> {
     });
   }
 
-  // Helper to safely extract the first name
   String _getFirstName() {
     if (widget.caretakerName.isEmpty) return 'Caretaker';
     final parts = widget.caretakerName.trim().split(RegExp(r'\s+'));
@@ -85,7 +127,6 @@ class _HeaderSectionState extends State<HeaderSection> {
     return 'Good evening';
   }
 
-  // Helper to generate a list of dynamic mascot messages to cycle through
   List<String> _getMascotMessages() {
     List<String> messages = [];
 
@@ -98,7 +139,6 @@ class _HeaderSectionState extends State<HeaderSection> {
       messages.add('Reminder: You currently have ${widget.activeRequestsCount} active request(s) in progress.');
     }
 
-    // If there are no pending or active requests, cycle between these friendly messages
     if (messages.isEmpty) {
       messages.add('Hello, ${_getFirstName()}! You\'re all caught up. I\'m here to help you manage your paired users.');
       messages.add('Did you know? You can toggle dark mode using the moon icon in the top right!');
@@ -108,13 +148,11 @@ class _HeaderSectionState extends State<HeaderSection> {
   }
 
   void _handleNotificationTap() {
-    // Show the double check animation if there were pending requests
     if (widget.pendingRequestsCount > 0) {
       setState(() {
         _showDoubleCheck = true;
       });
 
-      // Revert back to the normal bell after 2 seconds
       Future.delayed(const Duration(seconds: 2), () {
         if (mounted) {
           setState(() {
@@ -124,7 +162,6 @@ class _HeaderSectionState extends State<HeaderSection> {
       });
     }
     
-    // Trigger the parent screen's callback
     if (widget.onNotificationTap != null) {
       widget.onNotificationTap!();
     }
@@ -133,189 +170,200 @@ class _HeaderSectionState extends State<HeaderSection> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    // Format: "TUESDAY, MARCH 17"
     final formattedDate = DateFormat('EEEE, MMMM d').format(now).toUpperCase();
 
-    // Soft backgrounds for the buttons
     final Color buttonBgColor = widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC);
-    
-    // Theme's primary color for the icons
     final Color iconTint = primary; 
     
-    // Fetch the list of messages and determine which one to show right now
     final messages = _getMascotMessages();
     final safeIndex = _currentMessageIndex % messages.length;
     final displayMessage = messages[safeIndex];
+
+    final longestMessage = messages.isNotEmpty 
+        ? messages.reduce((a, b) => a.length > b.length ? a : b) 
+        : '';
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
+    final double tailBottomMargin = mascotSize * 0.214; 
+    final double bubbleBottomMargin = mascotSize * 0.128;
 
     return Semantics(
       label: 'Header section. ${_getGreeting()}, ${_getFirstName()}. Today is $formattedDate',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // TOP ROW: Action Buttons pushed entirely to the right
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Theme Toggle
-                Semantics(
-                  label: widget.isDarkMode ? 'Dark mode is on' : 'Light mode is on',
-                  hint: 'Double tap to toggle theme mode',
-                  button: true,
-                  child: _buildActionButton(
-                    icon: widget.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                    bgColor: buttonBgColor,
-                    iconColor: iconTint,
-                    onTap: widget.onToggleDarkMode,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                
-                // Notifications
-                Semantics(
-                  label: widget.pendingRequestsCount > 0 
-                    ? 'Notifications. You have ${widget.pendingRequestsCount} pending request${widget.pendingRequestsCount > 1 ? 's' : ''}' 
-                    : 'Notifications',
-                  hint: 'Double tap to view notifications',
-                  button: true,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // The Bell (or Double Check) Button
-                      _buildActionButton(
-                        icon: _showDoubleCheck 
-                            ? Icons.done_all_rounded // Double check icon
-                            : (widget.pendingRequestsCount > 0 
-                                ? Icons.notifications_active_rounded // Ringing bell
-                                : Icons.notifications_none_rounded), // Empty bell
+          // === WRAPPED IN FADE & SLIDE ANIMATION ===
+          FadeTransition(
+            opacity: _topRowOpacity,
+            child: SlideTransition(
+              position: _topRowSlide,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Semantics(
+                      label: widget.isDarkMode ? 'Dark mode is on' : 'Light mode is on',
+                      hint: 'Double tap to toggle theme mode',
+                      button: true,
+                      child: _buildActionButton(
+                        icon: widget.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
                         bgColor: buttonBgColor,
-                        iconColor: _showDoubleCheck ? Colors.green : iconTint,
-                        onTap: _handleNotificationTap,
+                        iconColor: iconTint,
+                        onTap: widget.onToggleDarkMode,
                       ),
-                      
-                      // The proper top-right Notification Badge
-                      if (widget.pendingRequestsCount > 0 && !_showDoubleCheck)
-                        Positioned(
-                          top: -2,
-                          right: -2,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEF4444), // Red badge
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                                width: 2,
-                              ),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 20,
-                              minHeight: 20,
-                            ),
-                            child: Center(
-                              child: Text(
-                                widget.pendingRequestsCount > 9 
-                                    ? '9+' 
-                                    : widget.pendingRequestsCount.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  height: 1,
+                    ),
+                    const SizedBox(width: 8),
+                    
+                    Semantics(
+                      label: widget.pendingRequestsCount > 0 
+                        ? 'Notifications. You have ${widget.pendingRequestsCount} pending request${widget.pendingRequestsCount > 1 ? 's' : ''}' 
+                        : 'Notifications',
+                      hint: 'Double tap to view notifications',
+                      button: true,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          _buildActionButton(
+                            icon: _showDoubleCheck 
+                                ? Icons.done_all_rounded 
+                                : (widget.pendingRequestsCount > 0 
+                                    ? Icons.notifications_active_rounded 
+                                    : Icons.notifications_none_rounded), 
+                            bgColor: buttonBgColor,
+                            iconColor: _showDoubleCheck ? Colors.green : iconTint,
+                            onTap: _handleNotificationTap,
+                          ),
+                          
+                          if (widget.pendingRequestsCount > 0 && !_showDoubleCheck)
+                            Positioned(
+                              top: -2,
+                              right: -2,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444), 
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                                    width: 2,
+                                  ),
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 20,
+                                  minHeight: 20,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    widget.pendingRequestsCount > 9 
+                                        ? '9+' 
+                                        : widget.pendingRequestsCount.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                      height: 1,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                
-                // Profile Pill Button
-                Semantics(
-                  label: 'Profile',
-                  hint: 'Double tap to view profile',
-                  button: true,
-                  child: GestureDetector(
-                    onTap: widget.onProfileTap,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: buttonBgColor,
-                        borderRadius: BorderRadius.circular(20), // Pill shape
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.person_outline_rounded, size: 18, color: iconTint),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Profile',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: widget.subtextColor.withValues(alpha: 0.9),
-                            ),
-                          )
                         ],
                       ),
                     ),
-                  ),
-                )
-              ],
+                    const SizedBox(width: 8),
+                    
+                    Semantics(
+                      label: 'Profile',
+                      hint: 'Double tap to view profile',
+                      button: true,
+                      child: GestureDetector(
+                        onTap: widget.onProfileTap,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: buttonBgColor,
+                            borderRadius: BorderRadius.circular(20), 
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.person_outline_rounded, size: 18, color: iconTint),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Profile',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: widget.subtextColor.withValues(alpha: 0.9),
+                                ),
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+              ),
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // TEXT ROW: Date and Greeting
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  label: 'Today\'s date is $formattedDate',
-                  child: Text(
-                    formattedDate,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.subtextColor.withValues(alpha: 0.8),
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Semantics(
-                  label: 'Greeting',
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${_getGreeting()}, ',
-                          style: TextStyle(
-                            fontSize: 26,
-                            color: widget.textColor.withValues(alpha: 0.9),
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: -0.5,
-                          ),
+          // === WRAPPED IN FADE & SLIDE ANIMATION ===
+          FadeTransition(
+            opacity: _textOpacity,
+            child: SlideTransition(
+              position: _textSlide,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Semantics(
+                      label: 'Today\'s date is $formattedDate',
+                      child: Text(
+                        formattedDate,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: widget.subtextColor.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
                         ),
-                        TextSpan(
-                          text: '${_getFirstName()}!',
-                          style: TextStyle(
-                            fontSize: 26,
-                            color: widget.textColor,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 6),
+                    Semantics(
+                      label: 'Greeting',
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '${_getGreeting()}, ',
+                              style: TextStyle(
+                                fontSize: 26,
+                                color: widget.textColor.withValues(alpha: 0.9),
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            TextSpan(
+                              text: '${_getFirstName()}!',
+                              style: TextStyle(
+                                fontSize: 26,
+                                color: widget.textColor,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
@@ -327,115 +375,140 @@ class _HeaderSectionState extends State<HeaderSection> {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Edge-to-edge gradient background
+                // === FADE IN GRADIENT BACKGROUND ===
                 Positioned(
                   left: 0,
                   right: 0,
                   bottom: 0,
                   top: 0, 
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          primary.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
-                          primary.withValues(alpha: 0.0),
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                  child: FadeTransition(
+                    opacity: _textOpacity, // Links gradient fade to the text fade
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            primary.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                            primary.withValues(alpha: 0.0),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
                       ),
                     ),
                   ),
                 ),
                 
-                // Mascot and Bubble Content
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Mascot Figure
-                      Image.asset(
-                        'assets/seelai-icons/seelai0.png',
-                        height: 120,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            color: primary.withValues(alpha: 0.15),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.smart_toy_outlined,
-                            color: primary,
-                            size: 36,
+                      // === SCALE ANIMATION FOR MASCOT ===
+                      ScaleTransition(
+                        scale: _mascotScale,
+                        alignment: Alignment.bottomCenter, // Pops up from the bottom
+                        child: Image.asset(
+                          'assets/seelai-icons/seelai0.png',
+                          height: mascotSize, 
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: mascotSize * 0.65,
+                            height: mascotSize * 0.65,
+                            decoration: BoxDecoration(
+                              color: primary.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.smart_toy_outlined,
+                              color: primary,
+                              size: mascotSize * 0.25, 
+                            ),
                           ),
                         ),
                       ),
                       
                       const SizedBox(width: 4),
                       
-                      // Speech Bubble Tail (Triangle pointing left)
+                      // === SCALE ANIMATION FOR TAIL ===
                       Container(
-                        margin: const EdgeInsets.only(bottom: 30), // Align to mouth level
-                        child: CustomPaint(
-                          size: const Size(12, 16),
-                          painter: _TailPainter(
-                            color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                        child: ScaleTransition(
+                          scale: _bubbleScale,
+                          alignment: Alignment.bottomRight, // Grows out from the bubble
+                          child: CustomPaint(
+                            size: const Size(12, 16),
+                            painter: _TailPainter(
+                              color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                            ),
                           ),
                         ),
                       ),
 
-                      // Speech Bubble Body
+                      // === SCALE ANIMATION FOR BUBBLE ===
                       Expanded(
                         child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Conditional styling: turns red if there are pending alerts
-                              Text(
-                                widget.pendingRequestsCount > 0 ? 'Seelai Alert' : 'Seelai',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: widget.pendingRequestsCount > 0 
-                                      ? (widget.isDarkMode ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626)) 
-                                      : primary,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              
-                              // THE NEW TYPEWRITER TEXT WIDGET
-                              Container(
-                                height: 60, // Fixed height keeps the bubble size totally static
-                                alignment: Alignment.topLeft,
-                                child: TypewriterText(
-                                  text: displayMessage,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: widget.isDarkMode
-                                        ? Colors.white.withValues(alpha: 0.85)
-                                        : Colors.black87,
-                                    height: 1.4,
+                          margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                          child: ScaleTransition(
+                            scale: _bubbleScale,
+                            alignment: Alignment.bottomLeft, // Grows out from the tail
+                            child: Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    widget.pendingRequestsCount > 0 ? 'Seelai Alert' : 'Seelai',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: widget.pendingRequestsCount > 0 
+                                          ? (widget.isDarkMode ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626)) 
+                                          : primary,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  
+                                  Stack(
+                                    children: [
+                                      Text(
+                                        longestMessage,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.transparent, 
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      Positioned.fill(
+                                        child: TypewriterText(
+                                          text: displayMessage,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: widget.isDarkMode
+                                                ? Colors.white.withValues(alpha: 0.85)
+                                                : Colors.black87,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -450,7 +523,6 @@ class _HeaderSectionState extends State<HeaderSection> {
     );
   }
 
-  // Helper for the pill/circle buttons 
   Widget _buildActionButton({
     required IconData icon,
     required Color bgColor,
@@ -476,7 +548,6 @@ class _HeaderSectionState extends State<HeaderSection> {
   }
 }
 
-// Custom Painter to draw the speech bubble tail pointing to the mascot
 class _TailPainter extends CustomPainter {
   final Color color;
 
@@ -487,10 +558,9 @@ class _TailPainter extends CustomPainter {
     final paint = Paint()..color = color;
     final path = Path();
     
-    // Draw a triangle pointing to the left
-    path.moveTo(size.width, 0); // Top right corner
-    path.lineTo(0, size.height / 2); // Pointing left (middle)
-    path.lineTo(size.width, size.height); // Bottom right corner
+    path.moveTo(size.width, 0); 
+    path.lineTo(0, size.height / 2); 
+    path.lineTo(size.width, size.height); 
     path.close();
     
     canvas.drawPath(path, paint);
@@ -500,9 +570,6 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -524,8 +591,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    // THE FIX: Dynamic speed! 40 milliseconds per character.
-    // Long messages and short messages will now type at the exact same natural speed.
     int msDuration = widget.text.length * 40; 
     
     _controller = AnimationController(
@@ -533,7 +598,11 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    _controller.forward();
+    
+    // === NEW: Delay the typewriter start by 600ms so it waits for the bubble to pop in! ===
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
   }
 
   @override
@@ -566,7 +635,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       animation: _characterCount,
       builder: (context, child) {
         int end = _characterCount.value;
-        // Strict safety check to prevent out-of-bounds text duplication
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
         
