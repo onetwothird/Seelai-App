@@ -1,4 +1,3 @@
-// File: lib/roles/partially_sighted/services/camera_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:camera/camera.dart';
 
@@ -9,7 +8,6 @@ class CameraService {
   CameraController? get controller => _controller;
   bool get isInitialized => _isInitialized;
 
-  /// Initialize the camera
   Future<bool> initialize() async {
     try {
       final cameras = await availableCameras();
@@ -20,7 +18,7 @@ class CameraService {
       
       _controller = CameraController(
         cameras[0],
-        ResolutionPreset.high,
+        ResolutionPreset.high, 
         enableAudio: false,
       );
       
@@ -35,14 +33,12 @@ class CameraService {
     }
   }
 
-  /// Dispose camera resources
   void dispose() {
     _controller?.dispose();
     _controller = null;
     _isInitialized = false;
   }
 
-  /// Take a picture
   Future<String?> takePicture() async {
     if (!_isInitialized || _controller == null) {
       debugPrint('Camera not initialized');
@@ -58,7 +54,6 @@ class CameraService {
     }
   }
 
-  /// Start streaming camera frames (for real-time detection)
   Future<void> startImageStream(Function(CameraImage) onImage) async {
     if (!_isInitialized || _controller == null) {
       debugPrint('Camera not initialized');
@@ -72,7 +67,6 @@ class CameraService {
     }
   }
 
-  /// Stop streaming camera frames
   Future<void> stopImageStream() async {
     if (_controller != null && _controller!.value.isStreamingImages) {
       try {
