@@ -979,67 +979,67 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
 
   final List<Map<String, String>> _guideData = [
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic1.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic1.png",
       "title": "Role Selection",
       "description": "Select the Caretaker category to get started."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic2.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic2.png",
       "title": "Login",
       "description": "Log in to your existing Seelai account."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic3.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic3.png",
       "title": "Register",
       "description": "Fill out your details to create a new account."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic4.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic4.png",
       "title": "Dashboard",
       "description": "View statistics for Total Registered patients, Pending, In Progress, and Completed tasks."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic5.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic5.png",
       "title": "Assistance & Announcements",
       "description": "View the partially sighted users you handle and check announcements created by MSWD."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic6.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic6.png",
       "title": "Voice Call",
       "description": "Initiate or receive clear voice calls with your patients."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic7.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic7.png",
       "title": "Video Call",
       "description": "Connect face-to-face with your patients using the video call feature."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic8.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic8.png",
       "title": "My Patients",
       "description": "View your patients' age, category, and address. Easily phone call or message them."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic9.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic9.png",
       "title": "Patient Profile",
       "description": "View the complete profile information that was listed when the patient registered."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic10.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic10.png",
       "title": "Location Tracking",
       "description": "Select a specific patient from your list to view their real-time location."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic11.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic11.png",
       "title": "Route & Distance",
       "description": "View the profiles of both users and see the exact route or distance between you."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic12.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic12.png",
       "title": "Assistance Requests",
       "description": "Track Pending, Active, History, and Deleted requests along with dashboard statistics."
     },
     {
-      "image": "assets/how-to-use-seelai_images/caretaker/pic13.jpg",
+      "image": "assets/how-to-use-seelai_images/caretaker/pic13.png",
       "title": "Manage Requests",
       "description": "Review pending requests to decline, accept, or update their status to in-progress or done."
     },

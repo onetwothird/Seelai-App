@@ -27,9 +27,8 @@ class ObjectDetectionController {
   
   int frameCount = 0;
   DateTime? lastFrameTime;
-  double fps = 0.0;
+  double fps = 0.0; // Starts at 0.0
   
-  // 🚀 FIX: Added a frame counter to skip frames and save CPU
   int _cameraFrameCounter = 0; 
   
   bool isLowLight = false;
@@ -130,7 +129,7 @@ class ObjectDetectionController {
     try {
       await _vision.loadYoloModel(
         labels: 'assets/object_model/labels.txt',
-        modelPath: 'assets/object_model/object_detection_1.tflite',
+        modelPath: 'assets/object_model/object_detection.tflite',
         modelVersion: "yolov8",
         quantization: true, 
         useGpu: true, 
@@ -156,7 +155,6 @@ class ObjectDetectionController {
       await cameraService.controller!.startImageStream((image) {
         _cameraFrameCounter++;
         
-        // 🚀 FIX: Only process 1 out of every 5 frames. UI stays smooth, CPU breathes.
         if (_cameraFrameCounter % 3 != 0) return;
 
         if (!isDetecting && isModelLoaded && !isDisposing) {
@@ -183,16 +181,16 @@ class ObjectDetectionController {
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        iouThreshold: 0.40, // 🚀 FIX: Lowered for better nano model response
-        confThreshold: 0.50, // 🚀 FIX: Lowered from 0.65 to catch more objects
-        classThreshold: 0.50,
+        iouThreshold: 0.40, 
+        confThreshold: 0.65, 
+        classThreshold: 0.65,
       );
 
       if (!isDisposing) {
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.50; // 🚀 FIX: Matched threshold
+            return confidence >= 0.65; 
           }
           return false;
         }).toList();
@@ -348,8 +346,6 @@ class ObjectDetectionController {
     int totalBrightness = 0;
     int sampleCount = 0;
 
-    // 🚀 FIX: Changed from += 500 to += 5000. 
-    // This stops the UI from freezing while looping through millions of bytes.
     for (int i = 0; i < bytes.length; i += 5000) {
       totalBrightness += bytes[i];
       sampleCount++;

@@ -52,16 +52,12 @@ class WebRTCService {
     await remoteRenderer.initialize();
   }
 
-  // ========================================================================
-  // FIXED CAMERA INITIALIZATION (Ideal Constraints + Safe Fallback)
-  // ========================================================================
+
   Future<void> openUserMedia(bool isVideo) async {
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
       'video': isVideo ? {
         'facingMode': 'user',
-        // Using 'ideal' asks the OS to provide this resolution if possible. 
-        // If it's a low-dimension screen, it gracefully downscales without crashing!
         'width': {'ideal': 640},
         'height': {'ideal': 480},
       } : false,
@@ -88,8 +84,6 @@ class WebRTCService {
     
     _peerConnection = await createPeerConnection(_configuration);
 
-    // FIXED: Removed explicit 'addTransceiver' calls that were creating ghost tracks.
-    // In Unified Plan, simply adding the tracks automatically creates the correct transceivers.
     if (_localStream != null) {
       for (var track in _localStream!.getTracks()) {
         await _peerConnection!.addTrack(track, _localStream!);
@@ -125,8 +119,6 @@ class WebRTCService {
   Future<void> makeCall(String path, String callId, bool isVideo) async {
     await _createPeerConnection(path, callId, true);
 
-    // FIXED: Enforced string constraints ('true'/'false') which are significantly 
-    // more reliable across different Android/iOS versions of WebRTC.
     final Map<String, dynamic> offerConstraints = {
       'mandatory': {
         'OfferToReceiveAudio': 'true',

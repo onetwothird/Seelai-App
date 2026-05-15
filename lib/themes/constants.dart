@@ -90,7 +90,13 @@ const bodyBold = TextStyle(
   letterSpacing: 0.1,
 );
 
-const caption = TextStyle(
+const TextStyle bodyText = TextStyle(
+  fontSize: 16,
+  fontWeight: FontWeight.normal,
+  fontFamily: 'Roboto', // You can change this if your app uses a custom font!
+);
+
+const TextStyle caption = TextStyle(
   fontSize: 14,
   color: greyLight,
   fontWeight: FontWeight.w600, // Bolder captions
@@ -143,6 +149,19 @@ const strongShadow = [
     spreadRadius: -4,
   ),
 ];
+const Map<String, Color> darkTheme = {
+  'background': Color(0xFF121212),
+  'primary': Color(0xFF8B5CF6), // Your signature vibrant purple!
+  'text': Colors.white,
+  'card': Color(0xFF1E1E1E),
+};
+
+const Map<String, Color> lightTheme = {
+  'background': Color(0xFFF5F5F5),
+  'primary': Color(0xFF8B5CF6),
+  'text': Colors.black,
+  'card': Colors.white,
+};
 
 const glowShadow = [
   BoxShadow(
@@ -182,3 +201,4 @@ const spacingMedium = 16.0;
 const spacingLarge = 24.0;
 const spacingXLarge = 32.0;
 const spacingXXLarge = 48.0;
+

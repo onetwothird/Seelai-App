@@ -49,7 +49,6 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     super.initState();
     _initializeTts();
     
-    // Wait for the UI to finish building before starting heavy operations or SnackBar calls
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _announceMode();

@@ -1047,77 +1047,77 @@ class _AppGuideSliderDialogState extends State<AppGuideSliderDialog> {
 
   final List<Map<String, String>> _guideData = [
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic1.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_1.png",
       "title": "Role Selection",
       "description": "Select the Partially Sighted category to get started."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic2.1.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_2.1.png",
       "title": "Login",
       "description": "Log in to your existing Seelai account."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic2.2.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_2.2.png",
       "title": "Register",
       "description": "Fill out your details to create a new account."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic3.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_3.png",
       "title": "Home Screen",
       "description": "View your current location and easily access Voice and Video calls."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic4.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_4.png",
       "title": "Voice Call",
       "description": "Initiate a quick voice call directly with your assigned caretaker."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic5.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_5.png",
       "title": "Video Call",
       "description": "Connect face-to-face with your caretaker using the video call feature."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic6.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_6.png",
       "title": "Announcements",
       "description": "Check MSWD announcements, request a caretaker, and see emergency hotlines."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic7.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_7.png",
       "title": "Request Caretaker",
       "description": "Fill out the form specifying assistance type, priority level, and an optional message."
     },
-    {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic8.jpg",
+      {
+        "image": "assets/how-to-use-seelai_images/partially_sighted/pic_8.png",
       "title": "Emergency Hotlines",
       "description": "Access local Cavite emergency hotlines. You can add, edit, or remove them as needed."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic9.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_9.png",
       "title": "Add a Hotline",
       "description": "Create a new hotline with a custom icon, theme color, department name, number, and address."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic10.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_10.png",
       "title": "Contacts",
       "description": "View your assigned caretakers. You can instantly message or call them from here."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic11.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_11.png",
       "title": "Detection Features",
       "description": "Choose Object Detection, Caretaker's Face Detection, or Text Document Images with audio playback."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic12.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_12.png",
       "title": "Recent Detections",
       "description": "Review a complete history of the items or documents you've recently scanned."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic13.jpg",
-      "title": "Detection Details",
-      "description": "View scanned text, summaries, and extracted documents. You can copy or read them out loud."
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_13.png",
+      "title": "Location Tracking",
+      "description": "Track the partially sighted user's recent locations for safety and assistance."
     },
     {
-      "image": "assets/how-to-use-seelai_images/partially_sighted/pic14.jpg",
+      "image": "assets/how-to-use-seelai_images/partially_sighted/pic_14.png",
       "title": "Add Custom Detections",
       "description": "Add custom objects or caretaker faces. These automatically sync to Roboflow for the MSWD tech team."
     },

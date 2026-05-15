@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -52,10 +51,10 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
   }
 
   void _showInitialSnackBar() {
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Face detection mode activated - Looking for caretakers'),
             backgroundColor: Colors.purple,
             behavior: SnackBarBehavior.floating,
@@ -85,11 +84,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         if (didPop) return;
-
-        // Run your cleanup logic before popping
         await _controller.dispose();
-
-        // Safely pop the screen after disposal is complete
         if (context.mounted) {
           Navigator.of(context).pop(result);
         }
@@ -105,13 +100,12 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             // Gradient Overlay
             _buildGradientOverlay(),
             
-            // Bounding Boxes for Faces
+            // Animated Bounding Boxes for Faces
             if (_state.isModelLoaded)
               FaceBoundingBoxes(
                 recognitions: _state.recognitions,
                 cameraController: widget.cameraService.controller!,
                 screenSize: screenSize,
-                controller: _controller,
               ),
             
             // Header
@@ -158,7 +152,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
               size: screenWidth * 0.2,
               color: white.withValues(alpha: 0.3),
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             Text(
               'Camera Initializing...',
               style: bodyBold.copyWith(
@@ -198,7 +192,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
               Colors.black.withValues(alpha: 0.2),
               Colors.black.withValues(alpha: 0.6),
             ],
-            stops: [0.0, 0.3, 0.7, 1.0],
+            stops: const [0.0, 0.3, 0.7, 1.0],
           ),
         ),
       ),
@@ -211,7 +205,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       child: Row(
         children: [
           _buildBackButton(screenWidth),
-          SizedBox(width: spacingMedium),
+          const SizedBox(width: spacingMedium),
           Expanded(child: _buildHeaderInfo(screenWidth)),
           _buildFlashToggle(screenWidth),
         ],
@@ -235,7 +229,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           },
           borderRadius: BorderRadius.circular(radiusMedium),
           child: Container(
-            padding: EdgeInsets.all(spacingMedium),
+            padding: const EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(radiusMedium),
@@ -282,7 +276,6 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     );
   }
 
-  // ADDED: Flash Toggle Button in Header
   Widget _buildFlashToggle(double screenWidth) {
     return Semantics(
       label: _state.isFlashOn 
@@ -296,7 +289,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             _controller.toggleFlashManually();
             if (_state.isFlashOn) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Flashlight turned off'),
                   backgroundColor: Colors.grey,
                   duration: Duration(milliseconds: 800),
@@ -345,11 +338,10 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     );
   }
 
-  // ADDED: Auto-Flash Indicator
   Widget _buildFlashIndicator(double screenWidth) {
     return AnimatedOpacity(
       opacity: _state.showFlashIndicator ? 1.0 : 0.0,
-      duration: Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 500),
       child: Container(
         margin: EdgeInsets.only(
           bottom: spacingMedium,
@@ -367,7 +359,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             BoxShadow(
               color: Colors.purple.withValues(alpha: 0.3),
               blurRadius: 10,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -400,7 +392,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.vertical(
+        borderRadius: const BorderRadius.vertical(
           top: Radius.circular(radiusXLarge),
         ),
       ),
@@ -417,8 +409,8 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
 
   Widget _buildDetectedFacesInfo(double screenWidth) {
     return Container(
-      margin: EdgeInsets.only(bottom: spacingLarge),
-      padding: EdgeInsets.all(spacingMedium),
+      margin: const EdgeInsets.only(bottom: spacingLarge),
+      padding: const EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
         color: Colors.purple.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(radiusMedium),
@@ -437,7 +429,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                 color: Colors.purple,
                 size: screenWidth * 0.05,
               ),
-              SizedBox(width: spacingSmall),
+              const SizedBox(width: spacingSmall),
               Expanded(
                 child: Text(
                   'Caretakers Detected & Saved',
@@ -449,7 +441,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
               ),
             ],
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Text(
             'Found: ${_state.lastDetectedFaces}',
             style: caption.copyWith(
@@ -481,7 +473,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                   : Colors.purple.shade200,
           size: screenWidth * 0.06,
         ),
-        SizedBox(width: spacingSmall),
+        const SizedBox(width: spacingSmall),
         Flexible(
           child: Text(
             _state.isReading
@@ -495,7 +487,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             ),
           ),
         ),
-        SizedBox(width: spacingLarge),
+        const SizedBox(width: spacingLarge),
         Container(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.03, 
@@ -520,189 +512,127 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
 }
 
 // =============================================================================
-// ACCURATE Face Bounding Boxes with Color Coding
+// SMOOTH Animated Face Bounding Boxes with Custom Corner UI
 // =============================================================================
 
 class FaceBoundingBoxes extends StatelessWidget {
   final List<Map<String, dynamic>> recognitions;
   final CameraController cameraController;
   final Size screenSize;
-  final FaceDetectionController controller;
 
   const FaceBoundingBoxes({
     super.key,
     required this.recognitions,
     required this.cameraController,
     required this.screenSize,
-    required this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (recognitions.isEmpty) return const SizedBox.shrink();
+    if (recognitions.isEmpty || cameraController.value.previewSize == null) {
+      return const SizedBox.shrink();
+    }
 
-    return CustomPaint(
-      painter: FaceBoxPainter(
-        recognitions: recognitions,
-        cameraController: cameraController,
-        screenSize: screenSize,
-        controller: controller,
-      ),
+    final Size previewSize = cameraController.value.previewSize!;
+    double sourceWidth = previewSize.height; 
+    double sourceHeight = previewSize.width; 
+
+    final double scaleX = screenSize.width / sourceWidth;
+    final double scaleY = screenSize.height / sourceHeight;
+    final double scale = scaleX > scaleY ? scaleX : scaleY;
+
+    final double displayedWidth = sourceWidth * scale;
+    final double displayedHeight = sourceHeight * scale;
+
+    final double offsetX = (displayedWidth - screenSize.width) / 2;
+    final double offsetY = (displayedHeight - screenSize.height) / 2;
+
+    return Stack(
+      children: recognitions.asMap().entries.map((entry) {
+        int idx = entry.key;
+        var recognition = entry.value;
+        final box = recognition['box'];
+        
+        if (box == null || box.length < 4) return const SizedBox.shrink();
+
+        double x1 = box[0].toDouble();
+        double y1 = box[1].toDouble();
+        double x2 = box[2].toDouble();
+        double y2 = box[3].toDouble();
+
+        double w = x2 - x1;
+        double h = y2 - y1;
+
+        double scaledX = x1 * scale;
+        double scaledY = y1 * scale;
+        double scaledW = w * scale;
+        double scaledH = h * scale;
+
+        double finalX = scaledX - offsetX;
+        double finalY = scaledY - offsetY;
+
+        final personName = (recognition['tag'] ?? 'unknown').toString();
+        final confidence = box.length > 4 ? (box[4] ?? 0.0) : 0.0;
+        final text = '$personName ${(confidence * 100).toStringAsFixed(0)}%';
+        const boxColor = Colors.purple; 
+
+        return AnimatedPositioned(
+          key: ValueKey('face_box_$idx'),
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          left: finalX,
+          top: finalY,
+          width: scaledW,
+          height: scaledH,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Boundary and Corners
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: CornersPainter(boxColor),
+                ),
+              ),
+              // Label
+              Positioned(
+                left: 0,
+                top: -24,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  color: boxColor.withValues(alpha: 0.9),
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
 
-// =============================================================================
-// FIXED Face Box Painter - Corrects XYXY parsing and Aspect Ratio Scaling
-// =============================================================================
-
-class FaceBoxPainter extends CustomPainter {
-  final List<Map<String, dynamic>> recognitions;
-  final CameraController cameraController;
-  final Size screenSize;
-  final FaceDetectionController controller;
-
-  FaceBoxPainter({
-    required this.recognitions,
-    required this.cameraController,
-    required this.screenSize,
-    required this.controller,
-  });
+// Custom Painter for strictly corners
+class CornersPainter extends CustomPainter {
+  final Color color;
+  CornersPainter(this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Get the actual source image dimensions
-    if (cameraController.value.previewSize == null) return;
-    final Size previewSize = cameraController.value.previewSize!;
+    final boxPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
     
-    // 2. Determine the source dimensions relative to the screen orientation.
-    double sourceWidth = previewSize.height; 
-    double sourceHeight = previewSize.width; 
+    final rect = Offset.zero & size;
+    canvas.drawRect(rect, boxPaint);
 
-    // 3. Calculate Scale to maintain aspect ratio (BoxFit.cover)
-    final double scaleX = size.width / sourceWidth;
-    final double scaleY = size.height / sourceHeight;
-    final double scale = scaleX > scaleY ? scaleX : scaleY;
-
-    // 4. Calculate the size of the camera feed on the screen
-    final double displayedWidth = sourceWidth * scale;
-    final double displayedHeight = sourceHeight * scale;
-
-    // 5. Calculate offsets to center the camera feed (cropping)
-    final double offsetX = (displayedWidth - size.width) / 2;
-    final double offsetY = (displayedHeight - size.height) / 2;
-
-    for (var recognition in recognitions) {
-      final box = recognition['box'];
-      
-      if (box == null || box.length < 4) continue;
-
-      // Coordinate Conversion (YOLO XYXY)
-      double x1 = box[0].toDouble();
-      double y1 = box[1].toDouble();
-      double x2 = box[2].toDouble();
-      double y2 = box[3].toDouble();
-      
-      // Calculate ACTUAL width and height
-      double w = x2 - x1;
-      double h = y2 - y1;
-
-      // Apply Scale
-      double scaledX = x1 * scale;
-      double scaledY = y1 * scale;
-      double scaledW = w * scale;
-      double scaledH = h * scale;
-
-      // Apply Crop Offset
-      double finalX = scaledX - offsetX;
-      double finalY = scaledY - offsetY;
-
-      // Get person name 
-      final personName = (recognition['tag'] ?? 'unknown').toString();
-      // Force PURPLE color for everyone as requested
-      final boxColor = Colors.purple; 
-
-      // Draw
-      final rect = Rect.fromLTWH(finalX, finalY, scaledW, scaledH);
-      
-      // Safety check: only draw if partially visible
-      if (rect.overlaps(Offset.zero & size)) {
-        
-        // Draw bounding box
-        final paint = Paint()
-          ..color = boxColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3.0;
-        
-        canvas.drawRect(rect, paint);
-
-        // Draw label
-        _drawLabel(canvas, rect, recognition, box, boxColor, personName);
-        
-        // Draw corner markers
-        _drawCornerMarkers(canvas, rect, boxColor);
-      }
-    }
-  }
-
-  void _drawLabel(Canvas canvas, Rect rect, Map<String, dynamic> recognition, 
-                  List<dynamic> box, Color color, String personName) {
-    // Confidence is at index 4
-    final confidence = box.length > 4 ? (box[4] ?? 0.0) : 0.0;
-    final text = '$personName ${(confidence * 100).toStringAsFixed(0)}%';
-
-    // UPDATED: Matched Object Detection Font Style (No heavy shadow)
-    final textStyle = TextStyle(
-      color: Colors.white,
-      fontSize: 14,
-      fontWeight: FontWeight.bold,
-    );
-
-    final textSpan = TextSpan(text: text, style: textStyle);
-    final textPainter = TextPainter(
-      text: textSpan,
-      textDirection: TextDirection.ltr,
-    );
-
-    textPainter.layout();
-
-    final labelHeight = 22.0;
-    final labelPadding = 8.0;
-    final labelWidth = textPainter.width + labelPadding;
-    
-    // Position label above box
-    double labelTop = rect.top - labelHeight - 2;
-    if (labelTop < 0) {
-      labelTop = rect.top + 2;
-    }
-
-    // Ensure label doesn't go off-screen right
-    double labelLeft = rect.left;
-    if (labelLeft + labelWidth > screenSize.width) {
-      labelLeft = screenSize.width - labelWidth;
-    }
-
-    final labelRect = Rect.fromLTWH(
-      labelLeft,
-      labelTop,
-      labelWidth,
-      labelHeight,
-    );
-    
-    // Draw simple background rect (same as Object Detection)
-    canvas.drawRect(
-      labelRect, 
-      Paint()..color = color.withValues(alpha: 0.9)
-    );
-
-    // Draw text
-    textPainter.paint(
-      canvas, 
-      Offset(labelRect.left + (labelPadding / 2), labelTop + 3)
-    );
-  }
-
-  void _drawCornerMarkers(Canvas canvas, Rect rect, Color color) {
     final markerPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -711,23 +641,16 @@ class FaceBoxPainter extends CustomPainter {
     
     const markerLength = 15.0;
 
-    // Top-left
-    canvas.drawLine(rect.topLeft, rect.topLeft + Offset(markerLength, 0), markerPaint);
-    canvas.drawLine(rect.topLeft, rect.topLeft + Offset(0, markerLength), markerPaint);
-
-    // Top-right
-    canvas.drawLine(rect.topRight, rect.topRight + Offset(-markerLength, 0), markerPaint);
-    canvas.drawLine(rect.topRight, rect.topRight + Offset(0, markerLength), markerPaint);
-
-    // Bottom-left
-    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + Offset(markerLength, 0), markerPaint);
-    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + Offset(0, -markerLength), markerPaint);
-
-    // Bottom-right
-    canvas.drawLine(rect.bottomRight, rect.bottomRight + Offset(-markerLength, 0), markerPaint);
-    canvas.drawLine(rect.bottomRight, rect.bottomRight + Offset(0, -markerLength), markerPaint);
+    canvas.drawLine(rect.topLeft, rect.topLeft + const Offset(markerLength, 0), markerPaint);
+    canvas.drawLine(rect.topLeft, rect.topLeft + const Offset(0, markerLength), markerPaint);
+    canvas.drawLine(rect.topRight, rect.topRight + const Offset(-markerLength, 0), markerPaint);
+    canvas.drawLine(rect.topRight, rect.topRight + const Offset(0, markerLength), markerPaint);
+    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + const Offset(markerLength, 0), markerPaint);
+    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + const Offset(0, -markerLength), markerPaint);
+    canvas.drawLine(rect.bottomRight, rect.bottomRight + const Offset(-markerLength, 0), markerPaint);
+    canvas.drawLine(rect.bottomRight, rect.bottomRight + const Offset(0, -markerLength), markerPaint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CornersPainter oldDelegate) => oldDelegate.color != color;
 }

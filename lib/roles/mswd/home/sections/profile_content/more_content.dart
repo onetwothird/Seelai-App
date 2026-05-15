@@ -1078,67 +1078,67 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
 
   final List<Map<String, String>> _guideData = [
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic1.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic1.png",
       "title": "Role Selection",
       "description": "Select the MSWD category to begin your admin session."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic2.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic2.png",
       "title": "Login",
       "description": "Securely log in to your existing Seelai MSWD account."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic3.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic3.png",
       "title": "Register",
       "description": "Fill out official details to register a new MSWD staff account."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic4.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic4.png",
       "title": "Dashboard",
       "description": "View overall statistics including Total Users, Active Now, Partially Sighted, and Caretakers."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic5.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic5.png",
       "title": "Command Center",
       "description": "Monitor activity trends, urgent alerts, and access shortcuts like Live Map, Broadcast, and Requests."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic6.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic6.png",
       "title": "Announcements",
       "description": "Review all active announcements broadcasted across the entire system."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic7.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic7.png",
       "title": "Create Announcement",
       "description": "Publish new alerts and control visibility targeting Partially Sighted, Caretakers, or All Users."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic8.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic8.png",
       "title": "Add New Registry",
       "description": "Capture and manage custom object detection and caretaker face recognition data."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic9.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic9.png",
       "title": "Directory",
       "description": "Manage registered patients, caretakers, and approve or decline pending account requests."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic10.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic10.png",
       "title": "Location Tracker",
       "description": "Select any Partially Sighted user or Caretaker from the active directory to track them."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic11.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic11.png",
       "title": "Live Map",
       "description": "View the exact real-time location and distance of the selected user relative to you."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic12.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic12.png",
       "title": "System Requests",
       "description": "Monitor all assistance requests. As an MSWD Admin, you can intervene and assist directly."
     },
     {
-      "image": "assets/how-to-use-seelai_images/mswd/pic13.jpg",
+      "image": "assets/how-to-use-seelai_images/mswd/pic13.png",
       "title": "Request Details",
       "description": "Review complete request logs, including user info, messages, assigned responders, and timeline events."
     },

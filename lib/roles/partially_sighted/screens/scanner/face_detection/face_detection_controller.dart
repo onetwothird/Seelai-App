@@ -27,9 +27,8 @@ class FaceDetectionController {
   
   int frameCount = 0;
   DateTime? lastFrameTime;
-  double fps = 0.0;
+  double fps = 0.0; 
 
-  // 🚀 FIX: Frame counter added here too
   int _cameraFrameCounter = 0; 
   
   bool isLowLight = false;
@@ -129,14 +128,14 @@ class FaceDetectionController {
     try {
       await _vision.loadYoloModel(
         labels: 'assets/face_model/labels.txt',
-        modelPath: 'assets/face_model/seelai_face.tflite',
+        modelPath: 'assets/face_model/face_detection.tflite',
         modelVersion: "yolov8",
         numThreads: 4,
         quantization: true, 
         useGpu: true, 
       );
       
-      if (!isDisposing) {
+      if (!isDisposing) {         
         isModelLoaded = true;
         _notifyStateChanged();
         await startFaceDetection();
@@ -155,8 +154,7 @@ class FaceDetectionController {
       await cameraService.controller!.startImageStream((image) {
         _cameraFrameCounter++;
         
-        // 🚀 FIX: Skip 4 out of 5 frames
-        if (_cameraFrameCounter % 3!= 0) return;
+        if (_cameraFrameCounter % 3 != 0) return;
 
         if (!isDetecting && isModelLoaded && !isDisposing) {
           isDetecting = true;
@@ -182,16 +180,16 @@ class FaceDetectionController {
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        iouThreshold: 0.40, // 🚀 FIX: Lowered slightly
-        confThreshold: 0.55, // 🚀 FIX: Lowered slightly (Faces need to be a bit stricter than objects)
-        classThreshold: 0.55,
+        iouThreshold: 0.40,
+        confThreshold: 0.65, 
+        classThreshold: 0.65,
       );
 
       if (!isDisposing) {
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.55;
+            return confidence >= 0.65; 
           }
           return false;
         }).toList();

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:seelai_app/themes/constants.dart';
@@ -52,10 +51,10 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
   }
 
   void _showInitialSnackBar() {
-    Future.delayed(Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Object detection mode activated - Point camera at objects'),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
@@ -85,11 +84,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         if (didPop) return;
-
-        // Ensure the controller is fully disposed before navigating away
         await _controller.dispose();
-
-        // Safely pop the screen
         if (context.mounted) {
           Navigator.of(context).pop(result);
         }
@@ -105,7 +100,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             // Gradient Overlay
             _buildGradientOverlay(),
             
-            // Bounding Boxes - ACCURATE VERSION
+            // Animated Bounding Boxes - Smooth and Accurate
             if (_state.isModelLoaded)
               BoundingBoxes(
                 recognitions: _state.recognitions,
@@ -157,7 +152,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
               size: screenWidth * 0.2,
               color: white.withValues(alpha: 0.3),
             ),
-            SizedBox(height: spacingLarge),
+            const SizedBox(height: spacingLarge),
             Text(
               'Camera Initializing...',
               style: bodyBold.copyWith(
@@ -197,7 +192,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
               Colors.black.withValues(alpha: 0.2),
               Colors.black.withValues(alpha: 0.6),
             ],
-            stops: [0.0, 0.3, 0.7, 1.0],
+            stops: const [0.0, 0.3, 0.7, 1.0],
           ),
         ),
       ),
@@ -210,7 +205,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
       child: Row(
         children: [
           _buildBackButton(screenWidth),
-          SizedBox(width: spacingMedium),
+          const SizedBox(width: spacingMedium),
           Expanded(child: _buildHeaderInfo(screenWidth)),
           _buildFlashToggle(screenWidth),
         ],
@@ -234,7 +229,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
           },
           borderRadius: BorderRadius.circular(radiusMedium),
           child: Container(
-            padding: EdgeInsets.all(spacingMedium),
+            padding: const EdgeInsets.all(spacingMedium),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(radiusMedium),
@@ -294,7 +289,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             _controller.toggleFlashManually();
             if (_state.isFlashOn) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
+                const SnackBar(
                   content: Text('Flashlight turned off'),
                   backgroundColor: Colors.grey,
                   duration: Duration(milliseconds: 800),
@@ -346,7 +341,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
   Widget _buildFlashIndicator(double screenWidth) {
     return AnimatedOpacity(
       opacity: _state.showFlashIndicator ? 1.0 : 0.0,
-      duration: Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 500),
       child: Container(
         margin: EdgeInsets.only(
           bottom: spacingMedium,
@@ -364,7 +359,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             BoxShadow(
               color: Colors.orange.withValues(alpha: 0.3),
               blurRadius: 10,
-              offset: Offset(0, 4),
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -397,7 +392,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.vertical(
+        borderRadius: const BorderRadius.vertical(
           top: Radius.circular(radiusXLarge),
         ),
       ),
@@ -414,8 +409,8 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
 
   Widget _buildDetectedObjectsInfo(double screenWidth) {
     return Container(
-      margin: EdgeInsets.only(bottom: spacingLarge),
-      padding: EdgeInsets.all(spacingMedium),
+      margin: const EdgeInsets.only(bottom: spacingLarge),
+      padding: const EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
         color: Colors.green.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(radiusMedium),
@@ -434,7 +429,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                 color: Colors.green,
                 size: screenWidth * 0.05,
               ),
-              SizedBox(width: spacingSmall),
+              const SizedBox(width: spacingSmall),
               Expanded(
                 child: Text(
                   'Objects Auto-Read & Saved',
@@ -446,7 +441,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
               ),
             ],
           ),
-          SizedBox(height: spacingSmall),
+          const SizedBox(height: spacingSmall),
           Text(
             _state.lastDetectedObjects.length > 80 
                 ? '${_state.lastDetectedObjects.substring(0, 80)}...' 
@@ -480,7 +475,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
                   : Colors.orange,
           size: screenWidth * 0.06,
         ),
-        SizedBox(width: spacingSmall),
+        const SizedBox(width: spacingSmall),
         Flexible(
           child: Text(
             _state.isReading
@@ -494,7 +489,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             ),
           ),
         ),
-        SizedBox(width: spacingLarge),
+        const SizedBox(width: spacingLarge),
         Container(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.03, 
@@ -519,7 +514,7 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
 }
 
 // =============================================================================
-// ACCURATE Bounding Boxes - Tight fit on ALL devices
+// SMOOTH Animated Object Bounding Boxes with Custom Corner UI
 // =============================================================================
 
 class BoundingBoxes extends StatelessWidget {
@@ -536,179 +531,128 @@ class BoundingBoxes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (recognitions.isEmpty) return const SizedBox.shrink();
+    if (recognitions.isEmpty || cameraController.value.previewSize == null) {
+      return const SizedBox.shrink();
+    }
 
-    return CustomPaint(
-      painter: BoxPainter(
-        recognitions: recognitions,
-        cameraController: cameraController,
-        screenSize: screenSize,
-      ),
+    final Size previewSize = cameraController.value.previewSize!;
+    double sourceWidth = previewSize.height; 
+    double sourceHeight = previewSize.width; 
+
+    final double scaleX = screenSize.width / sourceWidth;
+    final double scaleY = screenSize.height / sourceHeight;
+    final double scale = scaleX > scaleY ? scaleX : scaleY;
+
+    final double displayedWidth = sourceWidth * scale;
+    final double displayedHeight = sourceHeight * scale;
+
+    final double offsetX = (displayedWidth - screenSize.width) / 2;
+    final double offsetY = (displayedHeight - screenSize.height) / 2;
+
+    return Stack(
+      children: recognitions.asMap().entries.map((entry) {
+        int idx = entry.key;
+        var recognition = entry.value;
+        final box = recognition['box'];
+        
+        if (box == null || box.length < 4) return const SizedBox.shrink();
+
+        double x1 = box[0].toDouble();
+        double y1 = box[1].toDouble();
+        double x2 = box[2].toDouble();
+        double y2 = box[3].toDouble();
+
+        double w = x2 - x1;
+        double h = y2 - y1;
+
+        double scaledX = x1 * scale;
+        double scaledY = y1 * scale;
+        double scaledW = w * scale;
+        double scaledH = h * scale;
+
+        double finalX = scaledX - offsetX;
+        double finalY = scaledY - offsetY;
+
+        final label = recognition['tag'] ?? '';
+        final confidence = box.length > 4 ? (box[4] ?? 0.0) : 0.0;
+        final text = '$label ${(confidence * 100).toStringAsFixed(0)}%';
+        const boxColor = Colors.green;
+
+        return AnimatedPositioned(
+          key: ValueKey('object_box_$idx'),
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOut,
+          left: finalX,
+          top: finalY,
+          width: scaledW,
+          height: scaledH,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Boundary and Corners
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: CornersPainter(boxColor),
+                ),
+              ),
+              // Label
+              Positioned(
+                left: 0,
+                top: -24,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  color: boxColor.withValues(alpha: 0.9),
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
 
-// =============================================================================
-// FIXED Box Painter - Accurate coordinates for ALL mobile devices
-// =============================================================================
-// =============================================================================
-// FIXED Box Painter - Corrects XYXY parsing and Aspect Ratio Scaling
-// =============================================================================
-
-class BoxPainter extends CustomPainter {
-  final List<Map<String, dynamic>> recognitions;
-  final CameraController cameraController;
-  final Size screenSize;
-
-  BoxPainter({
-    required this.recognitions,
-    required this.cameraController,
-    required this.screenSize,
-  });
+// Custom Painter strictly for drawing the precise corner markers
+class CornersPainter extends CustomPainter {
+  final Color color;
+  CornersPainter(this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.green
+    final boxPaint = Paint()
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
-
-    // 1. Get the actual source image dimensions (usually landscape on Android)
-    // We use the raw preview size from the controller.
-    final Size previewSize = cameraController.value.previewSize!;
     
-    // 2. Determine the source dimensions relative to the screen orientation.
-    // If the app is locked to portrait, we need to know if the camera feed is rotated.
-    // Standard logic for scaling 'BoxFit.cover' on a Portrait Screen with Landscape Camera:
-    
-    double sourceWidth = previewSize.height; // Swap for Portrait
-    double sourceHeight = previewSize.width; // Swap for Portrait
+    final rect = Offset.zero & size;
+    canvas.drawRect(rect, boxPaint);
 
-    // 3. Calculate Scale to maintain aspect ratio (BoxFit.cover)
-    final double scaleX = size.width / sourceWidth;
-    final double scaleY = size.height / sourceHeight;
-    final double scale = scaleX > scaleY ? scaleX : scaleY;
-
-    // 4. Calculate the size of the camera feed on the screen
-    final double displayedWidth = sourceWidth * scale;
-    final double displayedHeight = sourceHeight * scale;
-
-    // 5. Calculate offsets to center the camera feed (cropping)
-    final double offsetX = (displayedWidth - size.width) / 2;
-    final double offsetY = (displayedHeight - size.height) / 2;
-
-    for (var recognition in recognitions) {
-      final box = recognition['box'];
-      
-      if (box == null || box.length < 4) continue;
-
-      // --- CRITICAL FIX: Coordinate Conversion ---
-      // YOLO output is [x1, y1, x2, y2, conf]
-      // NOT [x, y, w, h]
-      double x1 = box[0].toDouble();
-      double y1 = box[1].toDouble();
-      double x2 = box[2].toDouble();
-      double y2 = box[3].toDouble();
-      
-      // Calculate width and height from coordinates
-      double w = x2 - x1;
-      double h = y2 - y1;
-
-      // Apply Scale
-      double scaledX = x1 * scale;
-      double scaledY = y1 * scale;
-      double scaledW = w * scale;
-      double scaledH = h * scale;
-
-      // Apply Crop Offset (subtract because we need to move the box "left/up" 
-      // to match the cropped view the user sees)
-      double finalX = scaledX - offsetX;
-      double finalY = scaledY - offsetY;
-
-      // Draw
-      final rect = Rect.fromLTWH(finalX, finalY, scaledW, scaledH);
-      
-      // Safety check: only draw if partially visible
-      if (rect.overlaps(Offset.zero & size)) {
-        canvas.drawRect(rect, paint);
-        _drawLabel(canvas, rect, recognition, box);
-        _drawCornerMarkers(canvas, rect);
-      }
-    }
-  }
-
-  void _drawLabel(Canvas canvas, Rect rect, Map<String, dynamic> recognition, List<dynamic> box) {
-    final label = recognition['tag'] ?? '';
-    // Confidence is at index 4
-    final confidence = box.length > 4 ? (box[4] ?? 0.0) : 0.0;
-    final text = '$label ${(confidence * 100).toStringAsFixed(0)}%';
-
-    final textStyle = TextStyle(
-      color: Colors.white,
-      fontSize: 14,
-      fontWeight: FontWeight.bold,
-    );
-
-    final textSpan = TextSpan(text: text, style: textStyle);
-    final textPainter = TextPainter(
-      text: textSpan,
-      textDirection: TextDirection.ltr,
-    );
-
-    textPainter.layout();
-
-    final labelHeight = 22.0;
-    final labelPadding = 8.0;
-    final labelWidth = textPainter.width + labelPadding;
-    
-    // Adjust label position
-    double labelTop = rect.top - labelHeight - 2;
-    if (labelTop < 0) labelTop = rect.top + 2;
-
-    final labelRect = Rect.fromLTWH(
-      rect.left,
-      labelTop,
-      labelWidth,
-      labelHeight,
-    );
-    
-    canvas.drawRect(
-      labelRect, 
-      Paint()..color = Colors.green.withValues(alpha: 0.9)
-    );
-
-    textPainter.paint(
-      canvas, 
-      Offset(labelRect.left + (labelPadding / 2), labelTop + 3)
-    );
-  }
-
-  void _drawCornerMarkers(Canvas canvas, Rect rect) {
     final markerPaint = Paint()
-      ..color = Colors.green
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0
       ..strokeCap = StrokeCap.round;
     
     const markerLength = 15.0;
 
-    // Top-left
-    canvas.drawLine(rect.topLeft, rect.topLeft + Offset(markerLength, 0), markerPaint);
-    canvas.drawLine(rect.topLeft, rect.topLeft + Offset(0, markerLength), markerPaint);
-
-    // Top-right
-    canvas.drawLine(rect.topRight, rect.topRight + Offset(-markerLength, 0), markerPaint);
-    canvas.drawLine(rect.topRight, rect.topRight + Offset(0, markerLength), markerPaint);
-
-    // Bottom-left
-    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + Offset(markerLength, 0), markerPaint);
-    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + Offset(0, -markerLength), markerPaint);
-
-    // Bottom-right
-    canvas.drawLine(rect.bottomRight, rect.bottomRight + Offset(-markerLength, 0), markerPaint);
-    canvas.drawLine(rect.bottomRight, rect.bottomRight + Offset(0, -markerLength), markerPaint);
+    canvas.drawLine(rect.topLeft, rect.topLeft + const Offset(markerLength, 0), markerPaint);
+    canvas.drawLine(rect.topLeft, rect.topLeft + const Offset(0, markerLength), markerPaint);
+    canvas.drawLine(rect.topRight, rect.topRight + const Offset(-markerLength, 0), markerPaint);
+    canvas.drawLine(rect.topRight, rect.topRight + const Offset(0, markerLength), markerPaint);
+    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + const Offset(markerLength, 0), markerPaint);
+    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + const Offset(0, -markerLength), markerPaint);
+    canvas.drawLine(rect.bottomRight, rect.bottomRight + const Offset(-markerLength, 0), markerPaint);
+    canvas.drawLine(rect.bottomRight, rect.bottomRight + const Offset(0, -markerLength), markerPaint);
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CornersPainter oldDelegate) => oldDelegate.color != color;
 }
