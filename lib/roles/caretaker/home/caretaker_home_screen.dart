@@ -1,6 +1,7 @@
 // File: lib/roles/caretaker/home/caretaker_home_screen.dart
 
 import 'dart:async';
+import 'dart:math' show sqrt; // === IMPORTED MATH FOR CIRCLE RADIUS ===
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'; 
 import 'package:firebase_auth/firebase_auth.dart'; 
@@ -36,7 +37,7 @@ class CaretakerHomeScreen extends StatefulWidget {
 }
 
 class _CaretakerHomeScreenState extends State<CaretakerHomeScreen> 
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin { // Changed to TickerProviderStateMixin
   // Services
   late final NotificationService _notificationService;
   late final LocationService _locationService;
@@ -44,6 +45,10 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   
   // UI State
   bool _isDarkMode = false;
+  
+  // === THE SECRET SAUCE: Holding the old state while we animate ===
+  bool? _previousIsDarkMode; 
+  
   int _selectedIndex = 0;
   int _pendingRequestsCount = 0;
   
@@ -54,6 +59,10 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   // Animation
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
+  
+  // === NEW: Circular Reveal Variables ===
+  late AnimationController _revealController;
+  late Animation<double> _revealAnimation;
   
   // Scroll Navigation State
   bool _isNavVisible = true;
@@ -176,11 +185,38 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     );
     
     _animationController.forward();
+    
+    // === NEW: Initialize the Circular Reveal animation ===
+    _revealController = AnimationController(
+      duration: const Duration(milliseconds: 800), 
+      vsync: this,
+    );
+    
+    _revealAnimation = CurvedAnimation(
+      parent: _revealController,
+      curve: Curves.easeInOutCubic,
+    );
   }
 
   void _toggleDarkMode() {
+    // Prevent spam clicking while it's animating
+    if (_revealController.isAnimating) return; 
+
     setState(() {
+      // 1. Lock in the old theme state for the bottom layer
+      _previousIsDarkMode = _isDarkMode; 
+      // 2. Set the new theme state for the top expanding layer
       _isDarkMode = !_isDarkMode;
+    });
+
+    // 3. Blast off the circle animation
+    _revealController.forward(from: 0.0).then((_) {
+      if (mounted) {
+        setState(() {
+          // 4. Once fully expanded, destroy the old bottom layer
+          _previousIsDarkMode = null; 
+        });
+      }
     });
   }
 
@@ -202,6 +238,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
   @override
   void dispose() {
     _animationController.dispose();
+    _revealController.dispose(); // Clean up reveal controller
     _requestsSubscription?.cancel();
     super.dispose();
   }
@@ -261,11 +298,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    final theme = _isDarkMode ? _getDarkTheme() : _getLightTheme();
-
     return IncomingCallListener(
       userRole: 'caretaker', 
       child: PopScope(
@@ -279,106 +311,141 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             Navigator.of(context).pop(result);
           }
         },
-        child: Scaffold(
-          extendBody: true,
-          body: Container(
-            decoration: BoxDecoration(gradient: theme.backgroundGradient),
-            child: SafeArea(
-              bottom: false,
-              child: NotificationListener<UserScrollNotification>(
-                onNotification: (notification) {
-                  if (notification.direction == ScrollDirection.forward) {
-                    if (!_isNavVisible) setState(() => _isNavVisible = true);
-                  } else if (notification.direction == ScrollDirection.reverse) {
-                    if (_isNavVisible) setState(() => _isNavVisible = false);
-                  }
-                  return false; 
-                },
-                child: Stack(
-                  children: [
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: _buildMainContent(
-                        screenWidth,
-                        screenHeight,
-                        theme,
-                      ),
-                    ),
+        // === THE MAGIC LAYER SYSTEM ===
+        child: AnimatedBuilder(
+          animation: _revealAnimation,
+          builder: (context, child) {
+            // Precise coordinates for the sun/moon toggle button
+            final centerOffset = Offset(MediaQuery.of(context).size.width - 48, 65);
+            
+            return Stack(
+              children: [
+                // LAYER 1: The completely rendered OLD theme.
+                if (_previousIsDarkMode != null)
+                  _buildScaffoldLayer(isDarkLayer: _previousIsDarkMode!),
 
-                    CaretakerMissedCallAlertSection(
-                      caretakerId: FirebaseAuth.instance.currentUser?.uid ?? widget.userData['userId'] ?? widget.userData['uid'] ?? '',
-                      isDarkMode: _isDarkMode,
-                      theme: theme,
-                    ),
+                // LAYER 2: The completely rendered NEW theme wrapped in the expanding mask
+                ClipPath(
+                  clipper: ThemeRevealClipper(
+                    fraction: _revealController.isAnimating ? _revealAnimation.value : 1.0,
+                    center: centerOffset,
+                  ),
+                  child: _buildScaffoldLayer(isDarkLayer: _isDarkMode),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 
-                    // FLOATING "SHOW MENU" BUTTON (RESTRICTED TO TAB 4)
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOutCubic,
-                      bottom: (_isNavVisible || _selectedIndex != 4) 
-                          ? -100 
-                          : MediaQuery.of(context).padding.bottom + 20,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() => _isNavVisible = true);
-                          },
-                          icon: Icon(Icons.keyboard_arrow_up, color: primary),
-                          label: Text(
-                            'Show Menu',
-                            style: TextStyle(
-                              color: theme.textColor, 
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: theme.cardColor,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: const StadiumBorder(),
-                            elevation: 8,
-                            shadowColor: Colors.black26,
-                          ),
+  // === HELPER METHOD: Builds the entire screen structure based on a specific theme state ===
+  Widget _buildScaffoldLayer({required bool isDarkLayer}) {
+    final theme = isDarkLayer ? _getDarkTheme() : _getLightTheme();
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      extendBody: true,
+      backgroundColor: Colors.transparent, // Let gradient show
+      body: Container(
+        decoration: BoxDecoration(gradient: theme.backgroundGradient),
+        child: SafeArea(
+          bottom: false,
+          child: NotificationListener<UserScrollNotification>(
+            onNotification: (notification) {
+              if (notification.direction == ScrollDirection.forward) {
+                if (!_isNavVisible) setState(() => _isNavVisible = true);
+              } else if (notification.direction == ScrollDirection.reverse) {
+                if (_isNavVisible) setState(() => _isNavVisible = false);
+              }
+              return false; 
+            },
+            child: Stack(
+              children: [
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: _buildMainContent(
+                    screenWidth,
+                    screenHeight,
+                    theme,
+                    isDarkLayer, // Pass the specific layer state down
+                  ),
+                ),
+
+                CaretakerMissedCallAlertSection(
+                  caretakerId: FirebaseAuth.instance.currentUser?.uid ?? widget.userData['userId'] ?? widget.userData['uid'] ?? '',
+                  isDarkMode: isDarkLayer,
+                  theme: theme,
+                ),
+
+                // FLOATING "SHOW MENU" BUTTON (RESTRICTED TO TAB 4)
+                AnimatedPositioned(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOutCubic,
+                  bottom: (_isNavVisible || _selectedIndex != 4) 
+                      ? -100 
+                      : MediaQuery.of(context).padding.bottom + 20,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() => _isNavVisible = true);
+                      },
+                      icon: Icon(Icons.keyboard_arrow_up, color: primary),
+                      label: Text(
+                        'Show Menu',
+                        style: TextStyle(
+                          color: theme.textColor, 
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
                       ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.cardColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: const StadiumBorder(),
+                        elevation: 8,
+                        shadowColor: Colors.black26,
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
-        
-          bottomNavigationBar: AnimatedSlide(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOutCubic,
-            offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 300),
-              opacity: _isNavVisible ? 1.0 : 0.0,
-              child: CustomBottomNavigation(
-                selectedIndex: _selectedIndex,
-                isDarkMode: _isDarkMode,
-                onItemTapped: _onNavItemTapped,
-                textColor: theme.textColor,
-                subtextColor: theme.subtextColor,
-                pendingRequestsCount: _pendingRequestsCount,
-              ),
-            ),
+        ),
+      ),
+    
+      bottomNavigationBar: AnimatedSlide(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+        offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: _isNavVisible ? 1.0 : 0.0,
+          child: CustomBottomNavigation(
+            selectedIndex: _selectedIndex,
+            isDarkMode: isDarkLayer, // Must follow the layer's state
+            onItemTapped: _onNavItemTapped,
+            textColor: theme.textColor,
+            subtextColor: theme.subtextColor,
+            pendingRequestsCount: _pendingRequestsCount,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildMainContent(double width, double height, _AppTheme theme) {
+  Widget _buildMainContent(double width, double height, _AppTheme theme, bool isDarkLayer) {
     Widget buildScrollableHeader() {
       final caretakerName = widget.userData['name'] ?? 'Caretaker';
       return HeaderSection(
         caretakerName: caretakerName,
         profileImageUrl: widget.userData['profileImageUrl'] as String?, 
-        isDarkMode: _isDarkMode,
+        isDarkMode: isDarkLayer, // Layer state
         pendingRequestsCount: _pendingRequestsCount,
         onToggleDarkMode: _toggleDarkMode,
         onProfileTap: () {
@@ -402,7 +469,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
               height: height * 0.85, 
               child: NotificationsBottomSheet(
                 caretakerId: currentUserId,
-                isDarkMode: _isDarkMode,
+                isDarkMode: isDarkLayer,
                 requestService: _requestService, 
               ),
             ),
@@ -423,7 +490,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             children: [
               buildScrollableHeader(),
               HomeContent(
-                isDarkMode: _isDarkMode,
+                isDarkMode: isDarkLayer, // Layer state
                 theme: theme,
                 userData: widget.userData,
                 onNotificationUpdate: _updateNotification,
@@ -436,7 +503,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         break;
       case 1:
         content = PatientsContent(
-          isDarkMode: _isDarkMode,
+          isDarkMode: isDarkLayer, // Layer state
           theme: theme,
           userData: widget.userData,
           locationService: _locationService,
@@ -444,7 +511,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         break;
       case 2:
         content = RequestsContent(
-          isDarkMode: _isDarkMode,
+          isDarkMode: isDarkLayer, // Layer state
           theme: theme,
           userData: widget.userData,
           requestService: _requestService,
@@ -466,14 +533,14 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           physics: const ClampingScrollPhysics(), 
           child: ProfileContent(
             userData: widget.userData,
-            isDarkMode: _isDarkMode,
+            isDarkMode: isDarkLayer, // Layer state
             theme: theme,
           ),
         );
         break;
       case 4:
         content = RealtimeTrackingScreen(
-          isDarkMode: _isDarkMode,
+          isDarkMode: isDarkLayer, // Layer state
           theme: theme,
           userData: widget.userData,
           locationService: _locationService,
@@ -495,7 +562,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         content = const SizedBox.shrink();
     }
 
-    // === CHANGED LOGIC: Use AnimatedSwitcher so menu switches trigger init state for skeletons! ===
+    // Retained the Caretaker-specific AnimatedSwitcher logic
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       switchInCurve: Curves.easeInOutCubic,
@@ -524,7 +591,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         end: Alignment.bottomRight,
         stops: [0.0, 0.5, 1.0],
       ),
-      textColor: white,
+      textColor: Colors.white,
       subtextColor: const Color(0xFFB0B8D4),
       cardColor: const Color(0xFF1A1F3A),
     );
@@ -537,9 +604,9 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         end: Alignment.bottomRight,
         colors: [Colors.white, Colors.white], 
       ),
-      textColor: black,
-      subtextColor: grey,
-      cardColor: white,
+      textColor: Colors.black,
+      subtextColor: Colors.grey,
+      cardColor: Colors.white,
     );
   }
 }
@@ -556,4 +623,28 @@ class _AppTheme {
     required this.subtextColor,
     required this.cardColor,
   });
+}
+
+// ========================================================
+// CUSTOM CLIPPER FOR CIRCULAR REVEAL ANIMATION
+// ========================================================
+class ThemeRevealClipper extends CustomClipper<Path> {
+  final double fraction;
+  final Offset center;
+
+  ThemeRevealClipper({required this.fraction, required this.center});
+
+  @override
+  Path getClip(Size size) {
+    // Calculates the absolute longest distance from the toggle button to the furthest corner
+    final double maxRadius = sqrt(size.width * size.width + size.height * size.height);
+    final double radius = maxRadius * fraction;
+    
+    return Path()..addOval(Rect.fromCircle(center: center, radius: radius));
+  }
+
+  @override
+  bool shouldReclip(covariant ThemeRevealClipper oldClipper) {
+    return oldClipper.fraction != fraction || oldClipper.center != center;
+  }
 }
