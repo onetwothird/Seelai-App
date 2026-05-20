@@ -13,19 +13,21 @@ class ViewRecentActivities extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final String userId;
+  final VoidCallback onToggleDarkMode; // === ADDED: Accepts the theme toggle callback ===
 
   const ViewRecentActivities({
     super.key,
     required this.isDarkMode,
     required this.theme,
     required this.userId,
+    required this.onToggleDarkMode, // === ADDED ===
   });
 
   @override
   State<ViewRecentActivities> createState() => _ViewRecentActivitiesState();
 }
 
-class _ViewRecentActivitiesState extends State<ViewRecentActivities> with SingleTickerProviderStateMixin {
+class _ViewRecentActivitiesState extends State<ViewRecentActivities> with TickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF7C3AED);
 
   final int maxDisplayedDetections = 5;
@@ -225,7 +227,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Single
       ),
     );
   }
-
+  
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -274,23 +276,43 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Single
                         ],
                       ),
                     ),
-                    Semantics(
-                      label: 'Refresh detections',
-                      button: true,
-                      hint: 'Double tap to refresh',
-                      child: IconButton(
-                        onPressed: _refreshDetections,
-                        icon: AnimatedRotation(
-                          turns: _isRefreshing ? 1 : 0,
-                          duration: const Duration(milliseconds: 600),
-                          child: Icon(
-                            Icons.refresh_rounded,
-                            color: _primaryColor,
-                            size: 26,
+                    // === UPDATED: Added Row to hold both Theme Toggle & Refresh ===
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PremiumThemeToggle(
+                          isDarkMode: widget.isDarkMode,
+                          onToggle: widget.onToggleDarkMode,
+                          buttonBgColor: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
+                          iconColor: _primaryColor,
+                        ),
+                        const SizedBox(width: 8),
+                        Semantics(
+                          label: 'Refresh detections',
+                          button: true,
+                          hint: 'Double tap to refresh',
+                          child: GestureDetector(
+                            onTap: _refreshDetections,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
+                                shape: BoxShape.circle,
+                              ),
+                              child: AnimatedRotation(
+                                turns: _isRefreshing ? 1 : 0,
+                                duration: const Duration(milliseconds: 600),
+                                child: Icon(
+                                  Icons.refresh_rounded,
+                                  color: _primaryColor,
+                                  size: 20, // Match size of moon icon
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        tooltip: 'Refresh detections',
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -1099,6 +1121,115 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
           style: widget.style,
         );
       },
+    );
+  }
+}
+
+// ==========================================
+// PREMIUM "SUPERNOVA" THEME TOGGLE
+// ==========================================
+class PremiumThemeToggle extends StatefulWidget {
+  final bool isDarkMode;
+  final VoidCallback onToggle;
+  final Color buttonBgColor;
+  final Color iconColor;
+
+  const PremiumThemeToggle({
+    super.key,
+    required this.isDarkMode,
+    required this.onToggle,
+    required this.buttonBgColor,
+    required this.iconColor,
+  });
+
+  @override
+  State<PremiumThemeToggle> createState() => _PremiumThemeToggleState();
+}
+
+class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.7).chain(CurveTween(curve: Curves.easeOutQuad)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.7, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 70,
+      ),
+    ]).animate(_controller);
+
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack)
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward(from: 0.0);
+    widget.onToggle();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final double glowOpacity = _controller.isAnimating 
+              ? (1.0 - _controller.value).clamp(0.0, 0.4) 
+              : 0.0;
+
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: RotationTransition(
+              turns: _rotationAnimation,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: widget.buttonBgColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.iconColor.withValues(alpha: glowOpacity),
+                      blurRadius: 20 * _controller.value,
+                      spreadRadius: 8 * _controller.value,
+                    )
+                  ],
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(scale: animation, child: child),
+                  ),
+                  child: Icon(
+                    widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    key: ValueKey<bool>(widget.isDarkMode),
+                    size: 20,
+                    color: widget.iconColor,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

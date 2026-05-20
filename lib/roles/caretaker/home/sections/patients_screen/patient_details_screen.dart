@@ -1,7 +1,7 @@
 // File: lib/roles/caretaker/home/sections/patients_screen/patient_details_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; // Added shimmer
+import 'package:shimmer/shimmer.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -32,7 +32,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Map<String, dynamic>? _fullPatientData;
   bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
-  bool _isScrolled = false; // Added state to track scroll
+  bool _isScrolled = false; 
 
   @override
   void initState() {
@@ -71,7 +71,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll); // Clean up listener
+    _scrollController.removeListener(_onScroll); 
     _scrollController.dispose();
     super.dispose();
   }
@@ -239,7 +239,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Medical Information',
                           icon: Icons.medical_services_rounded,
-                          color: const Color(0xFF8B5CF6), // Changed to requested color
+                          color: const Color(0xFF8B5CF6), 
                           children: [
                             _buildInfoRow('Disability', widget.patient.disabilityType, textColor),
                             _buildInfoRow('Diagnosis', _fullPatientData?['diagnosis'] ?? 'Not specified', textColor),
@@ -254,7 +254,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Contact Details',
                           icon: Icons.contact_phone_rounded,
-                          color: const Color(0xFF8B5CF6), // Changed to requested color
+                          color: const Color(0xFF8B5CF6), 
                           children: [
                             _buildInfoRow('Phone', widget.patient.contactNumber ?? 'N/A', textColor),
                             _buildInfoRow('Address', widget.patient.address ?? 'N/A', textColor, isMultiline: true),
@@ -270,7 +270,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Account Info',
                           icon: Icons.shield_rounded,
-                          color: const Color(0xFF8B5CF6), // Changed to requested color
+                          color: const Color(0xFF8B5CF6), 
                           children: [
                             _buildInfoRow('ID Number', _fullPatientData?['idNumber'] ?? 'N/A', textColor),
                             _buildInfoRow('Last Active', _formatLastActive(widget.patient.lastActive), textColor),
@@ -413,7 +413,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             label: 'Age',
             value: '${widget.patient.age} yrs',
             icon: Icons.cake_rounded,
-            color: const Color(0xFF8B5CF6), // Changed to requested color
+            color: const Color(0xFF8B5CF6), 
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -424,7 +424,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             label: 'Gender',
             value: sex,
             icon: Icons.wc_rounded,
-            color: const Color(0xFF8B5CF6), // Changed to requested color
+            color: const Color(0xFF8B5CF6), 
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -534,18 +534,33 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                color: textColor,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
-              textAlign: TextAlign.right,
-              maxLines: isMultiline ? 3 : 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: isMultiline
+                ? Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                    textAlign: TextAlign.right,
+                    maxLines: null, 
+                  )
+                : SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    reverse: true, 
+                    physics: const BouncingScrollPhysics(),
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
           ),
         ],
       ),

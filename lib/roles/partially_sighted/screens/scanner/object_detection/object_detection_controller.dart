@@ -27,7 +27,7 @@ class ObjectDetectionController {
   
   int frameCount = 0;
   DateTime? lastFrameTime;
-  double fps = 0.0; // Starts at 0.0
+  double fps = 0.0; 
   
   int _cameraFrameCounter = 0; 
   
@@ -76,7 +76,7 @@ class ObjectDetectionController {
         } catch (_) { /* Ignored */ }
       }
       
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
       
       try {
         await _vision.closeYoloModel();
@@ -86,7 +86,7 @@ class ObjectDetectionController {
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("en-US");
+      await _flutterTts.setLanguage("en-PH");
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -118,7 +118,7 @@ class ObjectDetectionController {
   }
 
   void _announceMode() {
-    Future.delayed(Duration(milliseconds: 300), () {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (!isDisposing) {
         _flutterTts.speak('Object detection mode activated.');
       }
@@ -182,15 +182,15 @@ class ObjectDetectionController {
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.40, 
-        confThreshold: 0.65, 
-        classThreshold: 0.65,
+        confThreshold: 0.75, 
+        classThreshold: 0.75,
       );
 
       if (!isDisposing) {
         recognitions = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.65; 
+            return confidence >= 0.75; 
           }
           return false;
         }).toList();
@@ -237,6 +237,7 @@ class ObjectDetectionController {
           var r = recognitions[i];
           var box = r['box'];
           String tag = r['tag'] ?? 'object';
+          // Capitalize first letter for natural reading
           tag = tag.isNotEmpty ? '${tag[0].toUpperCase()}${tag.substring(1)}' : tag;
 
           if (box != null && box.length > 4) {
@@ -246,33 +247,39 @@ class ObjectDetectionController {
             double y2 = box[3].toDouble();
 
             double centerX = (x1 + x2) / 2;
-            String clockDirection;
+            String positionStr;
+            
+            // Professional Positioning
             if (centerX < sourceWidth * 0.35) {
-              clockDirection = "10 o'clock";
+              positionStr = "to the left";
             } else if (centerX > sourceWidth * 0.65) {
-              clockDirection = "2 o'clock";
+              positionStr = "to the right";
             } else {
-              clockDirection = "12 o'clock";
+              positionStr = "directly ahead";
             }
 
             double boxHeight = y2 - y1;
             double heightRatio = boxHeight / sourceHeight;
             String distanceStr;
+            
+            // Professional Distance
             if (heightRatio > 0.6) {
-              distanceStr = "1 meter";
+              distanceStr = "approximately 1 meter away";
             } else if (heightRatio > 0.3) {
-              distanceStr = "2 meters";
+              distanceStr = "approximately 2 meters away";
             } else {
-              distanceStr = "3 meters";
+              distanceStr = "approximately 3 meters away";
             }
 
-            objectStatements.add('$tag at $clockDirection, $distanceStr away');
+            // Output format: "TV detected directly ahead, approximately 2 meters away"
+            objectStatements.add('$tag detected $positionStr, $distanceStr');
           } else {
-            objectStatements.add(tag);
+            objectStatements.add('$tag detected');
           }
         }
 
-        String speechText = 'Caution: ${objectStatements.join(". ")}';
+        // Clean phrasing joined by periods
+        String speechText = objectStatements.join(". ");
         String detectedObjectsText = recognitions.map((r) => '${r['tag']}').join(', ');
         
         lastDetectedObjects = detectedObjectsText;
@@ -395,7 +402,7 @@ class ObjectDetectionController {
         _flutterTts.speak('Turning on light.');
         
         _flashIndicatorTimer?.cancel();
-        _flashIndicatorTimer = Timer(Duration(seconds: 3), () {
+        _flashIndicatorTimer = Timer(const Duration(seconds: 3), () {
           showFlashIndicator = false;
           _notifyStateChanged();
         });

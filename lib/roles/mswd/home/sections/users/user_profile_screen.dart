@@ -618,18 +618,33 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 14,
-                color: textColor,
-                fontWeight: FontWeight.w600,
-                height: 1.3,
-              ),
-              textAlign: TextAlign.right,
-              maxLines: isMultiline ? 3 : 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: isMultiline
+                ? Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                    textAlign: TextAlign.right,
+                    maxLines: null, 
+                  )
+                : SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    reverse: true, 
+                    physics: const BouncingScrollPhysics(),
+                    child: Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: textColor,
+                        fontWeight: FontWeight.w600,
+                        height: 1.3,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ),
           ),
         ],
       ),
