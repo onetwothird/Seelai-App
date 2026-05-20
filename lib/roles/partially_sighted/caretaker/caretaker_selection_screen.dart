@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/home/home_screen.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
@@ -127,11 +126,9 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
 
     return _caretakers.where((caretaker) {
       final name = (caretaker['name'] ?? '').toString().toLowerCase();
-      final relationship =
-          (caretaker['relationship'] ?? '').toString().toLowerCase();
       final query = _searchQuery.toLowerCase();
 
-      return name.contains(query) || relationship.contains(query);
+      return name.contains(query);
     }).toList();
   }
 
@@ -465,7 +462,6 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
     required bool isSelected,
   }) {
     final name = caretaker['name'] ?? 'Unknown';
-    final relationship = caretaker['relationship'] ?? 'Caretaker';
     final age = caretaker['age']?.toString() ?? 'N/A';
     final phone =
         caretaker['phone'] ?? caretaker['contactNumber'] ?? 'No phone';
@@ -548,11 +544,11 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.favorite_rounded,
+                      Icon(Icons.verified_rounded,
                           size: 14, color: _primaryColor),
                       const SizedBox(width: 4),
                       Text(
-                        relationship,
+                        "Registered Caretaker",
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

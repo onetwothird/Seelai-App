@@ -34,15 +34,12 @@ class HeaderSection extends StatefulWidget {
   State<HeaderSection> createState() => _HeaderSectionState();
 }
 
-// === CHANGED: Added SingleTickerProviderStateMixin for the entry animation ===
 class _HeaderSectionState extends State<HeaderSection> with SingleTickerProviderStateMixin {
   bool _showDoubleCheck = false;
   
-  // Animation State
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
-  // === NEW: Animation Controllers & Tweens ===
   late AnimationController _entryController;
   late Animation<double> _topRowOpacity;
   late Animation<Offset> _topRowSlide;
@@ -56,13 +53,11 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     super.initState();
     _startMessageTimer();
 
-    // === NEW: Initialize the staggered entry animation ===
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
 
-    // 1. Top Row (Buttons) - Fades & slides down early
     _topRowOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
     );
@@ -70,7 +65,6 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
       CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
     );
 
-    // 2. Text Row (Greeting) - Fades & slides in from left
     _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOut)),
     );
@@ -78,24 +72,21 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
       CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic)),
     );
 
-    // 3. Mascot - Pops up playfully
     _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.8, curve: Curves.easeOutBack)),
     );
 
-    // 4. Speech Bubble - Pops out from the mascot
     _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.5, 1.0, curve: Curves.easeOutBack)),
     );
 
-    // Start the animation immediately when the header loads
     _entryController.forward();
   }
 
   @override
   void dispose() {
     _messageTimer?.cancel();
-    _entryController.dispose(); // === NEW: Dispose controller ===
+    _entryController.dispose(); 
     super.dispose();
   }
 
@@ -190,7 +181,6 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === WRAPPED IN FADE & SLIDE ANIMATION (TOP ROW) ===
           FadeTransition(
             opacity: _topRowOpacity,
             child: SlideTransition(
@@ -200,15 +190,16 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    // === INTEGRATED PREMIUM THEME TOGGLE ===
                     Semantics(
                       label: widget.isDarkMode ? 'Dark mode is on' : 'Light mode is on',
                       hint: 'Double tap to toggle theme mode',
                       button: true,
-                      child: _buildActionButton(
-                        icon: widget.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                        bgColor: buttonBgColor,
+                      child: PremiumThemeToggle(
+                        isDarkMode: widget.isDarkMode,
+                        onToggle: widget.onToggleDarkMode,
+                        buttonBgColor: buttonBgColor,
                         iconColor: iconTint,
-                        onTap: widget.onToggleDarkMode,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -308,7 +299,6 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
 
           const SizedBox(height: 24),
 
-          // === WRAPPED IN FADE & SLIDE ANIMATION (TEXT ROW) ===
           FadeTransition(
             opacity: _textOpacity,
             child: SlideTransition(
@@ -366,13 +356,11 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
 
           const SizedBox(height: 20),
 
-          // MASCOT & SPEECH BUBBLE SECTION
           Semantics(
             label: 'Seelai mascot with a tip for you',
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // === FADE IN GRADIENT BACKGROUND ===
                 Positioned(
                   left: 0,
                   right: 0,
@@ -395,19 +383,17 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                   ),
                 ),
                 
-                // Mascot and Bubble Content
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // === SCALE ANIMATION FOR MASCOT ===
                       ScaleTransition(
                         scale: _mascotScale,
-                        alignment: Alignment.bottomCenter, // Pops up from the bottom
+                        alignment: Alignment.bottomCenter,
                         child: Image.asset(
                           'assets/seelai-icons/seelai0.png',
-                          height: mascotSize, // Dynamic height applied here
+                          height: mascotSize, 
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) => Container(
                             width: mascotSize * 0.75,
@@ -419,7 +405,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                             child: Icon(
                               Icons.smart_toy_outlined,
                               color: primary,
-                              size: mascotSize * 0.3, // Scale error icon dynamically too
+                              size: mascotSize * 0.3, 
                             ),
                           ),
                         ),
@@ -427,12 +413,11 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                       
                       const SizedBox(width: 4),
                       
-                      // === SCALE ANIMATION FOR TAIL ===
                       Container(
-                        margin: EdgeInsets.only(bottom: tailBottomMargin), // Dynamically stays at mouth level
+                        margin: EdgeInsets.only(bottom: tailBottomMargin), 
                         child: ScaleTransition(
                           scale: _bubbleScale,
-                          alignment: Alignment.bottomRight, // Grows out from the bubble
+                          alignment: Alignment.bottomRight,
                           child: CustomPaint(
                             size: const Size(12, 16),
                             painter: _TailPainter(
@@ -442,13 +427,12 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                         ),
                       ),
 
-                      // === SCALE ANIMATION FOR BUBBLE ===
                       Expanded(
                         child: Container(
-                          margin: EdgeInsets.only(bottom: bubbleBottomMargin), // Dynamic bottom margin
+                          margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
                           child: ScaleTransition(
                             scale: _bubbleScale,
-                            alignment: Alignment.bottomLeft, // Grows out from the tail
+                            alignment: Alignment.bottomLeft,
                             child: Container(
                               padding: const EdgeInsets.all(21),
                               decoration: BoxDecoration(
@@ -476,10 +460,8 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                   ),
                                   const SizedBox(height: 6),
                                   
-                                  // THE STACK TRICK
                                   Stack(
                                     children: [
-                                      // 1. Invisible text uses the LONGEST message to lock bubble size
                                       Text(
                                         longestMessage,
                                         style: const TextStyle(
@@ -489,7 +471,6 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                           height: 1.4,
                                         ),
                                       ),
-                                      // 2. Typewriter text types out the current message
                                       Positioned.fill(
                                         child: TypewriterText(
                                           key: ValueKey(displayMessage),
@@ -546,6 +527,115 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
   }
 }
 
+// ==========================================
+// PREMIUM "SUPERNOVA" THEME TOGGLE
+// ==========================================
+class PremiumThemeToggle extends StatefulWidget {
+  final bool isDarkMode;
+  final VoidCallback onToggle;
+  final Color buttonBgColor;
+  final Color iconColor;
+
+  const PremiumThemeToggle({
+    super.key,
+    required this.isDarkMode,
+    required this.onToggle,
+    required this.buttonBgColor,
+    required this.iconColor,
+  });
+
+  @override
+  State<PremiumThemeToggle> createState() => _PremiumThemeToggleState();
+}
+
+class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: 0.7).chain(CurveTween(curve: Curves.easeOutQuad)),
+        weight: 30,
+      ),
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.7, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)),
+        weight: 70,
+      ),
+    ]).animate(_controller);
+
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack)
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward(from: 0.0);
+    widget.onToggle();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final double glowOpacity = _controller.isAnimating 
+              ? (1.0 - _controller.value).clamp(0.0, 0.4) 
+              : 0.0;
+
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: RotationTransition(
+              turns: _rotationAnimation,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: widget.buttonBgColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.iconColor.withValues(alpha: glowOpacity),
+                      blurRadius: 20 * _controller.value,
+                      spreadRadius: 8 * _controller.value,
+                    )
+                  ],
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(scale: animation, child: child),
+                  ),
+                  child: Icon(
+                    widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    key: ValueKey<bool>(widget.isDarkMode),
+                    size: 20,
+                    color: widget.iconColor,
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _TailPainter extends CustomPainter {
   final Color color;
 
@@ -568,9 +658,6 @@ class _TailPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
@@ -599,7 +686,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
     );
     _setupAnimation();
     
-    // === NEW: Added 600ms delay to match the bubble pop-in animation ===
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _controller.forward();
     });

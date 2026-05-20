@@ -1,13 +1,13 @@
 // File: lib/roles/mswd/home/mswd_home_screen.dart
 
 import 'dart:async';
+import 'dart:math' show sqrt; // === IMPORTED MATH FOR CIRCLE RADIUS ===
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart'; 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shimmer/shimmer.dart'; 
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/urgent_alerts_section.dart';
 import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
-import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/mswd_header_section.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/bottom_navigation.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/announcement.dart';
@@ -33,9 +33,13 @@ class MSWDHomeScreen extends StatefulWidget {
   State<MSWDHomeScreen> createState() => _MSWDHomeScreenState();
 }
 
-class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
+class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStateMixin { // === Added TickerProviderStateMixin ===
   // UI State
   bool _isDarkMode = false;
+  
+  // === THE SECRET SAUCE: Holding the old state while we animate ===
+  bool? _previousIsDarkMode; 
+  
   int _selectedIndex = 0;
   
   // Data State for Notifications & Dashboard
@@ -47,6 +51,10 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   bool _isSimulatingDashboardLoad = true;
   bool _isLoadingStats = true;
   
+  // === NEW: Circular Reveal Variables ===
+  late AnimationController _revealController;
+  late Animation<double> _revealAnimation;
+  
   // Scroll Navigation State
   bool _isNavVisible = true;
 
@@ -55,7 +63,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     super.initState();
     _startPendingRequestsListener();
     
-    // Track the future completion for the skeleton
     _dashboardStatsFuture = adminService.getUserStatistics(); 
     _dashboardStatsFuture.then((_) {
       if (mounted) setState(() => _isLoadingStats = false);
@@ -64,7 +71,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       if (mounted) setState(() => _isLoadingStats = false);
     });
 
-    // Simulate an initial load to ensure a smooth transition
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -72,6 +78,17 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         });
       }
     });
+
+    // === NEW: Initialize the Circular Reveal animation ===
+    _revealController = AnimationController(
+      duration: const Duration(milliseconds: 800), 
+      vsync: this,
+    );
+    
+    _revealAnimation = CurvedAnimation(
+      parent: _revealController,
+      curve: Curves.easeInOutCubic,
+    );
   }
 
   void _startPendingRequestsListener() {
@@ -97,28 +114,39 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   }
 
   void _toggleDarkMode() {
+    // Prevent spam clicking while it's animating
+    if (_revealController.isAnimating) return; 
+
     setState(() {
+      // 1. Lock in the old theme state for the bottom layer
+      _previousIsDarkMode = _isDarkMode; 
+      // 2. Set the new theme state for the top expanding layer
       _isDarkMode = !_isDarkMode;
+    });
+
+    // 3. Blast off the circle animation
+    _revealController.forward(from: 0.0).then((_) {
+      if (mounted) {
+        setState(() {
+          // 4. Once fully expanded, destroy the old bottom layer
+          _previousIsDarkMode = null; 
+        });
+      }
     });
   }
 
-  // ==========================================
-  // UPDATED: Navigation Logic to Trigger Skeleton
-  // ==========================================
   void _onNavItemTapped(int index) {
-    if (_selectedIndex == index) return; // Prevent reloading if tapping the same tab
+    if (_selectedIndex == index) return; 
 
     setState(() {
       _selectedIndex = index;
       _isNavVisible = true; 
       
-      // Force the skeleton to turn ON whenever we switch back to the Dashboard
       if (index == 0) {
         _isSimulatingDashboardLoad = true;
       }
     });
 
-    // Turn the skeleton OFF after a short delay to create the loading animation
     if (index == 0) {
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) {
@@ -133,6 +161,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   @override
   void dispose() {
     _requestsSubscription?.cancel();
+    _revealController.dispose(); // Clean up animation controller
     super.dispose();
   }
 
@@ -140,7 +169,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
-        _isNavVisible = true; // Reset nav visibility when going back home
+        _isNavVisible = true; 
       });
       return false; 
     }
@@ -180,11 +209,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
-    
-    final theme = _isDarkMode ? _getDarkTheme() : _getLightTheme();
-
     return PopScope(
       canPop: false, 
       onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -197,94 +221,128 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           );
         }
       },
-      child: Scaffold(
-        extendBody: true,
-        
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-        floatingActionButton: _isNavVisible 
-            ? (_selectedIndex != 2 ? _buildAddFaceObjectFab(context) : null)
-            : null, 
-        
-        body: Container(
-          decoration: BoxDecoration(gradient: theme.backgroundGradient),
-          child: SafeArea(
-            bottom: false,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: NotificationListener<UserScrollNotification>(
-                    onNotification: (notification) {
-                      if (notification.direction == ScrollDirection.forward) {
-                        if (!_isNavVisible) setState(() => _isNavVisible = true);
-                      } else if (notification.direction == ScrollDirection.reverse) {
-                        if (_isNavVisible) setState(() => _isNavVisible = false);
-                      }
-                      return false; 
+      // === THE MAGIC LAYER SYSTEM ===
+      child: AnimatedBuilder(
+        animation: _revealAnimation,
+        builder: (context, child) {
+          // Precise coordinates for the sun/moon toggle button
+          final centerOffset = Offset(MediaQuery.of(context).size.width - 48, 65);
+          
+          return Stack(
+            children: [
+              // LAYER 1: The completely rendered OLD theme.
+              if (_previousIsDarkMode != null)
+                _buildScaffoldLayer(isDarkLayer: _previousIsDarkMode!),
+
+              // LAYER 2: The completely rendered NEW theme wrapped in the expanding mask
+              ClipPath(
+                clipper: ThemeRevealClipper(
+                  fraction: _revealController.isAnimating ? _revealAnimation.value : 1.0,
+                  center: centerOffset,
+                ),
+                child: _buildScaffoldLayer(isDarkLayer: _isDarkMode),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // === HELPER METHOD: Builds the entire screen structure based on a specific theme state ===
+  Widget _buildScaffoldLayer({required bool isDarkLayer}) {
+    final theme = isDarkLayer ? _getDarkTheme() : _getLightTheme();
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Scaffold(
+      extendBody: true,
+      backgroundColor: Colors.transparent, // Let gradient show
+      
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: _isNavVisible 
+          ? (_selectedIndex != 2 ? _buildAddFaceObjectFab(context) : null)
+          : null, 
+      
+      body: Container(
+        decoration: BoxDecoration(gradient: theme.backgroundGradient),
+        child: SafeArea(
+          bottom: false,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: NotificationListener<UserScrollNotification>(
+                  onNotification: (notification) {
+                    if (notification.direction == ScrollDirection.forward) {
+                      if (!_isNavVisible) setState(() => _isNavVisible = true);
+                    } else if (notification.direction == ScrollDirection.reverse) {
+                      if (_isNavVisible) setState(() => _isNavVisible = false);
+                    }
+                    return false; 
+                  },
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.easeInOutCubic,
+                    switchOutCurve: Curves.easeInOutCubic,
+                    layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                      return Stack(
+                        alignment: Alignment.topCenter, 
+                        children: <Widget>[
+                          ...previousChildren,
+                          ?currentChild,
+                        ],
+                      );
                     },
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      switchInCurve: Curves.easeInOutCubic,
-                      switchOutCurve: Curves.easeInOutCubic,
-                      layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                        return Stack(
-                          alignment: Alignment.topCenter, 
-                          children: <Widget>[
-                            ...previousChildren,
-                            ?currentChild,
-                          ],
-                        );
-                      },
-                      child: SizedBox(
-                        key: ValueKey<int>(_selectedIndex),
-                        child: _buildMainContent(screenWidth, screenHeight, theme),
-                      ),
+                    child: SizedBox(
+                      key: ValueKey<int>(_selectedIndex),
+                      child: _buildMainContent(screenWidth, screenHeight, theme, isDarkLayer),
                     ),
                   ),
                 ),
-                
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOutCubic,
-                  bottom: (_isNavVisible || _selectedIndex != 3) 
-                      ? -100 
-                      : MediaQuery.of(context).padding.bottom + 20,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: _buildShowMenuFab(),
-                  ),
+              ),
+              
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOutCubic,
+                bottom: (_isNavVisible || _selectedIndex != 3) 
+                    ? -100 
+                    : MediaQuery.of(context).padding.bottom + 20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: _buildShowMenuFab(isDarkLayer),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-        bottomNavigationBar: AnimatedSlide(
+      ),
+      bottomNavigationBar: AnimatedSlide(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+        offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
+        child: AnimatedOpacity(
           duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOutCubic,
-          offset: _isNavVisible ? Offset.zero : const Offset(0, 1),
-          child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 300),
-            opacity: _isNavVisible ? 1.0 : 0.0,
-            child: MSWDBottomNavigation(
-              selectedIndex: _selectedIndex,
-              isDarkMode: _isDarkMode,
-              onItemTapped: _onNavItemTapped,
-              textColor: theme.textColor,
-              subtextColor: theme.subtextColor,
-            ),
+          opacity: _isNavVisible ? 1.0 : 0.0,
+          child: MSWDBottomNavigation(
+            selectedIndex: _selectedIndex,
+            isDarkMode: isDarkLayer, // Tied to layer state
+            onItemTapped: _onNavItemTapped,
+            textColor: theme.textColor,
+            subtextColor: theme.subtextColor,
           ),
         ),
       ),
     );
   }
 
-  Widget _buildMainContent(double width, double height, _AppTheme theme) {
+  Widget _buildMainContent(double width, double height, _AppTheme theme, bool isDarkLayer) {
     Widget buildScrollableHeader() {
       final adminName = widget.userData['name'] ?? 'Admin';
       return HeaderSection(
         adminName: adminName,
         profileImageUrl: widget.userData['profileImageUrl'] as String?,
-        isDarkMode: _isDarkMode,
+        isDarkMode: isDarkLayer, // Tied to layer state
         pendingRequestsCount: _pendingRequestsCount, 
         onToggleDarkMode: _toggleDarkMode,
         onProfileTap: () {
@@ -294,6 +352,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           });
         },
         onNotificationTap: () {
+          // Bottom sheets overlay on top, use true state _isDarkMode
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -302,7 +361,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
               height: MediaQuery.of(context).size.height * 0.85,
               child: MSWDNotificationsBottomSheet(
                 adminId: widget.userData['userId'] ?? '',
-                isDarkMode: _isDarkMode,
+                isDarkMode: _isDarkMode, 
                 assistanceRequestService: assistanceRequestService,
               ),
             ),
@@ -320,13 +379,13 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         content = Column(
           children: [
             buildScrollableHeader(),
-            _buildDashboardContent(width, theme),
+            _buildDashboardContent(width, theme, isDarkLayer),
           ],
         );
         break;
       case 1:
         content = UsersContent(
-          isDarkMode: _isDarkMode,
+          isDarkMode: isDarkLayer, // Tied to layer state
           theme: theme,
           userData: widget.userData,
           onNavigateToLocation: () => _onNavItemTapped(3),
@@ -334,7 +393,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         break;
       case 3:
         content = MswdLocationTrackingScreen(
-          isDarkMode: _isDarkMode,
+          isDarkMode: isDarkLayer, // Tied to layer state
           theme: theme,
           userData: widget.userData,
           onScroll: (isScrollingDown) {
@@ -353,7 +412,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         break;
       case 2:
         content = RequestsContent(
-          isDarkMode: _isDarkMode,
+          isDarkMode: isDarkLayer, // Tied to layer state
           theme: theme,
           userData: widget.userData,
         );
@@ -361,7 +420,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
       case 4:
         content = MoreContent(
           userData: widget.userData,
-          isDarkMode: _isDarkMode,
+          isDarkMode: isDarkLayer, // Tied to layer state
           theme: theme,
           onToggleDarkMode: _toggleDarkMode,
         );
@@ -370,7 +429,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         content = Column(
           children: [
             buildScrollableHeader(),
-            _buildDashboardContent(width, theme),
+            _buildDashboardContent(width, theme, isDarkLayer),
           ],
         );
     }
@@ -389,9 +448,9 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
   // DASHBOARD SKELETON BUILDER
   // =========================================================================
 
-  Widget _buildSkeletonDashboard(double width, _AppTheme theme) {
-    final baseColor = _isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = _isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+  Widget _buildSkeletonDashboard(double width, _AppTheme theme, bool isDarkLayer) {
+    final baseColor = isDarkLayer ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
+    final highlightColor = isDarkLayer ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -406,7 +465,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Dashboard Stats Skeleton 
             Row(
               children: [
                 Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
@@ -427,7 +485,6 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
             
             const SizedBox(height: 32),
 
-            // Quick Actions Skeleton
             Container(width: 130, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
             const SizedBox(height: 16),
             SingleChildScrollView(
@@ -448,14 +505,12 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
 
             const SizedBox(height: 40),
 
-            // Urgent Alerts Skeleton
             Container(width: 160, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
             const SizedBox(height: 16),
             Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
 
             const SizedBox(height: 32),
 
-            // Announcements Skeleton
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -473,9 +528,9 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     );
   }
 
-  Widget _buildDashboardContent(double width, _AppTheme theme) {
+  Widget _buildDashboardContent(double width, _AppTheme theme, bool isDarkLayer) {
     if (_isSimulatingDashboardLoad || _isLoadingStats) {
-      return _buildSkeletonDashboard(width, theme);
+      return _buildSkeletonDashboard(width, theme, isDarkLayer);
     }
 
     return Padding(
@@ -489,7 +544,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DashboardStats(
-            isDarkMode: _isDarkMode,
+            isDarkMode: isDarkLayer, // Tied to layer state
             theme: theme,
             statsFuture: _dashboardStatsFuture, 
           ),
@@ -497,7 +552,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           const SizedBox(height: 20),
 
           QuickActions(
-            isDarkMode: _isDarkMode,
+            isDarkMode: isDarkLayer, // Tied to layer state
             theme: theme,
             onNavigateToTab: _onNavItemTapped, 
           ),
@@ -505,7 +560,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           const SizedBox(height: 40),
 
           UrgentAlertsSection(
-            isDarkMode: _isDarkMode,
+            isDarkMode: isDarkLayer, // Tied to layer state
             theme: theme,
             onNavigateToTab: _onNavItemTapped,
           ),
@@ -513,7 +568,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
           const SizedBox(height: 15),
 
           AnnouncementSection(
-            isDarkMode: _isDarkMode,
+            isDarkMode: isDarkLayer, // Tied to layer state
             theme: theme,
           ),
           
@@ -572,14 +627,14 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
     );
   }
 
-  Widget _buildShowMenuFab() {
+  Widget _buildShowMenuFab(bool isDarkLayer) {
     return Container(
       height: 48,
       decoration: BoxDecoration(
-        color: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+        color: isDarkLayer ? const Color(0xFF1A1F3A) : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: _isDarkMode ? Colors.white24 : Colors.grey.shade200,
+          color: isDarkLayer ? Colors.white24 : Colors.grey.shade200,
         ),
         boxShadow: const [
           BoxShadow(
@@ -603,14 +658,14 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
               children: [
                 const Icon(
                   Icons.keyboard_arrow_up_rounded,
-                  color: Color(0xFF8B5CF6), // Primary Purple
+                  color: Color(0xFF8B5CF6), 
                   size: 24,
                 ),
                 const SizedBox(width: 8),
                 Text(
                   'Show Menu',
                   style: TextStyle(
-                    color: _isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                    color: isDarkLayer ? Colors.white : const Color(0xFF1E293B),
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
@@ -631,7 +686,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         end: Alignment.bottomRight,
         stops: [0.0, 0.5, 1.0],
       ),
-      textColor: white,
+      textColor: Colors.white,
       subtextColor: const Color(0xFFB0B8D4),
       cardColor: const Color(0xFF1A1F3A),
       backgroundColor: const Color(0xFF0F1429),
@@ -645,16 +700,17 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
         end: Alignment.bottomRight,
         colors: [Colors.white, Colors.white],
       ),
-      textColor: black,
-      subtextColor: grey,
-      cardColor: white,
-      backgroundColor: backgroundPrimary,
+      textColor: Colors.black,
+      subtextColor: Colors.grey,
+      cardColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
     );
   }
 
   void _showAddOptionsBottomSheet(BuildContext context) {
     final Color primaryColor = const Color(0xFF8B5CF6);
 
+    // Overlay BottomSheet uses the definitive _isDarkMode state
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -723,11 +779,11 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> {
                 
                 const SizedBox(height: 16),
                 
-                _buildAddOptionCard(
+               _buildAddOptionCard(
                   icon: Icons.view_in_ar_rounded, 
                   title: 'New Object',
                   subtitle: 'Scan an everyday item for detection',
-                  primaryColor: const Color(0xFF3B82F6), 
+                  primaryColor: primaryColor, // <-- Now it uses the same purple color
                   onTap: () {
                     Navigator.pop(bc);
                     Navigator.push(
@@ -838,4 +894,28 @@ class _AppTheme {
     required this.cardColor,
     required this.backgroundColor,
   });
+}
+
+// ========================================================
+// CUSTOM CLIPPER FOR CIRCULAR REVEAL ANIMATION
+// ========================================================
+class ThemeRevealClipper extends CustomClipper<Path> {
+  final double fraction;
+  final Offset center;
+
+  ThemeRevealClipper({required this.fraction, required this.center});
+
+  @override
+  Path getClip(Size size) {
+    // Calculates the absolute longest distance from the toggle button to the furthest corner
+    final double maxRadius = sqrt(size.width * size.width + size.height * size.height);
+    final double radius = maxRadius * fraction;
+    
+    return Path()..addOval(Rect.fromCircle(center: center, radius: radius));
+  }
+
+  @override
+  bool shouldReclip(covariant ThemeRevealClipper oldClipper) {
+    return oldClipper.fraction != fraction || oldClipper.center != center;
+  }
 }

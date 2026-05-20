@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// The new vibrant modern purple requested
 const primary = Color(0xFF7C3AED);
 
 class HeaderSection extends StatefulWidget {
@@ -17,6 +16,7 @@ class HeaderSection extends StatefulWidget {
   final Color textColor;
   final Color subtextColor;
   final int unreadNotificationCount;
+  final int currentStreak; 
 
   const HeaderSection({
     super.key,
@@ -29,22 +29,18 @@ class HeaderSection extends StatefulWidget {
     required this.textColor,
     required this.subtextColor,
     this.unreadNotificationCount = 0,
+    this.currentStreak = 0, 
   });
 
   @override
   State<HeaderSection> createState() => _HeaderSectionState();
 }
 
-// === CHANGED: Added SingleTickerProviderStateMixin for the entry animation ===
 class _HeaderSectionState extends State<HeaderSection> with SingleTickerProviderStateMixin {
-  // State to handle the temporary "mark as read" double check animation
   bool _showDoubleCheck = false;
-  
-  // Animation State
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
-  // === NEW: Animation Controllers & Tweens ===
   late AnimationController _entryController;
   late Animation<double> _topRowOpacity;
   late Animation<Offset> _topRowSlide;
@@ -58,51 +54,41 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     super.initState();
     _startMessageTimer();
 
-    // === NEW: Initialize the staggered entry animation ===
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
 
-    // 1. Top Row (Buttons) - Fades & slides down early
     _topRowOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
     );
     _topRowSlide = Tween<Offset>(begin: const Offset(0, -0.4), end: Offset.zero).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
     );
-
-    // 2. Text Row (Greeting) - Fades & slides in from left
     _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOut)),
     );
     _textSlide = Tween<Offset>(begin: const Offset(-0.15, 0), end: Offset.zero).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic)),
     );
-
-    // 3. Mascot - Pops up playfully
     _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.8, curve: Curves.easeOutBack)),
     );
-
-    // 4. Speech Bubble - Pops out from the mascot
     _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.5, 1.0, curve: Curves.easeOutBack)),
     );
 
-    // Start the animation immediately when the header loads
     _entryController.forward();
   }
 
   @override
   void dispose() {
     _messageTimer?.cancel();
-    _entryController.dispose(); // === NEW: Dispose controller ===
+    _entryController.dispose();
     super.dispose();
   }
 
   void _startMessageTimer() {
-    // Cycle through alert messages every 5 seconds
     _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted) {
         final messagesCount = _getMascotMessages().length;
@@ -115,7 +101,6 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     });
   }
 
-  // Helper to safely extract the first name
   String _getFirstName() {
     if (widget.userName.isEmpty) return 'User';
     final parts = widget.userName.trim().split(RegExp(r'\s+'));
@@ -129,84 +114,55 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     return 'Good evening';
   }
 
-  // Helper to generate the dynamic mascot message
   List<String> _getMascotMessages() {
     List<String> messages = [];
+    
+    if (widget.currentStreak > 2) {
+      messages.add('Awesome! You are on a ${widget.currentStreak}-day streak! 🔥 Keep exploring your world!');
+    }
 
     if (widget.unreadNotificationCount == 0) {
       messages.add('Hello, ${_getFirstName()}! You\'re all caught up. Tap the scanner whenever you\'re ready.');
       messages.add('Did you know? You can double tap the moon icon in the top right to toggle dark mode.');
-    } else if (widget.unreadNotificationCount == 1) {
-      messages.add('Hello, ${_getFirstName()}! You have 1 unread notification. Tap the bell icon to check it out.');
-      messages.add('Don\'t forget to review your latest alerts!');
     } else {
-      messages.add('Hello, ${_getFirstName()}! You have ${widget.unreadNotificationCount} unread notifications. Tap the bell icon to check them out.');
+      messages.add('Hello, ${_getFirstName()}! You have ${widget.unreadNotificationCount} unread notification${widget.unreadNotificationCount > 1 ? 's' : ''}.');
       messages.add('Don\'t forget to review your latest alerts!');
     }
-
     return messages;
   }
 
   void _handleNotificationTap() {
-    // Show the double check animation if there were unread notifications
     if (widget.unreadNotificationCount > 0) {
-      setState(() {
-        _showDoubleCheck = true;
-      });
-
-      // Revert back to the normal bell after 2 seconds
+      setState(() { _showDoubleCheck = true; });
       Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          setState(() {
-            _showDoubleCheck = false;
-          });
-        }
+        if (mounted) setState(() { _showDoubleCheck = false; });
       });
     }
-    
-    // Trigger your parent screen's callback so it actually resets the count to 0 in your database/state
     widget.onNotificationTap();
   }
 
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    // Format: "TUESDAY, MARCH 17"
     final formattedDate = DateFormat('EEEE, MMMM d').format(now).toUpperCase();
 
-    // Soft backgrounds for the buttons
     final Color buttonBgColor = widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC);
-    
-    // Theme's primary color for the icons
     final Color iconTint = primary; 
 
-    // Fetch the list of messages and determine which one to show right now
     final messages = _getMascotMessages();
-    final safeIndex = _currentMessageIndex % messages.length;
-    final displayMessage = messages[safeIndex];
-    
-    // Find the longest message to act as our permanent invisible structural guide
+    final displayMessage = messages[_currentMessageIndex % messages.length];
     final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
 
-    // =========================================================
-    // RESPONSIVE CALCULATIONS FOR MASCOT & BUBBLE
-    // =========================================================
     final screenWidth = MediaQuery.of(context).size.width;
-    
-    // The mascot takes up ~32% of the screen width, capped between 100px and 140px max
     final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
-    
-    // Dynamically calculate the tail and bubble offset based on the scaled mascot size
-    // so the tail ALWAYS points directly at the megaphone.
     final double tailBottomMargin = mascotSize * 0.214; 
     final double bubbleBottomMargin = mascotSize * 0.128;
 
     return Semantics(
-      label: 'Header section. ${_getGreeting()}, ${_getFirstName()}. Today is $formattedDate',
+      label: 'Header section',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === WRAPPED IN FADE & SLIDE ANIMATION ===
           FadeTransition(
             opacity: _topRowOpacity,
             child: SlideTransition(
@@ -216,108 +172,71 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Theme Toggle
-                    Semantics(
-                      label: widget.isDarkMode ? 'Dark mode is on' : 'Light mode is on',
-                      hint: 'Double tap to toggle theme mode',
-                      button: true,
-                      child: _buildActionButton(
-                        icon: widget.isDarkMode ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
-                        bgColor: buttonBgColor,
-                        iconColor: iconTint,
-                        onTap: widget.onToggleDarkMode,
-                      ),
+                    PremiumThemeToggle(
+                      isDarkMode: widget.isDarkMode,
+                      onToggle: widget.onToggleDarkMode,
+                      buttonBgColor: buttonBgColor,
+                      iconColor: iconTint,
                     ),
                     const SizedBox(width: 8),
                     
-                    // Notifications
-                    Semantics(
-                      label: widget.unreadNotificationCount > 0 
-                        ? 'Notifications. You have ${widget.unreadNotificationCount} unread notification${widget.unreadNotificationCount > 1 ? 's' : ''}' 
-                        : 'Notifications',
-                      hint: 'Double tap to view notifications',
-                      button: true,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          // The Bell (or Double Check) Button
-                          _buildActionButton(
-                            icon: _showDoubleCheck 
-                                ? Icons.done_all_rounded // Double check icon
-                                : (widget.unreadNotificationCount > 0 
-                                    ? Icons.notifications_active_rounded // Ringing bell
-                                    : Icons.notifications_none_rounded), // Empty bell
-                            bgColor: buttonBgColor,
-                            iconColor: _showDoubleCheck ? Colors.green : iconTint,
-                            onTap: _handleNotificationTap,
-                          ),
-                          
-                          // The proper top-right Notification Badge
-                          if (widget.unreadNotificationCount > 0 && !_showDoubleCheck)
-                            Positioned(
-                              top: -2,
-                              right: -2,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444), // Red badge
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                                    width: 2,
-                                  ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _buildActionButton(
+                          icon: _showDoubleCheck 
+                              ? Icons.done_all_rounded 
+                              : (widget.unreadNotificationCount > 0 
+                                  ? Icons.notifications_active_rounded 
+                                  : Icons.notifications_none_rounded), 
+                          bgColor: buttonBgColor,
+                          iconColor: _showDoubleCheck ? Colors.green : iconTint,
+                          onTap: _handleNotificationTap,
+                        ),
+                        if (widget.unreadNotificationCount > 0 && !_showDoubleCheck)
+                          Positioned(
+                            top: -2,
+                            right: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                                  width: 2,
                                 ),
-                                constraints: const BoxConstraints(
-                                  minWidth: 20,
-                                  minHeight: 20,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    widget.unreadNotificationCount > 9 
-                                        ? '9+' 
-                                        : widget.unreadNotificationCount.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w900,
-                                      height: 1,
-                                    ),
-                                  ),
+                              ),
+                              constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                              child: Center(
+                                child: Text(
+                                  widget.unreadNotificationCount > 9 ? '9+' : widget.unreadNotificationCount.toString(),
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, height: 1),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                     const SizedBox(width: 8),
                     
-                    // Profile Pill Button
-                    Semantics(
-                      label: 'Profile',
-                      hint: 'Double tap to view profile',
-                      button: true,
-                      child: GestureDetector(
-                        onTap: widget.onProfileTap,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: buttonBgColor,
-                            borderRadius: BorderRadius.circular(20), // Pill shape
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.person_outline_rounded, size: 18, color: iconTint),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Profile',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: widget.subtextColor.withValues(alpha: 0.9),
-                                ),
-                              )
-                            ],
-                          ),
+                    GestureDetector(
+                      onTap: widget.onProfileTap,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: buttonBgColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.person_outline_rounded, size: 18, color: iconTint),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Profile',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: widget.subtextColor.withValues(alpha: 0.9)),
+                            )
+                          ],
                         ),
                       ),
                     )
@@ -329,7 +248,6 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
 
           const SizedBox(height: 24),
 
-          // === WRAPPED IN FADE & SLIDE ANIMATION ===
           FadeTransition(
             opacity: _textOpacity,
             child: SlideTransition(
@@ -339,44 +257,72 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Semantics(
-                      label: 'Today\'s date is $formattedDate',
-                      child: Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: widget.subtextColor.withValues(alpha: 0.8),
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.5,
+                    // === NEW STREAK UI PLACEMENT (Slightly larger container) ===
+                    if (widget.currentStreak > 0) ...[
+                      Semantics(
+                        label: 'Current streak: ${widget.currentStreak} days',
+                        child: Container(
+                          // Increased padding from 12,6 to 16,8
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: widget.isDarkMode ? Colors.orange.withValues(alpha: 0.15) : const Color(0xFFFFF0E5),
+                            borderRadius: BorderRadius.circular(18), // Slightly rounder to match size
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Increased icon size to 20
+                              const Icon(Icons.local_fire_department_rounded, color: Color(0xFFFF7A00), size: 20),
+                              const SizedBox(width: 8), // Slightly more spacing
+                              RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'x${widget.currentStreak} ',
+                                      style: TextStyle(
+                                        fontSize: 14, // Increased from 13 to 14
+                                        fontWeight: FontWeight.w900, 
+                                        color: widget.isDarkMode ? Colors.orange.shade200 : const Color(0xFF333333),
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: 'day streak!',
+                                      style: TextStyle(
+                                        fontSize: 14, // Increased from 13 to 14
+                                        fontWeight: FontWeight.w600, 
+                                        color: widget.isDarkMode ? Colors.orange.shade200 : const Color(0xFF333333),
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 12),
+                    ],
+                    // ===============================
+
+                    Text(
+                      formattedDate,
+                      style: TextStyle(fontSize: 12, color: widget.subtextColor.withValues(alpha: 0.8), fontWeight: FontWeight.w800, letterSpacing: 1.5),
                     ),
                     const SizedBox(height: 6),
-                    Semantics(
-                      label: 'Greeting',
-                      child: RichText(
-                        text: TextSpan(
-                          children: [
-                            TextSpan(
-                              text: '${_getGreeting()}, ',
-                              style: TextStyle(
-                                fontSize: 26,
-                                color: widget.textColor.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '${_getFirstName()}!',
-                              style: TextStyle(
-                                fontSize: 26,
-                                color: widget.textColor,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
-                        ),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: '${_getGreeting()}, ',
+                            style: TextStyle(fontSize: 26, color: widget.textColor.withValues(alpha: 0.9), fontWeight: FontWeight.w500, letterSpacing: -0.5),
+                          ),
+                          TextSpan(
+                            text: '${_getFirstName()}!',
+                            style: TextStyle(fontSize: 26, color: widget.textColor, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -387,225 +333,208 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
 
           const SizedBox(height: 20),
 
-          // MASCOT & SPEECH BUBBLE SECTION
-          Semantics(
-            label: 'Seelai mascot with a tip for you',
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // === FADE IN GRADIENT BACKGROUND ===
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  top: 0, 
-                  child: FadeTransition(
-                    opacity: _textOpacity, // Links gradient fade to the text fade
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            primary.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
-                            primary.withValues(alpha: 0.0),
-                          ],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: FadeTransition(
+                  opacity: _textOpacity,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [primary.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15), primary.withValues(alpha: 0.0)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
                   ),
                 ),
-                
-                // Mascot and Bubble Content
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // === SCALE ANIMATION FOR MASCOT ===
-                      ScaleTransition(
-                        scale: _mascotScale,
-                        alignment: Alignment.bottomCenter, // Pops up from the bottom
-                        child: Image.asset(
-                          'assets/seelai-icons/seelai0.png',
-                          height: mascotSize, // Dynamic height applied here
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: mascotSize * 0.7,
-                            height: mascotSize * 0.65,
-                            decoration: BoxDecoration(
-                              color: primary.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.smart_toy_outlined,
-                              color: primary,
-                              size: 36,
-                            ),
-                          ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    ScaleTransition(
+                      scale: _mascotScale,
+                      alignment: Alignment.bottomCenter,
+                      child: Image.asset(
+                        'assets/seelai-icons/seelai0.png',
+                        height: mascotSize,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: mascotSize * 0.7,
+                          height: mascotSize * 0.65,
+                          decoration: BoxDecoration(color: primary.withValues(alpha: 0.15), shape: BoxShape.circle),
+                          child: const Icon(Icons.smart_toy_outlined, color: primary, size: 36),
                         ),
                       ),
-                      
-                      const SizedBox(width: 4),
-                      
-                      // === SCALE ANIMATION FOR TAIL ===
-                      Container(
-                        margin: EdgeInsets.only(bottom: tailBottomMargin), // Dynamically stays at mouth level
+                    ),
+                    const SizedBox(width: 4),
+                    Container(
+                      margin: EdgeInsets.only(bottom: tailBottomMargin),
+                      child: ScaleTransition(
+                        scale: _bubbleScale,
+                        alignment: Alignment.bottomRight,
+                        child: CustomPaint(
+                          size: const Size(12, 16),
+                          painter: _TailPainter(color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: bubbleBottomMargin),
                         child: ScaleTransition(
                           scale: _bubbleScale,
-                          alignment: Alignment.bottomRight, // Grows out from the bubble
-                          child: CustomPaint(
-                            size: const Size(12, 16),
-                            painter: _TailPainter(
+                          alignment: Alignment.bottomLeft,
+                          child: Container(
+                            padding: const EdgeInsets.all(21),
+                            decoration: BoxDecoration(
                               color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                             ),
-                          ),
-                        ),
-                      ),
-
-                      // === SCALE ANIMATION FOR BUBBLE ===
-                      Expanded(
-                        child: Container(
-                          margin: EdgeInsets.only(bottom: bubbleBottomMargin), // Dynamic bottom margin
-                          child: ScaleTransition(
-                            scale: _bubbleScale,
-                            alignment: Alignment.bottomLeft, // Grows out from the tail
-                            child: Container(
-                              padding: const EdgeInsets.all(21),
-                              decoration: BoxDecoration(
-                                color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Seelai',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w800,
-                                      color: primary,
-                                      letterSpacing: 0.5,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Seelai', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: primary, letterSpacing: 0.5)),
+                                const SizedBox(height: 6),
+                                Stack(
+                                  children: [
+                                    Text(longestMessage, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.transparent, height: 1.4)),
+                                    Positioned.fill(
+                                      child: TypewriterText(
+                                        text: displayMessage,
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87, height: 1.4),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  
-                                  // Stack allows auto-sizing without jumping
-                                  Stack(
-                                    children: [
-                                      // 1. Invisible text uses the LONGEST message to keep bubble size fixed permanently
-                                      Text(
-                                        longestMessage,
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.transparent, // Invisible!
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                      // 2. Typewriter text types out the current message inside perfectly sized space
-                                      Positioned.fill(
-                                        child: TypewriterText(
-                                          text: displayMessage,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color: widget.isDarkMode
-                                                ? Colors.white.withValues(alpha: 0.85)
-                                                : Colors.black87,
-                                            height: 1.4,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // Helper for the pill/circle buttons 
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color bgColor,
-    required Color iconColor,
-    required VoidCallback? onTap,
-  }) {
+  Widget _buildActionButton({required IconData icon, required Color bgColor, required Color iconColor, required VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: iconColor,
-        ),
+        decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+        child: Icon(icon, size: 20, color: iconColor),
       ),
     );
   }
 }
 
-// Custom Painter to draw the speech bubble tail pointing to the mascot
+class PremiumThemeToggle extends StatefulWidget {
+  final bool isDarkMode;
+  final VoidCallback onToggle;
+  final Color buttonBgColor;
+  final Color iconColor;
+
+  const PremiumThemeToggle({super.key, required this.isDarkMode, required this.onToggle, required this.buttonBgColor, required this.iconColor});
+
+  @override
+  State<PremiumThemeToggle> createState() => _PremiumThemeToggleState();
+}
+
+class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotationAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 1.0, end: 0.7).chain(CurveTween(curve: Curves.easeOutQuad)), weight: 30),
+      TweenSequenceItem(tween: Tween<double>(begin: 0.7, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)), weight: 70),
+    ]).animate(_controller);
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    _controller.forward(from: 0.0);
+    widget.onToggle();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _handleTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final double glowOpacity = _controller.isAnimating ? (1.0 - _controller.value).clamp(0.0, 0.4) : 0.0;
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: RotationTransition(
+              turns: _rotationAnimation,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: widget.buttonBgColor,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: widget.iconColor.withValues(alpha: glowOpacity), blurRadius: 20 * _controller.value, spreadRadius: 8 * _controller.value)],
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: ScaleTransition(scale: animation, child: child)),
+                  child: Icon(widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded, key: ValueKey<bool>(widget.isDarkMode), size: 20, color: widget.iconColor),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _TailPainter extends CustomPainter {
   final Color color;
-
   _TailPainter({required this.color});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
     final path = Path();
-    
-    // Draw a triangle pointing to the left
-    path.moveTo(size.width, 0); // Top right corner
-    path.lineTo(0, size.height / 2); // Pointing left (middle)
-    path.lineTo(size.width, size.height); // Bottom right corner
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
     path.close();
-    
     canvas.drawPath(path, paint);
   }
-
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ==========================================
-// TYPEWRITER ANIMATION WIDGET (DYNAMIC SPEED)
-// ==========================================
 class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
-
-  const TypewriterText({
-    super.key,
-    required this.text,
-    required this.style,
-  });
-
+  const TypewriterText({super.key, required this.text, required this.style});
   @override
   State<TypewriterText> createState() => _TypewriterTextState();
 }
@@ -617,17 +546,8 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    // Dynamic speed! 40 milliseconds per character.
-    // Long messages and short messages will now type at the exact same natural speed.
-    int msDuration = widget.text.length * 40; 
-    
-    _controller = AnimationController(
-      vsync: this, 
-      duration: Duration(milliseconds: msDuration),
-    );
+    _controller = AnimationController(vsync: this, duration: Duration(milliseconds: widget.text.length * 40));
     _setupAnimation();
-    
-    // === NEW: Delay the typewriter start by 600ms so it waits for the bubble to pop in! ===
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _controller.forward();
     });
@@ -637,8 +557,7 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   void didUpdateWidget(TypewriterText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
-      int msDuration = widget.text.length * 40; 
-      _controller.duration = Duration(milliseconds: msDuration);
+      _controller.duration = Duration(milliseconds: widget.text.length * 40);
       _setupAnimation();
       _controller.reset();
       _controller.forward();
@@ -646,9 +565,7 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   }
 
   void _setupAnimation() {
-    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
   }
 
   @override
@@ -663,14 +580,9 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       animation: _characterCount,
       builder: (context, child) {
         int end = _characterCount.value;
-        // Strict safety check to prevent out-of-bounds text duplication
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
-        
-        return Text(
-          widget.text.substring(0, end),
-          style: widget.style,
-        );
+        return Text(widget.text.substring(0, end), style: widget.style);
       },
     );
   }

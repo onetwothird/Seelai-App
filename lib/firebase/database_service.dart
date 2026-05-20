@@ -29,6 +29,49 @@ class DatabaseService {
     }
   }
 
+  // ==================== STREAK MANAGEMENT ====================
+  // === STREAK FEATURE: Logic to calculate daily logins ===
+  Future<int> updateAndGetStreak(String userId, String role) async {
+    try {
+      String path = getUserPath(role, userId);
+      DatabaseEvent event = await _database.ref(path).once();
+      
+      if (!event.snapshot.exists) return 0;
+      
+      Map<String, dynamic> data = Map<String, dynamic>.from(event.snapshot.value as Map);
+      
+      DateTime now = DateTime.now();
+      DateTime today = DateTime(now.year, now.month, now.day);
+      
+      int currentStreak = data['currentStreak'] ?? 0;
+      String? lastActiveStr = data['lastActiveDate'];
+      DateTime? lastActive = lastActiveStr != null ? DateTime.parse(lastActiveStr) : null;
+      
+      if (lastActive != null) {
+        DateTime lastActiveDay = DateTime(lastActive.year, lastActive.month, lastActive.day);
+        int difference = today.difference(lastActiveDay).inDays;
+        
+        if (difference == 1) {
+          currentStreak += 1; 
+        } else if (difference > 1) {
+          currentStreak = 1; 
+        }
+      } else {
+        currentStreak = 1; 
+      }
+      
+      await _database.ref(path).update({
+        'currentStreak': currentStreak,
+        'lastActiveDate': now.toIso8601String(),
+      });
+      
+      return currentStreak;
+    } catch (e) {
+      debugPrint('Failed to update streak: $e');
+      return 0;
+    }
+  }
+
   // ==================== USER MANAGEMENT ====================
 
   Future<void> createUserDocument({
@@ -38,7 +81,7 @@ class DatabaseService {
     required String email,
     required String role,
     String? idNumber,
-    String? staffId, // ADDED: staffId parameter
+    String? staffId, 
     String? sex,
     DateTime? birthdate,
     String? disabilityType,
@@ -75,7 +118,7 @@ class DatabaseService {
         userData['approved'] = approved ?? false; 
       } else if (role == 'admin') {
         userData['department'] = department ?? '';
-        userData['staffId'] = staffId ?? ''; // ADDED: Mapping the staffId
+        userData['staffId'] = staffId ?? ''; 
         userData['sex'] = sex ?? 'Not Specified';
         userData['birthdate'] = birthdate?.toIso8601String() ?? 
             DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
@@ -105,7 +148,6 @@ class DatabaseService {
     }
   }
 
-  /// Get user data by user ID (searches all role paths)
   Future<Map<String, dynamic>?> getUserData(String userId) async {
     try {
       List<String> rolePaths = [
@@ -126,7 +168,6 @@ class DatabaseService {
     }
   }
 
-  /// Get user data when you already know the role
   Future<Map<String, dynamic>?> getUserDataByRole(String userId, String role) async {
     try {
       String path = getUserPath(role, userId);
@@ -141,13 +182,11 @@ class DatabaseService {
     }
   }
 
-  /// Get current user's data
   Future<Map<String, dynamic>?> getCurrentUserData() async {
     if (currentUserId == null) return null;
     return await getUserData(currentUserId!);
   }
 
-  /// Test database connection
   Future<void> testConnection() async {
     try {
       await _database.ref('test').set({
@@ -158,12 +197,11 @@ class DatabaseService {
     }
   }
 
-  /// Update user profile (role-specific updates)
   Future<void> updateUserProfile({
     required String userId,
     required String role,
     String? idNumber,
-    String? staffId, // ADDED: staffId parameter for updating
+    String? staffId, 
     String? name,
     String? sex,
     int? age,
@@ -184,7 +222,7 @@ class DatabaseService {
       };
 
       if (idNumber != null) updates['idNumber'] = idNumber;
-      if (staffId != null) updates['staffId'] = staffId; // ADDED: map staffId update
+      if (staffId != null) updates['staffId'] = staffId; 
       if (name != null) updates['name'] = name;
       if (sex != null) updates['sex'] = sex;
       if (age != null) updates['age'] = age;
@@ -206,7 +244,6 @@ class DatabaseService {
     }
   }
 
-  /// Stream of user data (real-time updates)
   Stream<Map<String, dynamic>?> streamUserData(String userId, String role) {
     String path = getUserPath(role, userId);
     return _database.ref(path).onValue.map((event) {
@@ -219,14 +256,11 @@ class DatabaseService {
 
   // ==================== FCM TOKEN MANAGEMENT ====================
 
-  /// Fetches the device's FCM Token and saves it to the user's profile
   Future<void> saveUserFCMToken(String userId, String role) async {
     try {
-      // 1. Get the unique device token
       String? token = await FirebaseMessaging.instance.getToken();
       
       if (token != null) {
-        // 2. Save it to the correct path based on their role
         String path = getUserPath(role, userId);
         await _database.ref(path).update({
           'fcmToken': token,
@@ -234,7 +268,6 @@ class DatabaseService {
         debugPrint("✅ FCM Token successfully saved for $role!");
       }
 
-      // 3. Listen for token refreshes (happens occasionally by Android/iOS)
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         String path = getUserPath(role, userId);
         _database.ref(path).update({
@@ -248,7 +281,6 @@ class DatabaseService {
 
   // ==================== ROLE VERIFICATION ====================
 
-  /// Verify user's role matches expected role
   Future<bool> verifyUserRole(String userId, String expectedRole) async {
     try {
       Map<String, dynamic>? userData = await getUserData(userId);
@@ -259,7 +291,6 @@ class DatabaseService {
     }
   }
 
-  /// Get user's role
   Future<String?> getUserRole(String userId) async {
     try {
       Map<String, dynamic>? userData = await getUserData(userId);
@@ -270,5 +301,4 @@ class DatabaseService {
   }
 }
 
-// Create a singleton instance
 final DatabaseService databaseService = DatabaseService();
