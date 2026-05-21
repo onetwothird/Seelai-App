@@ -31,6 +31,12 @@ class FaceDetectionController {
 
   int _cameraFrameCounter = 0; 
   
+  // --- DEBOUNCER VARIABLES ---
+  int _consecutiveFrames = 0;
+  final int _requiredFrames = 3; 
+  String _lastTagsHash = ''; 
+  // ---------------------------
+  
   bool isLowLight = false;
   bool isFlashOn = false;
   bool showFlashIndicator = false;
@@ -174,7 +180,7 @@ class FaceDetectionController {
     }
 
     final now = DateTime.now();
-
+    
     try {
       final result = await _vision.yoloOnFrame(
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
@@ -186,7 +192,8 @@ class FaceDetectionController {
       );
 
       if (!isDisposing) {
-        recognitions = result.where((detection) {
+        // 1. Filter raw results by confidence
+        final currentValidDetections = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
             return confidence >= 0.75; 
@@ -194,8 +201,32 @@ class FaceDetectionController {
           return false;
         }).toList();
 
-        frameCount++;
+        // 2. The Frame Debouncer Logic
+        if (currentValidDetections.isNotEmpty) {
+          var currentTags = currentValidDetections.map((r) => r['tag'].toString()).toList()..sort();
+          String currentTagsHash = currentTags.join(',');
 
+          if (currentTagsHash == _lastTagsHash) {
+            _consecutiveFrames++;
+          } else {
+            _lastTagsHash = currentTagsHash;
+            _consecutiveFrames = 1;
+          }
+
+          // 3. Gatekeeper
+          if (_consecutiveFrames >= _requiredFrames) {
+            recognitions = currentValidDetections;
+          } else {
+            recognitions = []; 
+          }
+        } else {
+          _lastTagsHash = '';
+          _consecutiveFrames = 0;
+          recognitions = [];
+          lastDetectedFaces = '';
+        }
+
+        frameCount++;
         if (lastFrameTime != null) {
           final elapsed = now.difference(lastFrameTime!).inMilliseconds;
           if (elapsed > 0) fps = 1000 / elapsed;
@@ -204,10 +235,9 @@ class FaceDetectionController {
 
         _notifyStateChanged();
 
+        // 4. Proceed with logic if debouncer passed
         if (recognitions.isNotEmpty) {
           await _detectAndReadFaces();
-        } else {
-          lastDetectedFaces = '';
         }
       }
     } catch (_) { /* Ignored */ }
@@ -219,7 +249,7 @@ class FaceDetectionController {
     if (isDisposing || isReading) return;
     
     final now = DateTime.now();
-    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 3) return;
+    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 1) return;
     
     try {
       final faceCount = recognitions.length;
@@ -237,14 +267,7 @@ class FaceDetectionController {
           var box = r['box'];
           
           String detectedTag = (r['tag'] ?? 'unknown').toString().toLowerCase();
-          String nameToSpeak;
-
-          // Professional Name Logic
-          if (detectedTag == 'nash') {
-            nameToSpeak = 'Nash';
-          } else {
-            nameToSpeak = 'Unrecognized person';
-          }
+          String nameToSpeak = (detectedTag == 'nash') ? 'Nash' : 'Unrecognized';
 
           if (box != null && box.length > 4) {
             double x1 = box[0].toDouble();
@@ -255,31 +278,31 @@ class FaceDetectionController {
             double centerX = (x1 + x2) / 2;
             String positionStr;
             
-            // Professional Positioning
+            // Concise Positioning
             if (centerX < sourceWidth * 0.35) {
-              positionStr = "to the left";
+              positionStr = "left";
             } else if (centerX > sourceWidth * 0.65) {
-              positionStr = "to the right";
+              positionStr = "right";
             } else {
-              positionStr = "directly ahead";
+              positionStr = "center";
             }
 
             double boxHeight = y2 - y1;
             double heightRatio = boxHeight / sourceHeight;
             String distanceStr;
             
-            // Professional Distance
+            // Concise Distance
             if (heightRatio > 0.40) {
-              distanceStr = "approximately 1 meter away";
+              distanceStr = "1 meter";
             } else if (heightRatio > 0.20) {
-              distanceStr = "approximately 2 meters away";
+              distanceStr = "2 meters";
             } else {
-              distanceStr = "approximately 3 meters away";
+              distanceStr = "3 meters";
             }
 
-            faceStatements.add('$nameToSpeak detected $positionStr, $distanceStr');
+            faceStatements.add('$nameToSpeak, $positionStr, $distanceStr');
           } else {
-            faceStatements.add('$nameToSpeak detected');
+            faceStatements.add(nameToSpeak);
           }
         }
 
