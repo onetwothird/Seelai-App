@@ -336,6 +336,8 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
           : null,
 
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(gradient: theme.backgroundGradient),
         child: SafeArea(
           bottom: false,
