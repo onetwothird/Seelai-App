@@ -7,6 +7,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_tts/flutter_tts.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:firebase_database/firebase_database.dart'; // NEW: Required for Realtime Database ref
 import 'detection_detail_screen.dart';
 import 'all_detections_screen.dart';
 
@@ -42,7 +43,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   List<Map<String, dynamic>> _faces = [];
   List<Map<String, dynamic>> _objects = [];
   List<Map<String, dynamic>> _texts = [];
+  
   List<Map<String, dynamic>> _allDetections = [];
+  List<Map<String, dynamic>> _archivedDetections = []; // NEW: Holds the soft-deleted items
 
   StreamSubscription? _facesSub;
   StreamSubscription? _objectsSub;
@@ -166,45 +169,131 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
     if (mounted) {
       setState(() {
-        _allDetections = combined;
+        // Filter into Active vs History
+        _allDetections = combined.where((d) => d['isDeleted'] != true).toList();
+        _archivedDetections = combined.where((d) => d['isDeleted'] == true).toList();
         _isLoading = false;
       });
     }
   }
 
-  // === UPDATED: Permanent Firebase Deletion ===
-  Future<void> _deleteDetection(Map<String, dynamic> detection) async {
+  // === MOVE TO HISTORY (SOFT DELETE) ===
+  Future<void> _moveToHistory(Map<String, dynamic> detection) async {
     final type = detection['type'] as String?;
+    final dbRef = FirebaseDatabase.instance.ref();
 
-    // 1. Remove from local UI state immediately for a snappy feel
+    // Optimistic UI update
     setState(() {
-      _allDetections.removeWhere((d) => d['timestamp'] == detection['timestamp']);
-      _faces.removeWhere((d) => d['timestamp'] == detection['timestamp']);
-      _objects.removeWhere((d) => d['timestamp'] == detection['timestamp']);
-      _texts.removeWhere((d) => d['timestamp'] == detection['timestamp']);
+      detection['isDeleted'] = true;
+      _combineAndSortDetections();
     });
 
-    // 2. Delete permanently from Firebase using specific service IDs
+    try {
+      if (type == 'face') {
+        final docId = detection['detectionId'];
+        await dbRef.child('detected_faces/${widget.userId}/$docId').update({'isDeleted': true});
+      } else if (type == 'object') {
+        final docId = detection['detectionId'];
+        await dbRef.child('detected_objects/${widget.userId}/$docId').update({'isDeleted': true});
+      } else if (type == 'text') {
+        final docId = detection['scanId'];
+        await dbRef.child('scanned_texts/${widget.userId}/$docId').update({'isDeleted': true});
+      }
+    } catch (e) {
+      debugPrint('Error moving to history: $e');
+    }
+  }
+
+  // === PERMANENT FIREBASE DELETION (SINGLE ITEM) ===
+  Future<void> _deletePermanently(Map<String, dynamic> detection) async {
+    final type = detection['type'] as String?;
+
+    setState(() {
+      _archivedDetections.removeWhere((d) => d['timestamp'] == detection['timestamp']);
+    });
+
     try {
       if (type == 'face') {
         final docId = detection['detectionId'] as String?;
-        if (docId != null) {
-          await faceDetectionService.deleteDetection(widget.userId, docId); 
-        }
+        if (docId != null) await faceDetectionService.deleteDetection(widget.userId, docId); 
       } else if (type == 'object') {
         final docId = detection['detectionId'] as String?;
-        if (docId != null) {
-          await objectDetectionService.deleteDetection(widget.userId, docId);
-        }
+        if (docId != null) await objectDetectionService.deleteDetection(widget.userId, docId);
       } else if (type == 'text') {
-        final docId = detection['scanId'] as String?; // Note: text uses scanId
-        if (docId != null) {
-          await textScanService.deleteScannedText(widget.userId, docId);
-        }
+        final docId = detection['scanId'] as String?; 
+        if (docId != null) await textScanService.deleteScannedText(widget.userId, docId);
       }
     } catch (e) {
-      debugPrint('Error deleting detection from Firebase: $e');
+      debugPrint('Error permanently deleting: $e');
     }
+  }
+
+  // === FILTERED BULK DELETE HISTORY ===
+  Future<void> _deleteAllHistoryPermanently({String typeFilter = 'all'}) async {
+    setState(() { _isLoading = true; });
+
+    try {
+      List<Map<String, dynamic>> itemsToDelete = _archivedDetections;
+      
+      // Apply the selected filter
+      if (typeFilter != 'all') {
+        itemsToDelete = _archivedDetections.where((d) => d['type'] == typeFilter).toList();
+      }
+
+      // Delete items sequentially
+      for (var item in itemsToDelete) {
+        await _deletePermanently(item);
+      }
+      
+      if (mounted) setState(() { _isLoading = false; });
+      _flutterTts.speak('Selected history has been permanently deleted');
+      
+    } catch (e) {
+      debugPrint('Error permanently deleting history: $e');
+      if (mounted) setState(() { _isLoading = false; });
+    }
+  }
+
+  // === UI DIALOG FOR FILTERED DELETION ===
+  void _showClearHistoryDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: widget.theme.cardColor,
+        title: Text('Clear History', style: TextStyle(color: widget.theme.textColor)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Select which deleted items you want to permanently remove:', 
+                 style: TextStyle(color: widget.theme.subtextColor)),
+            const SizedBox(height: spacingMedium),
+            _buildClearOption('Clear All History', 'all', Icons.delete_sweep_rounded),
+            _buildClearOption('Clear Faces Only', 'face', Icons.face_rounded),
+            _buildClearOption('Clear Objects Only', 'object', Icons.search_rounded),
+            _buildClearOption('Clear Text Only', 'text', Icons.document_scanner_rounded),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      )
+    );
+  }
+
+  Widget _buildClearOption(String title, String type, IconData icon) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.redAccent),
+      title: Text(title, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      onTap: () {
+        Navigator.pop(context);
+        _deleteAllHistoryPermanently(typeFilter: type);
+      },
+    );
   }
 
   @override
@@ -611,11 +700,14 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   }
 
   Widget _buildDetectionsList(List<Map<String, dynamic>> allDetections) {
-    if (allDetections.isEmpty) {
+    // NEW: Point to the archived list if History is selected
+    final sourceList = _selectedFilter == 'History' ? _archivedDetections : allDetections;
+
+    if (sourceList.isEmpty) {
       return _buildEmptyState();
     }
 
-    final filteredDetections = _filterDetections(allDetections);
+    final filteredDetections = _filterDetections(sourceList);
 
     if (filteredDetections.isEmpty) {
       return _buildNoResultsState();
@@ -627,6 +719,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     return AnimationLimiter(
       key: ValueKey(_selectedFilter), 
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: AnimationConfiguration.toStaggeredList(
           duration: const Duration(milliseconds: 375),
           childAnimationBuilder: (widget) => SlideAnimation(
@@ -634,6 +727,23 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
             child: FadeInAnimation(child: widget),
           ),
           children: [
+            if (_selectedFilter == 'History')
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: TextButton.icon(
+                  onPressed: _showClearHistoryDialog, // NEW: Opens the filter dialog
+                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 20),
+                  label: const Text(
+                    'Clear All History', 
+                    style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                ),
+              ),
+
             ...displayedDetections.map((detection) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: spacingMedium),
@@ -728,6 +838,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
     return Dismissible(
       key: ValueKey(detection['timestamp'].toString()),
+      // NEW: Always allow swipe to delete!
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -739,8 +850,15 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
       ),
       onDismissed: (direction) {
-        _deleteDetection(detection); 
-        _flutterTts.speak('$title deleted'); 
+        if (_selectedFilter == 'History') {
+          // If already in history, permanently destroy it
+          _deletePermanently(detection); 
+          _flutterTts.speak('$title deleted permanently'); 
+        } else {
+          // Otherwise, soft delete it to history
+          _moveToHistory(detection); 
+          _flutterTts.speak('$title moved to history'); 
+        }
       },
       child: Semantics(
         label: '$detectedLabel. $title. $description. Scanned $timeAgo',
