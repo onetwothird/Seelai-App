@@ -30,6 +30,12 @@ class ObjectDetectionController {
   double fps = 0.0; 
   
   int _cameraFrameCounter = 0; 
+
+  // --- DEBOUNCER VARIABLES ---
+  int _consecutiveFrames = 0;
+  final int _requiredFrames = 2; 
+  String _lastTagsHash = ''; 
+  // ---------------------------
   
   bool isLowLight = false;
   bool isFlashOn = false;
@@ -86,7 +92,7 @@ class ObjectDetectionController {
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("en-PH");
+      await _flutterTts.setLanguage("fil-PH");
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -182,21 +188,46 @@ class ObjectDetectionController {
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.40, 
-        confThreshold: 0.75, 
-        classThreshold: 0.75,
+        confThreshold: 0.50, 
+        classThreshold: 0.50,
       );
 
       if (!isDisposing) {
-        recognitions = result.where((detection) {
+        // 1. Filter raw results by confidence
+        final currentValidDetections = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.75; 
+            return confidence >= 0.50; 
           }
           return false;
         }).toList();
 
-        frameCount++;
+        // 2. The Frame Debouncer Logic
+        if (currentValidDetections.isNotEmpty) {
+          var currentTags = currentValidDetections.map((r) => r['tag'].toString()).toList()..sort();
+          String currentTagsHash = currentTags.join(',');
 
+          if (currentTagsHash == _lastTagsHash) {
+            _consecutiveFrames++;
+          } else {
+            _lastTagsHash = currentTagsHash;
+            _consecutiveFrames = 1;
+          }
+
+          // 3. Gatekeeper
+          if (_consecutiveFrames >= _requiredFrames) {
+            recognitions = currentValidDetections;
+          } else {
+            recognitions = []; 
+          }
+        } else {
+          _lastTagsHash = '';
+          _consecutiveFrames = 0;
+          recognitions = [];
+          lastDetectedObjects = '';
+        }
+
+        frameCount++;
         if (lastFrameTime != null) {
           final elapsed = now.difference(lastFrameTime!).inMilliseconds;
           if (elapsed > 0) fps = 1000 / elapsed;
@@ -205,10 +236,9 @@ class ObjectDetectionController {
 
         _notifyStateChanged();
 
+        // 4. Proceed with logic if debouncer passed
         if (recognitions.isNotEmpty) {
           await _detectAndReadObjects();
-        } else {
-          lastDetectedObjects = '';
         }
       }
     } catch (_) { /* Ignored */ }
@@ -220,7 +250,7 @@ class ObjectDetectionController {
     if (isDisposing || isReading) return;
     
     final now = DateTime.now();
-    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 3) return;
+    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 1) return;
     
     try {
       final objectCount = recognitions.length;
@@ -237,7 +267,6 @@ class ObjectDetectionController {
           var r = recognitions[i];
           var box = r['box'];
           String tag = r['tag'] ?? 'object';
-          // Capitalize first letter for natural reading
           tag = tag.isNotEmpty ? '${tag[0].toUpperCase()}${tag.substring(1)}' : tag;
 
           if (box != null && box.length > 4) {
@@ -249,36 +278,34 @@ class ObjectDetectionController {
             double centerX = (x1 + x2) / 2;
             String positionStr;
             
-            // Professional Positioning
+            // Concise Positioning
             if (centerX < sourceWidth * 0.35) {
-              positionStr = "to the left";
+              positionStr = "left";
             } else if (centerX > sourceWidth * 0.65) {
-              positionStr = "to the right";
+              positionStr = "right";
             } else {
-              positionStr = "directly ahead";
+              positionStr = "center";
             }
 
             double boxHeight = y2 - y1;
             double heightRatio = boxHeight / sourceHeight;
             String distanceStr;
             
-            // Professional Distance
+            // Concise Distance
             if (heightRatio > 0.6) {
-              distanceStr = "approximately 1 meter away";
+              distanceStr = "1 meter";
             } else if (heightRatio > 0.3) {
-              distanceStr = "approximately 2 meters away";
+              distanceStr = "2 meters";
             } else {
-              distanceStr = "approximately 3 meters away";
+              distanceStr = "3 meters";
             }
 
-            // Output format: "TV detected directly ahead, approximately 2 meters away"
-            objectStatements.add('$tag detected $positionStr, $distanceStr');
+            objectStatements.add('$tag, $positionStr, $distanceStr');
           } else {
-            objectStatements.add('$tag detected');
+            objectStatements.add(tag);
           }
         }
 
-        // Clean phrasing joined by periods
         String speechText = objectStatements.join(". ");
         String detectedObjectsText = recognitions.map((r) => '${r['tag']}').join(', ');
         

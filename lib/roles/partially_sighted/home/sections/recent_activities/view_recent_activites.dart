@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart'; 
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
+import 'package:flutter_tts/flutter_tts.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'detection_detail_screen.dart';
@@ -13,14 +14,14 @@ class ViewRecentActivities extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final String userId;
-  final VoidCallback onToggleDarkMode; // === ADDED: Accepts the theme toggle callback ===
+  final VoidCallback onToggleDarkMode; 
 
   const ViewRecentActivities({
     super.key,
     required this.isDarkMode,
     required this.theme,
     required this.userId,
-    required this.onToggleDarkMode, // === ADDED ===
+    required this.onToggleDarkMode, 
   });
 
   @override
@@ -29,6 +30,7 @@ class ViewRecentActivities extends StatefulWidget {
 
 class _ViewRecentActivitiesState extends State<ViewRecentActivities> with TickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF7C3AED);
+  final FlutterTts _flutterTts = FlutterTts(); 
 
   final int maxDisplayedDetections = 5;
   String _selectedFilter = 'All';
@@ -62,6 +64,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     super.initState();
     _setupRealtimeStreams();
     _startMessageTimer();
+    _initTts(); 
     
     // === Initialize the staggered entry animation ===
     _entryController = AnimationController(
@@ -103,6 +106,11 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         });
       }
     });
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
   }
 
   void _startMessageTimer() {
@@ -164,6 +172,41 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     }
   }
 
+  // === UPDATED: Permanent Firebase Deletion ===
+  Future<void> _deleteDetection(Map<String, dynamic> detection) async {
+    final type = detection['type'] as String?;
+
+    // 1. Remove from local UI state immediately for a snappy feel
+    setState(() {
+      _allDetections.removeWhere((d) => d['timestamp'] == detection['timestamp']);
+      _faces.removeWhere((d) => d['timestamp'] == detection['timestamp']);
+      _objects.removeWhere((d) => d['timestamp'] == detection['timestamp']);
+      _texts.removeWhere((d) => d['timestamp'] == detection['timestamp']);
+    });
+
+    // 2. Delete permanently from Firebase using specific service IDs
+    try {
+      if (type == 'face') {
+        final docId = detection['detectionId'] as String?;
+        if (docId != null) {
+          await faceDetectionService.deleteDetection(widget.userId, docId); 
+        }
+      } else if (type == 'object') {
+        final docId = detection['detectionId'] as String?;
+        if (docId != null) {
+          await objectDetectionService.deleteDetection(widget.userId, docId);
+        }
+      } else if (type == 'text') {
+        final docId = detection['scanId'] as String?; // Note: text uses scanId
+        if (docId != null) {
+          await textScanService.deleteScannedText(widget.userId, docId);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting detection from Firebase: $e');
+    }
+  }
+
   @override
   void dispose() {
     _facesSub?.cancel();
@@ -171,6 +214,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     _textsSub?.cancel();
     _messageTimer?.cancel();
     _entryController.dispose();
+    _flutterTts.stop(); 
     super.dispose();
   }
 
@@ -276,7 +320,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                         ],
                       ),
                     ),
-                    // === UPDATED: Added Row to hold both Theme Toggle & Refresh ===
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -306,7 +349,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                                 child: Icon(
                                   Icons.refresh_rounded,
                                   color: _primaryColor,
-                                  size: 20, // Match size of moon icon
+                                  size: 20, 
                                 ),
                               ),
                             ),
@@ -505,7 +548,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   }
 
   Widget _buildFilterTabs() {
-    final filters = ['All', 'Faces', 'Objects', 'Text'];
+    final filters = ['All', 'Faces', 'Objects', 'Text', 'History'];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -609,7 +652,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   }
 
   List<Map<String, dynamic>> _filterDetections(List<Map<String, dynamic>> detections) {
-    if (_selectedFilter == 'All') {
+    if (_selectedFilter == 'All' || _selectedFilter == 'History') {
       return detections;
     }
     
@@ -683,134 +726,151 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         break;
     }
 
-    return Semantics(
-      label: '$detectedLabel. $title. $description. Scanned $timeAgo',
-      button: true,
-      hint: 'Double tap to view details',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DetectionDetailScreen(
-                  detection: detection,
-                  isDarkMode: widget.isDarkMode,
-                  theme: widget.theme,
+    return Dismissible(
+      key: ValueKey(detection['timestamp'].toString()),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24),
+        decoration: BoxDecoration(
+          color: Colors.red.shade400,
+          borderRadius: BorderRadius.circular(radiusLarge),
+        ),
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+      ),
+      onDismissed: (direction) {
+        _deleteDetection(detection); 
+        _flutterTts.speak('$title deleted'); 
+      },
+      child: Semantics(
+        label: '$detectedLabel. $title. $description. Scanned $timeAgo',
+        button: true,
+        hint: 'Double tap to view details',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => DetectionDetailScreen(
+                    detection: detection,
+                    isDarkMode: widget.isDarkMode,
+                    theme: widget.theme,
+                  ),
+                ),
+              );
+            },
+            borderRadius: BorderRadius.circular(radiusLarge),
+            child: Container(
+              padding: const EdgeInsets.all(spacingMedium),
+              decoration: BoxDecoration(
+                color: widget.theme.cardColor,
+                borderRadius: BorderRadius.circular(radiusLarge),
+                boxShadow: widget.isDarkMode ? [] : softShadow,
+                border: Border.all(
+                  color: widget.isDarkMode 
+                      ? Colors.white.withValues(alpha: 0.05) 
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
                 ),
               ),
-            );
-          },
-          borderRadius: BorderRadius.circular(radiusLarge),
-          child: Container(
-            padding: const EdgeInsets.all(spacingMedium),
-            decoration: BoxDecoration(
-              color: widget.theme.cardColor,
-              borderRadius: BorderRadius.circular(radiusLarge),
-              boxShadow: widget.isDarkMode ? [] : softShadow,
-              border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
-                    : Colors.black.withValues(alpha: 0.05),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(radiusMedium),
-                    border: Border.all(
-                      color: widget.isDarkMode 
-                          ? Colors.white.withValues(alpha: 0.05) 
-                          : Colors.black.withValues(alpha: 0.05),
-                      width: 1,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                      border: Border.all(
+                        color: widget.isDarkMode 
+                            ? Colors.white.withValues(alpha: 0.05) 
+                            : Colors.black.withValues(alpha: 0.05),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: imageUrl != null && imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Icon(
+                    clipBehavior: Clip.antiAlias,
+                    child: imageUrl != null && imageUrl.isNotEmpty
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              detection['icon'] as IconData? ?? Icons.image_rounded,
+                              color: color,
+                              size: 30,
+                            ),
+                          )
+                        : Icon(
                             detection['icon'] as IconData? ?? Icons.image_rounded,
                             color: color,
                             size: 30,
                           ),
-                        )
-                      : Icon(
-                          detection['icon'] as IconData? ?? Icons.image_rounded,
-                          color: color,
-                          size: 30,
-                        ),
-                ),
-                const SizedBox(width: spacingMedium),
-                
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              detectedLabel,
-                              style: h3.copyWith(
-                                fontSize: 16,
-                                color: widget.theme.textColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            timeAgo,
-                            style: caption.copyWith(
-                              fontSize: 11,
-                              color: widget.theme.subtextColor.withOpacity(0.8),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        title,
-                        style: caption.copyWith(
-                          fontSize: 12,
-                          color: color,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        description,
-                        style: body.copyWith(
-                          fontSize: 13,
-                          color: widget.theme.subtextColor,
-                          height: 1.3,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
                   ),
-                ),
-                const SizedBox(width: spacingSmall),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: widget.theme.subtextColor.withOpacity(0.4),
-                  size: 24,
-                ),
-              ],
+                  const SizedBox(width: spacingMedium),
+                  
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                detectedLabel,
+                                style: h3.copyWith(
+                                  fontSize: 16,
+                                  color: widget.theme.textColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            Text(
+                              timeAgo,
+                              style: caption.copyWith(
+                                fontSize: 11,
+                                color: widget.theme.subtextColor.withOpacity(0.8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          title,
+                          style: caption.copyWith(
+                            fontSize: 12,
+                            color: color,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          description,
+                          style: body.copyWith(
+                            fontSize: 13,
+                            color: widget.theme.subtextColor,
+                            height: 1.3,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: spacingSmall),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: widget.theme.subtextColor.withOpacity(0.4),
+                    size: 24,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

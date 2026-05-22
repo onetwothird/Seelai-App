@@ -33,7 +33,7 @@ class FaceDetectionController {
   
   // --- DEBOUNCER VARIABLES ---
   int _consecutiveFrames = 0;
-  final int _requiredFrames = 3; 
+  final int _requiredFrames = 2; 
   String _lastTagsHash = ''; 
   // ---------------------------
   
@@ -91,7 +91,7 @@ class FaceDetectionController {
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("en-US"); 
+      await _flutterTts.setLanguage("fil-PH"); 
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -187,8 +187,8 @@ class FaceDetectionController {
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.40,
-        confThreshold: 0.75, 
-        classThreshold: 0.75, 
+        confThreshold: 0.50, 
+        classThreshold: 0.50, 
       );
 
       if (!isDisposing) {
@@ -196,7 +196,7 @@ class FaceDetectionController {
         final currentValidDetections = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.75; 
+            return confidence >= 0.50; 
           }
           return false;
         }).toList();
