@@ -362,6 +362,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
               child: MSWDNotificationsBottomSheet(
                 adminId: widget.userData['userId'] ?? '',
                 isDarkMode: _isDarkMode, 
+                theme: theme, // <--- ADD THIS LINE
                 assistanceRequestService: assistanceRequestService,
               ),
             ),

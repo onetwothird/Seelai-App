@@ -4,20 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-// Note: You can route this to an MSWD-specific details screen if needed, 
-// but for now, we'll reuse the caretaker's request details screen for viewing.
-import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_details_screen.dart';
-import 'package:seelai_app/firebase/caretaker/request_service.dart';
+// USING THE MSWD DETAILS SCREEN INSTEAD OF CARETAKER
+import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart'; 
 
 class MSWDNotificationsBottomSheet extends StatefulWidget {
   final String adminId;
   final bool isDarkMode;
+  final dynamic theme; // Added theme required for MSWD Details Screen
   final AssistanceRequestService assistanceRequestService;
 
   const MSWDNotificationsBottomSheet({
     super.key,
     required this.adminId,
     required this.isDarkMode,
+    required this.theme,
     required this.assistanceRequestService,
   });
 
@@ -82,9 +82,7 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                 ),
                 IconButton(
                   icon: const Icon(Icons.done_all, color: primary),
-                  onPressed: () {
-                    // Placeholder for Mark All as Read functionality
-                  },
+                  onPressed: () {},
                   tooltip: 'Mark all as read',
                 )
               ],
@@ -95,7 +93,6 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
           // Notifications Stream
           Expanded(
             child: StreamBuilder<List<RequestModel>>(
-              // MSWD tracks ALL requests across the platform
               stream: widget.assistanceRequestService.streamAllRequests(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
@@ -122,15 +119,13 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                   );
                 }
 
-                // Categorize into "New" (Pending) and "Earlier" (Handled/Accepted/Completed)
+                // Categorize into "New" (Pending) and "Earlier"
                 final newRequests = requests.where((r) => r.status == RequestStatus.pending).toList();
                 final earlierRequests = requests.where((r) => r.status != RequestStatus.pending).toList();
 
-                // Sort both by timestamp (newest first)
                 newRequests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
                 earlierRequests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-                // Preload images
                 for (var req in requests) {
                   _loadProfileImage(req.patientId);
                 }
@@ -172,11 +167,7 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: textColor,
-        ),
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
       ),
     );
   }
@@ -190,23 +181,21 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
     final profileUrl = _profileImageCache[request.patientId];
     final timeAgo = _getTimeAgo(request.timestamp);
     
-    // Facebook uses a subtle blue background for unread notifications
     final unreadBgColor = widget.isDarkMode 
         ? Colors.blueAccent.withValues(alpha: 0.1) 
         : Colors.blue.withValues(alpha: 0.05);
 
     return InkWell(
       onTap: () {
-        // Navigate to details. We instantiate a temporary RequestService 
-        // to satisfy the RequestDetailsScreen requirements if needed.
+        // Correctly route to MSWD Details Screen
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => RequestDetailsScreen(
               request: request,
               isDarkMode: widget.isDarkMode,
-              requestService: RequestService(), // Uses the singleton internally
-              preloadedProfileImage: profileUrl,
+              theme: widget.theme,
+              userDataCache: const {}, // Will self-fetch missing data
             ),
           ),
         );
@@ -217,7 +206,6 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Facebook-style Avatar with status icon overlay
             Stack(
               clipBehavior: Clip.none,
               children: [
@@ -251,7 +239,6 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
             ),
             const SizedBox(width: 12),
             
-            // 2. Notification Body
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,22 +278,17 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                 ],
               ),
             ),
-            
-            // 3. Unread Indicator Dot
             if (isNew)
               Padding(
                 padding: const EdgeInsets.only(top: 12, left: 8),
                 child: Container(
                   width: 10,
                   height: 10,
-                  decoration: const BoxDecoration(
-                    color: Colors.blue,
-                    shape: BoxShape.circle,
-                  ),
+                  decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
                 ),
               )
             else
-              const SizedBox(width: 18), // Spacer to maintain alignment
+              const SizedBox(width: 18), 
           ],
         ),
       ),
