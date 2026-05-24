@@ -1360,7 +1360,6 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
     _controller.forward(from: 0.0);
     widget.onToggle();
   }
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
