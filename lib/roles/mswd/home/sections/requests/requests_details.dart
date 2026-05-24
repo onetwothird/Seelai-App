@@ -6,7 +6,7 @@ import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // Add TTS import
+import 'package:flutter_tts/flutter_tts.dart'; 
 
 class RequestDetailsScreen extends StatefulWidget {
   final RequestModel request;
@@ -48,9 +48,40 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       _caretakerData = widget.userDataCache[_currentRequest.caretakerId!];
     }
     
+    // FETCH DATA IF IT IS MISSING FROM CACHE (e.g. from Notifications)
+    _loadMissingData();
+    
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) setState(() => _isSimulatingLoad = false);
     });
+  }
+
+  // --- ADDED THIS METHOD TO FIX THE "UNKNOWN" BUG ---
+  Future<void> _loadMissingData() async {
+    bool needsUpdate = false;
+    
+    // Fetch patient data if missing
+    if (_patientData == null) {
+      final data = await databaseService.getUserData(_currentRequest.patientId);
+      if (data != null) {
+        _patientData = data;
+        needsUpdate = true;
+      }
+    }
+    
+    // Fetch caretaker data if assigned and missing
+    if (_currentRequest.caretakerId != null && _caretakerData == null) {
+      final data = await databaseService.getUserData(_currentRequest.caretakerId!);
+      if (data != null) {
+        _caretakerData = data;
+        needsUpdate = true;
+      }
+    }
+    
+    // Refresh the UI if new data was found
+    if (needsUpdate && mounted) {
+      setState(() {});
+    }
   }
 
   // === TTS METHODS ===
@@ -61,14 +92,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     await _flutterTts.setPitch(1.0);
   }
 
-  // Replaces the old snackbar method completely
   Future<void> _speakMessage(String message) async {
     await _flutterTts.speak(message);
   }
 
   @override
   void dispose() {
-    _flutterTts.stop(); // Stop TTS
+    _flutterTts.stop(); 
     super.dispose();
   }
 
@@ -77,16 +107,16 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        _speakMessage(fallbackMessage); // Use TTS
+        _speakMessage(fallbackMessage); 
       }
     } catch (e) {
-      _speakMessage('Action failed: $e'); // Use TTS
+      _speakMessage('Action failed: $e'); 
     }
   }
 
   void _callPhone(String? phone) {
     if (phone == null || phone.isEmpty || phone == 'Not Provided') {
-      _speakMessage('No valid phone number available.'); // Use TTS
+      _speakMessage('No valid phone number available.'); 
       return;
     }
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
@@ -96,7 +126,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   void _openMap() {
     final loc = _currentRequest.location;
     if (loc == null || loc['latitude'] == null || loc['longitude'] == null) {
-      _speakMessage('No exact GPS coordinates available.'); // Use TTS
+      _speakMessage('No exact GPS coordinates available.'); 
       return;
     }
     final lat = loc['latitude'];
@@ -121,7 +151,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Admin Override: Status',
+                'Update Assistance Status',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -130,7 +160,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Force a status update on this request. This will reflect in the database immediately.',
+                'Update the current status of this request. Changes will immediately reflect for the patient and assigned responder.',
                 style: TextStyle(fontSize: 13, color: widget.theme.subtextColor),
               ),
               const SizedBox(height: 24),
@@ -152,23 +182,29 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         if (isSelected) return;
 
         setState(() => _isUpdating = true);
-        try {
-          await assistanceRequestService.updateRequestStatus(
-            _currentRequest.id,
-            status,
-          );
-          
-          if (mounted) {
+        
+        final success = await assistanceRequestService.updateRequestStatus(
+          _currentRequest.id,
+          status,
+        );
+        
+        if (mounted) {
+          if (success) {
             setState(() {
               _currentRequest = _currentRequest.copyWith(status: status);
               _isUpdating = false;
             });
-            _speakMessage('Status forcefully updated to ${status.name.toUpperCase()}'); // Use TTS
-          }
-        } catch (e) {
-          if (mounted) {
+            _speakMessage('Status forcefully updated to ${status.name.toUpperCase()}'); 
+          } else {
             setState(() => _isUpdating = false);
-            _speakMessage('Failed to update status.'); // Use TTS
+            _speakMessage('Failed to update status in database.'); 
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to update. Check connection.'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
         }
       },
@@ -222,9 +258,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     return Colors.grey;
   }
 
-  // ==========================================
-  // WIDGET: SKELETON
-  // ==========================================
   Widget _buildSkeletonDetails() {
     final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
     final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
@@ -657,12 +690,23 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         color: widget.isDarkMode ? Colors.white10 : Colors.grey[100],
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.person_search_rounded, color: widget.theme.subtextColor, size: 24),
+                      child: Icon(Icons.support_agent_rounded, color: widget.theme.subtextColor, size: 24),
                     ),
                     const SizedBox(width: 16),
-                    Text(
-                      'No caretaker assigned yet',
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 14, fontWeight: FontWeight.w500),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Escalated to MSWD',
+                            style: TextStyle(color: widget.theme.textColor, fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'No caretaker available. MSWD handling.',
+                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -710,7 +754,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               ),
               _buildTimelineStep(
                 primaryColor: primaryColor,
-                title: 'Caretaker Assigned / Accepted',
+                title: 'Assigned / Accepted',
                 time: responseTime,
                 isActive: _currentRequest.status.index > RequestStatus.pending.index && _currentRequest.status != RequestStatus.declined,
               ),
@@ -809,8 +853,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           height: 56,
           child: ElevatedButton.icon(
             onPressed: _showAdminStatusUpdateDialog,
-            icon: const Icon(Icons.admin_panel_settings_rounded, size: 20),
-            label: const Text('MSWD Update Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            icon: const Icon(Icons.edit_note_rounded, size: 20),
+            label: const Text('Update Request Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             style: ElevatedButton.styleFrom(
               backgroundColor: widget.theme.cardColor,
               foregroundColor: primaryColor,
@@ -870,7 +914,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   String _formatShortTime(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
+    Duration diff = DateTime.now().difference(dt);
+    
+    if (diff.isNegative) {
+      diff = Duration.zero;
+    }
+
+    if (diff.inMinutes < 1) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';

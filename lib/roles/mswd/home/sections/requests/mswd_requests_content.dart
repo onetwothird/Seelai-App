@@ -8,7 +8,7 @@ import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'dart:async';
-import 'package:flutter_tts/flutter_tts.dart'; // Add TTS import
+import 'package:flutter_tts/flutter_tts.dart'; 
 
 class RequestsContent extends StatefulWidget {
   final bool isDarkMode;
@@ -29,7 +29,6 @@ class RequestsContent extends StatefulWidget {
 }
 
 class _RequestsContentState extends State<RequestsContent> with SingleTickerProviderStateMixin {
-  // Brand Colors
   final Color _primaryColor = const Color(0xFF7C3AED);
 
   int _selectedFilterIndex = 0;
@@ -42,18 +41,14 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
   final Map<String, Map<String, dynamic>> _userDataCache = {};
 
-  // Animation State
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
   bool _isSimulatingLoad = true; 
 
-  // --- TTS STATE ---
   final FlutterTts _flutterTts = FlutterTts();
 
-  // --- PAGINATION & DELETION VARIABLES ---
   final int _itemsPerPage = 5;
   final Set<String> _hiddenRequestIds = {};
-  
   final Map<int, int> _filterPages = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1};
 
   final List<Map<String, dynamic>> _filters = [
@@ -65,7 +60,6 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
     {'label': 'Deleted', 'status': 'deleted', 'icon': Icons.delete_outline_rounded, 'color': const Color(0xFF9CA3AF)},
   ];
 
-  // === ANIMATION CONTROLLERS ===
   late AnimationController _entryController;
   late Animation<double> _headerOpacity;
   late Animation<Offset> _headerSlide;
@@ -75,7 +69,7 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _initTts(); // Initialize TTS
+    _initTts(); 
     _loadRequests();
     _startMessageTimer();
 
@@ -108,7 +102,6 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
     });
   }
 
-  // === TTS METHODS ===
   Future<void> _initTts() async {
     await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
@@ -153,7 +146,7 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
 
   @override
   void dispose() {
-    _flutterTts.stop(); // Stop TTS
+    _flutterTts.stop(); 
     _messageTimer?.cancel();
     _searchController.dispose();
     _requestsSubscription?.cancel();
@@ -204,6 +197,57 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
       if (data != null && mounted) setState(() => _userDataCache[userId] = data);
       return data;
     } catch (_) { return null; }
+  }
+
+  // === NEW: Permanent Firebase Deletion Logic with Confirmation Filter ===
+  Future<void> _permanentlyDeleteRequest(RequestModel request) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: widget.theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Text('Permanent Delete', style: TextStyle(color: widget.theme.textColor, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'This will permanently remove the request from the Firebase database. This action cannot be undone. Are you sure?',
+          style: TextStyle(color: widget.theme.subtextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // Physically remove from Firebase
+      final success = await assistanceRequestService.deleteRequest(request.id);
+      if (success && mounted) {
+        setState(() {
+          _hiddenRequestIds.remove(request.id);
+          _allRequests.removeWhere((r) => r.id == request.id);
+        });
+        _speak('Request permanently deleted.');
+      } else if (mounted) {
+        _speak('Failed to delete request.');
+      }
+    }
   }
 
   // ==========================================
@@ -905,11 +949,16 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
               final request = paginatedRequests[index];
               final isLast = index == paginatedRequests.length - 1;
               
+              // === ONLY ALLOW SWIPE-TO-DELETE FOR HISTORY ===
               Widget card;
               if (_selectedFilterIndex == 5) {
                 card = _buildDeletedCard(request);
-              } else {
+              } else if (_selectedFilterIndex == 3 || _selectedFilterIndex == 4) {
+                // Completed (3) or Declined (4) tabs can be swiped to trash
                 card = _buildDismissibleCard(request);
+              } else {
+                // Pending, Accepted, Active cannot be swiped
+                card = _buildRedesignedCard(request);
               }
 
               return AnimationConfiguration.staggeredList(
@@ -1000,8 +1049,7 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
           _hiddenRequestIds.add(request.id);
         });
         
-        // Replaced Snackbar with TTS only
-        _speak('Moved to Deleted');
+        _speak('Moved to Trash');
       },
       child: _buildRedesignedCard(request),
     );
@@ -1332,6 +1380,22 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
               
               const Spacer(),
               
+              // PERMANENT DELETE BUTTON
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                  color: Colors.red,
+                  onPressed: () => _permanentlyDeleteRequest(request),
+                  tooltip: 'Permanently Delete',
+                ),
+              ),
+              
+              const SizedBox(width: 8),
+              
               // RESTORE BUTTON
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
@@ -1345,7 +1409,6 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
                 label: const Text('Restore', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 onPressed: () {
                   setState(() { _hiddenRequestIds.remove(request.id); });
-                  // Replaced Snackbar with TTS only
                   _speak('Request restored.');
                 },
               ),
@@ -1369,7 +1432,13 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
   }
 
   String _formatShortTime(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
+    Duration diff = DateTime.now().difference(dt);
+    
+    if (diff.isNegative) {
+      diff = Duration.zero;
+    }
+
+    if (diff.inMinutes < 1) return 'Just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';

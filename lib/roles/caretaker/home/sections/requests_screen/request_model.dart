@@ -68,11 +68,13 @@ class RequestModel {
     );
   }
 
+  // FIXED: Made case-insensitive so it doesn't fail silently
   static RequestStatus _parseStatus(String? status) {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'accepted':
         return RequestStatus.accepted;
-      case 'inProgress':
+      case 'inprogress':
+      case 'in_progress':
         return RequestStatus.inProgress;
       case 'completed':
         return RequestStatus.completed;
@@ -84,7 +86,7 @@ class RequestModel {
   }
 
   static RequestPriority _parsePriority(String? priority) {
-    switch (priority) {
+    switch (priority?.toLowerCase()) {
       case 'high':
         return RequestPriority.high;
       case 'emergency':
@@ -103,8 +105,8 @@ class RequestModel {
       'caretakerId': caretakerId,
       'requestType': requestType,
       'message': message,
-      'status': status.toString().split('.').last,
-      'priority': priority.toString().split('.').last,
+      'status': status.name, 
+      'priority': priority.name, 
       'timestamp': timestamp.toIso8601String(),
       'location': location,
       'caretakerResponse': caretakerResponse,
