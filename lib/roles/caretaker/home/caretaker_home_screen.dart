@@ -311,20 +311,16 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             Navigator.of(context).pop(result);
           }
         },
-        // === THE MAGIC LAYER SYSTEM ===
         child: AnimatedBuilder(
           animation: _revealAnimation,
           builder: (context, child) {
-            // Precise coordinates for the sun/moon toggle button
             final centerOffset = Offset(MediaQuery.of(context).size.width - 48, 65);
             
             return Stack(
               children: [
-                // LAYER 1: The completely rendered OLD theme.
                 if (_previousIsDarkMode != null)
                   _buildScaffoldLayer(isDarkLayer: _previousIsDarkMode!),
 
-                // LAYER 2: The completely rendered NEW theme wrapped in the expanding mask
                 ClipPath(
                   clipper: ThemeRevealClipper(
                     fraction: _revealController.isAnimating ? _revealAnimation.value : 1.0,
@@ -340,7 +336,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     );
   }
 
-  // === HELPER METHOD: Builds the entire screen structure based on a specific theme state ===
   Widget _buildScaffoldLayer({required bool isDarkLayer}) {
     final theme = isDarkLayer ? _getDarkTheme() : _getLightTheme();
     final screenHeight = MediaQuery.of(context).size.height;
@@ -348,7 +343,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: Colors.transparent, // Let gradient show
+      backgroundColor: Colors.transparent, 
       body: Container(
         decoration: BoxDecoration(gradient: theme.backgroundGradient),
         child: SafeArea(
@@ -370,7 +365,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                     screenWidth,
                     screenHeight,
                     theme,
-                    isDarkLayer, // Pass the specific layer state down
+                    isDarkLayer, 
                   ),
                 ),
 
@@ -380,7 +375,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                   theme: theme,
                 ),
 
-                // FLOATING "SHOW MENU" BUTTON (RESTRICTED TO TAB 4)
+            
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOutCubic,
@@ -562,7 +557,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         content = const SizedBox.shrink();
     }
 
-    // Retained the Caretaker-specific AnimatedSwitcher logic
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       switchInCurve: Curves.easeInOutCubic,
