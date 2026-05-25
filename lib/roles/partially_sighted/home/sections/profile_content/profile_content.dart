@@ -147,7 +147,7 @@ class _ProfileContentState extends State<ProfileContent> {
           Text(
             'Profile & Settings',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 30,
               fontWeight: FontWeight.w900,
               color: widget.theme.textColor,
               letterSpacing: -0.5,

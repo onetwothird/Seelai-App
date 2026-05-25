@@ -7,7 +7,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_tts/flutter_tts.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:firebase_database/firebase_database.dart'; // NEW: Required for Realtime Database ref
+import 'package:firebase_database/firebase_database.dart';
 import 'detection_detail_screen.dart';
 import 'all_detections_screen.dart';
 
@@ -45,7 +45,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   List<Map<String, dynamic>> _texts = [];
   
   List<Map<String, dynamic>> _allDetections = [];
-  List<Map<String, dynamic>> _archivedDetections = []; // NEW: Holds the soft-deleted items
+  List<Map<String, dynamic>> _archivedDetections = [];
 
   StreamSubscription? _facesSub;
   StreamSubscription? _objectsSub;
@@ -54,7 +54,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
-  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
+  // === ANIMATION CONTROLLERS ===
   late AnimationController _entryController;
   late Animation<double> _headerOpacity;
   late Animation<Offset> _headerSlide;
@@ -69,13 +69,11 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     _startMessageTimer();
     _initTts(); 
     
-    // === Initialize the staggered entry animation ===
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
 
-    // 1. Header Row (Title & Refresh) - Fades & slides RIGHT
     _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
     );
@@ -83,25 +81,20 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
       CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
     );
 
-    // 2. Gradient Background
     _gradientOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOut)),
     );
 
-    // 3. Mascot
     _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)),
     );
 
-    // 4. Speech Bubble
     _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)),
     );
 
-    // Start header/mascot animations immediately
     _entryController.forward();
     
-    // Trigger the skeleton animation for 600ms on load
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -169,7 +162,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
     if (mounted) {
       setState(() {
-        // Filter into Active vs History
         _allDetections = combined.where((d) => d['isDeleted'] != true).toList();
         _archivedDetections = combined.where((d) => d['isDeleted'] == true).toList();
         _isLoading = false;
@@ -177,12 +169,10 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     }
   }
 
-  // === MOVE TO HISTORY (SOFT DELETE) ===
   Future<void> _moveToHistory(Map<String, dynamic> detection) async {
     final type = detection['type'] as String?;
     final dbRef = FirebaseDatabase.instance.ref();
 
-    // Optimistic UI update
     setState(() {
       detection['isDeleted'] = true;
       _combineAndSortDetections();
@@ -204,7 +194,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     }
   }
 
-  // === PERMANENT FIREBASE DELETION (SINGLE ITEM) ===
   Future<void> _deletePermanently(Map<String, dynamic> detection) async {
     final type = detection['type'] as String?;
 
@@ -228,19 +217,16 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     }
   }
 
-  // === FILTERED BULK DELETE HISTORY ===
   Future<void> _deleteAllHistoryPermanently({String typeFilter = 'all'}) async {
     setState(() { _isLoading = true; });
 
     try {
       List<Map<String, dynamic>> itemsToDelete = _archivedDetections;
       
-      // Apply the selected filter
       if (typeFilter != 'all') {
         itemsToDelete = _archivedDetections.where((d) => d['type'] == typeFilter).toList();
       }
 
-      // Delete items sequentially
       for (var item in itemsToDelete) {
         await _deletePermanently(item);
       }
@@ -254,45 +240,161 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     }
   }
 
-  // === UI DIALOG FOR FILTERED DELETION ===
-  void _showClearHistoryDialog() {
-    showDialog(
+  // === UI SHEET FOR FILTERED DELETION ===
+  void _showClearHistorySheet() {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        title: Text('Clear History', style: TextStyle(color: widget.theme.textColor)),
-        content: Column(
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: widget.theme.backgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Select which deleted items you want to permanently remove:', 
-                 style: TextStyle(color: widget.theme.subtextColor)),
-            const SizedBox(height: spacingMedium),
-            _buildClearOption('Clear All History', 'all', Icons.delete_sweep_rounded),
-            _buildClearOption('Clear Faces Only', 'face', Icons.face_rounded),
-            _buildClearOption('Clear Objects Only', 'object', Icons.search_rounded),
-            _buildClearOption('Clear Text Only', 'text', Icons.document_scanner_rounded),
+            // Drag Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: widget.theme.subtextColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Titles
+            Text(
+              'Clear Detections',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: widget.theme.textColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Select a category to permanently delete its records',
+              style: TextStyle(
+                fontSize: 14,
+                color: widget.theme.subtextColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            
+            // Options
+            _buildClearOptionCard(
+              title: 'Clear All Detections',
+              subtitle: 'Permanently delete everything',
+              icon: Icons.delete_sweep_rounded,
+              color: const Color(0xFFF87171), 
+              type: 'all',
+            ),
+            _buildClearOptionCard(
+              title: 'Clear Faces Only',
+              subtitle: 'Keep objects and texts',
+              icon: Icons.face_rounded,
+              color: const Color(0xFF8B5CF6), 
+              type: 'face',
+            ),
+            _buildClearOptionCard(
+              title: 'Clear Objects Only',
+              subtitle: 'Keep faces and texts',
+              icon: Icons.search_rounded,
+              color: const Color(0xFF34D399), 
+              type: 'object',
+            ),
+            _buildClearOptionCard(
+              title: 'Clear Texts Only',
+              subtitle: 'Keep faces and objects',
+              icon: Icons.document_scanner_rounded,
+              color: const Color(0xFFFBBF24), 
+              type: 'text',
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-        ],
-      )
+      ),
     );
   }
 
-  Widget _buildClearOption(String title, String type, IconData icon) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.redAccent),
-      title: Text(title, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      onTap: () {
-        Navigator.pop(context);
-        _deleteAllHistoryPermanently(typeFilter: type);
-      },
+  Widget _buildClearOptionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required String type,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.pop(context); 
+            _deleteAllHistoryPermanently(typeFilter: type); 
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: widget.theme.cardColor,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: widget.theme.subtextColor.withOpacity(0.08),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha:0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                const SizedBox(width: 16),
+                
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: widget.theme.textColor,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: widget.theme.subtextColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: widget.theme.subtextColor.withOpacity(0.4),
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -366,118 +468,151 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     final width = MediaQuery.of(context).size.width;
     final bool showSkeleton = _isLoading || _isSimulatingLoad;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Top Section (Header) - Always animates immediately
-          FadeTransition(
-            opacity: _headerOpacity,
-            child: SlideTransition(
-              position: _headerSlide,
-              child: Padding(
-                padding: EdgeInsets.only(
-                  left: width * 0.06,
-                  right: width * 0.06,
-                  top: spacingLarge,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Recent Detections',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              color: widget.theme.textColor,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Your scanning history',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: widget.theme.subtextColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. FIXED TOP HEADER (Will not scroll)
+        FadeTransition(
+          opacity: _headerOpacity,
+          child: SlideTransition(
+            position: _headerSlide,
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: width * 0.06,
+                right: width * 0.06,
+                top: spacingLarge,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        PremiumThemeToggle(
-                          isDarkMode: widget.isDarkMode,
-                          onToggle: widget.onToggleDarkMode,
-                          buttonBgColor: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
-                          iconColor: _primaryColor,
+                        Text(
+                          'Recent Detections',
+                          maxLines: 1, // Forces text onto a single line
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                            color: widget.theme.textColor,
+                            letterSpacing: -0.5,
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Semantics(
-                          label: 'Refresh detections',
-                          button: true,
-                          hint: 'Double tap to refresh',
-                          child: GestureDetector(
-                            onTap: _refreshDetections,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
-                                shape: BoxShape.circle,
-                              ),
-                              child: AnimatedRotation(
-                                turns: _isRefreshing ? 1 : 0,
-                                duration: const Duration(milliseconds: 600),
-                                child: Icon(
-                                  Icons.refresh_rounded,
-                                  color: _primaryColor,
-                                  size: 20, 
-                                ),
-                              ),
-                            ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Your scanning history',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13, 
+                            color: widget.theme.subtextColor,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: spacingLarge),
-          
-          // Mascot Banner
-          _buildMascotBanner(_allDetections), 
-          
-          // 2. Main Content Area - Instantly shows skeleton or data
-          if (showSkeleton)
-            _buildSkeletonList(width)
-          else
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: width * 0.06),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: spacingMedium),
-                  
-                  _buildFilterTabs(),
-                  
-                  const SizedBox(height: spacingLarge),
-                  
-                  _buildDetectionsList(_allDetections),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PremiumThemeToggle(
+                        isDarkMode: widget.isDarkMode,
+                        onToggle: widget.onToggleDarkMode,
+                        buttonBgColor: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
+                        iconColor: _primaryColor,
+                      ),
+                      const SizedBox(width: 6),
+                      Semantics(
+                        label: 'Refresh detections',
+                        button: true,
+                        hint: 'Double tap to refresh',
+                        child: GestureDetector(
+                          onTap: _refreshDetections,
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
+                              shape: BoxShape.circle,
+                            ),
+                            child: AnimatedRotation(
+                              turns: _isRefreshing ? 1 : 0,
+                              duration: const Duration(milliseconds: 600),
+                              child: Icon(
+                                Icons.refresh_rounded,
+                                color: _primaryColor,
+                                size: 18, 
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Clear History Top Header Button
+                      Semantics(
+                        label: 'Clear history',
+                        button: true,
+                        hint: 'Double tap to clear history',
+                        child: GestureDetector(
+                          onTap: _showClearHistorySheet, 
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.1), 
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.delete_sweep_rounded,
+                              color: Colors.redAccent,
+                              size: 18, 
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-        ],
-      ),
+          ),
+        ),
+        
+        const SizedBox(height: spacingLarge),
+        
+        // 2. SCROLLABLE CONTENT AREA
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildMascotBanner(_allDetections), 
+                
+                if (showSkeleton)
+                  _buildSkeletonList(width)
+                else
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: spacingMedium),
+                        
+                        _buildFilterTabs(),
+                        
+                        const SizedBox(height: spacingLarge),
+                        
+                        _buildDetectionsList(_allDetections),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -700,7 +835,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   }
 
   Widget _buildDetectionsList(List<Map<String, dynamic>> allDetections) {
-    // NEW: Point to the archived list if History is selected
     final sourceList = _selectedFilter == 'History' ? _archivedDetections : allDetections;
 
     if (sourceList.isEmpty) {
@@ -727,23 +861,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
             child: FadeInAnimation(child: widget),
           ),
           children: [
-            if (_selectedFilter == 'History')
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: TextButton.icon(
-                  onPressed: _showClearHistoryDialog, // NEW: Opens the filter dialog
-                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.redAccent, size: 20),
-                  label: const Text(
-                    'Clear All History', 
-                    style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)
-                  ),
-                  style: TextButton.styleFrom(
-                    backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                ),
-              ),
-
             ...displayedDetections.map((detection) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: spacingMedium),
@@ -838,7 +955,6 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
     return Dismissible(
       key: ValueKey(detection['timestamp'].toString()),
-      // NEW: Always allow swipe to delete!
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -851,11 +967,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
       ),
       onDismissed: (direction) {
         if (_selectedFilter == 'History') {
-          // If already in history, permanently destroy it
           _deletePermanently(detection); 
           _flutterTts.speak('$title deleted permanently'); 
         } else {
-          // Otherwise, soft delete it to history
           _moveToHistory(detection); 
           _flutterTts.speak('$title moved to history'); 
         }
@@ -1303,9 +1417,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   }
 }
 
-// ==========================================
-// PREMIUM "SUPERNOVA" THEME TOGGLE
-// ==========================================
 class PremiumThemeToggle extends StatefulWidget {
   final bool isDarkMode;
   final VoidCallback onToggle;
@@ -1360,6 +1471,7 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
     _controller.forward(from: 0.0);
     widget.onToggle();
   }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(

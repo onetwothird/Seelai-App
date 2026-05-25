@@ -613,7 +613,7 @@ class _ContactsContentState extends State<ContactsContent> with TickerProviderSt
                 child: Text(
                   'Contacts',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 30,
                     fontWeight: FontWeight.w900,
                     color: widget.theme.textColor,
                     letterSpacing: -0.5,

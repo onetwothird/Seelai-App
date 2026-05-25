@@ -329,13 +329,51 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         _buildQuickInfoRow(cardColor, textColor),
                         const SizedBox(height: 20),
 
+                        // 1. COMBINED PERSONAL & CONTACT INFORMATION
+                        _buildSectionCard(
+                          title: 'Personal Information',
+                          icon: Icons.badge_rounded,
+                          color: const Color(0xFF8B5CF6), 
+                          children: [
+                            // ID Number (Patients only)
+                            if (!isCaretaker)
+                              _buildInfoRow('ID Number', _fullUserData?['idNumber'] ?? 'N/A', textColor),
+                            
+                            // Gender (Both)
+                            _buildInfoRow('Gender', _fullUserData?['sex'] ?? 'N/A', textColor),
+                            
+                            // Birthdate (Patients only)
+                            if (!isCaretaker)
+                              _buildInfoRow('Birthdate', _formatDate(_fullUserData?['birthdate']), textColor),
+                            
+                            // Phone / Contact (Both)
+                            _buildInfoRow(
+                              isCaretaker ? 'Phone Number' : 'Contact', 
+                              _fullUserData?['contactNumber'] ?? _fullUserData?['phone'] ?? 'N/A', 
+                              textColor
+                            ),
+                            
+                            // Address (Patients only)
+                            if (!isCaretaker)
+                              _buildInfoRow('Address', _fullUserData?['address'] ?? 'N/A', textColor, isMultiline: true),
+                            
+                            // Patient Relation (Caretakers only)
+                            if (isCaretaker)
+                              _buildInfoRow('Patient Relation', _fullUserData?['relationship'] ?? 'N/A', textColor),
+                          ],
+                          cardColor: cardColor,
+                          textColor: textColor,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // 2. MEDICAL DETAILS (Matches Patient Registration)
                         if (!isCaretaker) ...[
                           _buildSectionCard(
-                            title: 'Medical Information',
+                            title: 'Medical Details',
                             icon: Icons.medical_services_rounded,
                             color: const Color(0xFF8B5CF6), 
                             children: [
-                              _buildInfoRow('Disability', _fullUserData?['disabilityType'] ?? 'N/A', textColor),
+                              _buildInfoRow('Category', _fullUserData?['disabilityType'] ?? 'N/A', textColor),
                               _buildInfoRow('Diagnosis', _fullUserData?['diagnosis'] ?? 'Not specified', textColor),
                             ],
                             cardColor: cardColor,
@@ -343,22 +381,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                           const SizedBox(height: 16),
                         ],
-
-                        _buildSectionCard(
-                          title: 'Contact Details',
-                          icon: Icons.contact_phone_rounded,
-                          color: const Color(0xFF8B5CF6), 
-                          children: [
-                            _buildInfoRow('Phone', _fullUserData?['contactNumber'] ?? 'N/A', textColor),
-                            _buildInfoRow('Address', _fullUserData?['address'] ?? 'N/A', textColor, isMultiline: true),
-                            if (isCaretaker)
-                              _buildInfoRow('Relationship', _fullUserData?['relationship'] ?? 'N/A', textColor),
-                          ],
-                          cardColor: cardColor,
-                          textColor: textColor,
-                        ),
-
-                        const SizedBox(height: 16),
 
                         _buildSectionCard(
                           title: 'Account Info',

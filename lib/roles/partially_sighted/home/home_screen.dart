@@ -406,14 +406,11 @@ class _VisuallyImpairedHomeScreenState extends State<PartiallySightedHomeScreen>
         const SizedBox.shrink(), 
         
         _selectedIndex == 3
-            ? SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ViewRecentActivities(isDarkMode: isDarkLayer, theme: theme, userId: userId, onToggleDarkMode: _toggleDarkMode),
-                  ],
-                ),
+            ? ViewRecentActivities(
+                isDarkMode: isDarkLayer, 
+                theme: theme, 
+                userId: userId, 
+                onToggleDarkMode: _toggleDarkMode
               )
             : const SizedBox.shrink(),
 

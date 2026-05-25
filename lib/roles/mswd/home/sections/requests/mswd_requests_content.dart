@@ -199,7 +199,6 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
     } catch (_) { return null; }
   }
 
-  // === NEW: Permanent Firebase Deletion Logic with Confirmation Filter ===
   Future<void> _permanentlyDeleteRequest(RequestModel request) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -949,15 +948,12 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
               final request = paginatedRequests[index];
               final isLast = index == paginatedRequests.length - 1;
               
-              // === ONLY ALLOW SWIPE-TO-DELETE FOR HISTORY ===
               Widget card;
               if (_selectedFilterIndex == 5) {
                 card = _buildDeletedCard(request);
               } else if (_selectedFilterIndex == 3 || _selectedFilterIndex == 4) {
-                // Completed (3) or Declined (4) tabs can be swiped to trash
                 card = _buildDismissibleCard(request);
               } else {
-                // Pending, Accepted, Active cannot be swiped
                 card = _buildRedesignedCard(request);
               }
 
@@ -1432,16 +1428,18 @@ class _RequestsContentState extends State<RequestsContent> with SingleTickerProv
   }
 
   String _formatShortTime(DateTime dt) {
-    Duration diff = DateTime.now().difference(dt);
+    final now = DateTime.now();
+    Duration diff = now.difference(dt);
     
-    if (diff.isNegative) {
-      diff = Duration.zero;
+    if (diff.isNegative || diff.inSeconds < 10) {
+      return 'Just now';
     }
 
-    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${diff.inDays ~/ 7}w ago'; 
   }
 }
 
