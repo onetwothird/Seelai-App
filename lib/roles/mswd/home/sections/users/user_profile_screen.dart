@@ -366,7 +366,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // 2. MEDICAL DETAILS (Matches Patient Registration)
                         if (!isCaretaker) ...[
                           _buildSectionCard(
                             title: 'Medical Details',
