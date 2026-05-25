@@ -349,7 +349,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
         Text(
           'My Patients',
           style: TextStyle(
-            fontSize: 32,
+            fontSize: 30,
             fontWeight: FontWeight.w900,
             color: widget.theme.textColor,
             letterSpacing: -0.5,
