@@ -374,7 +374,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
         Text(
           'User Management',
           style: TextStyle(
-            fontSize: 32,
+            fontSize: 30,
             fontWeight: FontWeight.w900,
             color: widget.theme.textColor,
             letterSpacing: -0.5,
@@ -958,7 +958,9 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            caretaker['relationship'] ?? 'Caretaker',
+                            caretaker['relationship'] != null && caretaker['relationship'].toString().isNotEmpty
+                                ? 'Relation to Patient: ${caretaker['relationship']}'
+                                : 'Caretaker account',
                             style: caption.copyWith(
                               fontSize: 12,
                               color: widget.theme.subtextColor,

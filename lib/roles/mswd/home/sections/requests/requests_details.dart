@@ -913,16 +913,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     }
   }
 
-  String _formatShortTime(DateTime dt) {
-    Duration diff = DateTime.now().difference(dt);
+ String _formatShortTime(DateTime dt) {
+    final now = DateTime.now();
+    Duration diff = now.difference(dt);
     
-    if (diff.isNegative) {
-      diff = Duration.zero;
+    if (diff.isNegative || diff.inSeconds < 10) {
+      return 'Just now';
     }
 
-    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${diff.inDays ~/ 7}w ago'; 
   }
 }

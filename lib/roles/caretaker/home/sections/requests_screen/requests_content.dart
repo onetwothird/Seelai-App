@@ -60,7 +60,6 @@ class _RequestsContentState extends State<RequestsContent>
 
   bool _isSimulatingLoad = true;
 
-  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
   late AnimationController _entryController;
   late Animation<double> _headerOpacity;
   late Animation<Offset> _headerSlide;
@@ -86,24 +85,18 @@ class _RequestsContentState extends State<RequestsContent>
 
     _startMessageTimer();
 
-    // === Initialize Animations ===
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
 
-    // Header fades & slides in
     _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)));
     _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)));
-    
-    // Mascot and Bubble pop in
     _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)));
     _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)));
 
-    // Start header animations immediately
     _entryController.forward();
 
-    // Trigger the skeleton animation for 600ms on load
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -294,9 +287,55 @@ class _RequestsContentState extends State<RequestsContent>
     await Future.delayed(const Duration(milliseconds: 500));
   }
 
-  // ==========================================
-  // WIDGETS: Skeleton Loaders
-  // ==========================================
+  Future<void> _permanentlyDeleteRequest(RequestModel request) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: widget.theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Text('Permanent Delete', style: TextStyle(color: widget.theme.textColor, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'This will permanently remove the request from the Firebase database. This action cannot be undone. Are you sure?',
+          style: TextStyle(color: widget.theme.subtextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await assistanceRequestService.deleteRequest(request.id);
+      if (success && mounted) {
+        setState(() {
+          _hiddenRequestIds.remove(request.id);
+          _completedRequests.removeWhere((r) => r.id == request.id);
+        });
+        _flutterTts.speak('Request permanently deleted.');
+      } else if (mounted) {
+        _flutterTts.speak('Failed to delete request.');
+      }
+    }
+  }
+
   Widget _buildSkeletonStats() {
     final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
     final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
@@ -377,7 +416,6 @@ class _RequestsContentState extends State<RequestsContent>
         controller: widget.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // 1. Header & Mascot - Always animates immediately
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -403,17 +441,13 @@ class _RequestsContentState extends State<RequestsContent>
             ),
           ),
           
-          // 2. Stats Section - No slide animation, shows skeleton instantly
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: width * 0.05),
             sliver: SliverToBoxAdapter(
-              child: showSkeleton 
-                  ? _buildSkeletonStats() 
-                  : _buildMinimalStats(),
+              child: showSkeleton ? _buildSkeletonStats() : _buildMinimalStats(),
             ),
           ),
           
-          // 3. Tabs Section - Shows skeleton instantly
           SliverPadding(
             padding: EdgeInsets.only(
               left: width * 0.05, 
@@ -422,13 +456,10 @@ class _RequestsContentState extends State<RequestsContent>
               bottom: spacingMedium
             ),
             sliver: SliverToBoxAdapter(
-              child: showSkeleton 
-                  ? _buildSkeletonTabs() 
-                  : _buildMinimalTabs(),
+              child: showSkeleton ? _buildSkeletonTabs() : _buildMinimalTabs(),
             ),
           ),
           
-          // 4. Request List Section - Shows skeleton instantly
           SliverToBoxAdapter(
             child: _error != null && !_isLoading && !showSkeleton
                 ? _buildErrorState()
@@ -1052,6 +1083,21 @@ class _RequestsContentState extends State<RequestsContent>
                 
                 const Spacer(),
                 
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                    color: Colors.red,
+                    onPressed: () => _permanentlyDeleteRequest(request),
+                    tooltip: 'Permanently Delete',
+                  ),
+                ),
+                
+                const SizedBox(width: 8),
+                
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.withValues(alpha: 0.1),
@@ -1064,7 +1110,6 @@ class _RequestsContentState extends State<RequestsContent>
                   label: const Text('Restore', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   onPressed: () {
                     setState(() { _hiddenRequestIds.remove(request.id); });
-                    // FIXED: Removed visual snackbar popup, relying purely on TTS
                     _flutterTts.speak("Request restored"); 
                   },
                 ),
@@ -1138,7 +1183,6 @@ class _RequestsContentState extends State<RequestsContent>
           _hiddenRequestIds.add(request.id);
         });
 
-        // FIXED: Removed visual snackbar entirely. The user can restore from the "Deleted" tab.
         _flutterTts.speak("Moved to deleted");
       },
       child: _buildMinimalRequestCard(request),
@@ -1229,7 +1273,7 @@ class _RequestsContentState extends State<RequestsContent>
                               fontWeight: FontWeight.bold,
                               color: widget.theme.textColor,
                               letterSpacing: -0.3,
-                            ),
+                        ),
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -1433,14 +1477,18 @@ class _RequestsContentState extends State<RequestsContent>
     );
   }
 
+  // ==========================================
+  // UPDATED DEVICE SKEW TIME METHOD
+  // ==========================================
   String _getTimeAgo(DateTime timestamp) {
-    Duration diff = DateTime.now().difference(timestamp);
+    final now = DateTime.now();
+    Duration diff = now.difference(timestamp);
     
-    if (diff.isNegative) {
-      diff = Duration.zero;
+    if (diff.isNegative || diff.inSeconds < 10) {
+      return 'Just now';
     }
 
-    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
@@ -1495,7 +1543,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
     _controller = AnimationController(vsync: this, duration: Duration(milliseconds: msDuration));
     _setupAnimation();
     
-    // Sync with bubble pop-in
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _controller.forward();
     });

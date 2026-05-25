@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_tts/flutter_tts.dart'; 
-import 'package:shimmer/shimmer.dart'; // NEW: Imported Shimmer
+import 'package:shimmer/shimmer.dart'; 
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
@@ -34,8 +34,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   String? _profileImageUrl;
   
   final FlutterTts _flutterTts = FlutterTts();
-
-  // === NEW: ARTIFICIAL DELAY FOR SKELETON ===
   bool _isSimulatingLoad = true;
 
   @override
@@ -108,7 +106,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             responseTime: DateTime.now(),
           );
         });
-        // FIXED: showContainer is false, only TTS will trigger
         _showSnackbar('Request accepted!', Colors.green, showContainer: false);
         await _flutterTts.speak("REQUEST ACCEPTED");
       }
@@ -124,7 +121,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         setState(() {
           _currentRequest = _currentRequest.copyWith(status: RequestStatus.inProgress);
         });
-        // FIXED: showContainer is false
         _showSnackbar('Marked as in progress', accent, showContainer: false);
         await _flutterTts.speak("REQUEST IN PROGRESS");
       }
@@ -144,7 +140,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       setState(() => _isProcessing = false);
       if (success) {
         Navigator.pop(context);
-        // FIXED: showContainer is false
         _showSnackbar('Request completed!', Colors.green, showContainer: false);
         await _flutterTts.speak("REQUEST COMPLETED");
       }
@@ -164,14 +159,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       setState(() => _isProcessing = false);
       if (success) {
         Navigator.pop(context);
-        // FIXED: showContainer is false, and added TTS for decline feedback
         _showSnackbar('Request declined', error, showContainer: false);
         await _flutterTts.speak("REQUEST DECLINED");
       }
     }
   }
 
-  // === NEW: SKELETON LOADER ===
   Widget _buildSkeletonRequestDetails() {
     final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
     final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
@@ -820,7 +813,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     );
   }
 
-  // FIXED: Added showContainer parameter to control visual popup vs TTS only
   void _showSnackbar(String message, Color color, {bool showContainer = true}) {
     if (showContainer) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -845,16 +837,21 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     }
   }
 
+  // ==========================================
+  // UPDATED DEVICE SKEW TIME METHOD
+  // ==========================================
   String _getTimeAgo(DateTime timestamp) {
-    Duration diff = DateTime.now().difference(timestamp);
+    final now = DateTime.now();
+    Duration diff = now.difference(timestamp);
     
-    if (diff.isNegative) {
-      diff = Duration.zero;
+    if (diff.isNegative || diff.inSeconds < 10) {
+      return 'Just now';
     }
 
-    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${diff.inDays ~/ 7}w ago'; 
   }
 }
