@@ -1,5 +1,3 @@
-// File: lib/firebase/shared/webrtc_service.dart
-
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
@@ -15,6 +13,8 @@ class WebRTCService {
   
   final RTCVideoRenderer localRenderer = RTCVideoRenderer();
   final RTCVideoRenderer remoteRenderer = RTCVideoRenderer();
+
+  bool _isDisposed = false;
 
   final Map<String, dynamic> _configuration = {
     'iceServers': [
@@ -52,7 +52,6 @@ class WebRTCService {
     await remoteRenderer.initialize();
   }
 
-
   Future<void> openUserMedia(bool isVideo) async {
     final Map<String, dynamic> mediaConstraints = {
       'audio': true,
@@ -67,8 +66,6 @@ class WebRTCService {
       _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     } catch (e) {
       debugPrint("Ideal camera request failed: $e. Retrying with basic constraints...");
-      // Safe Fallback: If 'ideal' somehow fails on a very strict device, 
-      // we ask for the bare minimum to guarantee the camera turns on.
       _localStream = await navigator.mediaDevices.getUserMedia({
         'audio': true,
         'video': isVideo ? {'facingMode': 'user'} : false,
@@ -96,6 +93,13 @@ class WebRTCService {
         remoteRenderer.srcObject = _remoteStream;
         onAddRemoteStream?.call(_remoteStream!);
       }
+    };
+
+    // CRITICAL FIX: Fallback for devices where onTrack doesn't bundle the stream
+    _peerConnection!.onAddStream = (MediaStream stream) {
+      _remoteStream = stream;
+      remoteRenderer.srcObject = _remoteStream;
+      onAddRemoteStream?.call(_remoteStream!);
     };
 
     _peerConnection!.onIceCandidate = (RTCIceCandidate candidate) {
@@ -156,7 +160,6 @@ class WebRTCService {
     _database.ref('$path/calls/$callId/receiverCandidates').onChildAdded.listen((event) {
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        
         var candidate = RTCIceCandidate(
           data['candidate'], 
           data['sdpMid'], 
@@ -212,7 +215,6 @@ class WebRTCService {
     _database.ref('$path/calls/$callId/callerCandidates').onChildAdded.listen((event) {
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        
         var candidate = RTCIceCandidate(
           data['candidate'], 
           data['sdpMid'], 
@@ -247,6 +249,9 @@ class WebRTCService {
   }
 
   Future<void> hangUp(String path, String callId) async {
+    if (_isDisposed) return;
+    _isDisposed = true;
+
     try {
       final event = await _database.ref('$path/calls/$callId/status').once();
       final currentStatus = event.snapshot.value as String?;
@@ -270,5 +275,9 @@ class WebRTCService {
     
     localRenderer.srcObject = null;
     remoteRenderer.srcObject = null;
+
+    // CRITICAL FIX: Dispose renderers to release the camera lock
+    await localRenderer.dispose();
+    await remoteRenderer.dispose();
   }
 }
