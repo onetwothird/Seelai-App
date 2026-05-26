@@ -13,16 +13,29 @@ class CaretakerPatientService {
     required String patientId,
   }) async {
     try {
-      // Add patient to caretaker's list
+      // 1. ADDED: Check the current limit before assigning
+      DatabaseEvent event = await _database.ref('user_info/caretaker/$caretakerId/assignedPatients').once();
+      if (event.snapshot.exists) {
+        Map<dynamic, dynamic> currentPatients = event.snapshot.value as Map;
+        if (currentPatients.length >= 5) {
+          throw Exception('This caretaker has reached their maximum limit of 5 patients.');
+        }
+      }
+
+      // 2. Add patient to caretaker's list
       await _database.ref('user_info/caretaker/$caretakerId/assignedPatients/$patientId').set(true);
       
-      // Add caretaker to patient's list
+      // 3. Add caretaker to patient's list
       await _database.ref('user_info/partially_sighted/$patientId/assignedCaretakers/$caretakerId').set(true);
       
-      // Update timestamps
+      // 4. Update timestamps
       await _database.ref('user_info/caretaker/$caretakerId/updatedAt').set(ServerValue.timestamp);
       await _database.ref('user_info/partially_sighted/$patientId/updatedAt').set(ServerValue.timestamp);
     } catch (e) {
+      // Pass the specific limit exception cleanly to the UI
+      if (e.toString().contains('maximum limit')) {
+        rethrow;
+      }
       throw Exception('Failed to assign caretaker: $e');
     }
   }
