@@ -113,6 +113,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
     WidgetsBinding.instance.removeObserver(this); 
     _callSubscription?.cancel();
     _ringingTimeout?.cancel(); 
+    
     if (_currentCallId != null && !_isEnding) {
       _isEnding = true;
       callTrackingService.updateCallStatus(
@@ -120,8 +121,13 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
         callId: _currentCallId!,
         status: 'ended',
       );
+    }
+    
+    // Ensure hangUp fires even during a force-dispose
+    if (_currentCallId != null) {
       _webrtcService.hangUp(widget.callPath, _currentCallId!); 
     }
+    
     super.dispose();
   }
 
