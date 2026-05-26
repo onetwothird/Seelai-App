@@ -179,11 +179,18 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
       }
     } catch (e) {
       if (mounted) {
+        // Clean up the exception text and check if it's the limit error
+        final cleanErrorMessage = e.toString().replaceAll('Exception: ', '');
+        final isLimitError = cleanErrorMessage.contains('maximum limit');
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Failed to assign caretaker.'),
+            content: Text(isLimitError ? cleanErrorMessage : 'Failed to assign caretaker.'),
+            backgroundColor: isLimitError ? Colors.redAccent : null, 
+            behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'Retry',
+              textColor: isLimitError ? Colors.white : _primaryColor,
               onPressed: _assignCaretaker,
             ),
           ),
@@ -463,18 +470,25 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
   }) {
     final name = caretaker['name'] ?? 'Unknown';
     final age = caretaker['age']?.toString() ?? 'N/A';
-    final phone =
-        caretaker['phone'] ?? caretaker['contactNumber'] ?? 'No phone';
+    final phone = caretaker['phone'] ?? caretaker['contactNumber'] ?? 'No phone';
     final profileImageUrl = caretaker['profileImageUrl'] as String?;
-    final hasProfileImage =
-        profileImageUrl != null && profileImageUrl.isNotEmpty;
+    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
+
+    // 1. Calculate patient limit data safely
+    final assignedPatients = caretaker['assignedPatients'] as Map?;
+    final int patientCount = assignedPatients?.length ?? 0;
+    const int maxPatients = 5;
+    final bool isFull = patientCount >= maxPatients;
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedCaretakerId = isSelected ? null : caretaker['uid'];
-        });
-      },
+      // 2. Disable tap if the caretaker is at max capacity
+      onTap: isFull 
+          ? null 
+          : () {
+              setState(() {
+                _selectedCaretakerId = isSelected ? null : caretaker['uid'];
+              });
+            },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
@@ -496,98 +510,157 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
             ),
           ],
         ),
-        child: Row(
-          children: [
-            // Avatar
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isSelected
-                    ? _primaryColor.withValues(alpha: 0.1)
-                    : const Color(0xFFF1F5F9),
-                image: hasProfileImage
-                    ? DecorationImage(
-                        image: NetworkImage(profileImageUrl),
-                        fit: BoxFit.cover,
+        // 3. Slightly fade the entire card if they are full
+        child: Opacity(
+          opacity: isFull ? 0.5 : 1.0,
+          child: Row(
+            children: [
+              // Avatar
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected
+                      ? _primaryColor.withValues(alpha: 0.1)
+                      : const Color(0xFFF1F5F9),
+                  image: hasProfileImage
+                      ? DecorationImage(
+                          image: NetworkImage(profileImageUrl),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: !hasProfileImage
+                    ? Center(
+                        child: Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? _primaryColor : _slateLight,
+                          ),
+                        ),
                       )
                     : null,
               ),
-              child: !hasProfileImage
-                  ? Center(
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? _primaryColor : _slateLight,
-                        ),
+              const SizedBox(width: 16),
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _slateDark,
                       ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 16),
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: _slateDark,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.verified_rounded,
-                          size: 14, color: _primaryColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        "Registered Caretaker",
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: _slateLight,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.verified_rounded,
+                            size: 14, color: _primaryColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          "Registered Caretaker",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: _slateLight,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "$phone • Age: $age",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[400],
+                      ],
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "$phone • Age: $age",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // 4. The new sleek Patient Capacity Badge
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isFull 
+                                ? Colors.redAccent.withValues(alpha: 0.1) 
+                                : _primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.people_alt_rounded,
+                                size: 12,
+                                color: isFull ? Colors.redAccent : _primaryColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                "$patientCount/$maxPatients Patients",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: isFull ? Colors.redAccent : _primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (isFull) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            "Full",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // Checkbox / Lock Icon
+              if (isFull)
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.shade200,
                   ),
-                ],
-              ),
-            ),
-            // Checkbox
-            if (isSelected)
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: _primaryColor,
-                  shape: BoxShape.circle,
+                  child: Icon(Icons.lock_rounded, color: Colors.grey.shade400, size: 14),
+                )
+              else if (isSelected)
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: _primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 16),
+                )
+              else
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey.shade300, width: 2),
+                  ),
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 16),
-              )
-            else
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.grey.shade300, width: 2),
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
