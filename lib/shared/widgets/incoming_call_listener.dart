@@ -27,8 +27,12 @@ class IncomingCallListener extends StatefulWidget {
 
 class _IncomingCallListenerState extends State<IncomingCallListener> {
   StreamSubscription<DatabaseEvent>? _callSubscription;
+  
+  // Stricter state management to prevent "Ghost Dialogs" and accidental screen pops
   String? _currentRingingCallId;
   bool _isDialogShowing = false;
+  bool _isProcessingCall = false;
+  BuildContext? _dialogContext;
 
   @override
   void initState() {
@@ -40,6 +44,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     final currentUserId = databaseService.currentUserId;
     if (currentUserId == null) return;
 
+    // We listen to the path where the OTHER user writes their calls
     String listenPath = widget.userRole == 'caretaker' 
         ? 'partially_sighted_communication' 
         : 'caretaker_communication';
@@ -55,19 +60,26 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
         final callId = entry.key.toString();
         final callData = Map<String, dynamic>.from(entry.value as Map);
 
-        if (callData['status'] == 'calling' && !_isDialogShowing) {
-          await _showIncomingCallDialog(
-            callId: callId,
-            callerId: callData['callerId'],
-            callType: callData['type'] ?? 'video',
-            listenPath: listenPath,
-          );
+        if (callData['status'] == 'calling') {
+          // Check if this is a recent call (prevent stale rings from past crashes)
+          final timestamp = callData['timestamp'] as int? ?? 0;
+          final now = DateTime.now().millisecondsSinceEpoch;
+          
+          if (now - timestamp < 45000) { // Call must be newer than 45 seconds
+            if (!_isDialogShowing && !_isProcessingCall) {
+              await _showIncomingCallDialog(
+                callId: callId,
+                callerId: callData['callerId'],
+                callType: callData['type'] ?? 'video',
+                listenPath: listenPath,
+              );
+            }
+          }
         } 
-        else if ((callData['status'] == 'ended' || callData['status'] == 'cancelled' || callData['status'] == 'missed') && _currentRingingCallId == callId) {
-          if (_isDialogShowing && mounted) {
-            Navigator.of(context, rootNavigator: true).pop();
-            _isDialogShowing = false;
-            _currentRingingCallId = null;
+        else if (callData['status'] == 'ended' || callData['status'] == 'cancelled' || callData['status'] == 'missed') {
+          // If the current ringing call was ended remotely, close the dialog safely
+          if (_currentRingingCallId == callId) {
+            _closeDialogSafely();
           }
         }
       }
@@ -80,21 +92,30 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     required String callType,
     required String listenPath,
   }) async {
-    _isDialogShowing = true;
+    _isProcessingCall = true;
     _currentRingingCallId = callId;
 
     String callerRole = widget.userRole == 'caretaker' ? 'partially_sighted' : 'caretaker';
     Map<String, dynamic>? callerData = await databaseService.getUserDataByRole(callerId, callerRole);
     
+    // Critical Check: Did the caller hang up while we were awaiting the database fetch?
+    if (!mounted || _currentRingingCallId != callId) {
+      _isProcessingCall = false;
+      return; 
+    }
+
     String callerName = callerData?['name'] ?? 'Unknown Caller';
     String? callerImage = callerData?['profileImageUrl'];
     
-    if (!mounted) return;
+    _isDialogShowing = true;
+    _isProcessingCall = false;
 
-   showDialog(
+    showDialog(
       context: context,
       barrierDismissible: false, 
       builder: (BuildContext dialogContext) {
+        _dialogContext = dialogContext; // Store the exact context of the dialog
+
         return AlertDialog(
           backgroundColor: const Color(0xFF1E293B),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -106,7 +127,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
                 backgroundImage: callerImage != null && callerImage.isNotEmpty
                     ? NetworkImage(callerImage)
                     : null,
-                child: callerImage == null || callerImage.isEmpty
+                child: callerImage == null || callerImage.isNotEmpty == false
                     ? const Icon(Icons.person, size: 40, color: Color(0xFF8B5CF6))
                     : null,
               ),
@@ -135,12 +156,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
                   callId: callId,
                   status: 'rejected',
                 );
-                
-                if (!dialogContext.mounted) return;
-                
-                Navigator.of(dialogContext).pop();
-                _isDialogShowing = false;
-                _currentRingingCallId = null;
+                _closeDialogSafely();
               },
               child: const Icon(Icons.call_end_rounded, color: Colors.white),
             ),
@@ -149,11 +165,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
               elevation: 0,
               backgroundColor: const Color(0xFF22C55E),
               onPressed: () {
-                if (!dialogContext.mounted) return;
-                
-                Navigator.of(dialogContext).pop();
-                _isDialogShowing = false;
-                _currentRingingCallId = null;
+                _closeDialogSafely(); // Pops the dialog
                 
                 _navigateToCallScreen(
                   callId: callId, 
@@ -167,7 +179,22 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
           ],
         );
       },
-    );
+    ).then((_) {
+      // Reset state automatically when the dialog is completely closed
+      _isDialogShowing = false;
+      _dialogContext = null;
+      _currentRingingCallId = null;
+    });
+  }
+
+  void _closeDialogSafely() {
+    // Nullify the ringing ID immediately so pending awaits abort
+    _currentRingingCallId = null; 
+    
+    // Only pop if we have the specific dialog context to prevent popping the parent screen
+    if (_isDialogShowing && _dialogContext != null && _dialogContext!.mounted) {
+      Navigator.of(_dialogContext!).pop();
+    }
   }
 
   void _navigateToCallScreen({
@@ -176,7 +203,6 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     required Map<String, dynamic> callerData,
     required String listenPath,
   }) {
-    // FIX: Using .startCall() instead of Navigator.push so both users get the Dialog!
     if (widget.userRole == 'caretaker') {
       if (callType == 'video') {
         CaretakerVideoCallScreen.startCall(context, callerData, callId: callId, isCaller: false, callPath: listenPath);
@@ -184,6 +210,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
         CaretakerVoiceCallScreen.startCall(context, callerData, callId: callId, isCaller: false, callPath: listenPath);
       }
     } else {
+      // Wrap caller data so the Patient UI has the expected 'assignedCaretakers' structure
       Map<String, dynamic> mockUserData = {
         'assignedCaretakers': {
           callerData['id'] ?? callerData['userId'] ?? 'caretaker': callerData
@@ -201,6 +228,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
   @override
   void dispose() {
     _callSubscription?.cancel();
+    _closeDialogSafely();
     super.dispose();
   }
 
