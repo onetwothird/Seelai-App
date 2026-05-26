@@ -357,7 +357,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             if (!isCaretaker)
                               _buildInfoRow('Address', _fullUserData?['address'] ?? 'N/A', textColor, isMultiline: true),
                             
-                            // Patient Relation (Caretakers only)
                             if (isCaretaker)
                               _buildInfoRow('Patient Relation', _fullUserData?['relationship'] ?? 'N/A', textColor),
                           ],
