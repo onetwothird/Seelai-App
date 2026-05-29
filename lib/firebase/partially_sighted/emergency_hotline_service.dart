@@ -1,9 +1,12 @@
 // File: lib/firebase/partially_sighted/emergency_hotline_service.dart
+
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';
 import 'package:url_launcher/url_launcher.dart';
+// --- ADDED IMPORT FOR GLOBAL PREDEFINED DATA ---
+import 'package:seelai_app/roles/mswd/home/sections/hotlines/data/predefined_emergency_hotlines.dart';
 
 class EmergencyHotlineService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
@@ -11,36 +14,28 @@ class EmergencyHotlineService {
 
   String? get currentUserId => _auth.currentUser?.uid;
 
-  // Path structure - emergency_hotlines/{userId}
-  String _getHotlinesPath(String userId) {
-    return 'emergency_hotlines/$userId';
-  }
+  // --- CHANGED: Path is now global for everyone ---
+  final String _globalHotlinesPath = 'global_emergency_hotlines';
 
   // ==================== INITIALIZATION ====================
 
-  /// Initialize predefined hotlines for new users
+  /// Initialize predefined global hotlines
   Future<bool> initializePredefinedHotlines() async {
     try {
-      if (currentUserId == null) {
-        debugPrint('❌ Error: No user logged in');
-        return false;
-      }
-
-      // Check if user already has hotlines
+      // Check if global list already has the predefined hotlines
       final existingHotlines = await getHotlines();
       
-      // Check if any predefined hotlines exist
-      final hasPredefined = existingHotlines.any((h) => h.isPredefined);
+      final needsInit = PredefinedEmergencyHotlines.needsInitialization(existingHotlines);
       
-      if (hasPredefined) {
-        debugPrint('ℹ️ Predefined hotlines already initialized');
+      if (!needsInit) {
+        debugPrint('ℹ️ Global predefined hotlines already initialized');
         return true;
       }
 
-      debugPrint('🔄 Initializing predefined hotlines for user: $currentUserId');
+      debugPrint('🔄 Initializing global predefined hotlines...');
 
-      // Get predefined hotlines
-      final predefinedHotlines = EmergencyHotline.getNaicPredefinedHotlines(currentUserId!);
+      // Get global predefined hotlines (No userId needed anymore)
+      final predefinedHotlines = PredefinedEmergencyHotlines.getNaicHotlines();
 
       // Save each predefined hotline
       int successCount = 0;
@@ -49,77 +44,61 @@ class EmergencyHotlineService {
         if (success) successCount++;
       }
 
-      debugPrint('✅ Initialized $successCount predefined hotlines');
+      debugPrint('✅ Initialized $successCount global predefined hotlines');
       return successCount == predefinedHotlines.length;
     } catch (e) {
-      debugPrint('❌ Error initializing predefined hotlines: $e');
+      debugPrint('❌ Error initializing global predefined hotlines: $e');
       return false;
     }
   }
 
-  /// Check if predefined hotlines need to be initialized
+  /// Check if predefined hotlines need to be initialized globally
   Future<bool> needsPredefinedInitialization() async {
     try {
-      if (currentUserId == null) return false;
-      
       final hotlines = await getHotlines();
-      final hasPredefined = hotlines.any((h) => h.isPredefined);
-      
-      return !hasPredefined;
+      return PredefinedEmergencyHotlines.needsInitialization(hotlines);
     } catch (e) {
-      debugPrint('❌ Error checking initialization: $e');
+      debugPrint('❌ Error checking global initialization: $e');
       return false;
     }
   }
 
   // ==================== CRUD OPERATIONS ====================
 
-  /// Save emergency hotline to database
+  /// Save emergency hotline to global database
   Future<bool> saveHotline(EmergencyHotline hotline) async {
     try {
-      if (currentUserId == null) {
-        debugPrint('❌ Error: No user logged in');
-        return false;
-      }
-
-      final path = _getHotlinesPath(currentUserId!);
-      
-      debugPrint('📍 Attempting to save to path: $path/${hotline.id}');
+      debugPrint('📍 Attempting to save to path: $_globalHotlinesPath/${hotline.id}');
       debugPrint('📋 Hotline data: ${hotline.toJson()}');
       
-      await _database.ref('$path/${hotline.id}').set(hotline.toJson());
+      await _database.ref('$_globalHotlinesPath/${hotline.id}').set(hotline.toJson());
       
-      debugPrint('✅ Hotline saved: ${hotline.departmentName}');
+      debugPrint('✅ Global hotline saved: ${hotline.departmentName}');
       
-      // Log activity
-      await _logActivity(
-        action: 'hotline_added',
-        details: 'Added hotline: ${hotline.departmentName}',
-      );
+      // Log activity if an admin/user is logged in
+      if (currentUserId != null) {
+        await _logActivity(
+          action: 'hotline_added',
+          details: 'Added global hotline: ${hotline.departmentName}',
+        );
+      }
       
       return true;
     } catch (e) {
-      debugPrint('❌ Error saving hotline: $e');
-      debugPrint('❌ Stack trace: ${StackTrace.current}');
+      debugPrint('❌ Error saving global hotline: $e');
       return false;
     }
   }
 
-  /// Get all emergency hotlines for current user
+  /// Get all emergency hotlines from the global node
   Future<List<EmergencyHotline>> getHotlines() async {
     try {
-      if (currentUserId == null) {
-        debugPrint('❌ Error: No user logged in');
-        return [];
-      }
-
-      final path = _getHotlinesPath(currentUserId!);
-      debugPrint('📍 Fetching hotlines from: $path');
+      debugPrint('📍 Fetching global hotlines from: $_globalHotlinesPath');
       
-      final event = await _database.ref(path).once();
+      final event = await _database.ref(_globalHotlinesPath).once();
 
       if (!event.snapshot.exists) {
-        debugPrint('ℹ️ No hotlines found for user');
+        debugPrint('ℹ️ No global hotlines found');
         return [];
       }
 
@@ -133,7 +112,7 @@ class EmergencyHotlineService {
           );
           hotlines.add(hotline);
         } catch (e) {
-          debugPrint('❌ Error parsing hotline: $e');
+          debugPrint('❌ Error parsing global hotline: $e');
         }
       });
 
@@ -144,58 +123,45 @@ class EmergencyHotlineService {
         return b.createdAt!.compareTo(a.createdAt!);
       });
 
-      debugPrint('✅ Loaded ${hotlines.length} hotlines (${hotlines.where((h) => h.isPredefined).length} predefined)');
+      debugPrint('✅ Loaded ${hotlines.length} global hotlines (${hotlines.where((h) => h.isPredefined).length} predefined)');
       return hotlines;
     } catch (e) {
-      debugPrint('❌ Error getting hotlines: $e');
+      debugPrint('❌ Error getting global hotlines: $e');
       return [];
     }
   }
 
-  /// Update emergency hotline
+  /// Update a global emergency hotline
   Future<bool> updateHotline(EmergencyHotline hotline) async {
     try {
-      if (currentUserId == null) {
-        debugPrint('❌ Error: No user logged in');
-        return false;
-      }
-
-      final path = _getHotlinesPath(currentUserId!);
-      
       // Update with new timestamp
       final updatedHotline = hotline.copyWith(updatedAt: DateTime.now());
       
-      debugPrint('🔄 Updating hotline at: $path/${hotline.id}');
+      debugPrint('🔄 Updating global hotline at: $_globalHotlinesPath/${hotline.id}');
       
-      await _database.ref('$path/${hotline.id}').update(updatedHotline.toJson());
+      await _database.ref('$_globalHotlinesPath/${hotline.id}').update(updatedHotline.toJson());
       
-      debugPrint('✅ Hotline updated: ${hotline.departmentName}');
+      debugPrint('✅ Global hotline updated: ${hotline.departmentName}');
       
-      // Log activity
-      await _logActivity(
-        action: 'hotline_updated',
-        details: 'Updated hotline: ${hotline.departmentName}',
-      );
+      if (currentUserId != null) {
+        await _logActivity(
+          action: 'hotline_updated',
+          details: 'Updated global hotline: ${hotline.departmentName}',
+        );
+      }
       
       return true;
     } catch (e) {
-      debugPrint('❌ Error updating hotline: $e');
+      debugPrint('❌ Error updating global hotline: $e');
       return false;
     }
   }
 
-  /// Delete emergency hotline (works for both predefined and user-created)
+  /// Delete a global emergency hotline
   Future<bool> deleteHotline(String hotlineId) async {
     try {
-      if (currentUserId == null) {
-        debugPrint('❌ Error: No user logged in');
-        return false;
-      }
-
-      final path = _getHotlinesPath(currentUserId!);
-      
       // Get hotline name before deleting for logging
-      final event = await _database.ref('$path/$hotlineId').once();
+      final event = await _database.ref('$_globalHotlinesPath/$hotlineId').once();
       String hotlineName = 'Unknown';
       bool wasPredefined = false;
       
@@ -205,38 +171,33 @@ class EmergencyHotlineService {
         wasPredefined = data['isPredefined'] ?? false;
       }
       
-      debugPrint('🗑️ Deleting hotline at: $path/$hotlineId (predefined: $wasPredefined)');
+      debugPrint('🗑️ Deleting global hotline at: $_globalHotlinesPath/$hotlineId (predefined: $wasPredefined)');
       
-      await _database.ref('$path/$hotlineId').remove();
+      await _database.ref('$_globalHotlinesPath/$hotlineId').remove();
       
-      debugPrint('✅ Hotline deleted: $hotlineName');
+      debugPrint('✅ Global hotline deleted: $hotlineName');
       
-      // Log activity
-      await _logActivity(
-        action: 'hotline_deleted',
-        details: 'Deleted hotline: $hotlineName (predefined: $wasPredefined)',
-      );
+      if (currentUserId != null) {
+        await _logActivity(
+          action: 'hotline_deleted',
+          details: 'Deleted global hotline: $hotlineName (predefined: $wasPredefined)',
+        );
+      }
       
       return true;
     } catch (e) {
-      debugPrint('❌ Error deleting hotline: $e');
+      debugPrint('❌ Error deleting global hotline: $e');
       return false;
     }
   }
 
-  /// Stream of emergency hotlines (real-time updates)
+  /// Stream of global emergency hotlines (real-time updates)
   Stream<List<EmergencyHotline>> streamHotlines() {
-    if (currentUserId == null) {
-      debugPrint('❌ Error: No user logged in for stream');
-      return Stream.value([]);
-    }
-
-    final path = _getHotlinesPath(currentUserId!);
-    debugPrint('🔄 Starting stream for: $path');
+    debugPrint('🔄 Starting stream for: $_globalHotlinesPath');
     
-    return _database.ref(path).onValue.map((event) {
+    return _database.ref(_globalHotlinesPath).onValue.map((event) {
       if (!event.snapshot.exists) {
-        debugPrint('ℹ️ Stream: No hotlines found');
+        debugPrint('ℹ️ Stream: No global hotlines found');
         return <EmergencyHotline>[];
       }
 
@@ -250,7 +211,7 @@ class EmergencyHotlineService {
           );
           hotlines.add(hotline);
         } catch (e) {
-          debugPrint('❌ Error parsing hotline in stream: $e');
+          debugPrint('❌ Error parsing global hotline in stream: $e');
         }
       });
 
@@ -261,7 +222,7 @@ class EmergencyHotlineService {
         return b.createdAt!.compareTo(a.createdAt!);
       });
 
-      debugPrint('✅ Stream update: ${hotlines.length} hotlines');
+      debugPrint('✅ Stream update: ${hotlines.length} global hotlines');
       return hotlines;
     });
   }
@@ -278,10 +239,12 @@ class EmergencyHotlineService {
         debugPrint('📞 Emergency call initiated to: $phoneNumber');
         
         // Log the call
-        await _logActivity(
-          action: 'emergency_call',
-          details: 'Called $departmentName at $phoneNumber',
-        );
+        if (currentUserId != null) {
+          await _logActivity(
+            action: 'emergency_call',
+            details: 'Called $departmentName at $phoneNumber',
+          );
+        }
         
         return true;
       } else {
@@ -308,10 +271,12 @@ class EmergencyHotlineService {
         debugPrint('📱 SMS sent to: $phoneNumber');
         
         // Log the SMS
-        await _logActivity(
-          action: 'emergency_sms',
-          details: 'Sent SMS to $phoneNumber',
-        );
+        if (currentUserId != null) {
+          await _logActivity(
+            action: 'emergency_sms',
+            details: 'Sent SMS to $phoneNumber',
+          );
+        }
         
         return true;
       } else {
@@ -336,10 +301,12 @@ class EmergencyHotlineService {
         debugPrint('🗺️ Opening location: $address');
         
         // Log the action
-        await _logActivity(
-          action: 'location_opened',
-          details: 'Opened location: $address',
-        );
+        if (currentUserId != null) {
+          await _logActivity(
+            action: 'location_opened',
+            details: 'Opened location: $address',
+          );
+        }
         
         return true;
       } else {
@@ -380,19 +347,13 @@ class EmergencyHotlineService {
   /// Test database connection
   Future<bool> testConnection() async {
     try {
-      if (currentUserId == null) {
-        debugPrint('❌ Test: No user logged in');
-        return false;
-      }
+      debugPrint('📍 Testing connection to: $_globalHotlinesPath');
       
-      final path = _getHotlinesPath(currentUserId!);
-      debugPrint('📍 Testing connection to: $path');
-      
-      await _database.ref(path).once();
+      await _database.ref(_globalHotlinesPath).once();
       debugPrint('✅ Connection test successful');
       return true;
     } catch (e) {
-      debugPrint('❌ Connection test failed: $e');
+      debugPrint('Connection test failed: $e');
       return false;
     }
   }
