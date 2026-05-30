@@ -11,7 +11,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
 
-  // Extract the new avatar URL from the payload
   final avatarUrl = message.data['callerAvatar'] ?? '';
 
   if (message.data['type'] == 'emergency_alarm') {
