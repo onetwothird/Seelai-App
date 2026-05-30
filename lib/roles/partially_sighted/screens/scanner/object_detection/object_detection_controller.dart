@@ -31,11 +31,9 @@ class ObjectDetectionController {
   
   int _cameraFrameCounter = 0; 
 
-  // --- DEBOUNCER VARIABLES ---
   int _consecutiveFrames = 0;
   final int _requiredFrames = 2; 
   String _lastTagsHash = ''; 
-  // ---------------------------
   
   bool isLowLight = false;
   bool isFlashOn = false;
@@ -193,7 +191,6 @@ class ObjectDetectionController {
       );
 
       if (!isDisposing) {
-        // 1. Filter raw results by confidence
         final currentValidDetections = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
@@ -202,7 +199,6 @@ class ObjectDetectionController {
           return false;
         }).toList();
 
-        // 2. The Frame Debouncer Logic
         if (currentValidDetections.isNotEmpty) {
           var currentTags = currentValidDetections.map((r) => r['tag'].toString()).toList()..sort();
           String currentTagsHash = currentTags.join(',');
@@ -214,7 +210,6 @@ class ObjectDetectionController {
             _consecutiveFrames = 1;
           }
 
-          // 3. Gatekeeper
           if (_consecutiveFrames >= _requiredFrames) {
             recognitions = currentValidDetections;
           } else {
@@ -236,7 +231,6 @@ class ObjectDetectionController {
 
         _notifyStateChanged();
 
-        // 4. Proceed with logic if debouncer passed
         if (recognitions.isNotEmpty) {
           await _detectAndReadObjects();
         }
@@ -291,7 +285,6 @@ class ObjectDetectionController {
             double heightRatio = boxHeight / sourceHeight;
             String distanceStr;
             
-            // Concise Distance
             if (heightRatio > 0.6) {
               distanceStr = "1 meter";
             } else if (heightRatio > 0.3) {

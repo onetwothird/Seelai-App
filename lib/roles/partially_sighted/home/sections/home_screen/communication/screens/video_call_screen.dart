@@ -365,7 +365,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
                       _webrtcService.localRenderer,
                       mirror: true,
                       objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      key: const ValueKey('localVideoBackground'),
+                      key: const ValueKey('local_video_renderer'), // FIX: Standardized key
                     )
                   : Container(
                       key: const ValueKey('clearLocalBackground'),
@@ -434,6 +434,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
                         _webrtcService.localRenderer,
                         mirror: true,
                         objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey('local_video_renderer'), // FIX: Matched key
                       ),
               ),
             ),
@@ -540,6 +541,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
                             _webrtcService.localRenderer,
                             mirror: true,
                             objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                            key: const ValueKey('local_video_renderer'), // FIX: Matched key
                           )
                         : _buildUserVideoFallback(currentUserImage, iconSize: 0), 
                   ),

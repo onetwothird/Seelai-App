@@ -6,7 +6,6 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';
 import 'package:seelai_app/firebase/partially_sighted/emergency_hotline_service.dart';
-import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/edit_hotline_screen.dart';
 
 class EmergencyHotlinesScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -24,39 +23,15 @@ class EmergencyHotlinesScreen extends StatefulWidget {
 
 class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
   final EmergencyHotlineService _service = emergencyHotlineService;
-  bool _isInitializing = false;
+  
+  // Single broadcast stream to prevent "Stream has already been listened to" errors
+  late Stream<List<EmergencyHotline>> _hotlinesStream;
 
   @override
   void initState() {
     super.initState();
-    _initializePredefinedHotlines();
-  }
-
-  Future<void> _initializePredefinedHotlines() async {
-    setState(() => _isInitializing = true);
-    
-    try {
-      final needsInit = await _service.needsPredefinedInitialization();
-      
-      if (needsInit) {
-        final success = await _service.initializePredefinedHotlines();
-        if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Emergency hotlines have been set up for you'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('❌ Error during initialization: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _isInitializing = false);
-      }
-    }
+    // Simply listen to the global hotlines managed by MSWD
+    _hotlinesStream = _service.streamHotlines().asBroadcastStream();
   }
 
   Widget _buildSkeletonList() {
@@ -87,8 +62,11 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- UPDATED: Forces pure white background in light mode ---
+    final Color safeBgColor = widget.isDarkMode ? widget.theme.backgroundColor : Colors.white;
+
     return Scaffold(
-      backgroundColor: widget.theme.backgroundColor,
+      backgroundColor: safeBgColor,
       appBar: AppBar(
         backgroundColor: widget.theme.cardColor,
         scrolledUnderElevation: 0,
@@ -105,56 +83,59 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add_rounded, color: widget.theme.textColor),
-            onPressed: () => _addNewHotline(),
-            tooltip: 'Add new hotline',
-          ),
-        ],
       ),
       body: Container(
-        color: widget.theme.backgroundColor,
-        child: _isInitializing
-            ? _buildSkeletonList() 
-            : StreamBuilder<List<EmergencyHotline>>(
-                stream: _service.streamHotlines(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return _buildSkeletonList(); 
-                  }
+        color: safeBgColor, // Applied white background here too
+        child: StreamBuilder<List<EmergencyHotline>>(
+          stream: _hotlinesStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return _buildSkeletonList(); 
+            }
 
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error loading hotlines', style: body.copyWith(color: error)));
-                  }
+            if (snapshot.hasError) {
+            debugPrint('Stream Error: ${snapshot.error}'); 
+            
+            // Show on screen
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Text(
+                  'Error: ${snapshot.error}', 
+                  style: const TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          }
 
-                  final hotlines = snapshot.data ?? [];
+            final hotlines = snapshot.data ?? [];
 
-                  if (hotlines.isEmpty) {
-                    return _buildEmptyState();
-                  }
+            if (hotlines.isEmpty) {
+              return _buildEmptyState();
+            }
 
-                  return AnimationLimiter(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(spacingLarge),
-                      itemCount: hotlines.length,
-                      itemBuilder: (context, index) {
-                        final hotline = hotlines[index];
-                        return AnimationConfiguration.staggeredList(
-                          position: index,
-                          duration: const Duration(milliseconds: 375),
-                          child: SlideAnimation(
-                            verticalOffset: 50.0,
-                            child: FadeInAnimation(
-                              child: _buildHotlineCard(hotline),
-                            ),
-                          ),
-                        );
-                      },
+            return AnimationLimiter(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(spacingLarge),
+                itemCount: hotlines.length,
+                itemBuilder: (context, index) {
+                  final hotline = hotlines[index];
+                  return AnimationConfiguration.staggeredList(
+                    position: index,
+                    duration: const Duration(milliseconds: 375),
+                    child: SlideAnimation(
+                      verticalOffset: 50.0,
+                      child: FadeInAnimation(
+                        child: _buildHotlineCard(hotline),
+                      ),
                     ),
                   );
                 },
               ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -185,7 +166,9 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
             child: Padding(
               padding: const EdgeInsets.all(spacingMedium),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // 1. Avatar (Using BoxShape.circle to perfectly match screenshot)
                   Container(
                     width: 60,
                     height: 60, 
@@ -194,7 +177,7 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                         : const EdgeInsets.all(spacingMedium),
                     decoration: BoxDecoration(
                       color: hotline.color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(radiusMedium),
+                      shape: BoxShape.circle, 
                       image: hotline.imageAsset.isNotEmpty
                           ? DecorationImage(
                               image: AssetImage(hotline.imageAsset),
@@ -207,42 +190,20 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                         : Icon(hotline.icon, color: hotline.color, size: 26),
                   ),
                   const SizedBox(width: spacingMedium),
+                  
+                  // 2. Text Column (Only the text now)
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                hotline.departmentName,
-                                style: bodyBold.copyWith(
-                                  fontSize: 16,
-                                  color: widget.theme.textColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                            if (hotline.isPredefined)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: spacingSmall,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: hotline.color.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(radiusSmall),
-                                ),
-                                child: Text(
-                                  'Official',
-                                  style: caption.copyWith(
-                                    fontSize: 10,
-                                    color: hotline.color,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                          ],
+                        Text(
+                          hotline.departmentName,
+                          style: bodyBold.copyWith(
+                            fontSize: 16,
+                            color: widget.theme.textColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -256,39 +217,32 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
                       ],
                     ),
                   ),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert_rounded, color: widget.theme.subtextColor),
-                    color: widget.theme.cardColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        _editHotline(hotline);
-                      } else if (value == 'delete') {
-                        _deleteHotline(hotline);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_rounded, size: 20, color: widget.theme.textColor),
-                            const SizedBox(width: spacingSmall),
-                            Text('Edit', style: TextStyle(color: widget.theme.textColor)),
-                          ],
+                  
+                  // 3. Trailing Elements (Badge + Call Icon aligned side-by-side)
+                  if (hotline.isPredefined) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: spacingSmall,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: hotline.color.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(radiusSmall),
+                      ),
+                      child: Text(
+                        'Official',
+                        style: caption.copyWith(
+                          fontSize: 10,
+                          color: hotline.color,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.delete_rounded, size: 20, color: error),
-                            const SizedBox(width: spacingSmall),
-                            const Text('Delete', style: TextStyle(color: error)),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
+                    const SizedBox(width: 8), // Snug spacing between badge and phone icon
+                  ],
+                  Icon(
+                    Icons.call_rounded, 
+                    color: widget.theme.subtextColor.withValues(alpha: 0.4),
                   ),
                 ],
               ),
@@ -304,22 +258,20 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.phone_in_talk_rounded, size: 80, color: widget.theme.subtextColor.withValues(alpha: 0.5)),
+          Icon(
+            Icons.phone_in_talk_rounded, 
+            size: 80, 
+            color: widget.theme.subtextColor.withValues(alpha: 0.5)
+          ),
           const SizedBox(height: spacingMedium),
-          Text('No emergency hotlines yet', style: h3.copyWith(color: widget.theme.textColor)),
+          Text(
+            'No hotlines available', 
+            style: h3.copyWith(color: widget.theme.textColor)
+          ),
           const SizedBox(height: spacingSmall),
-          Text('Add your first emergency hotline', style: body.copyWith(color: widget.theme.subtextColor)),
-          const SizedBox(height: spacingLarge),
-          ElevatedButton.icon(
-            onPressed: _addNewHotline,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add Hotline'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: white,
-              padding: const EdgeInsets.symmetric(horizontal: spacingLarge, vertical: spacingMedium),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
+          Text(
+            'Your MSWD officer will add contacts soon.', 
+            style: body.copyWith(color: widget.theme.subtextColor)
           ),
         ],
       ),
@@ -330,62 +282,11 @@ class _EmergencyHotlinesScreenState extends State<EmergencyHotlinesScreen> {
     final success = await _service.makeEmergencyCall(hotline.phoneNumber, hotline.departmentName);
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Unable to make call'), backgroundColor: error)
+        const SnackBar(
+          content: Text('Unable to make call'), 
+          backgroundColor: error
+        )
       );
-    }
-  }
-
-  Future<void> _addNewHotline() async {
-    final result = await Navigator.push<EmergencyHotline>(
-      context, 
-      MaterialPageRoute(builder: (context) => EditHotlineScreen(isDarkMode: widget.isDarkMode, theme: widget.theme)),
-    );
-    if (result != null) {
-      final success = await _service.saveHotline(result);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(success ? 'Hotline added successfully' : 'Failed to add hotline'), backgroundColor: success ? Colors.green : error)
-        );
-      }
-    }
-  }
-
-  Future<void> _editHotline(EmergencyHotline hotline) async {
-    final result = await Navigator.push<EmergencyHotline>(
-      context, 
-      MaterialPageRoute(builder: (context) => EditHotlineScreen(hotline: hotline, isDarkMode: widget.isDarkMode, theme: widget.theme)),
-    );
-    if (result != null) {
-      final success = await _service.updateHotline(result);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(success ? 'Hotline updated successfully' : 'Failed to update hotline'), backgroundColor: success ? Colors.green : error)
-        );
-      }
-    }
-  }
-
-  Future<void> _deleteHotline(EmergencyHotline hotline) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: widget.theme.cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Hotline', style: TextStyle(color: widget.theme.textColor)),
-        content: Text('Are you sure you want to delete "${hotline.departmentName}"?${hotline.isPredefined ? '\n\nThis is an official hotline.' : ''}', style: TextStyle(color: widget.theme.subtextColor)),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: error))),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      final success = await _service.deleteHotline(hotline.id);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(success ? 'Hotline deleted successfully' : 'Failed to delete hotline'), backgroundColor: success ? Colors.green : error)
-        );
-      }
     }
   }
 }

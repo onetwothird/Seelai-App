@@ -1,8 +1,10 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/announcement.dart
 
+import 'dart:async'; // --- ADDED FOR STREAM SUBSCRIPTION ---
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart'; 
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
+import 'package:flutter_tts/flutter_tts.dart'; // --- ADDED TTS ---
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/mswd/announcement_service.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
@@ -29,21 +31,88 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   late Stream<List<AnnouncementModel>> _announcementStream;
   final int maxDisplayedAnnouncements = 5;
 
+  // --- NEW TTS VARIABLES ---
+  final FlutterTts _flutterTts = FlutterTts();
+  StreamSubscription<List<AnnouncementModel>>? _announcementSubscription;
+  bool _isInitialLoad = true;
+  DateTime? _latestTimestamp;
+  String? _currentlySpeakingId; // To track which announcement is playing manually
+
   @override
   void initState() {
     super.initState();
+    _initTts();
     _initializeStream();
   }
 
+  // --- NEW TTS INITIALIZATION ---
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.awaitSpeakCompletion(true);
+    
+    // Reset speaking state when TTS finishes
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) setState(() => _currentlySpeakingId = null);
+    });
+  }
+
   void _initializeStream() {
+    // --- ADD .asBroadcastStream() TO THE END OF THIS CALL ---
     _announcementStream = _announcementService.getAnnouncementsForUser(
       widget.userId,
       'Partially Sighted',
-    );
+    ).asBroadcastStream(); // <--- THIS IS THE FIX
+
+    // --- BACKGROUND LISTENER FOR AUTO-TTS ---
+    _announcementSubscription?.cancel(); 
+    _announcementSubscription = _announcementStream.listen((announcements) {
+      if (announcements.isEmpty) return;
+
+      if (_isInitialLoad) {
+        // Record the newest timestamp on first load without speaking
+        _latestTimestamp = announcements.first.timestamp;
+        _isInitialLoad = false;
+      } else {
+        // Check if there's a new announcement
+        final newest = announcements.first;
+        if (_latestTimestamp == null || newest.timestamp.isAfter(_latestTimestamp!)) {
+          _latestTimestamp = newest.timestamp;
+          _speakAnnouncement(
+            "New announcement: ${newest.title}. ${newest.message}", 
+            newest.id
+          );
+        }
+      }
+    });
+  }
+
+  // --- NEW TTS PLAYBACK METHOD ---
+  Future<void> _speakAnnouncement(String text, String id) async {
+    if (_currentlySpeakingId == id) {
+      // If tapping the same one, stop it
+      await _flutterTts.stop();
+      if (mounted) setState(() => _currentlySpeakingId = null);
+    } else {
+      // Stop anything playing, update state, and speak new text
+      await _flutterTts.stop();
+      if (mounted) setState(() => _currentlySpeakingId = id);
+      await _flutterTts.speak(text);
+    }
+  }
+
+  @override
+  void dispose() {
+    _announcementSubscription?.cancel();
+    _flutterTts.stop();
+    super.dispose();
   }
 
   void _refreshStream() {
     setState(() {
+      _isInitialLoad = true; // Reset so we don't accidentally auto-play older data
       _initializeStream();
     });
   }
@@ -167,6 +236,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     );
   }
 
+  // (Skeleton list, view all button, navigation, and empty card widgets remain the same)
   Widget _buildSkeletonList() {
     final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
     final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
@@ -329,9 +399,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
   Widget _buildAnnouncementCard(AnnouncementModel announcement) {
     String timeAgo = _getTimeAgo(announcement.timestamp);
-    
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
+    bool isSpeaking = _currentlySpeakingId == announcement.id; // Check if this card is playing
 
     return Semantics(
       label: 'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
@@ -353,6 +423,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start, // Align to top to fit button nicely
               children: [
                 Container(
                   padding: const EdgeInsets.all(spacingSmall),
@@ -404,6 +475,19 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                       ),
                     ],
                   ),
+                ),
+                // --- NEW TTS PLAY/STOP BUTTON ---
+                IconButton(
+                  icon: Icon(
+                    isSpeaking ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
+                    color: isSpeaking ? Colors.red : primary,
+                    size: 28,
+                  ),
+                  onPressed: () => _speakAnnouncement(
+                    "${announcement.title}. ${announcement.message}",
+                    announcement.id,
+                  ),
+                  tooltip: isSpeaking ? 'Stop playback' : 'Listen to announcement',
                 ),
               ],
             ),
