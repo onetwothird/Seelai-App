@@ -91,6 +91,13 @@ class WebRTCService {
       if (event.streams.isNotEmpty) {
         _remoteStream = event.streams[0];
         remoteRenderer.srcObject = _remoteStream;
+        
+        // --- FIX: Force local renderer to re-attach stream ---
+        var tempStream = localRenderer.srcObject;
+        localRenderer.srcObject = null;
+        localRenderer.srcObject = tempStream;
+        // -----------------------------------------------------
+        
         onAddRemoteStream?.call(_remoteStream!);
       }
     };
@@ -99,6 +106,13 @@ class WebRTCService {
     _peerConnection!.onAddStream = (MediaStream stream) {
       _remoteStream = stream;
       remoteRenderer.srcObject = _remoteStream;
+      
+      // --- FIX: Force local renderer to re-attach stream ---
+      var tempStream = localRenderer.srcObject;
+      localRenderer.srcObject = null;
+      localRenderer.srcObject = tempStream;
+      // -----------------------------------------------------
+      
       onAddRemoteStream?.call(_remoteStream!);
     };
 
@@ -276,7 +290,6 @@ class WebRTCService {
     localRenderer.srcObject = null;
     remoteRenderer.srcObject = null;
 
-    // CRITICAL FIX: Dispose renderers to release the camera lock
     await localRenderer.dispose();
     await remoteRenderer.dispose();
   }
