@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/add_announcement.dart';
+import 'package:seelai_app/roles/mswd/home/sections/hotlines/mswd_manage_hotlines.dart'; // <-- ADDED THIS IMPORT
 
 class QuickActions extends StatelessWidget {
   final bool isDarkMode;
@@ -62,14 +63,23 @@ class QuickActions extends StatelessWidget {
                 );
               },
             ),
+            // --- UPDATED BUTTON ---
             _buildActionItem(
               context,
               icon: Icons.contact_phone_rounded,
-              label: 'Directory',
+              label: 'Hotlines',
               color: const Color(0xFF10B981), // Green
               onTap: () {
-                // Navigate to Users Tab (Index 1) for calling/dispatch
-                onNavigateToTab(1);
+                // Open the new Manage Hotlines Screen
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MswdManageHotlinesScreen(
+                      isDarkMode: isDarkMode,
+                      theme: theme,
+                    ),
+                  ),
+                );
               },
             ),
             _buildActionItem(
