@@ -1,11 +1,9 @@
-// ignore_for_file: empty_catches
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 
-/// Main database service - handles basic user operations
 class DatabaseService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -29,8 +27,6 @@ class DatabaseService {
     }
   }
 
-  // ==================== STREAK MANAGEMENT ====================
-  // === STREAK FEATURE: Logic to calculate daily logins ===
   Future<int> updateAndGetStreak(String userId, String role) async {
     try {
       String path = getUserPath(role, userId);
@@ -71,8 +67,6 @@ class DatabaseService {
       return 0;
     }
   }
-
-  // ==================== USER MANAGEMENT ====================
 
   Future<void> createUserDocument({
     required String userId,
@@ -193,6 +187,7 @@ class DatabaseService {
         'message': 'Connection successful',
         'timestamp': ServerValue.timestamp,
       });
+    // ignore: empty_catches
     } catch (e) {
     }
   }
@@ -254,8 +249,6 @@ class DatabaseService {
     });
   }
 
-  // ==================== FCM TOKEN MANAGEMENT ====================
-
   Future<void> saveUserFCMToken(String userId, String role) async {
     try {
       String? token = await FirebaseMessaging.instance.getToken();
@@ -265,7 +258,7 @@ class DatabaseService {
         await _database.ref(path).update({
           'fcmToken': token,
         });
-        debugPrint("✅ FCM Token successfully saved for $role!");
+        debugPrint("FCM Token successfully saved for $role!");
       }
 
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
@@ -279,7 +272,6 @@ class DatabaseService {
     }
   }
 
-  // ==================== ROLE VERIFICATION ====================
 
   Future<bool> verifyUserRole(String userId, String expectedRole) async {
     try {
