@@ -123,7 +123,6 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
       );
     }
     
-    // Ensure hangUp fires even during a force-dispose
     if (_currentCallId != null) {
       _webrtcService.hangUp(widget.callPath, _currentCallId!); 
     }
@@ -304,7 +303,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                       _webrtcService.localRenderer,
                       mirror: true,
                       objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      key: const ValueKey('localVideoBackground'),
+                      key: const ValueKey('local_video_renderer'), // FIX: Standardized key
                     )
                   : Container(
                       key: const ValueKey('clearLocalBackground'),
@@ -373,6 +372,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                         _webrtcService.localRenderer,
                         mirror: true,
                         objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey('local_video_renderer'), // FIX: Matched key
                       ),
               ),
             ),
@@ -428,64 +428,70 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
   }
 
   Widget _buildMinimizedPiP(double pipWidth, double pipHeight) {
-    return GestureDetector(
-      key: const ValueKey('pip_screen'),
-      onPanUpdate: (details) {
-        setState(() {
-          final size = MediaQuery.of(context).size;
-          double newX = _pipPosition.dx + details.delta.dx;
-          double newY = _pipPosition.dy + details.delta.dy;
-          
-          newX = newX.clamp(10.0, size.width - pipWidth - 10.0);
-          newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
-          
-          _pipPosition = Offset(newX, newY);
-        });
-      },
-      onTap: () => setState(() => _isMinimized = false), 
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.0),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              _hasRemoteStream && !_isEnding
-                  ? RTCVideoView(
-                      _webrtcService.remoteRenderer,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                    )
-                  : _buildUserVideoFallback(_patientImage, iconSize: 0), 
+    return FutureBuilder(
+      future: Future.value(true),
+      builder: (context, snapshot) {
+        return GestureDetector(
+          key: const ValueKey('pip_screen'),
+          onPanUpdate: (details) {
+            setState(() {
+              final size = MediaQuery.of(context).size;
+              double newX = _pipPosition.dx + details.delta.dx;
+              double newY = _pipPosition.dy + details.delta.dy;
+              
+              newX = newX.clamp(10.0, size.width - pipWidth - 10.0);
+              newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
+              
+              _pipPosition = Offset(newX, newY);
+            });
+          },
+          onTap: () => setState(() => _isMinimized = false), 
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16.0),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _hasRemoteStream && !_isEnding
+                      ? RTCVideoView(
+                          _webrtcService.remoteRenderer,
+                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        )
+                      : _buildUserVideoFallback(_patientImage, iconSize: 0), 
 
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Container(
-                  width: 40,
-                  height: 55,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF334155),
-                    borderRadius: BorderRadius.circular(8),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 40,
+                      height: 55,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF334155),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8), 
+                        child: (_isConnectionReady && !_isVideoOff && !_isEnding)
+                            ? RTCVideoView(
+                                _webrtcService.localRenderer,
+                                mirror: true,
+                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                                key: const ValueKey('local_video_renderer'), // FIX: Matched key
+                              )
+                            : _buildUserVideoFallback(null, iconSize: 0), 
+                      ),
+                    ),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8), 
-                    child: (_isConnectionReady && !_isVideoOff && !_isEnding)
-                        ? RTCVideoView(
-                            _webrtcService.localRenderer,
-                            mirror: true,
-                            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                          )
-                        : _buildUserVideoFallback(null, iconSize: 0), 
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 
