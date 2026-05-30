@@ -1,6 +1,7 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/all_announcements_vi.dart
 
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // --- ADDED TTS ---
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
 
@@ -24,8 +25,47 @@ class AllAnnouncementsVIPage extends StatefulWidget {
 
 class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
   
-  // --- NEW HELPER METHOD ---
-  // Keeps tree-shaking intact by using constant IconData mapping.
+  // --- NEW TTS VARIABLES ---
+  final FlutterTts _flutterTts = FlutterTts();
+  String? _currentlySpeakingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+  }
+
+  // --- NEW TTS SETUP ---
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.awaitSpeakCompletion(true);
+
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) setState(() => _currentlySpeakingId = null);
+    });
+  }
+
+  // --- NEW TTS PLAYBACK FUNCTION ---
+  Future<void> _speakAnnouncement(String text, String id) async {
+    if (_currentlySpeakingId == id) {
+      await _flutterTts.stop();
+      if (mounted) setState(() => _currentlySpeakingId = null);
+    } else {
+      await _flutterTts.stop();
+      if (mounted) setState(() => _currentlySpeakingId = id);
+      await _flutterTts.speak(text);
+    }
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
+  }
+
   IconData _getSafeIcon(String hexCode) {
     final Map<String, IconData> safeIcons = {
       '0xef4c': Icons.notifications,
@@ -34,11 +74,10 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
       '0xe88a': Icons.home,
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
-      // Add more known icons here...
     };
     
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; // Fallback icon
+    return safeIcons[formattedCode] ?? Icons.notifications; 
   }
 
   @override
@@ -50,7 +89,10 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            _flutterTts.stop(); // Stop speaking if they leave the page
+            Navigator.of(context).pop();
+          },
         ),
         title: Text(
           'All Announcements',
@@ -116,10 +158,9 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
 
   Widget _buildAnnouncementCard(AnnouncementModel announcement) {
     String timeAgo = _getTimeAgo(announcement.timestamp);
-    
-    // FIX: Using the safe constant map instead of int.parse
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
+    bool isSpeaking = _currentlySpeakingId == announcement.id; // Check TTS state
 
     return Semantics(
       label: 'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
@@ -141,6 +182,7 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: EdgeInsets.all(spacingSmall),
@@ -200,6 +242,19 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
                       ),
                     ],
                   ),
+                ),
+                // --- NEW TTS BUTTON ---
+                IconButton(
+                  icon: Icon(
+                    isSpeaking ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
+                    color: isSpeaking ? Colors.red : primary,
+                    size: 28,
+                  ),
+                  onPressed: () => _speakAnnouncement(
+                    "${announcement.title}. ${announcement.message}",
+                    announcement.id,
+                  ),
+                  tooltip: isSpeaking ? 'Stop playback' : 'Listen to announcement',
                 ),
               ],
             ),

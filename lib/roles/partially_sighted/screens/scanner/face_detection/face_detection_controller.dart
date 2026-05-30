@@ -31,11 +31,9 @@ class FaceDetectionController {
 
   int _cameraFrameCounter = 0; 
   
-  // --- DEBOUNCER VARIABLES ---
   int _consecutiveFrames = 0;
   final int _requiredFrames = 2; 
   String _lastTagsHash = ''; 
-  // ---------------------------
   
   bool isLowLight = false;
   bool isFlashOn = false;
@@ -192,7 +190,6 @@ class FaceDetectionController {
       );
 
       if (!isDisposing) {
-        // 1. Filter raw results by confidence
         final currentValidDetections = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
@@ -201,7 +198,6 @@ class FaceDetectionController {
           return false;
         }).toList();
 
-        // 2. The Frame Debouncer Logic
         if (currentValidDetections.isNotEmpty) {
           var currentTags = currentValidDetections.map((r) => r['tag'].toString()).toList()..sort();
           String currentTagsHash = currentTags.join(',');
@@ -213,7 +209,6 @@ class FaceDetectionController {
             _consecutiveFrames = 1;
           }
 
-          // 3. Gatekeeper
           if (_consecutiveFrames >= _requiredFrames) {
             recognitions = currentValidDetections;
           } else {
@@ -235,7 +230,6 @@ class FaceDetectionController {
 
         _notifyStateChanged();
 
-        // 4. Proceed with logic if debouncer passed
         if (recognitions.isNotEmpty) {
           await _detectAndReadFaces();
         }

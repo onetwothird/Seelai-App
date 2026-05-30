@@ -1,0 +1,145 @@
+// File: lib/roles/mswd/home/sections/hotlines/data/predefined_emergency_hotlines.dart
+
+import 'package:flutter/material.dart';
+import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';
+
+class PredefinedEmergencyHotlines {
+  static List<EmergencyHotline> getNaicHotlines() { 
+    final now = DateTime.now();
+    
+    return [
+      EmergencyHotline(
+        id: 'predefined_police_naic', 
+        departmentName: 'Municipal Police Station',
+        phoneNumber: '09564118101',
+        address: '',
+        description: 'PNP Naic',
+        icon: Icons.local_police_rounded, 
+        color: Colors.blue,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/pnp.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_fire_naic',
+        departmentName: 'Bureau of Fire Protection',
+        phoneNumber: '09564830226',
+        address: '',
+        description: 'BFP Naic',
+        icon: Icons.local_fire_department_rounded,
+        color: Colors.red,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/bfp.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_mdrrmo_naic',
+        departmentName: 'MDRRMO Naic', 
+        phoneNumber: '4105725',
+        address: '',
+        description: 'Naic Emergency Response Unit',
+        icon: Icons.emergency_rounded,
+        color: Colors.orange,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/mdrrmo.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_dilg_naic',
+        departmentName: 'DILG - Naic',
+        phoneNumber: '09565298870',
+        address: '',
+        description: '',
+        icon: Icons.security_rounded,
+        color: Colors.purple,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/dilg.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_mswdo_naic',
+        departmentName: 'MSWDO - Naic',
+        phoneNumber: '09267511296',
+        address: '',
+        description: '',
+        icon: Icons.medical_services_rounded,
+        color: Colors.teal,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/mswd.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_menro_naic',
+        departmentName: 'MENRO - Naic',
+        phoneNumber: '09178324244',
+        address: '',
+        description: '',
+        icon: Icons.eco_rounded,
+        color: Colors.green,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/menro.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_rhu_naic',
+        departmentName: 'Rural Health Unit',
+        phoneNumber: '09457261593',
+        address: '',
+        description: '',
+        icon: Icons.local_hospital_rounded,
+        color: Colors.pink,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/rural_health.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_mayor_naic',
+        departmentName: 'Office of the Mayor',
+        phoneNumber: '0465070541',
+        address: '',
+        description: '',
+        icon: Icons.account_balance_rounded,
+        color: Colors.amber,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/office_mayor.png', 
+      ),
+      EmergencyHotline(
+        id: 'predefined_naic_doctors',
+        departmentName: 'Naic Doctors Hospital',
+        phoneNumber: '(046) 412 1443',
+        address: '',
+        description: 'Private Hospital',
+        icon: Icons.local_hospital_rounded,
+        color: Colors.blueAccent,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+        isPredefined: true, 
+        imageAsset: 'assets/emergency_images/naic_doctors.jpg', 
+      ),
+    ];
+  }
+  
+  static bool needsInitialization(List<EmergencyHotline> existingHotlines) {
+    // If the global list has less than 9 predefined items, it needs initialization
+    final predefinedCount = existingHotlines.where((h) => h.isPredefined == true).length;
+    return predefinedCount < 9; 
+  }
+}
