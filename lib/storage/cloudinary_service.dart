@@ -15,7 +15,6 @@ class CloudinaryService {
   static const String uploadPresetProfile = 'profile_images';
   static const String uploadPresetDetections = 'detection_images';
 
-  /// Upload profile image to Cloudinary
   Future<String?> uploadProfileImage(File imageFile, String userId, String role) async {
     try {
       var request = http.MultipartRequest(
@@ -43,7 +42,6 @@ class CloudinaryService {
     }
   }
 
-  /// Upload SOS Contact image to Cloudinary
   Future<String?> uploadContactImage(File imageFile, String patientId) async {
     try {
       var request = http.MultipartRequest(
@@ -72,7 +70,6 @@ class CloudinaryService {
     }
   }
 
-  /// Upload a detection snapshot to Cloudinary
   /// Stores under: detected_images/face/{userId}
   ///               detected_images/object/{userId}
   ///               detected_images/text/{userId}
@@ -96,7 +93,6 @@ class CloudinaryService {
       request.fields['timestamp'] = timestamp;
       request.fields['folder'] = folder;
       request.fields['signature'] = signature;
-      // ✅ NO upload_preset needed for signed uploads
 
       request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
 
@@ -146,7 +142,6 @@ class CloudinaryService {
     }
   }
 
-  // ✅ Signature for detection uploads (signs: folder + timestamp)
   String _generateDetectionSignature({required String folder, required String timestamp}) {
     final stringToSign = 'folder=$folder&timestamp=$timestamp$apiSecret';
     final bytes = utf8.encode(stringToSign);
@@ -154,7 +149,6 @@ class CloudinaryService {
     return digest.toString();
   }
 
-  // Existing signature for delete
   String _generateSignature(String publicId, String timestamp) {
     final stringToSign = 'public_id=$publicId&timestamp=$timestamp$apiSecret';
     final bytes = utf8.encode(stringToSign);
