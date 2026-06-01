@@ -50,7 +50,6 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
-
 Future<void> requestNotificationPermissions() async {
   FirebaseMessaging messaging = FirebaseMessaging.instance;
   NotificationSettings settings = await messaging.requestPermission(
@@ -64,7 +63,6 @@ Future<void> requestNotificationPermissions() async {
   );
   debugPrint('User granted permission: ${settings.authorizationStatus}');
 }
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
