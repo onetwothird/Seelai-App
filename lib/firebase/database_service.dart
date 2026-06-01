@@ -272,7 +272,6 @@ class DatabaseService {
     }
   }
 
-
   Future<bool> verifyUserRole(String userId, String expectedRole) async {
     try {
       Map<String, dynamic>? userData = await getUserData(userId);
