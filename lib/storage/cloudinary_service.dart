@@ -79,7 +79,6 @@ class CloudinaryService {
     String detectionType, // 'face' | 'object' | 'text'
   ) async {
     try {
-      // ✅ Use SIGNED upload so folder override always works
       final timestamp = (DateTime.now().millisecondsSinceEpoch / 1000).round().toString();
       final folder = 'detected_images/$detectionType/$userId';
       final signature = _generateDetectionSignature(folder: folder, timestamp: timestamp);
