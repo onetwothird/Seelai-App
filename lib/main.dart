@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'; 
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart'; 
-import 'package:flutter_callkit_incoming/entities/entities.dart'; // Make sure this is here!
+import 'package:flutter_callkit_incoming/entities/entities.dart'; 
 import 'package:seelai_app/core/firebase_options.dart';
 import 'package:seelai_app/screens/splash_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
