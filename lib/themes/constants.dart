@@ -78,14 +78,14 @@ const body = TextStyle(
   fontSize: 16,
   color: grey,
   height: 1.6,
-  fontWeight: FontWeight.w500, // Slightly heavier for better legibility
+  fontWeight: FontWeight.w500,
   letterSpacing: 0.1,
 );
 
 const bodyBold = TextStyle(
   fontSize: 16,
-  fontWeight: FontWeight.w700, // Heavy weight to stand out
-  color: black, // Darker color to pop against backgrounds
+  fontWeight: FontWeight.w700, 
+  color: black,
   height: 1.6,
   letterSpacing: 0.1,
 );
@@ -93,13 +93,13 @@ const bodyBold = TextStyle(
 const TextStyle bodyText = TextStyle(
   fontSize: 16,
   fontWeight: FontWeight.normal,
-  fontFamily: 'Roboto', // You can change this if your app uses a custom font!
+  fontFamily: 'Roboto', 
 );
 
 const TextStyle caption = TextStyle(
   fontSize: 14,
   color: greyLight,
-  fontWeight: FontWeight.w600, // Bolder captions
+  fontWeight: FontWeight.w600, 
   letterSpacing: 0.2,
 );
 
@@ -110,10 +110,9 @@ const small = TextStyle(
   letterSpacing: 0.3,
 );
 
-// Refined shadow system for depth
 const softShadow = [
   BoxShadow(
-    color: Color(0x0A7C3AED), // Very subtle purple tint
+    color: Color(0x0A7C3AED), 
     blurRadius: 24,
     offset: Offset(0, 8),
     spreadRadius: -4,
@@ -151,7 +150,7 @@ const strongShadow = [
 ];
 const Map<String, Color> darkTheme = {
   'background': Color(0xFF121212),
-  'primary': Color(0xFF8B5CF6), // Your signature vibrant purple!
+  'primary': Color(0xFF8B5CF6), 
   'text': Colors.white,
   'card': Color(0xFF1E1E1E),
 };
