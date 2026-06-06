@@ -22,7 +22,6 @@ class _CallRatingDialogState extends State<CallRatingDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
         decoration: BoxDecoration(
-          // Matches the dark slate blue/navy background from your screenshot
           color: const Color(0xFF1A2232), 
           borderRadius: BorderRadius.circular(24),
         ),
@@ -50,7 +49,6 @@ class _CallRatingDialogState extends State<CallRatingDialog> {
 
                     final navigator = Navigator.of(context);
 
-                    // Close after short delay so they can see their selection
                     Future.delayed(const Duration(milliseconds: 500), () {
                       if (!mounted) return;
 
@@ -74,7 +72,7 @@ class _CallRatingDialogState extends State<CallRatingDialog> {
             const SizedBox(height: 32),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF334155), // Lighter grey-blue for the button
+                color: const Color(0xFF334155), 
                 borderRadius: BorderRadius.circular(8),
               ),
               child: TextButton(
