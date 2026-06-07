@@ -186,14 +186,12 @@ const cardShadow = [
   ),
 ];
 
-// Border radius values - Bubbly / Pill-like
 const radiusSmall = 16.0; // Bumped up
 const radiusMedium = 24.0; // Ideal for inner cards/buttons
 const radiusLarge = 32.0; // Ideal for main wrapper cards
 const radiusXLarge = 40.0;
 const radiusPill = 100.0; // Added for completely round buttons/badges
 
-// Spacing values
 const spacingXSmall = 4.0;
 const spacingSmall = 8.0;
 const spacingMedium = 16.0;
