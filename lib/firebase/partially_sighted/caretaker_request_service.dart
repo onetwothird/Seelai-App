@@ -29,8 +29,7 @@ class CaretakerRequestService {
       }
 
       debugPrint('Caretaker request sent: ${request.requestType}');
-      
-      
+
       return true;
     } catch (e) {
       debugPrint('Error sending caretaker request: $e');
@@ -67,13 +66,7 @@ class CaretakerRequestService {
 }
 
 // Request status enum
-enum RequestStatus {
-  pending,
-  accepted,
-  declined,
-  completed,
-  cancelled,
-}
+enum RequestStatus { pending, accepted, declined, completed, cancelled }
 
 // Caretaker request model
 class CaretakerRequest {

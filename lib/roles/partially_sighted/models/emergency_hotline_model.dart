@@ -29,22 +29,38 @@ class EmergencyHotline {
     DateTime? updatedAt,
     this.isPredefined = false,
     this.imageAsset = '',
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   // --- NEW HELPER METHOD ---
   // Keeps tree-shaking intact by mapping dynamic integers to constant IconData.
   static IconData _getSafeIconFromCode(int codePoint) {
-    if (codePoint == Icons.local_police_rounded.codePoint) return Icons.local_police_rounded;
-    if (codePoint == Icons.local_fire_department_rounded.codePoint) return Icons.local_fire_department_rounded;
-    if (codePoint == Icons.emergency_rounded.codePoint) return Icons.emergency_rounded;
-    if (codePoint == Icons.security_rounded.codePoint) return Icons.security_rounded;
-    if (codePoint == Icons.medical_services_rounded.codePoint) return Icons.medical_services_rounded;
+    if (codePoint == Icons.local_police_rounded.codePoint) {
+      return Icons.local_police_rounded;
+    }
+    if (codePoint == Icons.local_fire_department_rounded.codePoint) {
+      return Icons.local_fire_department_rounded;
+    }
+    if (codePoint == Icons.emergency_rounded.codePoint) {
+      return Icons.emergency_rounded;
+    }
+    if (codePoint == Icons.security_rounded.codePoint) {
+      return Icons.security_rounded;
+    }
+    if (codePoint == Icons.medical_services_rounded.codePoint) {
+      return Icons.medical_services_rounded;
+    }
     if (codePoint == Icons.eco_rounded.codePoint) return Icons.eco_rounded;
-    if (codePoint == Icons.local_hospital_rounded.codePoint) return Icons.local_hospital_rounded;
-    if (codePoint == Icons.account_balance_rounded.codePoint) return Icons.account_balance_rounded;
-    if (codePoint == Icons.phone_in_talk_rounded.codePoint) return Icons.phone_in_talk_rounded;
-    
+    if (codePoint == Icons.local_hospital_rounded.codePoint) {
+      return Icons.local_hospital_rounded;
+    }
+    if (codePoint == Icons.account_balance_rounded.codePoint) {
+      return Icons.account_balance_rounded;
+    }
+    if (codePoint == Icons.phone_in_talk_rounded.codePoint) {
+      return Icons.phone_in_talk_rounded;
+    }
+
     // Fallback icon
     return Icons.phone_rounded;
   }
@@ -58,7 +74,9 @@ class EmergencyHotline {
       address: json['address'] as String,
       description: json['description'] as String? ?? '',
       // FIX: Used the safe mapper instead of dynamic IconData parsing
-      icon: _getSafeIconFromCode(json['iconCode'] as int? ?? Icons.phone_rounded.codePoint),
+      icon: _getSafeIconFromCode(
+        json['iconCode'] as int? ?? Icons.phone_rounded.codePoint,
+      ),
       // THIS IS THE FIX: Using Color.fromARGB32 instead of Color()
       color: Color(json['colorValue'] as int),
       isActive: json['isActive'] as bool? ?? true,
@@ -131,7 +149,7 @@ class EmergencyHotline {
   // Predefined emergency hotlines for Naic, Cavite
   static List<EmergencyHotline> getNaicPredefinedHotlines(String userId) {
     final now = DateTime.now();
-    
+
     return [
       EmergencyHotline(
         id: 'predefined_police_$userId',

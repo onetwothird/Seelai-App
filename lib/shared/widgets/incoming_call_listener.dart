@@ -13,7 +13,7 @@ import 'package:seelai_app/roles/caretaker/home/sections/home_screen/communicati
 
 class IncomingCallListener extends StatefulWidget {
   final Widget child;
-  final String userRole; 
+  final String userRole;
 
   const IncomingCallListener({
     super.key,
@@ -27,7 +27,7 @@ class IncomingCallListener extends StatefulWidget {
 
 class _IncomingCallListenerState extends State<IncomingCallListener> {
   StreamSubscription<DatabaseEvent>? _callSubscription;
-  
+
   // Stricter state management to prevent "Ghost Dialogs" and accidental screen pops
   String? _currentRingingCallId;
   bool _isDialogShowing = false;
@@ -45,45 +45,47 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     if (currentUserId == null) return;
 
     // We listen to the path where the OTHER user writes their calls
-    String listenPath = widget.userRole == 'caretaker' 
-        ? 'partially_sighted_communication' 
+    String listenPath = widget.userRole == 'caretaker'
+        ? 'partially_sighted_communication'
         : 'caretaker_communication';
 
     _callSubscription = callTrackingService
         .listenForIncomingCalls(listenPath, currentUserId)
         .listen((event) async {
-      if (!event.snapshot.exists) return;
+          if (!event.snapshot.exists) return;
 
-      final calls = event.snapshot.value as Map<dynamic, dynamic>;
-      
-      for (var entry in calls.entries) {
-        final callId = entry.key.toString();
-        final callData = Map<String, dynamic>.from(entry.value as Map);
+          final calls = event.snapshot.value as Map<dynamic, dynamic>;
 
-        if (callData['status'] == 'calling') {
-          // Check if this is a recent call (prevent stale rings from past crashes)
-          final timestamp = callData['timestamp'] as int? ?? 0;
-          final now = DateTime.now().millisecondsSinceEpoch;
-          
-          if (now - timestamp < 45000) { // Call must be newer than 45 seconds
-            if (!_isDialogShowing && !_isProcessingCall) {
-              await _showIncomingCallDialog(
-                callId: callId,
-                callerId: callData['callerId'],
-                callType: callData['type'] ?? 'video',
-                listenPath: listenPath,
-              );
+          for (var entry in calls.entries) {
+            final callId = entry.key.toString();
+            final callData = Map<String, dynamic>.from(entry.value as Map);
+
+            if (callData['status'] == 'calling') {
+              // Check if this is a recent call (prevent stale rings from past crashes)
+              final timestamp = callData['timestamp'] as int? ?? 0;
+              final now = DateTime.now().millisecondsSinceEpoch;
+
+              if (now - timestamp < 45000) {
+                // Call must be newer than 45 seconds
+                if (!_isDialogShowing && !_isProcessingCall) {
+                  await _showIncomingCallDialog(
+                    callId: callId,
+                    callerId: callData['callerId'],
+                    callType: callData['type'] ?? 'video',
+                    listenPath: listenPath,
+                  );
+                }
+              }
+            } else if (callData['status'] == 'ended' ||
+                callData['status'] == 'cancelled' ||
+                callData['status'] == 'missed') {
+              // If the current ringing call was ended remotely, close the dialog safely
+              if (_currentRingingCallId == callId) {
+                _closeDialogSafely();
+              }
             }
           }
-        } 
-        else if (callData['status'] == 'ended' || callData['status'] == 'cancelled' || callData['status'] == 'missed') {
-          // If the current ringing call was ended remotely, close the dialog safely
-          if (_currentRingingCallId == callId) {
-            _closeDialogSafely();
-          }
-        }
-      }
-    });
+        });
   }
 
   Future<void> _showIncomingCallDialog({
@@ -95,30 +97,37 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
     _isProcessingCall = true;
     _currentRingingCallId = callId;
 
-    String callerRole = widget.userRole == 'caretaker' ? 'partially_sighted' : 'caretaker';
-    Map<String, dynamic>? callerData = await databaseService.getUserDataByRole(callerId, callerRole);
-    
+    String callerRole = widget.userRole == 'caretaker'
+        ? 'partially_sighted'
+        : 'caretaker';
+    Map<String, dynamic>? callerData = await databaseService.getUserDataByRole(
+      callerId,
+      callerRole,
+    );
+
     // Critical Check: Did the caller hang up while we were awaiting the database fetch?
     if (!mounted || _currentRingingCallId != callId) {
       _isProcessingCall = false;
-      return; 
+      return;
     }
 
     String callerName = callerData?['name'] ?? 'Unknown Caller';
     String? callerImage = callerData?['profileImageUrl'];
-    
+
     _isDialogShowing = true;
     _isProcessingCall = false;
 
     showDialog(
       context: context,
-      barrierDismissible: false, 
+      barrierDismissible: false,
       builder: (BuildContext dialogContext) {
         _dialogContext = dialogContext; // Store the exact context of the dialog
 
         return AlertDialog(
           backgroundColor: const Color(0xFF1E293B),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: Column(
             children: [
               CircleAvatar(
@@ -128,7 +137,11 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
                     ? NetworkImage(callerImage)
                     : null,
                 child: callerImage == null || callerImage.isNotEmpty == false
-                    ? const Icon(Icons.person, size: 40, color: Color(0xFF8B5CF6))
+                    ? const Icon(
+                        Icons.person,
+                        size: 40,
+                        color: Color(0xFF8B5CF6),
+                      )
                     : null,
               ),
               const SizedBox(height: 16),
@@ -140,7 +153,11 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
               Text(
                 callerName,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
@@ -166,11 +183,12 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
               backgroundColor: const Color(0xFF22C55E),
               onPressed: () {
                 _closeDialogSafely(); // Pops the dialog
-                
+
                 _navigateToCallScreen(
-                  callId: callId, 
-                  callType: callType, 
-                  callerData: callerData ?? {'id': callerId, 'name': callerName},
+                  callId: callId,
+                  callType: callType,
+                  callerData:
+                      callerData ?? {'id': callerId, 'name': callerName},
                   listenPath: listenPath,
                 );
               },
@@ -189,8 +207,8 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
 
   void _closeDialogSafely() {
     // Nullify the ringing ID immediately so pending awaits abort
-    _currentRingingCallId = null; 
-    
+    _currentRingingCallId = null;
+
     // Only pop if we have the specific dialog context to prevent popping the parent screen
     if (_isDialogShowing && _dialogContext != null && _dialogContext!.mounted) {
       Navigator.of(_dialogContext!).pop();
@@ -205,22 +223,46 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
   }) {
     if (widget.userRole == 'caretaker') {
       if (callType == 'video') {
-        CaretakerVideoCallScreen.startCall(context, callerData, callId: callId, isCaller: false, callPath: listenPath);
+        CaretakerVideoCallScreen.startCall(
+          context,
+          callerData,
+          callId: callId,
+          isCaller: false,
+          callPath: listenPath,
+        );
       } else {
-        CaretakerVoiceCallScreen.startCall(context, callerData, callId: callId, isCaller: false, callPath: listenPath);
+        CaretakerVoiceCallScreen.startCall(
+          context,
+          callerData,
+          callId: callId,
+          isCaller: false,
+          callPath: listenPath,
+        );
       }
     } else {
       // Wrap caller data so the Patient UI has the expected 'assignedCaretakers' structure
       Map<String, dynamic> mockUserData = {
         'assignedCaretakers': {
-          callerData['id'] ?? callerData['userId'] ?? 'caretaker': callerData
-        }
+          callerData['id'] ?? callerData['userId'] ?? 'caretaker': callerData,
+        },
       };
 
       if (callType == 'video') {
-        VideoCallScreen.startCall(context, mockUserData, callId: callId, isCaller: false, callPath: listenPath);
+        VideoCallScreen.startCall(
+          context,
+          mockUserData,
+          callId: callId,
+          isCaller: false,
+          callPath: listenPath,
+        );
       } else {
-        VoiceCallScreen.startCall(context, mockUserData, callId: callId, isCaller: false, callPath: listenPath);
+        VoiceCallScreen.startCall(
+          context,
+          mockUserData,
+          callId: callId,
+          isCaller: false,
+          callPath: listenPath,
+        );
       }
     }
   }

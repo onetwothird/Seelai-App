@@ -5,13 +5,16 @@ import 'package:seelai_app/firebase/partially_sighted/caretaker_patient_service.
 
 class PatientService {
   final DatabaseService _databaseService = databaseService;
-  final CaretakerPatientService _caretakerPatientService = caretakerPatientService;
+  final CaretakerPatientService _caretakerPatientService =
+      caretakerPatientService;
 
   // Get all assigned patients for a caretaker
   Future<List<PatientModel>> getAssignedPatients(String caretakerId) async {
     try {
-      final patientsData = await _caretakerPatientService.getCaretakerPatients(caretakerId);
-      
+      final patientsData = await _caretakerPatientService.getCaretakerPatients(
+        caretakerId,
+      );
+
       return patientsData.map((data) {
         return PatientModel.fromJson(data, data['userId'] as String);
       }).toList();
@@ -28,7 +31,7 @@ class PatientService {
         patientId,
         'partially_sighted',
       );
-      
+
       if (patientData != null) {
         return PatientModel.fromJson(patientData, patientId);
       }

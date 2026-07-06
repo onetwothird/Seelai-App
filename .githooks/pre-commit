@@ -1,0 +1,21 @@
+#!/usr/bin/env pwsh
+# Pre-commit hook for Windows PowerShell: runs flutter analyze and blocks large file commits
+Write-Host "Running pre-commit checks..."
+try {
+  flutter analyze
+  if ($LASTEXITCODE -ne 0) { Write-Host "flutter analyze failed. Commit aborted."; exit 1 }
+} catch {
+  Write-Host "flutter analyze not available. Skipping analysis." -ForegroundColor Yellow
+}
+
+# Prevent committing files larger than 1MB
+$large = git diff --cached --name-only --diff-filter=ACM | ForEach-Object { if (Test-Path $_) { Get-Item $_ } } | Where-Object { $_.Length -gt 1MB }
+if ($large) {
+  Write-Host "Commit contains files larger than 1MB:" -ForegroundColor Red
+  $large | ForEach-Object { Write-Host $_.FullName }
+  Write-Host "Please remove large files or add them to LFS. Commit aborted." -ForegroundColor Red
+  exit 1
+}
+
+Write-Host "Pre-commit checks passed." -ForegroundColor Green
+exit 0

@@ -62,13 +62,16 @@ flutter:
 
   assets:
     - .env
-    - assets/
     - assets/icons/
-    - assets/object_model/
-    - assets/face_model/
+    - assets/models/
     - assets/emergency_images/
-    - assets/icons/
-    - assets/seelai-icons/
+    # Only include the seelai icons that are referenced to avoid packaging unused images
+    - assets/seelai-icons/seelai0.png
+    - assets/seelai-icons/seelai2.png
+    - assets/seelai-icons/seelai3.png
+    - assets/seelai-icons/seelai4.png
+    - assets/seelai-icons/seelai_model.gif
+    - assets/seelai-icons/seelai_loaders.gif
     - assets/onboarding_icons/
     - assets/seelai_app_logo/
     - assets/how-to-use-seelai_images/partially_sighted/

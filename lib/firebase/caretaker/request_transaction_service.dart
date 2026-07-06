@@ -9,7 +9,8 @@ class RequestTransaction {
   final String requestId;
   final String patientId;
   final String? caretakerId;
-  final String action; // 'created', 'accepted', 'declined', 'inProgress', 'completed'
+  final String
+  action; // 'created', 'accepted', 'declined', 'inProgress', 'completed'
   final RequestStatus status;
   final DateTime timestamp;
   final String? notes;
@@ -79,12 +80,11 @@ class RequestTransactionService {
   final FirebaseDatabase _database = databaseService.database;
 
   /// Log a new request creation
-  Future<void> logRequestCreated(
-    RequestModel request,
-  ) async {
+  Future<void> logRequestCreated(RequestModel request) async {
     try {
-      String transactionId = _database.ref('request_transactions').push().key ?? '';
-      
+      String transactionId =
+          _database.ref('request_transactions').push().key ?? '';
+
       final transaction = RequestTransaction(
         id: transactionId,
         requestId: request.id,
@@ -115,8 +115,9 @@ class RequestTransactionService {
     String caretakerId,
   ) async {
     try {
-      String transactionId = _database.ref('request_transactions').push().key ?? '';
-      
+      String transactionId =
+          _database.ref('request_transactions').push().key ?? '';
+
       final transaction = RequestTransaction(
         id: transactionId,
         requestId: requestId,
@@ -144,8 +145,9 @@ class RequestTransactionService {
     String reason,
   ) async {
     try {
-      String transactionId = _database.ref('request_transactions').push().key ?? '';
-      
+      String transactionId =
+          _database.ref('request_transactions').push().key ?? '';
+
       final transaction = RequestTransaction(
         id: transactionId,
         requestId: requestId,
@@ -173,8 +175,9 @@ class RequestTransactionService {
     String caretakerId,
   ) async {
     try {
-      String transactionId = _database.ref('request_transactions').push().key ?? '';
-      
+      String transactionId =
+          _database.ref('request_transactions').push().key ?? '';
+
       final transaction = RequestTransaction(
         id: transactionId,
         requestId: requestId,
@@ -202,8 +205,9 @@ class RequestTransactionService {
     String notes,
   ) async {
     try {
-      String transactionId = _database.ref('request_transactions').push().key ?? '';
-      
+      String transactionId =
+          _database.ref('request_transactions').push().key ?? '';
+
       final transaction = RequestTransaction(
         id: transactionId,
         requestId: requestId,
@@ -225,7 +229,9 @@ class RequestTransactionService {
   }
 
   /// Get all transactions for a specific request
-  Future<List<RequestTransaction>> getRequestTransactions(String requestId) async {
+  Future<List<RequestTransaction>> getRequestTransactions(
+    String requestId,
+  ) async {
     try {
       DatabaseEvent event = await _database
           .ref('request_transactions')
@@ -237,10 +243,9 @@ class RequestTransactionService {
       if (event.snapshot.exists) {
         Map<dynamic, dynamic> data = event.snapshot.value as Map;
         data.forEach((key, value) {
-          transactions.add(RequestTransaction.fromJson(
-            Map<String, dynamic>.from(value),
-            key,
-          ));
+          transactions.add(
+            RequestTransaction.fromJson(Map<String, dynamic>.from(value), key),
+          );
         });
       }
       return transactions;
@@ -251,7 +256,9 @@ class RequestTransactionService {
   }
 
   /// Get all transactions for a caretaker
-  Future<List<RequestTransaction>> getCaretakerTransactions(String caretakerId) async {
+  Future<List<RequestTransaction>> getCaretakerTransactions(
+    String caretakerId,
+  ) async {
     try {
       DatabaseEvent event = await _database
           .ref('request_transactions')
@@ -263,10 +270,9 @@ class RequestTransactionService {
       if (event.snapshot.exists) {
         Map<dynamic, dynamic> data = event.snapshot.value as Map;
         data.forEach((key, value) {
-          transactions.add(RequestTransaction.fromJson(
-            Map<String, dynamic>.from(value),
-            key,
-          ));
+          transactions.add(
+            RequestTransaction.fromJson(Map<String, dynamic>.from(value), key),
+          );
         });
       }
       return transactions;
@@ -284,18 +290,20 @@ class RequestTransactionService {
         .equalTo(requestId)
         .onValue
         .map((event) {
-      List<RequestTransaction> transactions = [];
-      if (event.snapshot.exists) {
-        Map<dynamic, dynamic> data = event.snapshot.value as Map;
-        data.forEach((key, value) {
-          transactions.add(RequestTransaction.fromJson(
-            Map<String, dynamic>.from(value),
-            key,
-          ));
+          List<RequestTransaction> transactions = [];
+          if (event.snapshot.exists) {
+            Map<dynamic, dynamic> data = event.snapshot.value as Map;
+            data.forEach((key, value) {
+              transactions.add(
+                RequestTransaction.fromJson(
+                  Map<String, dynamic>.from(value),
+                  key,
+                ),
+              );
+            });
+          }
+          return transactions;
         });
-      }
-      return transactions;
-    });
   }
 }
 

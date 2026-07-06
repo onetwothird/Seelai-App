@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'all_detections_screen.dart';
-import 'detection_detail_screen.dart'; 
+import 'detection_detail_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
@@ -19,12 +19,14 @@ class RecentActivitiesContent extends StatefulWidget {
   });
 
   @override
-  State<RecentActivitiesContent> createState() => _RecentActivitiesContentState();
+  State<RecentActivitiesContent> createState() =>
+      _RecentActivitiesContentState();
 }
+
 class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
   final int maxDisplayedDetections = 5;
   String _selectedFilter = 'All';
-  
+
   // State management
   bool _isLoading = true;
   bool _isRefreshing = false;
@@ -40,7 +42,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
   // Optimized Fetching: Runs all 3 database calls at the exact same time
   Future<void> _fetchDetections() async {
     if (!mounted) return;
-    
+
     try {
       // Start all futures concurrently instead of waiting for them one by one
       final futures = await Future.wait([
@@ -53,30 +55,42 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
 
       // 1. Process Faces
       final faces = futures[0] as List<dynamic>;
-      combinedDetections.addAll(faces.map((face) => {
-        ...face as Map<String, dynamic>,
-        'type': 'face',
-        'icon': Icons.face_rounded,
-        'color': Colors.purple,
-      }));
+      combinedDetections.addAll(
+        faces.map(
+          (face) => {
+            ...face as Map<String, dynamic>,
+            'type': 'face',
+            'icon': Icons.face_rounded,
+            'color': Colors.purple,
+          },
+        ),
+      );
 
       // 2. Process Objects
       final objects = futures[1] as List<dynamic>;
-      combinedDetections.addAll(objects.map((obj) => {
-        ...obj as Map<String, dynamic>,
-        'type': 'object',
-        'icon': Icons.search_rounded,
-        'color': Colors.green,
-      }));
+      combinedDetections.addAll(
+        objects.map(
+          (obj) => {
+            ...obj as Map<String, dynamic>,
+            'type': 'object',
+            'icon': Icons.search_rounded,
+            'color': Colors.green,
+          },
+        ),
+      );
 
       // 3. Process Text
       final texts = futures[2] as List<dynamic>;
-      combinedDetections.addAll(texts.map((text) => {
-        ...text as Map<String, dynamic>,
-        'type': 'text',
-        'icon': Icons.document_scanner_rounded,
-        'color': Colors.orange,
-      }));
+      combinedDetections.addAll(
+        texts.map(
+          (text) => {
+            ...text as Map<String, dynamic>,
+            'type': 'text',
+            'icon': Icons.document_scanner_rounded,
+            'color': Colors.orange,
+          },
+        ),
+      );
 
       // Sort newest first
       combinedDetections.sort((a, b) {
@@ -107,7 +121,8 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
   void _refreshDetections() {
     setState(() {
       _isRefreshing = true;
-      _isLoading = _allDetectionsCache.isEmpty; // Only show main loader if cache is empty
+      _isLoading = _allDetectionsCache
+          .isEmpty; // Only show main loader if cache is empty
     });
     _fetchDetections();
   }
@@ -172,14 +187,14 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
               ),
             ],
           ),
-          
+
           SizedBox(height: spacingLarge),
-          
+
           // Filter chips
           _buildFilterChips(),
-          
+
           SizedBox(height: spacingLarge),
-          
+
           // Detections List with animation
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
@@ -197,7 +212,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                 ),
               );
             },
-            child: _buildDetectionsList(), 
+            child: _buildDetectionsList(),
           ),
         ],
       ),
@@ -246,9 +261,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                       border: Border.all(
                         color: isSelected
                             ? primary
-                            : (widget.isDarkMode 
-                                ? Colors.white.withValues(alpha: 0.05) 
-                                : Colors.black.withValues(alpha: 0.05)),
+                            : (widget.isDarkMode
+                                  ? Colors.white.withValues(alpha: 0.05)
+                                  : Colors.black.withValues(alpha: 0.05)),
                         width: 1,
                       ),
                     ),
@@ -308,8 +323,11 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     }
 
     // Show only first 5 detections
-    final displayedDetections = filteredDetections.take(maxDisplayedDetections).toList();
-    final hasMoreDetections = filteredDetections.length > maxDisplayedDetections;
+    final displayedDetections = filteredDetections
+        .take(maxDisplayedDetections)
+        .toList();
+    final hasMoreDetections =
+        filteredDetections.length > maxDisplayedDetections;
 
     return Column(
       key: ValueKey(_selectedFilter), // Triggers the AnimatedSwitcher
@@ -341,7 +359,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         // "View All Detections" button if more than 5
         if (hasMoreDetections)
           TweenAnimationBuilder<double>(
-            duration: Duration(milliseconds: 300 + (displayedDetections.length * 50)),
+            duration: Duration(
+              milliseconds: 300 + (displayedDetections.length * 50),
+            ),
             tween: Tween(begin: 0.0, end: 1.0),
             curve: Curves.easeOutCubic,
             builder: (context, value, child) {
@@ -362,9 +382,11 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
     );
   }
 
-  List<Map<String, dynamic>> _filterDetections(List<Map<String, dynamic>> detections) {
+  List<Map<String, dynamic>> _filterDetections(
+    List<Map<String, dynamic>> detections,
+  ) {
     if (_selectedFilter == 'All') return detections;
-    
+
     return detections.where((detection) {
       switch (_selectedFilter) {
         case 'Faces':
@@ -388,14 +410,15 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
 
     String title = '';
     String description = '';
-    String detectedLabel = ''; 
+    String detectedLabel = '';
 
     switch (type) {
       case 'face':
         final faceCount = detection['faceCount'] as int;
         title = 'Face Detection';
         detectedLabel = 'Face';
-        description = 'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
+        description =
+            'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
         break;
       case 'object':
         final objectCount = detection['objectCount'] as int;
@@ -403,20 +426,25 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         title = 'Object Detection';
         if (objects.isNotEmpty) {
           final firstObject = objects.first['label'] as String;
-          detectedLabel = '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
-          
+          detectedLabel =
+              '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
+
           if (objectCount > 1) {
-            final otherNames = objects.skip(1).take(2).map((o) => (o as Map)['label']).join(', ');
-            description = objectCount > 3 
+            final otherNames = objects
+                .skip(1)
+                .take(2)
+                .map((o) => (o as Map)['label'])
+                .join(', ');
+            description = objectCount > 3
                 ? '+$otherNames, +${objectCount - 3} more'
                 : '+$otherNames';
           } else {
-             final conf = objects.first['confidence'];
-             if (conf != null) {
-                description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
-             } else {
-                description = 'Detected 1 object';
-             }
+            final conf = objects.first['confidence'];
+            if (conf != null) {
+              description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
+            } else {
+              description = 'Detected 1 object';
+            }
           }
         } else {
           detectedLabel = 'Object';
@@ -430,7 +458,8 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         detectedLabel = 'Document';
         description = text.length > 40 ? '${text.substring(0, 40)}...' : text;
         if (description.isEmpty) {
-          description = 'Scanned $textBlockCount ${textBlockCount == 1 ? 'block' : 'blocks'}';
+          description =
+              'Scanned $textBlockCount ${textBlockCount == 1 ? 'block' : 'blocks'}';
         }
         break;
     }
@@ -462,8 +491,8 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
               borderRadius: BorderRadius.circular(radiusLarge),
               boxShadow: widget.isDarkMode ? [] : softShadow,
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
@@ -471,7 +500,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Image Thumbnail 
+                // Image Thumbnail
                 Container(
                   width: 70,
                   height: 70,
@@ -479,52 +508,57 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(radiusMedium),
                     border: Border.all(
-                      color: widget.isDarkMode 
-                          ? Colors.white.withValues(alpha: 0.05) 
+                      color: widget.isDarkMode
+                          ? Colors.white.withValues(alpha: 0.05)
                           : Colors.black.withValues(alpha: 0.05),
                       width: 1,
                     ),
                   ),
                   clipBehavior: Clip.antiAlias,
-                 child: imageUrl != null && imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    // ✅ Show shimmer/color while loading
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: color.withValues(alpha: 0.15),
-                        child: Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: color,
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
+                  child: imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          // ✅ Show shimmer/color while loading
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              color: color.withValues(alpha: 0.15),
+                              child: Center(
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: color,
+                                    value:
+                                        loadingProgress.expectedTotalBytes !=
+                                            null
+                                        ? loadingProgress
+                                                  .cumulativeBytesLoaded /
+                                              loadingProgress
+                                                  .expectedTotalBytes!
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            detection['icon'] as IconData? ??
+                                Icons.image_rounded,
+                            color: color,
+                            size: 30,
                           ),
+                        )
+                      : Icon(
+                          detection['icon'] as IconData? ?? Icons.image_rounded,
+                          color: color,
+                          size: 30,
                         ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      detection['icon'] as IconData? ?? Icons.image_rounded,
-                      color: color,
-                      size: 30,
-                    ),
-                  )
-                : Icon(
-                    detection['icon'] as IconData? ?? Icons.image_rounded,
-                    color: color,
-                    size: 30,
-                  ),
                 ),
                 SizedBox(width: spacingMedium),
-                
+
                 // Text Details
                 Expanded(
                   child: Column(
@@ -622,8 +656,8 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
@@ -631,11 +665,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.view_list_rounded,
-                  color: primary,
-                  size: 20,
-                ),
+                Icon(Icons.view_list_rounded, color: primary, size: 20),
                 SizedBox(width: spacingSmall),
                 Text(
                   'View All Detections ($totalCount)',
@@ -646,11 +676,7 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
                   ),
                 ),
                 SizedBox(width: spacingSmall),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  color: primary,
-                  size: 18,
-                ),
+                Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
               ],
             ),
           ),
@@ -672,8 +698,8 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -728,8 +754,8 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -772,7 +798,9 @@ class _RecentActivitiesContentState extends State<RecentActivitiesContent> {
   }
 
   Widget _buildErrorState() {
-    final errorColor = widget.isDarkMode ? Colors.red.shade400 : Colors.red.shade700;
+    final errorColor = widget.isDarkMode
+        ? Colors.red.shade400
+        : Colors.red.shade700;
     return Container(
       key: const ValueKey('error'),
       padding: EdgeInsets.all(spacingLarge),

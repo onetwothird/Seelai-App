@@ -32,10 +32,7 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
     );
 
     _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
 
     _checkAuthAndRoute();
@@ -44,7 +41,7 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
   Future<void> _checkAuthAndRoute() async {
     // 1. Wait for your splash animation to play out
     await Future.delayed(const Duration(milliseconds: 2500));
-    
+
     if (!mounted) return;
 
     // 2. Check Firebase for an existing session
@@ -53,8 +50,10 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
     if (currentUser != null) {
       try {
         // 3. Fetch the user's data from your database
-        Map<String, dynamic>? userData = await databaseService.getUserData(currentUser.uid);
-        
+        Map<String, dynamic>? userData = await databaseService.getUserData(
+          currentUser.uid,
+        );
+
         if (userData != null) {
           userData['uid'] = currentUser.uid;
           String userRole = userData['role'] ?? '';
@@ -65,17 +64,17 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
           if (userRole == 'partially_sighted') {
             bool hasCaretaker = false;
             if (userData['assignedCaretakers'] != null) {
-              Map<dynamic, dynamic> assignedCaretakers = userData['assignedCaretakers'] as Map;
+              Map<dynamic, dynamic> assignedCaretakers =
+                  userData['assignedCaretakers'] as Map;
               hasCaretaker = assignedCaretakers.isNotEmpty;
             }
             // Send to Home if they have a caretaker, otherwise send to selection screen
-            destinationScreen = hasCaretaker 
+            destinationScreen = hasCaretaker
                 ? PartiallySightedHomeScreen(userData: userData)
                 : CaretakerSelectionScreen(userData: userData);
-                
           } else if (userRole == 'caretaker') {
             destinationScreen = CaretakerHomeScreen(userData: userData);
-          } else if (userRole == 'admin' || userRole == 'mswd') { 
+          } else if (userRole == 'admin' || userRole == 'mswd') {
             destinationScreen = MSWDHomeScreen(userData: userData);
           } else {
             // Fallback if role is unknown
@@ -99,13 +98,12 @@ class _AnimatedSplashScreenWidgetState extends State<AnimatedSplashScreenWidget>
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) => destination,
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                destination,
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
             transitionDuration: const Duration(milliseconds: 600),
           ),
         );

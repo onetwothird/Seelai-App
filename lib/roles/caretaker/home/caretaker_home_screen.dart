@@ -3,21 +3,22 @@
 import 'dart:async';
 import 'dart:math' show sqrt; // === IMPORTED MATH FOR CIRCLE RADIUS ===
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart'; 
-import 'package:firebase_auth/firebase_auth.dart'; 
-import 'package:geolocator/geolocator.dart'; 
+import 'package:flutter/rendering.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/home_screen/caretaker_home_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patient_location/realtime_tracking_screen.dart';
 import 'package:seelai_app/themes/constants.dart';
-import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_header_section.dart' hide primary;
+import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_header_section.dart'
+    hide primary;
 import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_bottom_navigation.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patients_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/requests_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/profile_screen/caretaker_profile_content.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/roles/caretaker/services/notification_service.dart';
-import 'package:seelai_app/roles/caretaker/services/location_service.dart'; 
-import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart'; 
+import 'package:seelai_app/roles/caretaker/services/location_service.dart';
+import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 import 'package:seelai_app/roles/caretaker/home/widgets/caretaker_notifications_bottom_sheet.dart';
 import 'package:seelai_app/shared/widgets/incoming_call_listener.dart';
@@ -27,43 +28,41 @@ import 'package:seelai_app/roles/caretaker/home/sections/home_screen/communicati
 class CaretakerHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const CaretakerHomeScreen({
-    super.key,
-    required this.userData,
-  });
+  const CaretakerHomeScreen({super.key, required this.userData});
 
   @override
   State<CaretakerHomeScreen> createState() => _CaretakerHomeScreenState();
 }
 
-class _CaretakerHomeScreenState extends State<CaretakerHomeScreen> 
-    with TickerProviderStateMixin { // Changed to TickerProviderStateMixin
+class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
+    with TickerProviderStateMixin {
+  // Changed to TickerProviderStateMixin
   // Services
   late final NotificationService _notificationService;
   late final LocationService _locationService;
   late final RequestService _requestService;
-  
+
   // UI State
   bool _isDarkMode = false;
-  
+
   // === THE SECRET SAUCE: Holding the old state while we animate ===
-  bool? _previousIsDarkMode; 
-  
+  bool? _previousIsDarkMode;
+
   int _selectedIndex = 0;
   int _pendingRequestsCount = 0;
-  
+
   // Logic State
   StreamSubscription<List<RequestModel>>? _requestsSubscription;
-  int? _lastPendingCount; 
+  int? _lastPendingCount;
 
   // Animation
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  
+
   // === NEW: Circular Reveal Variables ===
   late AnimationController _revealController;
   late Animation<double> _revealAnimation;
-  
+
   // Scroll Navigation State
   bool _isNavVisible = true;
 
@@ -94,7 +93,9 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     final String userId = rawId;
     debugPrint("Home Screen: Monitoring requests for $userId");
 
-    _requestsSubscription = _requestService.streamRequests(userId).listen((requests) {
+    _requestsSubscription = _requestService.streamRequests(userId).listen((
+      requests,
+    ) {
       if (mounted) {
         final pendingCount = requests
             .where((req) => req.status == RequestStatus.pending)
@@ -123,12 +124,12 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return;
       }
-      
+
       if (permission == LocationPermission.deniedForever) return;
 
       String? rawId = FirebaseAuth.instance.currentUser?.uid;
       rawId ??= widget.userData['userId'] ?? widget.userData['uid'];
-      
+
       if (rawId == null) return;
       final String userId = rawId;
 
@@ -138,7 +139,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
             accuracy: LocationAccuracy.high,
           ),
         );
-        
+
         await locationTrackingService.updateCaretakerLocation(
           caretakerId: userId,
           latitude: position.latitude,
@@ -155,11 +156,11 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 10, 
+          distanceFilter: 10,
         ),
       ).listen((Position position) {
         locationTrackingService.updateCaretakerLocation(
-          caretakerId: userId, 
+          caretakerId: userId,
           latitude: position.latitude,
           longitude: position.longitude,
           accuracy: position.accuracy,
@@ -168,7 +169,6 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           altitude: position.altitude,
         );
       });
-      
     } catch (e) {
       debugPrint("Location tracking error: $e");
     }
@@ -179,19 +179,22 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOutCubic),
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOutCubic,
+      ),
     );
-    
+
     _animationController.forward();
-    
+
     // === NEW: Initialize the Circular Reveal animation ===
     _revealController = AnimationController(
-      duration: const Duration(milliseconds: 800), 
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _revealAnimation = CurvedAnimation(
       parent: _revealController,
       curve: Curves.easeInOutCubic,
@@ -200,11 +203,11 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
   void _toggleDarkMode() {
     // Prevent spam clicking while it's animating
-    if (_revealController.isAnimating) return; 
+    if (_revealController.isAnimating) return;
 
     setState(() {
       // 1. Lock in the old theme state for the bottom layer
-      _previousIsDarkMode = _isDarkMode; 
+      _previousIsDarkMode = _isDarkMode;
       // 2. Set the new theme state for the top expanding layer
       _isDarkMode = !_isDarkMode;
     });
@@ -214,7 +217,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       if (mounted) {
         setState(() {
           // 4. Once fully expanded, destroy the old bottom layer
-          _previousIsDarkMode = null; 
+          _previousIsDarkMode = null;
         });
       }
     });
@@ -222,11 +225,11 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
   void _onNavItemTapped(int index) {
     if (index == _selectedIndex) return;
-    
+
     _animationController.reset();
     setState(() {
       _selectedIndex = index;
-      _isNavVisible = true; 
+      _isNavVisible = true;
     });
     _animationController.forward();
   }
@@ -247,66 +250,86 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
-        _isNavVisible = true; 
+        _isNavVisible = true;
         _animationController.reset();
         _animationController.forward();
       });
-      return false; 
+      return false;
     }
 
     return (await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)), 
-            const SizedBox(width: 10),
-            Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to exit and log out?',
-          style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop(false);
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) => const OnboardingScreen(),
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: _isDarkMode
+                ? const Color(0xFF1A1F3A)
+                : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)),
+                const SizedBox(width: 10),
+                Text(
+                  'Exit App?',
+                  style: TextStyle(
+                    color: _isDarkMode ? Colors.white : Colors.black,
                   ),
-                  (route) => false, 
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Exit', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+            content: Text(
+              'Are you sure you want to exit and log out?',
+              style: TextStyle(
+                color: _isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop(false);
+                  await FirebaseAuth.instance.signOut();
+                  if (context.mounted) {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (context) => const OnboardingScreen(),
+                      ),
+                      (route) => false,
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                ),
+                child: const Text(
+                  'Exit',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-    )) ?? false;   
+        )) ??
+        false;
   }
 
   @override
   Widget build(BuildContext context) {
     return IncomingCallListener(
-      userRole: 'caretaker', 
+      userRole: 'caretaker',
       child: PopScope(
-        canPop: false, 
+        canPop: false,
         onPopInvokedWithResult: (bool didPop, Object? result) async {
-          if (didPop) return; 
+          if (didPop) return;
 
           final bool shouldPop = await _onWillPop();
-          
+
           if (shouldPop && context.mounted) {
             Navigator.of(context).pop(result);
           }
@@ -314,8 +337,11 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         child: AnimatedBuilder(
           animation: _revealAnimation,
           builder: (context, child) {
-            final centerOffset = Offset(MediaQuery.of(context).size.width - 48, 65);
-            
+            final centerOffset = Offset(
+              MediaQuery.of(context).size.width - 48,
+              65,
+            );
+
             return Stack(
               children: [
                 if (_previousIsDarkMode != null)
@@ -323,7 +349,9 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
                 ClipPath(
                   clipper: ThemeRevealClipper(
-                    fraction: _revealController.isAnimating ? _revealAnimation.value : 1.0,
+                    fraction: _revealController.isAnimating
+                        ? _revealAnimation.value
+                        : 1.0,
                     center: centerOffset,
                   ),
                   child: _buildScaffoldLayer(isDarkLayer: _isDarkMode),
@@ -343,7 +371,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
 
     return Scaffold(
       extendBody: true,
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: BoxDecoration(gradient: theme.backgroundGradient),
         child: SafeArea(
@@ -355,7 +383,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
               } else if (notification.direction == ScrollDirection.reverse) {
                 if (_isNavVisible) setState(() => _isNavVisible = false);
               }
-              return false; 
+              return false;
             },
             child: Stack(
               children: [
@@ -365,22 +393,25 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                     screenWidth,
                     screenHeight,
                     theme,
-                    isDarkLayer, 
+                    isDarkLayer,
                   ),
                 ),
 
                 CaretakerMissedCallAlertSection(
-                  caretakerId: FirebaseAuth.instance.currentUser?.uid ?? widget.userData['userId'] ?? widget.userData['uid'] ?? '',
+                  caretakerId:
+                      FirebaseAuth.instance.currentUser?.uid ??
+                      widget.userData['userId'] ??
+                      widget.userData['uid'] ??
+                      '',
                   isDarkMode: isDarkLayer,
                   theme: theme,
                 ),
 
-            
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOutCubic,
-                  bottom: (_isNavVisible || _selectedIndex != 4) 
-                      ? -100 
+                  bottom: (_isNavVisible || _selectedIndex != 4)
+                      ? -100
                       : MediaQuery.of(context).padding.bottom + 20,
                   left: 0,
                   right: 0,
@@ -393,14 +424,17 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
                       label: Text(
                         'Show Menu',
                         style: TextStyle(
-                          color: theme.textColor, 
+                          color: theme.textColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.cardColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                         shape: const StadiumBorder(),
                         elevation: 8,
                         shadowColor: Colors.black26,
@@ -413,7 +447,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
           ),
         ),
       ),
-    
+
       bottomNavigationBar: AnimatedSlide(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOutCubic,
@@ -434,38 +468,44 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     );
   }
 
-  Widget _buildMainContent(double width, double height, _AppTheme theme, bool isDarkLayer) {
+  Widget _buildMainContent(
+    double width,
+    double height,
+    _AppTheme theme,
+    bool isDarkLayer,
+  ) {
     Widget buildScrollableHeader() {
       final caretakerName = widget.userData['name'] ?? 'Caretaker';
       return HeaderSection(
         caretakerName: caretakerName,
-        profileImageUrl: widget.userData['profileImageUrl'] as String?, 
+        profileImageUrl: widget.userData['profileImageUrl'] as String?,
         isDarkMode: isDarkLayer, // Layer state
         pendingRequestsCount: _pendingRequestsCount,
         onToggleDarkMode: _toggleDarkMode,
         onProfileTap: () {
           setState(() {
-            _selectedIndex = 3; 
-            _isNavVisible = true; 
+            _selectedIndex = 3;
+            _isNavVisible = true;
           });
         },
         onNotificationTap: () {
-          String? currentUserId = FirebaseAuth.instance.currentUser?.uid ?? 
-                                  widget.userData['userId'] ?? 
-                                  widget.userData['uid'];
-                                  
+          String? currentUserId =
+              FirebaseAuth.instance.currentUser?.uid ??
+              widget.userData['userId'] ??
+              widget.userData['uid'];
+
           if (currentUserId == null) return;
 
           showModalBottomSheet(
             context: context,
-            isScrollControlled: true, 
-            backgroundColor: Colors.transparent, 
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
             builder: (context) => SizedBox(
-              height: height * 0.85, 
+              height: height * 0.85,
               child: NotificationsBottomSheet(
                 caretakerId: currentUserId,
                 isDarkMode: isDarkLayer,
-                requestService: _requestService, 
+                requestService: _requestService,
               ),
             ),
           );
@@ -479,7 +519,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
     switch (_selectedIndex) {
       case 0:
         content = SingleChildScrollView(
-          physics: const ClampingScrollPhysics(), 
+          physics: const ClampingScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -525,7 +565,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
         break;
       case 3:
         content = SingleChildScrollView(
-          physics: const ClampingScrollPhysics(), 
+          physics: const ClampingScrollPhysics(),
           child: ProfileContent(
             userData: widget.userData,
             isDarkMode: isDarkLayer, // Layer state
@@ -564,16 +604,10 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
         return Stack(
           alignment: Alignment.topCenter,
-          children: <Widget>[
-            ...previousChildren,
-            ?currentChild,
-          ],
+          children: <Widget>[...previousChildren, ?currentChild],
         );
       },
-      child: SizedBox(
-        key: ValueKey<int>(_selectedIndex),
-        child: content,
-      ),
+      child: SizedBox(key: ValueKey<int>(_selectedIndex), child: content),
     );
   }
 
@@ -596,7 +630,7 @@ class _CaretakerHomeScreenState extends State<CaretakerHomeScreen>
       backgroundGradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Colors.white, Colors.white], 
+        colors: [Colors.white, Colors.white],
       ),
       textColor: Colors.black,
       subtextColor: Colors.grey,
@@ -631,9 +665,11 @@ class ThemeRevealClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     // Calculates the absolute longest distance from the toggle button to the furthest corner
-    final double maxRadius = sqrt(size.width * size.width + size.height * size.height);
+    final double maxRadius = sqrt(
+      size.width * size.width + size.height * size.height,
+    );
     final double radius = maxRadius * fraction;
-    
+
     return Path()..addOval(Rect.fromCircle(center: center, radius: radius));
   }
 

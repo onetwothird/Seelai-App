@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:flutter_tts/flutter_tts.dart';
 import 'contact_model.dart';
 
 class CallContact {
@@ -33,12 +33,13 @@ class CallContact {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(3)}';
     } else if (cleanPhoneNumber.startsWith('63')) {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(2)}';
-    } else if (cleanPhoneNumber.length == 10 && !cleanPhoneNumber.startsWith('0')) {
-      cleanPhoneNumber = '0$cleanPhoneNumber'; 
+    } else if (cleanPhoneNumber.length == 10 &&
+        !cleanPhoneNumber.startsWith('0')) {
+      cleanPhoneNumber = '0$cleanPhoneNumber';
     }
 
     final Uri telUri = Uri(scheme: 'tel', path: cleanPhoneNumber);
-    
+
     try {
       if (await canLaunchUrl(telUri)) {
         final currentUser = FirebaseAuth.instance.currentUser;
@@ -52,7 +53,7 @@ class CallContact {
 
         await launchUrl(telUri);
         await _speak('Calling ${contact.name}');
-        
+
         // MOVED: The mounted check must be immediately before using the context
         if (!context.mounted) return;
 
@@ -69,7 +70,7 @@ class CallContact {
     } catch (e) {
       debugPrint('Error making call: $e');
       if (!context.mounted) return;
-      
+
       _showCallOptions(context, contact, cleanPhoneNumber, isDarkMode, theme);
     }
   }
@@ -114,7 +115,10 @@ class CallContact {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Cancel', style: body.copyWith(color: theme.subtextColor)),
+            child: Text(
+              'Cancel',
+              style: body.copyWith(color: theme.subtextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -143,13 +147,16 @@ class CallContact {
     );
   }
 
-  static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
+  static Future<void> _copyPhoneNumber(
+    BuildContext context,
+    String phoneNumber,
+  ) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     await _speak('Phone number copied to clipboard');
-    
+
     // MOVED: The mounted check must be immediately before using the context
     if (!context.mounted) return;
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Phone number copied to clipboard'),
@@ -165,7 +172,7 @@ class CallContact {
     ContactModel contact,
   ) async {
     final Uri alternativeUri = Uri.parse('tel://$phoneNumber');
-    
+
     try {
       if (await canLaunchUrl(alternativeUri)) {
         await launchUrl(alternativeUri);
@@ -175,7 +182,7 @@ class CallContact {
       }
     } catch (e) {
       await _speak('Unable to make call. Please use your phone dialer.');
-      
+
       // MOVED: The mounted check must be immediately before using the context
       if (!context.mounted) return;
 

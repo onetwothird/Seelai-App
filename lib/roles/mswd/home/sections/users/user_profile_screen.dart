@@ -5,7 +5,7 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:flutter_tts/flutter_tts.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final bool isDarkMode;
@@ -30,10 +30,10 @@ class UserProfileScreen extends StatefulWidget {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   Map<String, dynamic>? _fullUserData;
   bool _isLoading = true;
-  bool _isProcessingAction = false; 
+  bool _isProcessingAction = false;
   final ScrollController _scrollController = ScrollController();
   bool _isScrolled = false;
-  
+
   final FlutterTts _flutterTts = FlutterTts();
 
   @override
@@ -46,7 +46,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _initTts() async {
     await _flutterTts.setLanguage("en-US");
-    await _flutterTts.setSpeechRate(0.5); 
+    await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
   }
@@ -65,7 +65,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadFullUserData() async {
     try {
-      final userId = widget.selectedUser['userId'] ?? widget.selectedUser['uid'];
+      final userId =
+          widget.selectedUser['userId'] ?? widget.selectedUser['uid'];
       final role = widget.selectedUser['role'];
 
       if (userId == null || role == null) {
@@ -80,7 +81,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (mounted) {
         setState(() {
           _fullUserData = data;
-          _fullUserData?['userId'] = userId; 
+          _fullUserData?['userId'] = userId;
           _isLoading = false;
         });
       }
@@ -92,7 +93,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   void dispose() {
-    _flutterTts.stop(); 
+    _flutterTts.stop();
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
@@ -100,13 +101,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _handleCallUser() async {
     if (_fullUserData == null) return;
-    
+
     final name = _fullUserData?['name'] ?? 'the user';
     await _speak("Calling $name");
-    
+
     // GUARD FOR ASYNC GAP
     if (!mounted) return;
-    
+
     await MswdCallService.call(
       context: context,
       user: _fullUserData!,
@@ -122,12 +123,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() => _isProcessingAction = true);
     try {
       await adminService.approveCaretaker(userId);
-      
+
       // GUARD FOR ASYNC GAP (Already handled by if (mounted))
       if (mounted) {
         _speak("Caretaker approved successfully");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Caretaker approved successfully'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Caretaker approved successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
         await _loadFullUserData();
         if (widget.onDataChanged != null) widget.onDataChanged!();
@@ -151,11 +155,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reject Application'),
-        content: const Text('Are you sure you want to reject this caretaker? This action cannot be undone immediately.'),
+        content: const Text(
+          'Are you sure you want to reject this caretaker? This action cannot be undone immediately.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true), 
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Reject'),
           ),
@@ -168,14 +177,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     setState(() => _isProcessingAction = true);
     try {
       await adminService.rejectCaretaker(userId);
-      
+
       // GUARD FOR ASYNC GAP
       if (mounted) {
         _speak("Caretaker application rejected");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Caretaker application rejected'), backgroundColor: Colors.orange),
+          const SnackBar(
+            content: Text('Caretaker application rejected'),
+            backgroundColor: Colors.orange,
+          ),
         );
-        Navigator.pop(context); 
+        Navigator.pop(context);
         if (widget.onDataChanged != null) widget.onDataChanged!();
       }
     } catch (e) {
@@ -189,8 +201,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   Widget _buildProfileSkeleton() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -199,23 +215,65 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
         child: Column(
           children: [
-            Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 16),
             Container(width: 150, height: 24, color: Colors.white),
             const SizedBox(height: 8),
-            Container(width: 80, height: 20, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            Container(
+              width: 80,
+              height: 20,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             const SizedBox(height: 24),
             Row(
               children: [
-                Expanded(child: Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
-            Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 140,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 16),
-            Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 140,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
           ],
         ),
       ),
@@ -224,10 +282,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
+    final bgColor = widget.isDarkMode
+        ? const Color(0xFF0A0E27)
+        : const Color(0xFFFAFAFA);
     final cardColor = widget.theme.cardColor;
     final textColor = widget.theme.textColor;
-    
+
     final role = widget.selectedUser['role'];
     final isCaretaker = role == 'caretaker';
     final isPending = isCaretaker && (_fullUserData?['approved'] == false);
@@ -236,7 +296,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: _isScrolled ? Colors.white : Colors.transparent,
-        surfaceTintColor: Colors.white, 
+        surfaceTintColor: Colors.white,
         elevation: _isScrolled ? 2 : 0,
         shadowColor: Colors.black.withValues(alpha: 0.05),
         centerTitle: true,
@@ -245,17 +305,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           decoration: BoxDecoration(
             color: cardColor,
             shape: BoxShape.circle,
-            boxShadow: widget.isDarkMode ? [] : [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
-            ],
+            boxShadow: widget.isDarkMode
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                    ),
+                  ],
           ),
           child: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF8B5CF6), size: 20),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: Color(0xFF8B5CF6),
+              size: 20,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
         ),
         title: Text(
-          isPending ? 'Verification Request' : (isCaretaker ? 'Caretaker Profile' : 'Patient Profile'),
+          isPending
+              ? 'Verification Request'
+              : (isCaretaker ? 'Caretaker Profile' : 'Patient Profile'),
           style: TextStyle(
             color: textColor,
             fontWeight: FontWeight.bold,
@@ -268,12 +339,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             decoration: BoxDecoration(
               color: cardColor,
               shape: BoxShape.circle,
-              boxShadow: widget.isDarkMode ? [] : [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
-              ],
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                      ),
+                    ],
             ),
             child: IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Color(0xFF8B5CF6), size: 20),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                color: Color(0xFF8B5CF6),
+                size: 20,
+              ),
               onPressed: _loadFullUserData,
             ),
           ),
@@ -297,23 +377,35 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             decoration: BoxDecoration(
                               color: Colors.orange.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: Colors.orange.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.orange,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         "Pending Approval",
-                                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange,
+                                        ),
                                       ),
                                       Text(
                                         "This user is waiting for verification.",
-                                        style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.7)),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: textColor.withOpacity(0.7),
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -333,32 +425,55 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         _buildSectionCard(
                           title: 'Personal Information',
                           icon: Icons.badge_rounded,
-                          color: const Color(0xFF8B5CF6), 
+                          color: const Color(0xFF8B5CF6),
                           children: [
                             // ID Number (Patients only)
                             if (!isCaretaker)
-                              _buildInfoRow('ID Number', _fullUserData?['idNumber'] ?? 'N/A', textColor),
-                            
+                              _buildInfoRow(
+                                'ID Number',
+                                _fullUserData?['idNumber'] ?? 'N/A',
+                                textColor,
+                              ),
+
                             // Gender (Both)
-                            _buildInfoRow('Gender', _fullUserData?['sex'] ?? 'N/A', textColor),
-                            
+                            _buildInfoRow(
+                              'Gender',
+                              _fullUserData?['sex'] ?? 'N/A',
+                              textColor,
+                            ),
+
                             // Birthdate (Patients only)
                             if (!isCaretaker)
-                              _buildInfoRow('Birthdate', _formatDate(_fullUserData?['birthdate']), textColor),
-                            
+                              _buildInfoRow(
+                                'Birthdate',
+                                _formatDate(_fullUserData?['birthdate']),
+                                textColor,
+                              ),
+
                             // Phone / Contact (Both)
                             _buildInfoRow(
-                              isCaretaker ? 'Phone Number' : 'Contact', 
-                              _fullUserData?['contactNumber'] ?? _fullUserData?['phone'] ?? 'N/A', 
-                              textColor
+                              isCaretaker ? 'Phone Number' : 'Contact',
+                              _fullUserData?['contactNumber'] ??
+                                  _fullUserData?['phone'] ??
+                                  'N/A',
+                              textColor,
                             ),
-                            
+
                             // Address (Patients only)
                             if (!isCaretaker)
-                              _buildInfoRow('Address', _fullUserData?['address'] ?? 'N/A', textColor, isMultiline: true),
-                            
+                              _buildInfoRow(
+                                'Address',
+                                _fullUserData?['address'] ?? 'N/A',
+                                textColor,
+                                isMultiline: true,
+                              ),
+
                             if (isCaretaker)
-                              _buildInfoRow('Patient Relation', _fullUserData?['relationship'] ?? 'N/A', textColor),
+                              _buildInfoRow(
+                                'Patient Relation',
+                                _fullUserData?['relationship'] ?? 'N/A',
+                                textColor,
+                              ),
                           ],
                           cardColor: cardColor,
                           textColor: textColor,
@@ -369,10 +484,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           _buildSectionCard(
                             title: 'Medical Details',
                             icon: Icons.medical_services_rounded,
-                            color: const Color(0xFF8B5CF6), 
+                            color: const Color(0xFF8B5CF6),
                             children: [
-                              _buildInfoRow('Category', _fullUserData?['disabilityType'] ?? 'N/A', textColor),
-                              _buildInfoRow('Diagnosis', _fullUserData?['diagnosis'] ?? 'Not specified', textColor),
+                              _buildInfoRow(
+                                'Category',
+                                _fullUserData?['disabilityType'] ?? 'N/A',
+                                textColor,
+                              ),
+                              _buildInfoRow(
+                                'Diagnosis',
+                                _fullUserData?['diagnosis'] ?? 'Not specified',
+                                textColor,
+                              ),
                             ],
                             cardColor: cardColor,
                             textColor: textColor,
@@ -383,14 +506,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         _buildSectionCard(
                           title: 'Account Info',
                           icon: Icons.shield_rounded,
-                          color: const Color(0xFF8B5CF6), 
+                          color: const Color(0xFF8B5CF6),
                           children: [
-                            _buildInfoRow('Status', (_fullUserData?['isActive'] ?? true) ? 'Active' : 'Inactive', textColor),
-                             if (isCaretaker)
-                              _buildInfoRow('Approval', (_fullUserData?['approved'] == true) ? 'Approved' : 'Pending', textColor),
-                            _buildInfoRow('Member Since', _formatDate(_fullUserData?['createdAt']), textColor),
+                            _buildInfoRow(
+                              'Status',
+                              (_fullUserData?['isActive'] ?? true)
+                                  ? 'Active'
+                                  : 'Inactive',
+                              textColor,
+                            ),
                             if (isCaretaker)
-                              _buildInfoRow('Patients', '${(_fullUserData?['assignedPatients'] as Map?)?.length ?? 0} assigned', textColor),
+                              _buildInfoRow(
+                                'Approval',
+                                (_fullUserData?['approved'] == true)
+                                    ? 'Approved'
+                                    : 'Pending',
+                                textColor,
+                              ),
+                            _buildInfoRow(
+                              'Member Since',
+                              _formatDate(_fullUserData?['createdAt']),
+                              textColor,
+                            ),
+                            if (isCaretaker)
+                              _buildInfoRow(
+                                'Patients',
+                                '${(_fullUserData?['assignedPatients'] as Map?)?.length ?? 0} assigned',
+                                textColor,
+                              ),
                           ],
                           cardColor: cardColor,
                           textColor: textColor,
@@ -399,11 +542,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                   ),
           ),
-          
-          if (!_isLoading) 
-             isPending 
-                ? _buildVerificationBar(cardColor) 
-                : _buildBottomActionBar(cardColor, textColor), 
+
+          if (!_isLoading)
+            isPending
+                ? _buildVerificationBar(cardColor)
+                : _buildBottomActionBar(cardColor, textColor),
         ],
       ),
     );
@@ -451,7 +594,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 decoration: BoxDecoration(
                   color: isActive ? Colors.green : Colors.grey,
                   shape: BoxShape.circle,
-                  border: Border.all(color: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white, width: 3),
+                  border: Border.all(
+                    color: widget.isDarkMode
+                        ? const Color(0xFF0A0E27)
+                        : Colors.white,
+                    width: 3,
+                  ),
                 ),
               ),
             ),
@@ -472,7 +620,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: (isActive ? Colors.green : Colors.grey).withValues(alpha: 0.1),
+            color: (isActive ? Colors.green : Colors.grey).withValues(
+              alpha: 0.1,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -500,7 +650,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       child: Center(
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 40,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -508,8 +662,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Widget _buildQuickInfoRow(Color cardColor, Color textColor) {
     final sex = _fullUserData?['sex'] ?? 'N/A';
-    const iconColor = Color(0xFF8B5CF6); 
-    
+    const iconColor = Color(0xFF8B5CF6);
+
     return Row(
       children: [
         Expanded(
@@ -517,7 +671,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             label: 'Age',
             value: '${_fullUserData?['age'] ?? 'N/A'} yrs',
             icon: Icons.cake_rounded,
-            color: iconColor, 
+            color: iconColor,
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -528,7 +682,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             label: 'Gender',
             value: sex,
             icon: Icons.wc_rounded,
-            color: iconColor, 
+            color: iconColor,
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -550,9 +704,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         children: [
@@ -560,11 +720,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: widget.isDarkMode ? Colors.white60 : Colors.grey),
+            style: TextStyle(
+              fontSize: 12,
+              color: widget.isDarkMode ? Colors.white60 : Colors.grey,
+            ),
           ),
         ],
       ),
@@ -585,9 +752,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -620,7 +793,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, Color textColor, {bool isMultiline = false}) {
+  Widget _buildInfoRow(
+    String label,
+    String value,
+    Color textColor, {
+    bool isMultiline = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
@@ -648,11 +826,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       height: 1.3,
                     ),
                     textAlign: TextAlign.right,
-                    maxLines: null, 
+                    maxLines: null,
                   )
                 : SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    reverse: true, 
+                    reverse: true,
                     physics: const BouncingScrollPhysics(),
                     child: Text(
                       value,
@@ -679,7 +857,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
+            color: Colors.black.withValues(
+              alpha: widget.isDarkMode ? 0.3 : 0.05,
+            ),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -699,8 +879,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -713,13 +898,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   onPressed: () async {
                     final name = _fullUserData?['name'] ?? 'user';
                     await _speak("Opening location for $name");
-                    
+
                     // GUARD FOR ASYNC GAP
                     if (!mounted) return;
-                    
+
                     if (widget.onViewLocation != null) {
-                      Navigator.pop(context); 
-                      widget.onViewLocation!(); 
+                      Navigator.pop(context);
+                      widget.onViewLocation!();
                     }
                   },
                   icon: const Icon(Icons.location_on_rounded),
@@ -728,8 +913,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     backgroundColor: primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -759,7 +949,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
+            color: Colors.black.withValues(
+              alpha: widget.isDarkMode ? 0.3 : 0.05,
+            ),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -778,8 +970,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
                     side: const BorderSide(color: Colors.red, width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -796,8 +993,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -811,7 +1013,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _formatDate(dynamic date) {
     if (date == null) return 'Unknown';
     try {
-      final dt = date is int 
+      final dt = date is int
           ? DateTime.fromMillisecondsSinceEpoch(date)
           : DateTime.parse(date.toString());
       return DateFormat('MMM dd, yyyy').format(dt);

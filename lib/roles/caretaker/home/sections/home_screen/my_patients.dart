@@ -38,7 +38,7 @@ class MyPatientsSection extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () => _showAllPatientsBottomSheet(context), 
+              onPressed: () => _showAllPatientsBottomSheet(context),
               child: Text(
                 'See All',
                 style: TextStyle(color: primary, fontWeight: FontWeight.w600),
@@ -54,49 +54,59 @@ class MyPatientsSection extends StatelessWidget {
               ? Center(
                   key: const ValueKey('loading'),
                   child: Padding(
-                    padding: EdgeInsets.all(spacingLarge), 
+                    padding: EdgeInsets.all(spacingLarge),
                     child: CircularProgressIndicator(color: primary),
                   ),
                 )
               : assignedPatients.isEmpty
-                  ? Container(
-                      key: const ValueKey('empty'),
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: theme.subtextColor.withOpacity(0.1)),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.group_off_rounded, size: 40, color: theme.subtextColor.withOpacity(0.5)),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No patients assigned yet',
-                            style: TextStyle(color: theme.subtextColor, fontWeight: FontWeight.w500),
-                          ),
-                        ],
-                      ),
-                    )
-                  : SizedBox(
-                      key: const ValueKey('list'),
-                      height: 175, // INCREASED: Gives slightly more room to prevent text overflow bugs
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: assignedPatients.length,
-                        itemBuilder: (context, index) {
-                          final patient = assignedPatients[index];
-                          return _PatientCard(
-                            patient: patient,
-                            theme: theme,
-                            isDarkMode: isDarkMode,
-                            isBottomSheet: false, 
-                          );
-                        },
-                      ),
+              ? Container(
+                  key: const ValueKey('empty'),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: theme.subtextColor.withOpacity(0.1),
                     ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.group_off_rounded,
+                        size: 40,
+                        color: theme.subtextColor.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No patients assigned yet',
+                        style: TextStyle(
+                          color: theme.subtextColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : SizedBox(
+                  key: const ValueKey('list'),
+                  height:
+                      175, // INCREASED: Gives slightly more room to prevent text overflow bugs
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: assignedPatients.length,
+                    itemBuilder: (context, index) {
+                      final patient = assignedPatients[index];
+                      return _PatientCard(
+                        patient: patient,
+                        theme: theme,
+                        isDarkMode: isDarkMode,
+                        isBottomSheet: false,
+                      );
+                    },
+                  ),
+                ),
         ),
       ],
     );
@@ -112,7 +122,7 @@ class MyPatientsSection extends StatelessWidget {
         return Container(
           height: MediaQuery.of(context).size.height * 0.7,
           decoration: BoxDecoration(
-            color: theme.backgroundGradient.colors.last, 
+            color: theme.backgroundGradient.colors.last,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Column(
@@ -143,29 +153,39 @@ class MyPatientsSection extends StatelessWidget {
                     ),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         '${assignedPatients.length}',
-                        style: TextStyle(color: primary, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
               Expanded(
                 child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 8,
+                  ),
                   physics: const BouncingScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 3,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 0.65, // DECREASED: Prevents bottom overflow crash in grid
+                    childAspectRatio:
+                        0.65, // DECREASED: Prevents bottom overflow crash in grid
                   ),
                   itemCount: assignedPatients.length,
                   itemBuilder: (context, index) {
@@ -173,7 +193,7 @@ class MyPatientsSection extends StatelessWidget {
                       patient: assignedPatients[index],
                       theme: theme,
                       isDarkMode: isDarkMode,
-                      isBottomSheet: true, 
+                      isBottomSheet: true,
                     );
                   },
                 ),
@@ -204,27 +224,31 @@ class _PatientCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final patientName = patient['name'] ?? 'Unknown';
     final patientId = patient['userId'] ?? '';
-    final profileImageUrl = patient['profileImageUrl'] as String?; 
-    
+    final profileImageUrl = patient['profileImageUrl'] as String?;
+
     final Color primaryPurple = const Color(0xFF8B5CF6);
 
     return Container(
-      width: 120, 
+      width: 120,
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+          color: isDarkMode
+              ? Colors.white10
+              : Colors.black.withValues(alpha: 0.04),
         ),
-        boxShadow: isDarkMode ? [] : [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -238,11 +262,11 @@ class _PatientCard extends StatelessWidget {
               shape: BoxShape.circle,
               color: (profileImageUrl != null && profileImageUrl.isNotEmpty)
                   ? (isDarkMode ? Colors.white10 : Colors.grey[200])
-                  : primaryPurple, 
+                  : primaryPurple,
               border: Border.all(
-                color: isDarkMode ? Colors.white30 : Colors.black, 
+                color: isDarkMode ? Colors.white30 : Colors.black,
                 width: 1.0,
-              ), 
+              ),
             ),
             child: ClipOval(
               child: (profileImageUrl != null && profileImageUrl.isNotEmpty)
@@ -253,7 +277,11 @@ class _PatientCard extends StatelessWidget {
                       errorBuilder: (context, error, stackTrace) => Container(
                         color: primaryPurple,
                         child: const Center(
-                          child: Icon(Icons.person, color: Colors.white, size: 28),
+                          child: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
                       ),
                     )
@@ -263,7 +291,7 @@ class _PatientCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          
+
           Text(
             patientName,
             maxLines: 1,
@@ -276,7 +304,7 @@ class _PatientCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          
+
           // === REAL-TIME STATUS CHECKER ===
           StreamBuilder<Map<String, dynamic>?>(
             stream: locationTrackingService.trackPatientLocation(patientId),
@@ -284,7 +312,9 @@ class _PatientCard extends StatelessWidget {
               bool isOnline = false;
 
               if (snapshot.hasData && snapshot.data != null) {
-                isOnline = locationTrackingService.isLocationRecent(snapshot.data!);
+                isOnline = locationTrackingService.isLocationRecent(
+                  snapshot.data!,
+                );
               }
 
               return Row(
@@ -294,26 +324,26 @@ class _PatientCard extends StatelessWidget {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                      color: isOnline ? Colors.green : Colors.grey, 
-                      shape: BoxShape.circle
+                      color: isOnline ? Colors.green : Colors.grey,
+                      shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     isOnline ? 'Online' : 'Offline',
                     style: TextStyle(
-                      color: isOnline ? theme.subtextColor : Colors.grey, 
+                      color: isOnline ? theme.subtextColor : Colors.grey,
                       fontSize: 11,
                       fontWeight: isOnline ? FontWeight.w600 : FontWeight.w400,
                     ),
-                  )
+                  ),
                 ],
               );
             },
           ),
-          
+
           const SizedBox(height: 10),
-          
+
           // === ACTION BUTTONS ===
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -321,9 +351,9 @@ class _PatientCard extends StatelessWidget {
               _buildSmallActionButton(
                 icon: Icons.call_rounded,
                 color: primaryPurple,
-                isDarkMode: isDarkMode, 
+                isDarkMode: isDarkMode,
                 onTap: () {
-                  if (isBottomSheet) Navigator.pop(context); 
+                  if (isBottomSheet) Navigator.pop(context);
                   CaretakerVoiceCallScreen.startCall(context, patient);
                 },
               ),
@@ -331,9 +361,9 @@ class _PatientCard extends StatelessWidget {
               _buildSmallActionButton(
                 icon: Icons.videocam_rounded,
                 color: primaryPurple,
-                isDarkMode: isDarkMode, 
+                isDarkMode: isDarkMode,
                 onTap: () {
-                  if (isBottomSheet) Navigator.pop(context); 
+                  if (isBottomSheet) Navigator.pop(context);
                   CaretakerVideoCallScreen.startCall(context, patient);
                 },
               ),
@@ -353,17 +383,13 @@ class _PatientCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(6), 
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: isDarkMode ? Colors.transparent : Colors.white,
           shape: BoxShape.circle,
           border: Border.all(color: color.withValues(alpha: 0.4)),
         ),
-        child: Icon(
-          icon,
-          size: 16, 
-          color: color, 
-        ),
+        child: Icon(icon, size: 16, color: color),
       ),
     );
   }

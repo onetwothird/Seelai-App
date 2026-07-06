@@ -1,4 +1,3 @@
-
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -20,8 +19,8 @@ class DatabaseService {
         return 'user_info/caretaker/$userId';
       case 'admin':
         return 'user_info/mswd/$userId';
-      case 'superadmin':                                
-        return 'user_info/superadmin/$userId';          
+      case 'superadmin':
+        return 'user_info/superadmin/$userId';
       default:
         throw Exception('Invalid role: $role');
     }
@@ -31,36 +30,44 @@ class DatabaseService {
     try {
       String path = getUserPath(role, userId);
       DatabaseEvent event = await _database.ref(path).once();
-      
+
       if (!event.snapshot.exists) return 0;
-      
-      Map<String, dynamic> data = Map<String, dynamic>.from(event.snapshot.value as Map);
-      
+
+      Map<String, dynamic> data = Map<String, dynamic>.from(
+        event.snapshot.value as Map,
+      );
+
       DateTime now = DateTime.now();
       DateTime today = DateTime(now.year, now.month, now.day);
-      
+
       int currentStreak = data['currentStreak'] ?? 0;
       String? lastActiveStr = data['lastActiveDate'];
-      DateTime? lastActive = lastActiveStr != null ? DateTime.parse(lastActiveStr) : null;
-      
+      DateTime? lastActive = lastActiveStr != null
+          ? DateTime.parse(lastActiveStr)
+          : null;
+
       if (lastActive != null) {
-        DateTime lastActiveDay = DateTime(lastActive.year, lastActive.month, lastActive.day);
+        DateTime lastActiveDay = DateTime(
+          lastActive.year,
+          lastActive.month,
+          lastActive.day,
+        );
         int difference = today.difference(lastActiveDay).inDays;
-        
+
         if (difference == 1) {
-          currentStreak += 1; 
+          currentStreak += 1;
         } else if (difference > 1) {
-          currentStreak = 1; 
+          currentStreak = 1;
         }
       } else {
-        currentStreak = 1; 
+        currentStreak = 1;
       }
-      
+
       await _database.ref(path).update({
         'currentStreak': currentStreak,
         'lastActiveDate': now.toIso8601String(),
       });
-      
+
       return currentStreak;
     } catch (e) {
       debugPrint('Failed to update streak: $e');
@@ -75,7 +82,7 @@ class DatabaseService {
     required String email,
     required String role,
     String? idNumber,
-    String? staffId, 
+    String? staffId,
     String? sex,
     DateTime? birthdate,
     String? disabilityType,
@@ -106,23 +113,35 @@ class DatabaseService {
         userData['assignedPatients'] = {};
         userData['idNumber'] = idNumber ?? '';
         userData['sex'] = sex ?? 'Not Specified';
-        userData['birthdate'] = birthdate?.toIso8601String() ?? 
-            DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
+        userData['birthdate'] =
+            birthdate?.toIso8601String() ??
+            DateTime.now()
+                .subtract(Duration(days: age * 365))
+                .toIso8601String();
         userData['address'] = address ?? '';
-        userData['approved'] = approved ?? false; 
+        userData['approved'] = approved ?? false;
       } else if (role == 'admin') {
         userData['department'] = department ?? '';
-        userData['staffId'] = staffId ?? ''; 
+        userData['staffId'] = staffId ?? '';
         userData['sex'] = sex ?? 'Not Specified';
-        userData['birthdate'] = birthdate?.toIso8601String() ?? 
-            DateTime.now().subtract(Duration(days: age * 365)).toIso8601String();
+        userData['birthdate'] =
+            birthdate?.toIso8601String() ??
+            DateTime.now()
+                .subtract(Duration(days: age * 365))
+                .toIso8601String();
         userData['address'] = address ?? '';
         userData['contactNumber'] = contactNumber ?? '';
       } else if (role == 'partially_sighted') {
-        if (idNumber == null || sex == null || birthdate == null || 
-            disabilityType == null || diagnosis == null || 
-            address == null || contactNumber == null) {
-          throw Exception('All fields are required for partially sighted users');
+        if (idNumber == null ||
+            sex == null ||
+            birthdate == null ||
+            disabilityType == null ||
+            diagnosis == null ||
+            address == null ||
+            contactNumber == null) {
+          throw Exception(
+            'All fields are required for partially sighted users',
+          );
         }
         userData['idNumber'] = idNumber;
         userData['sex'] = sex;
@@ -162,11 +181,14 @@ class DatabaseService {
     }
   }
 
-  Future<Map<String, dynamic>?> getUserDataByRole(String userId, String role) async {
+  Future<Map<String, dynamic>?> getUserDataByRole(
+    String userId,
+    String role,
+  ) async {
     try {
       String path = getUserPath(role, userId);
       DatabaseEvent event = await _database.ref(path).once();
-      
+
       if (event.snapshot.exists) {
         return Map<String, dynamic>.from(event.snapshot.value as Map);
       }
@@ -187,16 +209,15 @@ class DatabaseService {
         'message': 'Connection successful',
         'timestamp': ServerValue.timestamp,
       });
-    // ignore: empty_catches
-    } catch (e) {
-    }
+      // ignore: empty_catches
+    } catch (e) {}
   }
 
   Future<void> updateUserProfile({
     required String userId,
     required String role,
     String? idNumber,
-    String? staffId, 
+    String? staffId,
     String? name,
     String? sex,
     int? age,
@@ -212,12 +233,10 @@ class DatabaseService {
     String? fcmToken,
   }) async {
     try {
-      Map<String, dynamic> updates = {
-        'updatedAt': ServerValue.timestamp,
-      };
+      Map<String, dynamic> updates = {'updatedAt': ServerValue.timestamp};
 
       if (idNumber != null) updates['idNumber'] = idNumber;
-      if (staffId != null) updates['staffId'] = staffId; 
+      if (staffId != null) updates['staffId'] = staffId;
       if (name != null) updates['name'] = name;
       if (sex != null) updates['sex'] = sex;
       if (age != null) updates['age'] = age;
@@ -252,20 +271,16 @@ class DatabaseService {
   Future<void> saveUserFCMToken(String userId, String role) async {
     try {
       String? token = await FirebaseMessaging.instance.getToken();
-      
+
       if (token != null) {
         String path = getUserPath(role, userId);
-        await _database.ref(path).update({
-          'fcmToken': token,
-        });
+        await _database.ref(path).update({'fcmToken': token});
         debugPrint("FCM Token successfully saved for $role!");
       }
 
       FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
         String path = getUserPath(role, userId);
-        _database.ref(path).update({
-          'fcmToken': newToken,
-        });
+        _database.ref(path).update({'fcmToken': newToken});
       });
     } catch (e) {
       debugPrint("Failed to save FCM token: $e");

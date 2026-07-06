@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
@@ -41,12 +40,12 @@ class _SelectPatientState extends State<SelectPatient> {
 
   Future<void> _initializeCaretakerId() async {
     String? caretakerId = widget.userData['uid'] as String?;
-    
+
     if (caretakerId == null || caretakerId.isEmpty) {
       final user = FirebaseAuth.instance.currentUser;
       caretakerId = user?.uid;
     }
-    
+
     if (caretakerId == null || caretakerId.isEmpty) {
       setState(() {
         _isLoading = false;
@@ -69,52 +68,54 @@ class _SelectPatientState extends State<SelectPatient> {
 
     _patientsSubscription = caretakerPatientService
         .streamCaretakerPatients(_caretakerId!)
-        .listen(
-      (patientsData) async {
-        if (mounted) {
-          // Convert patient data to models
-          List<PatientModel> patients = patientsData.map((patientData) {
-            return PatientModel(
-              id: patientData['userId'] ?? '',
-              name: patientData['name'] ?? 'Unknown',
-              age: patientData['age'] ?? 0,
-              disabilityType: patientData['disabilityType'] ?? 'Not specified',
-              contactNumber: patientData['contactNumber'] ?? patientData['phone'] ?? 'N/A',
-              address: patientData['address'] ?? 'No address',
-              isOnline: false,
-              lastActive: DateTime.now(),
-            );
-          }).toList();
-
-          // Fetch profile images for each patient
-          Map<String, String> profileImages = {};
-          for (var patient in patients) {
-            try {
-              var userData = await databaseService.getUserDataByRole(
-                patient.id, 
-                'partially_sighted'
+        .listen((patientsData) async {
+          if (mounted) {
+            // Convert patient data to models
+            List<PatientModel> patients = patientsData.map((patientData) {
+              return PatientModel(
+                id: patientData['userId'] ?? '',
+                name: patientData['name'] ?? 'Unknown',
+                age: patientData['age'] ?? 0,
+                disabilityType:
+                    patientData['disabilityType'] ?? 'Not specified',
+                contactNumber:
+                    patientData['contactNumber'] ??
+                    patientData['phone'] ??
+                    'N/A',
+                address: patientData['address'] ?? 'No address',
+                isOnline: false,
+                lastActive: DateTime.now(),
               );
-              if (userData != null && userData['profileImageUrl'] != null) {
-                String imageUrl = userData['profileImageUrl'] as String;
-                if (imageUrl.isNotEmpty) {
-                  profileImages[patient.id] = imageUrl;
+            }).toList();
+
+            // Fetch profile images for each patient
+            Map<String, String> profileImages = {};
+            for (var patient in patients) {
+              try {
+                var userData = await databaseService.getUserDataByRole(
+                  patient.id,
+                  'partially_sighted',
+                );
+                if (userData != null && userData['profileImageUrl'] != null) {
+                  String imageUrl = userData['profileImageUrl'] as String;
+                  if (imageUrl.isNotEmpty) {
+                    profileImages[patient.id] = imageUrl;
+                  }
                 }
+              } catch (e) {
+                // If fetching profile image fails, continue without it
               }
-            } catch (e) {
-              // If fetching profile image fails, continue without it
+            }
+
+            if (mounted) {
+              setState(() {
+                _patients = patients;
+                _patientProfileImages = profileImages;
+                _isLoading = false;
+              });
             }
           }
-
-          if (mounted) {
-            setState(() {
-              _patients = patients;
-              _patientProfileImages = profileImages;
-              _isLoading = false;
-            });
-          }
-        }
-      },
-    );
+        });
   }
 
   @override
@@ -144,9 +145,7 @@ class _SelectPatientState extends State<SelectPatient> {
             decoration: BoxDecoration(
               color: primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(radiusSmall),
-              border: Border.all(
-                color: primary.withValues(alpha: 0.3),
-              ),
+              border: Border.all(color: primary.withValues(alpha: 0.3)),
             ),
             child: Text(
               '${_patients.length} Patient${_patients.length != 1 ? 's' : ''}',
@@ -190,7 +189,7 @@ class _SelectPatientState extends State<SelectPatient> {
 
   Widget _buildPatientTrackCard(PatientModel patient, bool isSelected) {
     String? profileImageUrl = _patientProfileImages[patient.id];
-    
+
     return Container(
       decoration: BoxDecoration(
         boxShadow: isSelected
@@ -203,14 +202,14 @@ class _SelectPatientState extends State<SelectPatient> {
                 ),
               ]
             : widget.isDarkMode
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha:0.2),
-                      blurRadius: 12,
-                      offset: Offset(0, 4),
-                    ),
-                  ]
-                : softShadow,
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ]
+            : softShadow,
         borderRadius: BorderRadius.circular(radiusLarge),
       ),
       child: Material(
@@ -249,13 +248,18 @@ class _SelectPatientState extends State<SelectPatient> {
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        gradient: isSelected && profileImageUrl == null ? primaryGradient : null,
+                        gradient: isSelected && profileImageUrl == null
+                            ? primaryGradient
+                            : null,
                         color: profileImageUrl == null && !isSelected
                             ? widget.theme.subtextColor.withOpacity(0.1)
                             : null,
                         shape: BoxShape.circle,
                         border: isSelected
-                            ? Border.all(color: primary.withValues(alpha: 0.3), width: 2)
+                            ? Border.all(
+                                color: primary.withValues(alpha: 0.3),
+                                width: 2,
+                              )
                             : null,
                       ),
                       child: profileImageUrl != null
@@ -267,21 +271,30 @@ class _SelectPatientState extends State<SelectPatient> {
                                   // Fallback to icon if image fails to load
                                   return _buildProfileIcon(isSelected);
                                 },
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: CircularProgressIndicator(
-                                      value: loadingProgress.expectedTotalBytes != null
-                                          ? loadingProgress.cumulativeBytesLoaded /
-                                              loadingProgress.expectedTotalBytes!
-                                          : null,
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        isSelected ? primary : widget.theme.subtextColor,
-                                      ),
-                                    ),
-                                  );
-                                },
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: CircularProgressIndicator(
+                                          value:
+                                              loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                              : null,
+                                          strokeWidth: 2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                isSelected
+                                                    ? primary
+                                                    : widget.theme.subtextColor,
+                                              ),
+                                        ),
+                                      );
+                                    },
                               ),
                             )
                           : _buildProfileIcon(isSelected),
@@ -358,11 +371,7 @@ class _SelectPatientState extends State<SelectPatient> {
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.check_rounded,
-                      color: white,
-                      size: 20,
-                    ),
+                    child: Icon(Icons.check_rounded, color: white, size: 20),
                   )
                 else
                   Icon(

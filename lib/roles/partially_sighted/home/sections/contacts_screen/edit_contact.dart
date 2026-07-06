@@ -31,7 +31,7 @@ class _EditContactDialogState extends State<EditContactDialog> {
   late TextEditingController _relationshipController;
   late TextEditingController _phoneController;
   final _formKey = GlobalKey<FormState>();
-  
+
   // TTS Instance
   final FlutterTts _flutterTts = FlutterTts();
 
@@ -40,7 +40,9 @@ class _EditContactDialogState extends State<EditContactDialog> {
     super.initState();
     _initTts();
     _nameController = TextEditingController(text: widget.contact.name);
-    _relationshipController = TextEditingController(text: widget.contact.relationship);
+    _relationshipController = TextEditingController(
+      text: widget.contact.relationship,
+    );
     _phoneController = TextEditingController(text: widget.contact.phoneNumber);
   }
 
@@ -82,7 +84,7 @@ class _EditContactDialogState extends State<EditContactDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to update contact: $e'),
-            backgroundColor: error, 
+            backgroundColor: error,
           ),
         );
       }
@@ -107,20 +109,24 @@ class _EditContactDialogState extends State<EditContactDialog> {
         prefixIcon: Icon(icon, color: widget.theme.subtextColor, size: 20),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: widget.theme.subtextColor.withOpacity(0.3)),
+          borderSide: BorderSide(
+            color: widget.theme.subtextColor.withOpacity(0.3),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: widget.theme.subtextColor.withOpacity(0.2)),
+          borderSide: BorderSide(
+            color: widget.theme.subtextColor.withOpacity(0.2),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
           borderSide: BorderSide(color: primary, width: 2),
         ),
         filled: true,
-        fillColor: widget.isDarkMode 
-          ? Colors.white.withValues(alpha: 0.03)
-          : Colors.black.withValues(alpha: 0.02),
+        fillColor: widget.isDarkMode
+            ? Colors.white.withValues(alpha: 0.03)
+            : Colors.black.withValues(alpha: 0.02),
       ),
     );
   }
@@ -188,7 +194,10 @@ class _EditContactDialogState extends State<EditContactDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Cancel', style: body.copyWith(color: widget.theme.subtextColor)),
+          child: Text(
+            'Cancel',
+            style: body.copyWith(color: widget.theme.subtextColor),
+          ),
         ),
         ElevatedButton(
           onPressed: _updateContact,

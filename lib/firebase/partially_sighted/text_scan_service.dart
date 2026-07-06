@@ -20,18 +20,18 @@ class TextScanService {
   }) async {
     try {
       debugPrint('Attempting to save scanned text for user: $userId');
-      
+
       // Create reference
       final scanRef = _database.ref('scanned_texts/$userId').push();
       final scanId = scanRef.key;
-      
+
       if (scanId == null) {
         debugPrint('❌ Failed to generate scan ID');
         return false;
       }
-      
+
       debugPrint('Generated scan ID: $scanId');
-      
+
       // Prepare data
       final scanData = {
         'userId': userId,
@@ -47,20 +47,23 @@ class TextScanService {
       };
 
       debugPrint('📦 Prepared data: ${scanData.keys.join(", ")}');
-      
+
       // Save to Firebase
       await scanRef.set(scanData);
-      
-      debugPrint('Successfully saved to Firebase at: scanned_texts/$userId/$scanId');
+
+      debugPrint(
+        'Successfully saved to Firebase at: scanned_texts/$userId/$scanId',
+      );
       debugPrint('   Text length: ${scannedText.length} characters');
       debugPrint('   Blocks: $textBlockCount');
-      
+
       // Log to activity logs
       await _logToActivityLogs(
         userId: userId,
         action: 'text_scanned',
         // ignore: unnecessary_brace_in_string_interps
-        details: 'Scanned ${textBlockCount} text blocks (${scannedText.length} chars)',
+        details:
+            'Scanned $textBlockCount text blocks (${scannedText.length} chars)',
       );
 
       return true;
@@ -78,7 +81,7 @@ class TextScanService {
   }) async {
     try {
       debugPrint('Fetching scanned texts for user: $userId');
-      
+
       final snapshot = await _database
           .ref('scanned_texts/$userId')
           .orderByChild('timestamp')
@@ -91,7 +94,7 @@ class TextScanService {
       }
 
       final textsMap = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       final texts = <Map<String, dynamic>>[];
 
@@ -126,41 +129,41 @@ class TextScanService {
     int limit = 50,
   }) {
     debugPrint('📡 Setting up real-time stream for user: $userId');
-    
+
     return _database
         .ref('scanned_texts/$userId')
         .orderByChild('timestamp')
         .limitToLast(limit)
         .onValue
         .map((event) {
-      if (!event.snapshot.exists) {
-        return <Map<String, dynamic>>[];
-      }
+          if (!event.snapshot.exists) {
+            return <Map<String, dynamic>>[];
+          }
 
-      final textsMap = Map<String, dynamic>.from(
-        event.snapshot.value as Map
-      );
-      final texts = <Map<String, dynamic>>[];
+          final textsMap = Map<String, dynamic>.from(
+            event.snapshot.value as Map,
+          );
+          final texts = <Map<String, dynamic>>[];
 
-      textsMap.forEach((key, value) {
-        try {
-          final textData = Map<String, dynamic>.from(value as Map);
-          textData['scanId'] = key;
-          texts.add(textData);
-        } catch (e) {
-          debugPrint('⚠️ Error parsing scanned text $key: $e');
-        }
-      });
+          textsMap.forEach((key, value) {
+            try {
+              final textData = Map<String, dynamic>.from(value as Map);
+              textData['scanId'] = key;
+              texts.add(textData);
+            } catch (e) {
+              debugPrint('⚠️ Error parsing scanned text $key: $e');
+            }
+          });
 
-      // Sort by timestamp (newest first)
-      texts.sort((a, b) {
-        final aTime = DateTime.parse(a['timestamp'] as String);
-        final bTime = DateTime.parse(b['timestamp'] as String);
-        return bTime.compareTo(aTime);
-      });
+          // Sort by timestamp (newest first)
+          texts.sort((a, b) {
+            final aTime = DateTime.parse(a['timestamp'] as String);
+            final bTime = DateTime.parse(b['timestamp'] as String);
+            return bTime.compareTo(aTime);
+          });
 
-      return texts;
-    });
+          return texts;
+        });
   }
 
   /// Get a specific scanned text
@@ -179,7 +182,7 @@ class TextScanService {
       }
 
       final textData = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       textData['scanId'] = scanId;
 
@@ -193,10 +196,8 @@ class TextScanService {
   /// Delete a specific scanned text
   Future<bool> deleteScannedText(String userId, String scanId) async {
     try {
-      await _database
-          .ref('scanned_texts/$userId/$scanId')
-          .remove();
-      
+      await _database.ref('scanned_texts/$userId/$scanId').remove();
+
       debugPrint('Scanned text deleted: $scanId');
       return true;
     } catch (e) {
@@ -208,10 +209,8 @@ class TextScanService {
   /// Clear all scanned texts for a user
   Future<bool> clearAllScannedTexts(String userId) async {
     try {
-      await _database
-          .ref('scanned_texts/$userId')
-          .remove();
-      
+      await _database.ref('scanned_texts/$userId').remove();
+
       debugPrint('All scanned texts cleared for user: $userId');
       return true;
     } catch (e) {
@@ -224,16 +223,16 @@ class TextScanService {
   Future<void> clearOldScannedTexts(String userId) async {
     try {
       final texts = await getScannedTexts(userId, limit: 200);
-      
+
       if (texts.length > 100) {
         final toDelete = texts.skip(100).toList();
-        
+
         for (final text in toDelete) {
           await _database
               .ref('scanned_texts/$userId/${text['scanId']}')
               .remove();
         }
-        
+
         debugPrint('Cleared ${toDelete.length} old scanned texts');
       }
     } catch (e) {
@@ -249,9 +248,7 @@ class TextScanService {
     Map<String, dynamic>? additionalMetadata,
   }) async {
     try {
-      final updates = <String, dynamic>{
-        'updatedAt': ServerValue.timestamp,
-      };
+      final updates = <String, dynamic>{'updatedAt': ServerValue.timestamp};
 
       if (sourceType != null) {
         updates['sourceType'] = sourceType;
@@ -261,9 +258,7 @@ class TextScanService {
         updates['metadata'] = additionalMetadata;
       }
 
-      await _database
-          .ref('scanned_texts/$userId/$scanId')
-          .update(updates);
+      await _database.ref('scanned_texts/$userId/$scanId').update(updates);
 
       debugPrint('Scanned text updated: $scanId');
       return true;
@@ -279,16 +274,16 @@ class TextScanService {
   Future<Map<String, dynamic>> getScanStatistics(String userId) async {
     try {
       final texts = await getScannedTexts(userId, limit: 1000);
-      
+
       int totalScans = texts.length;
       int totalWords = 0;
       int totalCharacters = 0;
       Map<String, int> sourceTypes = {};
-      
+
       for (final text in texts) {
         totalWords += (text['wordCount'] as int?) ?? 0;
         totalCharacters += (text['characterCount'] as int?) ?? 0;
-        
+
         String sourceType = text['sourceType'] ?? 'unknown';
         sourceTypes[sourceType] = (sourceTypes[sourceType] ?? 0) + 1;
       }
@@ -297,7 +292,9 @@ class TextScanService {
         'totalScans': totalScans,
         'totalWords': totalWords,
         'totalCharacters': totalCharacters,
-        'averageWordsPerScan': totalScans > 0 ? (totalWords / totalScans).round() : 0,
+        'averageWordsPerScan': totalScans > 0
+            ? (totalWords / totalScans).round()
+            : 0,
         'sourceTypes': sourceTypes,
         'lastScanDate': texts.isNotEmpty ? texts.first['timestamp'] : null,
       };
@@ -322,7 +319,7 @@ class TextScanService {
   }) async {
     try {
       final allTexts = await getScannedTexts(userId, limit: limit);
-      
+
       final searchResults = allTexts.where((text) {
         final textContent = (text['text'] as String).toLowerCase();
         return textContent.contains(query.toLowerCase());
@@ -343,7 +340,7 @@ class TextScanService {
   }) async {
     try {
       final allTexts = await getScannedTexts(userId, limit: 1000);
-      
+
       final filteredTexts = allTexts.where((text) {
         final timestamp = DateTime.parse(text['timestamp'] as String);
         return timestamp.isAfter(startDate) && timestamp.isBefore(endDate);
@@ -364,7 +361,7 @@ class TextScanService {
   }) async {
     try {
       final allTexts = await getScannedTexts(userId, limit: limit);
-      
+
       final filteredTexts = allTexts.where((text) {
         return text['sourceType'] == sourceType;
       }).toList();
@@ -393,7 +390,7 @@ class TextScanService {
       }
 
       final usersMap = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       final allTexts = <Map<String, dynamic>>[];
 
@@ -437,7 +434,7 @@ class TextScanService {
   }) async {
     try {
       final logRef = _database.ref('activity_logs').push();
-      
+
       await logRef.set({
         'userId': userId,
         'action': action,
@@ -445,7 +442,7 @@ class TextScanService {
         'timestamp': ServerValue.timestamp,
         'createdAt': DateTime.now().toIso8601String(),
       });
-      
+
       debugPrint('Activity logged: $action');
     } catch (e) {
       debugPrint('Error logging to activity_logs: $e');
@@ -455,7 +452,7 @@ class TextScanService {
   /// Format time ago
   String getTimeAgo(DateTime timestamp) {
     final difference = DateTime.now().difference(timestamp);
-    
+
     if (difference.inSeconds < 60) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {
@@ -473,15 +470,15 @@ class TextScanService {
   Future<bool> testConnection() async {
     try {
       debugPrint('🔍 Testing Firebase connection...');
-      
+
       // Try to read from the database
       final snapshot = await _database.ref('.info/connected').once();
       final isConnected = snapshot.snapshot.value as bool? ?? false;
-      
-      debugPrint(isConnected 
-          ? 'Firebase connection: OK' 
-          : 'Firebase connection: FAILED');
-      
+
+      debugPrint(
+        isConnected ? 'Firebase connection: OK' : 'Firebase connection: FAILED',
+      );
+
       return isConnected;
     } catch (e) {
       debugPrint('Error testing Firebase connection: $e');

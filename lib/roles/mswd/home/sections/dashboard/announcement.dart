@@ -37,7 +37,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
   // Added TTS initialization method
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("en-US"); 
+    await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -73,9 +73,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
     };
-    
+
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; 
+    return safeIcons[formattedCode] ?? Icons.notifications;
   }
 
   @override
@@ -100,11 +100,17 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 onTap: () => _navigateToCreateAnnouncement(context),
                 borderRadius: BorderRadius.circular(radiusMedium),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(radiusMedium),
-                    border: Border.all(color: primary.withValues(alpha: 0.3), width: 1),
+                    border: Border.all(
+                      color: primary.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -126,11 +132,11 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
           ],
         ),
         SizedBox(height: spacingMedium),
-      
+
         StreamBuilder<List<AnnouncementModel>>(
           stream: _announcementStream,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && 
+            if (snapshot.connectionState == ConnectionState.waiting &&
                 !snapshot.hasData) {
               return Center(
                 child: Padding(
@@ -139,7 +145,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 ),
               );
             }
-            
+
             if (snapshot.hasError) {
               return Center(
                 child: Padding(
@@ -160,9 +166,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 ),
               );
             }
-            
+
             final allAnnouncements = snapshot.data ?? [];
-            
+
             if (allAnnouncements.isEmpty) {
               return Center(
                 child: Padding(
@@ -177,19 +183,20 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                       SizedBox(height: spacingSmall),
                       Text(
                         'No announcements yet',
-                        style: body.copyWith(
-                          color: widget.theme.subtextColor,
-                        ),
+                        style: body.copyWith(color: widget.theme.subtextColor),
                       ),
                     ],
                   ),
                 ),
               );
             }
-            
-            final displayedAnnouncements = allAnnouncements.take(maxDisplayedAnnouncements).toList();
-            final hasMoreAnnouncements = allAnnouncements.length > maxDisplayedAnnouncements;
-            
+
+            final displayedAnnouncements = allAnnouncements
+                .take(maxDisplayedAnnouncements)
+                .toList();
+            final hasMoreAnnouncements =
+                allAnnouncements.length > maxDisplayedAnnouncements;
+
             return Column(
               children: [
                 ...displayedAnnouncements.map((announcement) {
@@ -201,14 +208,17 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                     ),
                   );
                 }),
-                
+
                 if (hasMoreAnnouncements)
                   Padding(
                     padding: EdgeInsets.only(top: spacingSmall),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => _navigateToAllAnnouncements(context, allAnnouncements),
+                        onTap: () => _navigateToAllAnnouncements(
+                          context,
+                          allAnnouncements,
+                        ),
                         borderRadius: BorderRadius.circular(radiusMedium),
                         child: Container(
                           padding: EdgeInsets.all(spacingMedium),
@@ -269,7 +279,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     );
   }
 
-  void _navigateToAllAnnouncements(BuildContext context, List<AnnouncementModel> announcements) {
+  void _navigateToAllAnnouncements(
+    BuildContext context,
+    List<AnnouncementModel> announcements,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -290,7 +303,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     String timeAgo = _getTimeAgo(announcement.timestamp);
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
-    
+
     return Container(
       padding: EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
@@ -298,8 +311,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -315,11 +328,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                   color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 24,
-                ),
+                child: Icon(icon, color: color, size: 24),
               ),
               SizedBox(width: spacingMedium),
               Expanded(
@@ -338,7 +347,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(radiusSmall),
@@ -433,7 +445,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
   String _getTimeAgo(DateTime timestamp) {
     Duration difference = DateTime.now().difference(timestamp);
-    
+
     if (difference.inMinutes < 60) {
       return '${difference.inMinutes} minutes ago';
     } else if (difference.inHours < 24) {
@@ -478,13 +490,19 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final success = await _announcementService.deleteAnnouncement(id);
-                
+                final success = await _announcementService.deleteAnnouncement(
+                  id,
+                );
+
                 if (!dialogContext.mounted) return;
                 Navigator.of(dialogContext).pop();
-                
+
                 if (!parentContext.mounted) return;
-                _speakMessage(success ? 'Announcement deleted' : 'Failed to delete announcement');
+                _speakMessage(
+                  success
+                      ? 'Announcement deleted'
+                      : 'Failed to delete announcement',
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -497,7 +515,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
             ),
           ],
         );
-      }
+      },
     );
   }
 }

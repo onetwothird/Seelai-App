@@ -36,27 +36,28 @@ class PatientLocationService {
       }
 
       // Start continuous location updates with high accuracy
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation, // Highest accuracy
-          distanceFilter: 5, // Update every 5 meters movement
-          timeLimit: Duration(seconds: 30), // Timeout for location updates
-        ),
-      ).listen(
-        (Position position) {
-          // Only update if position has significantly changed
-          if (_lastPosition == null || 
-              _hasSignificantChange(_lastPosition!, position)) {
-            _lastPosition = position;
-            _updateLocation(position);
-          }
-        },
-        onError: (error) {
-          if (kDebugMode) {
-            print('Location stream error: $error');
-          }
-        },
-      );
+      _positionStream =
+          Geolocator.getPositionStream(
+            locationSettings: LocationSettings(
+              accuracy: LocationAccuracy.bestForNavigation, // Highest accuracy
+              distanceFilter: 5, // Update every 5 meters movement
+              timeLimit: Duration(seconds: 30), // Timeout for location updates
+            ),
+          ).listen(
+            (Position position) {
+              // Only update if position has significantly changed
+              if (_lastPosition == null ||
+                  _hasSignificantChange(_lastPosition!, position)) {
+                _lastPosition = position;
+                _updateLocation(position);
+              }
+            },
+            onError: (error) {
+              if (kDebugMode) {
+                print('Location stream error: $error');
+              }
+            },
+          );
 
       // Periodic updates every 15 seconds to ensure continuity
       _locationUpdateTimer = Timer.periodic(
@@ -100,7 +101,7 @@ class PatientLocationService {
       newPos.latitude,
       newPos.longitude,
     );
-    
+
     // Update if moved more than 3 meters or accuracy improved
     return distance > 3.0 || newPos.accuracy < oldPos.accuracy;
   }
@@ -147,7 +148,7 @@ class PatientLocationService {
       );
 
       // Only update if significantly changed
-      if (_lastPosition == null || 
+      if (_lastPosition == null ||
           _hasSignificantChange(_lastPosition!, position)) {
         _lastPosition = position;
         await _updateLocation(position);

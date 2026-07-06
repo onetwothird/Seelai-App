@@ -22,7 +22,7 @@ class ModeSelectionScreen extends StatefulWidget {
   State<ModeSelectionScreen> createState() => _ModeSelectionScreenState();
 }
 
-class _ModeSelectionScreenState extends State<ModeSelectionScreen> 
+class _ModeSelectionScreenState extends State<ModeSelectionScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -39,24 +39,22 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
         curve: Interval(0.0, 0.5, curve: Curves.easeOut),
       ),
     );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Interval(0.3, 1.0, curve: Curves.easeOutCubic),
-      ),
-    );
-    
+
+    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Interval(0.3, 1.0, curve: Curves.easeOutCubic),
+          ),
+        );
+
     _animationController.forward();
   }
 
@@ -68,7 +66,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
 
   void _navigateToMode(String mode) {
     Widget screen;
-    
+
     switch (mode) {
       case 'object':
         screen = ObjectDetectionScreen(
@@ -91,11 +89,8 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
       default:
         return;
     }
-    
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
   @override
@@ -105,7 +100,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
       body: Stack(
         children: [
           // Camera Preview Background
-          if (widget.cameraService.isInitialized && 
+          if (widget.cameraService.isInitialized &&
               widget.cameraService.controller != null)
             Positioned.fill(
               child: Opacity(
@@ -113,7 +108,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                 child: CameraPreview(widget.cameraService.controller!),
               ),
             ),
-          
+
           // Dark overlay
           Positioned.fill(
             child: Container(
@@ -129,17 +124,15 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
               ),
             ),
           ),
-          
+
           // Header
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: SafeArea(
-              child: _buildHeader(),
-            ),
+            child: SafeArea(child: _buildHeader()),
           ),
-          
+
           // Mode selector
           Positioned(
             bottom: 0,
@@ -184,11 +177,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                       width: 1,
                     ),
                   ),
-                  child: Icon(
-                    Icons.arrow_back_rounded,
-                    color: white,
-                    size: 24,
-                  ),
+                  child: Icon(Icons.arrow_back_rounded, color: white, size: 24),
                 ),
               ),
             ),
@@ -214,14 +203,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
       padding: EdgeInsets.all(spacingLarge),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(radiusXLarge),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(radiusXLarge)),
         border: Border(
-          top: BorderSide(
-            color: white.withValues(alpha: 0.1),
-            width: 1,
-          ),
+          top: BorderSide(color: white.withValues(alpha: 0.1), width: 1),
         ),
       ),
       child: Column(
@@ -236,9 +220,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           SizedBox(height: spacingLarge),
-          
+
           Text(
             'Select Detection Mode',
             style: h2.copyWith(
@@ -247,9 +231,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
               fontWeight: FontWeight.w800,
             ),
           ),
-          
+
           SizedBox(height: spacingSmall),
-          
+
           Text(
             'Choose what you want to scan',
             style: body.copyWith(
@@ -257,9 +241,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
               fontSize: 14,
             ),
           ),
-          
+
           SizedBox(height: spacingXLarge),
-          
+
           // Mode options
           _buildModeOption(
             icon: Icons.search_rounded,
@@ -268,9 +252,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
             color: accent,
             onTap: () => _navigateToMode('object'),
           ),
-          
+
           SizedBox(height: spacingMedium),
-          
+
           _buildModeOption(
             icon: Icons.face_rounded,
             title: 'Face Detection',
@@ -278,9 +262,9 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
             color: Colors.purple,
             onTap: () => _navigateToMode('face'),
           ),
-          
+
           SizedBox(height: spacingMedium),
-          
+
           _buildModeOption(
             icon: Icons.document_scanner_rounded,
             title: 'Read Document',
@@ -288,7 +272,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
             color: Colors.orange,
             onTap: () => _navigateToMode('text'),
           ),
-          
+
           SizedBox(height: spacingLarge),
         ],
       ),
@@ -345,15 +329,11 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                       ),
                     ],
                   ),
-                  child: Icon(
-                    icon,
-                    color: white,
-                    size: 28,
-                  ),
+                  child: Icon(icon, color: white, size: 28),
                 ),
-                
+
                 SizedBox(width: spacingLarge),
-                
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,12 +357,8 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen>
                     ],
                   ),
                 ),
-                
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: color,
-                  size: 20,
-                ),
+
+                Icon(Icons.arrow_forward_ios_rounded, color: color, size: 20),
               ],
             ),
           ),

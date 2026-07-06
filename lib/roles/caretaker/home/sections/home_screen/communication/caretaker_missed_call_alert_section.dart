@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
 class CaretakerMissedCallAlertSection extends StatefulWidget {
-  final String caretakerId; 
+  final String caretakerId;
   final bool isDarkMode;
   final dynamic theme;
 
@@ -14,12 +14,14 @@ class CaretakerMissedCallAlertSection extends StatefulWidget {
   });
 
   @override
-  State<CaretakerMissedCallAlertSection> createState() => _CaretakerMissedCallAlertSectionState();
+  State<CaretakerMissedCallAlertSection> createState() =>
+      _CaretakerMissedCallAlertSectionState();
 }
 
-class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAlertSection> {
+class _CaretakerMissedCallAlertSectionState
+    extends State<CaretakerMissedCallAlertSection> {
   final Map<String, String> _callerNamesCache = {};
-  
+
   Offset _position = const Offset(300, 100);
   bool _isPositionInitialized = false;
 
@@ -82,11 +84,11 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               StreamBuilder<List<Map<String, dynamic>>>(
                 // Listens to calls from the Patient path!
                 stream: callTrackingService.streamMissedCalls(
-                  path: 'partially_sighted_communication', 
+                  path: 'partially_sighted_communication',
                   userId: widget.caretakerId,
                 ),
                 builder: (context, snapshot) {
@@ -98,14 +100,18 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                           Icon(
                             Icons.check_circle_outline_rounded,
                             size: 48,
-                            color: widget.isDarkMode ? Colors.white38 : Colors.black26,
+                            color: widget.isDarkMode
+                                ? Colors.white38
+                                : Colors.black26,
                           ),
                           const SizedBox(height: 16),
                           Text(
                             "You're all caught up!",
                             style: TextStyle(
                               fontSize: 16,
-                              color: widget.isDarkMode ? Colors.white70 : Colors.black54,
+                              color: widget.isDarkMode
+                                  ? Colors.white70
+                                  : Colors.black54,
                             ),
                           ),
                         ],
@@ -114,7 +120,8 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                   }
 
                   final missedCalls = snapshot.data!;
-                  Map<String, List<Map<String, dynamic>>> groupedMissedCalls = {};
+                  Map<String, List<Map<String, dynamic>>> groupedMissedCalls =
+                      {};
 
                   for (var callData in missedCalls) {
                     String callerId = callData['callerId'] ?? 'Unknown';
@@ -128,27 +135,34 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                     children: groupedMissedCalls.entries.map((entry) {
                       final callerId = entry.key;
                       final callsList = entry.value;
-                      
+
                       if (!_callerNamesCache.containsKey(callerId)) {
                         _fetchCallerName(callerId);
                       }
-                      
+
                       final latestCall = callsList.first;
                       final count = callsList.length;
-                      final timeString = _formatTimestamp(latestCall['timestamp'] as int);
-                      final callerName = _callerNamesCache[callerId] ?? 'Loading...';
+                      final timeString = _formatTimestamp(
+                        latestCall['timestamp'] as int,
+                      );
+                      final callerName =
+                          _callerNamesCache[callerId] ?? 'Loading...';
                       final isVideo = latestCall['type'] == 'video';
-                      final callIdsToDismiss = callsList.map((c) => c['callId'] as String).toList();
+                      final callIdsToDismiss = callsList
+                          .map((c) => c['callId'] as String)
+                          .toList();
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
-                          color: widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.white,
+                          color: widget.isDarkMode
+                              ? const Color(0xFF2A2F4A)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: widget.isDarkMode 
-                                ? const Color(0xFFEF4444).withValues(alpha: 0.3) 
-                                : const Color(0xFFFEE2E2), 
+                            color: widget.isDarkMode
+                                ? const Color(0xFFEF4444).withValues(alpha: 0.3)
+                                : const Color(0xFFFEE2E2),
                             width: 1.5,
                           ),
                         ),
@@ -159,11 +173,15 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                                  color: const Color(
+                                    0xFFEF4444,
+                                  ).withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  isVideo ? Icons.missed_video_call_rounded : Icons.phone_missed_rounded,
+                                  isVideo
+                                      ? Icons.missed_video_call_rounded
+                                      : Icons.phone_missed_rounded,
                                   color: const Color(0xFFEF4444),
                                   size: 24,
                                 ),
@@ -174,13 +192,15 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      count > 1 
-                                          ? '$count Missed Calls' 
+                                      count > 1
+                                          ? '$count Missed Calls'
                                           : 'Missed ${isVideo ? 'Video' : 'Voice'} Call',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
-                                        color: widget.isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                                        color: widget.isDarkMode
+                                            ? Colors.white
+                                            : const Color(0xFF1E293B),
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -188,7 +208,9 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                                       'From $callerName • $timeString',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        color: widget.isDarkMode ? Colors.white70 : const Color(0xFF64748B),
+                                        color: widget.isDarkMode
+                                            ? Colors.white70
+                                            : const Color(0xFF64748B),
                                       ),
                                     ),
                                   ],
@@ -196,18 +218,22 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                               ),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: widget.isDarkMode ? Colors.white10 : const Color(0xFFF1F5F9),
+                                  color: widget.isDarkMode
+                                      ? Colors.white10
+                                      : const Color(0xFFF1F5F9),
                                   shape: BoxShape.circle,
                                 ),
                                 child: IconButton(
                                   icon: Icon(
                                     Icons.close_rounded,
                                     size: 20,
-                                    color: widget.isDarkMode ? Colors.white70 : const Color(0xFF64748B),
+                                    color: widget.isDarkMode
+                                        ? Colors.white70
+                                        : const Color(0xFF64748B),
                                   ),
                                   onPressed: () {
                                     callTrackingService.clearMissedCalls(
-                                      path: 'partially_sighted_communication', 
+                                      path: 'partially_sighted_communication',
                                       callIds: callIdsToDismiss,
                                     );
                                   },
@@ -245,12 +271,12 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
 
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: callTrackingService.streamMissedCalls(
-        path: 'partially_sighted_communication', 
+        path: 'partially_sighted_communication',
         userId: widget.caretakerId,
       ),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox.shrink(); 
+          return const SizedBox.shrink();
         }
 
         final missedCalls = snapshot.data!;
@@ -264,19 +290,19 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
               setState(() {
                 final screenWidth = MediaQuery.of(context).size.width;
                 final screenHeight = MediaQuery.of(context).size.height;
-                
+
                 double newX = _position.dx + details.delta.dx;
                 double newY = _position.dy + details.delta.dy;
 
                 _position = Offset(
-                  newX.clamp(0.0, screenWidth - 70.0), 
-                  newY.clamp(0.0, screenHeight - 200.0), 
+                  newX.clamp(0.0, screenWidth - 70.0),
+                  newY.clamp(0.0, screenHeight - 200.0),
                 );
               });
             },
             onTap: () => _openMissedCallsSheet(),
             child: SizedBox(
-              width: 70, 
+              width: 70,
               height: 70,
               child: Stack(
                 alignment: Alignment.center,
@@ -286,20 +312,24 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                      color: widget.isDarkMode
+                          ? const Color(0xFF1E293B)
+                          : Colors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: widget.isDarkMode ? Colors.white12 : const Color(0xFFFEE2E2),
+                        color: widget.isDarkMode
+                            ? Colors.white12
+                            : const Color(0xFFFEE2E2),
                         width: 1.5,
                       ),
                     ),
                     child: const Icon(
                       Icons.phone_missed_rounded,
-                      color: Color(0xFFEF4444), 
+                      color: Color(0xFFEF4444),
                       size: 28,
                     ),
                   ),
-                  
+
                   // NOTIFICATION BADGE
                   Positioned(
                     right: 0,
@@ -307,11 +337,13 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444), 
+                        color: const Color(0xFFEF4444),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: widget.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
-                          width: 2.5, 
+                          color: widget.isDarkMode
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
+                          width: 2.5,
                         ),
                       ),
                       child: Text(
@@ -323,7 +355,7 @@ class _CaretakerMissedCallAlertSectionState extends State<CaretakerMissedCallAle
                         ),
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),

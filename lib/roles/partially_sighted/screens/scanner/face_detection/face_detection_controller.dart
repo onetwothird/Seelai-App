@@ -13,10 +13,10 @@ import 'package:seelai_app/storage/cloudinary_service.dart';
 class FaceDetectionController {
   final CameraService cameraService;
   final Function(FaceDetectionState) onStateChanged;
-  
+
   late FlutterVision _vision;
   late FlutterTts _flutterTts;
-  
+
   List<Map<String, dynamic>> recognitions = [];
   bool isDetecting = false;
   bool isModelLoaded = false;
@@ -24,24 +24,24 @@ class FaceDetectionController {
   bool readingCompleted = false;
   bool isStreamRunning = false;
   bool isDisposing = false;
-  
+
   int frameCount = 0;
   DateTime? lastFrameTime;
-  double fps = 0.0; 
+  double fps = 0.0;
 
-  int _cameraFrameCounter = 0; 
-  
+  int _cameraFrameCounter = 0;
+
   int _consecutiveFrames = 0;
-  final int _requiredFrames = 2; 
-  String _lastTagsHash = ''; 
-  
+  final int _requiredFrames = 2;
+  String _lastTagsHash = '';
+
   bool isLowLight = false;
   bool isFlashOn = false;
   bool showFlashIndicator = false;
   Timer? _flashIndicatorTimer;
   int _darkFrameCount = 0;
   int _brightFrameCount = 0;
-  
+
   String lastDetectedFaces = '';
   DateTime? lastSpeakTime;
 
@@ -53,7 +53,7 @@ class FaceDetectionController {
   Future<void> initialize() async {
     _vision = FlutterVision();
     _flutterTts = FlutterTts();
-    
+
     await _initializeTts();
     loadModel();
     _announceMode();
@@ -69,27 +69,33 @@ class FaceDetectionController {
       _flashIndicatorTimer?.cancel();
       await _flutterTts.stop();
       await turnOffFlash();
-      
-      if (isStreamRunning && 
+
+      if (isStreamRunning &&
           cameraService.controller != null &&
           cameraService.controller!.value.isStreamingImages) {
         try {
           await cameraService.controller!.stopImageStream();
           isStreamRunning = false;
-        } catch (_) { /* Ignored */ }
+        } catch (_) {
+          /* Ignored */
+        }
       }
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       try {
         await _vision.closeYoloModel();
-      } catch (_) { /* Ignored */ }
-    } catch (_) { /* Ignored */ }
+      } catch (_) {
+        /* Ignored */
+      }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("fil-PH"); 
+      await _flutterTts.setLanguage("fil-PH");
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -117,13 +123,17 @@ class FaceDetectionController {
           _notifyStateChanged();
         }
       });
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   void _announceMode() {
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!isDisposing) {
-        _flutterTts.speak('Face detection mode activated. Looking for caretakers.');
+        _flutterTts.speak(
+          'Face detection mode activated. Looking for caretakers.',
+        );
       }
     });
   }
@@ -131,33 +141,37 @@ class FaceDetectionController {
   Future<void> loadModel() async {
     try {
       await _vision.loadYoloModel(
-        labels: 'assets/face_model/labels.txt',
-        modelPath: 'assets/face_model/face_detection.tflite',
+        labels: 'assets/models/face_labels.txt',
+        modelPath: 'assets/models/face_detection.tflite',
         modelVersion: "yolov8",
         numThreads: 4,
-        quantization: true, 
-        useGpu: true, 
+        quantization: true,
+        useGpu: true,
       );
-      
-      if (!isDisposing) {         
+
+      if (!isDisposing) {
         isModelLoaded = true;
         _notifyStateChanged();
         await startFaceDetection();
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> startFaceDetection() async {
     if (isDisposing) return;
-    if (!cameraService.isInitialized || cameraService.controller == null) return;
+    if (!cameraService.isInitialized || cameraService.controller == null) {
+      return;
+    }
     if (!isModelLoaded) return;
-    
+
     if (cameraService.controller!.value.isStreamingImages) return;
 
     try {
       await cameraService.controller!.startImageStream((image) {
         _cameraFrameCounter++;
-        
+
         if (_cameraFrameCounter % 3 != 0) return;
 
         if (!isDetecting && isModelLoaded && !isDisposing) {
@@ -168,7 +182,9 @@ class FaceDetectionController {
       });
       isStreamRunning = true;
       _notifyStateChanged();
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> detectFaces(CameraImage image) async {
@@ -178,28 +194,30 @@ class FaceDetectionController {
     }
 
     final now = DateTime.now();
-    
+
     try {
       final result = await _vision.yoloOnFrame(
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
         iouThreshold: 0.40,
-        confThreshold: 0.50, 
-        classThreshold: 0.50, 
+        confThreshold: 0.50,
+        classThreshold: 0.50,
       );
 
       if (!isDisposing) {
         final currentValidDetections = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.50; 
+            return confidence >= 0.50;
           }
           return false;
         }).toList();
 
         if (currentValidDetections.isNotEmpty) {
-          var currentTags = currentValidDetections.map((r) => r['tag'].toString()).toList()..sort();
+          var currentTags =
+              currentValidDetections.map((r) => r['tag'].toString()).toList()
+                ..sort();
           String currentTagsHash = currentTags.join(',');
 
           if (currentTagsHash == _lastTagsHash) {
@@ -212,7 +230,7 @@ class FaceDetectionController {
           if (_consecutiveFrames >= _requiredFrames) {
             recognitions = currentValidDetections;
           } else {
-            recognitions = []; 
+            recognitions = [];
           }
         } else {
           _lastTagsHash = '';
@@ -234,23 +252,27 @@ class FaceDetectionController {
           await _detectAndReadFaces();
         }
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
 
     isDetecting = false;
   }
 
   Future<void> _detectAndReadFaces() async {
     if (isDisposing || isReading) return;
-    
+
     final now = DateTime.now();
-    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 1) return;
-    
+    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 1) {
+      return;
+    }
+
     try {
       final faceCount = recognitions.length;
       final previewSize = cameraService.controller?.value.previewSize;
-      
+
       if (faceCount > 0 && previewSize != null) {
-        double sourceWidth = previewSize.height; 
+        double sourceWidth = previewSize.height;
         double sourceHeight = previewSize.width;
 
         List<String> faceStatements = [];
@@ -259,9 +281,11 @@ class FaceDetectionController {
         for (int i = 0; i < maxFaces; i++) {
           var r = recognitions[i];
           var box = r['box'];
-          
+
           String detectedTag = (r['tag'] ?? 'unknown').toString().toLowerCase();
-          String nameToSpeak = (detectedTag == 'nash') ? 'Nash' : 'Unrecognized';
+          String nameToSpeak = (detectedTag == 'nash')
+              ? 'Nash'
+              : 'Unrecognized';
 
           if (box != null && box.length > 4) {
             double x1 = box[0].toDouble();
@@ -271,7 +295,7 @@ class FaceDetectionController {
 
             double centerX = (x1 + x2) / 2;
             String positionStr;
-            
+
             // Concise Positioning
             if (centerX < sourceWidth * 0.35) {
               positionStr = "left";
@@ -284,7 +308,7 @@ class FaceDetectionController {
             double boxHeight = y2 - y1;
             double heightRatio = boxHeight / sourceHeight;
             String distanceStr;
-            
+
             // Concise Distance
             if (heightRatio > 0.40) {
               distanceStr = "1 meter";
@@ -301,19 +325,23 @@ class FaceDetectionController {
         }
 
         String speechText = faceStatements.join(". ");
-        
-        final faceNamesText = recognitions.map((r) => r['tag'] ?? 'unknown').join(', ');
-        
+
+        final faceNamesText = recognitions
+            .map((r) => r['tag'] ?? 'unknown')
+            .join(', ');
+
         lastDetectedFaces = faceNamesText;
         lastSpeakTime = now;
         readingCompleted = false;
-        
+
         _flutterTts.speak(speechText);
         _notifyStateChanged();
 
         _captureAndUploadInBackground(faceCount);
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> _captureAndUploadInBackground(int faceCount) async {
@@ -327,19 +355,18 @@ class FaceDetectionController {
         await controller.stopImageStream();
         isStreamRunning = false;
       }
-      
-      final xFile = await controller.takePicture();
-      
-      startFaceDetection();
-      
-      final uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
-        File(xFile.path), 
-        userId, 
-        'face'
-      );
-      
-      await _saveDetectedFacesToFirebase(faceCount, imageUrl: uploadedImageUrl);
 
+      final xFile = await controller.takePicture();
+
+      startFaceDetection();
+
+      final uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
+        File(xFile.path),
+        userId,
+        'face',
+      );
+
+      await _saveDetectedFacesToFirebase(faceCount, imageUrl: uploadedImageUrl);
     } catch (_) {
       if (!isStreamRunning && !isDisposing) {
         startFaceDetection();
@@ -347,7 +374,10 @@ class FaceDetectionController {
     }
   }
 
-  Future<void> _saveDetectedFacesToFirebase(int faceCount, {String? imageUrl}) async {
+  Future<void> _saveDetectedFacesToFirebase(
+    int faceCount, {
+    String? imageUrl,
+  }) async {
     try {
       final userId = authService.value.currentUser?.uid;
       if (userId == null) return;
@@ -362,16 +392,20 @@ class FaceDetectionController {
           'deviceInfo': 'mobile_camera',
           'flashUsed': isFlashOn,
           'lowLight': isLowLight,
-          'detectedNames': recognitions.map((r) => r['tag'] ?? 'unknown').toList(),
+          'detectedNames': recognitions
+              .map((r) => r['tag'] ?? 'unknown')
+              .toList(),
         },
       );
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Color getColorForPerson(String name) {
-    return Colors.purple; 
+    return Colors.purple;
   }
-  
+
   void _checkBrightnessAndManageFlash(CameraImage image) {
     if (isDisposing) return;
 
@@ -380,21 +414,21 @@ class FaceDetectionController {
     int totalBrightness = 0;
     int sampleCount = 0;
 
-    for (int i = 0; i < bytes.length; i += 5000) { 
+    for (int i = 0; i < bytes.length; i += 5000) {
       totalBrightness += bytes[i];
       sampleCount++;
     }
 
     double averageBrightness = totalBrightness / sampleCount;
-    const int kDarkThreshold = 40; 
-    const int kBrightThreshold = 150; 
+    const int kDarkThreshold = 40;
+    const int kBrightThreshold = 150;
 
     if (!isFlashOn) {
       if (averageBrightness < kDarkThreshold) {
         _darkFrameCount++;
-        _brightFrameCount = 0; 
+        _brightFrameCount = 0;
       } else {
-        _darkFrameCount = 0; 
+        _darkFrameCount = 0;
       }
 
       if (_darkFrameCount > 5) {
@@ -404,9 +438,9 @@ class FaceDetectionController {
     } else {
       if (averageBrightness > kBrightThreshold) {
         _brightFrameCount++;
-        _darkFrameCount = 0; 
+        _darkFrameCount = 0;
       } else {
-        _brightFrameCount = 0; 
+        _brightFrameCount = 0;
       }
 
       if (_brightFrameCount > 10) {
@@ -424,17 +458,19 @@ class FaceDetectionController {
         isFlashOn = true;
         isLowLight = true;
         showFlashIndicator = true;
-        
+
         _notifyStateChanged();
         _flutterTts.speak('Turning on light.');
-        
+
         _flashIndicatorTimer?.cancel();
         _flashIndicatorTimer = Timer(const Duration(seconds: 3), () {
           showFlashIndicator = false;
           _notifyStateChanged();
         });
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> turnOffFlash() async {
@@ -448,7 +484,9 @@ class FaceDetectionController {
         _flashIndicatorTimer?.cancel();
         _notifyStateChanged();
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> toggleFlashManually() async {
@@ -462,18 +500,20 @@ class FaceDetectionController {
 
   void _notifyStateChanged() {
     if (!isDisposing) {
-      onStateChanged(FaceDetectionState(
-        recognitions: recognitions,
-        isDetecting: isDetecting,
-        isModelLoaded: isModelLoaded,
-        isReading: isReading,
-        readingCompleted: readingCompleted,
-        fps: fps,
-        isFlashOn: isFlashOn,
-        isLowLight: isLowLight,
-        showFlashIndicator: showFlashIndicator,
-        lastDetectedFaces: lastDetectedFaces,
-      ));
+      onStateChanged(
+        FaceDetectionState(
+          recognitions: recognitions,
+          isDetecting: isDetecting,
+          isModelLoaded: isModelLoaded,
+          isReading: isReading,
+          readingCompleted: readingCompleted,
+          fps: fps,
+          isFlashOn: isFlashOn,
+          isLowLight: isLowLight,
+          showFlashIndicator: showFlashIndicator,
+          lastDetectedFaces: lastDetectedFaces,
+        ),
+      );
     }
   }
 

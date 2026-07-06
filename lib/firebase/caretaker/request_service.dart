@@ -3,8 +3,10 @@ import 'package:seelai_app/firebase/caretaker/assistance_request_service.dart';
 import 'package:seelai_app/firebase/caretaker/request_transaction_service.dart';
 
 class RequestService {
-  final AssistanceRequestService _assistanceRequestService = assistanceRequestService;
-  final RequestTransactionService _transactionService = requestTransactionService;
+  final AssistanceRequestService _assistanceRequestService =
+      assistanceRequestService;
+  final RequestTransactionService _transactionService =
+      requestTransactionService;
   final List<Function(RequestModel)> _listeners = [];
 
   // Add listener for new requests
@@ -32,7 +34,10 @@ class RequestService {
   }) async {
     try {
       if (status != null) {
-        return await _assistanceRequestService.getRequestsByStatus(caretakerId, status);
+        return await _assistanceRequestService.getRequestsByStatus(
+          caretakerId,
+          status,
+        );
       }
       return await _assistanceRequestService.getCaretakerRequests(caretakerId);
     } catch (e) {
@@ -48,11 +53,16 @@ class RequestService {
   // Accept a request
   Future<bool> acceptRequest(String requestId, String caretakerId) async {
     try {
-      bool success = await _assistanceRequestService.acceptRequest(requestId, caretakerId);
-      
+      bool success = await _assistanceRequestService.acceptRequest(
+        requestId,
+        caretakerId,
+      );
+
       if (success) {
         // Get request details for transaction logging
-        final request = await _assistanceRequestService.getRequestById(requestId);
+        final request = await _assistanceRequestService.getRequestById(
+          requestId,
+        );
         if (request != null) {
           await _transactionService.logRequestAccepted(
             requestId,
@@ -61,7 +71,7 @@ class RequestService {
           );
         }
       }
-      
+
       return success;
     } catch (e) {
       return false;
@@ -75,10 +85,16 @@ class RequestService {
     String reason,
   ) async {
     try {
-      bool success = await _assistanceRequestService.declineRequest(requestId, caretakerId, reason);
-      
+      bool success = await _assistanceRequestService.declineRequest(
+        requestId,
+        caretakerId,
+        reason,
+      );
+
       if (success) {
-        final request = await _assistanceRequestService.getRequestById(requestId);
+        final request = await _assistanceRequestService.getRequestById(
+          requestId,
+        );
         if (request != null) {
           await _transactionService.logRequestDeclined(
             requestId,
@@ -88,7 +104,7 @@ class RequestService {
           );
         }
       }
-      
+
       return success;
     } catch (e) {
       return false;
@@ -98,10 +114,14 @@ class RequestService {
   // Mark request as in progress
   Future<bool> markInProgress(String requestId) async {
     try {
-      bool success = await _assistanceRequestService.markRequestInProgress(requestId);
-      
+      bool success = await _assistanceRequestService.markRequestInProgress(
+        requestId,
+      );
+
       if (success) {
-        final request = await _assistanceRequestService.getRequestById(requestId);
+        final request = await _assistanceRequestService.getRequestById(
+          requestId,
+        );
         if (request != null && request.caretakerId != null) {
           await _transactionService.logRequestInProgress(
             requestId,
@@ -110,7 +130,7 @@ class RequestService {
           );
         }
       }
-      
+
       return success;
     } catch (e) {
       return false;
@@ -124,10 +144,16 @@ class RequestService {
     String notes,
   ) async {
     try {
-      bool success = await _assistanceRequestService.completeRequest(requestId, caretakerId, notes);
-      
+      bool success = await _assistanceRequestService.completeRequest(
+        requestId,
+        caretakerId,
+        notes,
+      );
+
       if (success) {
-        final request = await _assistanceRequestService.getRequestById(requestId);
+        final request = await _assistanceRequestService.getRequestById(
+          requestId,
+        );
         if (request != null) {
           await _transactionService.logRequestCompleted(
             requestId,
@@ -137,7 +163,7 @@ class RequestService {
           );
         }
       }
-      
+
       return success;
     } catch (e) {
       return false;
@@ -159,7 +185,9 @@ class RequestService {
   }
 
   // Get transaction history for a request
-  Future<List<RequestTransaction>> getRequestTransactionHistory(String requestId) async {
+  Future<List<RequestTransaction>> getRequestTransactionHistory(
+    String requestId,
+  ) async {
     try {
       return await _transactionService.getRequestTransactions(requestId);
     } catch (e) {
@@ -168,7 +196,9 @@ class RequestService {
   }
 
   // Stream transaction history for a request
-  Stream<List<RequestTransaction>> streamRequestTransactionHistory(String requestId) {
+  Stream<List<RequestTransaction>> streamRequestTransactionHistory(
+    String requestId,
+  ) {
     return _transactionService.streamRequestTransactions(requestId);
   }
 }
