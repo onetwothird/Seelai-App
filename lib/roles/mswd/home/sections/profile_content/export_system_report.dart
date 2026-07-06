@@ -1,7 +1,7 @@
 // File: lib/roles/mswd/home/sections/profile_content/export_system_report.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; 
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -22,21 +22,27 @@ class ExportSystemReportScreen extends StatefulWidget {
   });
 
   @override
-  State<ExportSystemReportScreen> createState() => _ExportSystemReportScreenState();
+  State<ExportSystemReportScreen> createState() =>
+      _ExportSystemReportScreenState();
 }
 
 class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
   final Color _primaryColor = const Color(0xFF8B5CF6);
-  
+
   bool _includeUserStats = true;
   bool _includeRecentLogs = true;
   bool _includePendingApprovals = true;
   String _selectedDateRange = 'Last 30 Days';
   bool _isGenerating = false;
-  
+
   bool _isSimulatingLoad = true; // Added skeleton state
 
-  final List<String> _dateRanges = ['Last 7 Days', 'Last 30 Days', 'Last 90 Days', 'All Time'];
+  final List<String> _dateRanges = [
+    'Last 7 Days',
+    'Last 30 Days',
+    'Last 90 Days',
+    'All Time',
+  ];
 
   @override
   void initState() {
@@ -47,9 +53,16 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
   }
 
   Future<void> _generateAndDownloadReport() async {
-    if (!_includeUserStats && !_includeRecentLogs && !_includePendingApprovals) {
+    if (!_includeUserStats &&
+        !_includeRecentLogs &&
+        !_includePendingApprovals) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one section to include in the report.'), backgroundColor: Colors.orange),
+        const SnackBar(
+          content: Text(
+            'Please select at least one section to include in the report.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -60,10 +73,12 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
       final doc = pw.Document();
       final adminName = widget.userData['name'] ?? 'MSWD Administrator';
       final department = widget.userData['department'] ?? 'MSWD General';
-      
+
       pw.MemoryImage? logoImage;
       try {
-        final ByteData bytes = await rootBundle.load('assets/seelai_app_logo/seelai_app_logo.png');
+        final ByteData bytes = await rootBundle.load(
+          'assets/seelai_app_logo/seelai_app_logo.png',
+        );
         logoImage = pw.MemoryImage(bytes.buffer.asUint8List());
       } catch (e) {
         debugPrint('Could not load logo image for PDF: $e');
@@ -78,14 +93,20 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
       }
 
       if (_includeRecentLogs) {
-        final allLogs = await activityLogsService.getAllActivityLogs(limit: 1000);
-        
+        final allLogs = await activityLogsService.getAllActivityLogs(
+          limit: 1000,
+        );
+
         if (_selectedDateRange != 'All Time') {
-          final days = _selectedDateRange.contains('7') ? 7 : (_selectedDateRange.contains('30') ? 30 : 90);
+          final days = _selectedDateRange.contains('7')
+              ? 7
+              : (_selectedDateRange.contains('30') ? 30 : 90);
           final cutoff = DateTime.now().subtract(Duration(days: days));
           logs = allLogs.where((log) {
             if (log['timestamp'] == null) return false;
-            return DateTime.fromMillisecondsSinceEpoch(log['timestamp'] as int).isAfter(cutoff);
+            return DateTime.fromMillisecondsSinceEpoch(
+              log['timestamp'] as int,
+            ).isAfter(cutoff);
           }).toList();
         } else {
           logs = allLogs;
@@ -100,18 +121,34 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: pw.EdgeInsets.all(32),
-          header: (context) => _buildPdfHeader(adminName, department, logoImage),
+          header: (context) =>
+              _buildPdfHeader(adminName, department, logoImage),
           footer: (context) => _buildPdfFooter(context),
           build: (pw.Context context) {
             List<pw.Widget> content = [];
 
-            content.add(pw.Text('Executive Summary', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#8B5CF6'))));
+            content.add(
+              pw.Text(
+                'Executive Summary',
+                style: pw.TextStyle(
+                  fontSize: 16,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColor.fromHex('#8B5CF6'),
+                ),
+              ),
+            );
             content.add(pw.SizedBox(height: 8));
-            content.add(pw.Text('This document serves as an official system export for the SEELAI platform under the jurisdiction of the Municipal Social Welfare and Development office. It contains confidential demographic and system usage data.'));
+            content.add(
+              pw.Text(
+                'This document serves as an official system export for the SEELAI platform under the jurisdiction of the Municipal Social Welfare and Development office. It contains confidential demographic and system usage data.',
+              ),
+            );
             content.add(pw.SizedBox(height: 24));
 
             if (_includeUserStats && userStats != null) {
-              content.add(_buildSectionTitle('System Demographics & User Statistics'));
+              content.add(
+                _buildSectionTitle('System Demographics & User Statistics'),
+              );
               content.add(
                 pw.Container(
                   padding: pw.EdgeInsets.all(12),
@@ -123,10 +160,22 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                   child: pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
                     children: [
-                      _buildStatBox('Total Users', userStats['total'].toString()),
-                      _buildStatBox('Partially Sighted', userStats['partially_sighted'].toString()),
-                      _buildStatBox('Caretakers', userStats['caretaker'].toString()),
-                      _buildStatBox('Active Accounts', userStats['active'].toString()),
+                      _buildStatBox(
+                        'Total Users',
+                        userStats['total'].toString(),
+                      ),
+                      _buildStatBox(
+                        'Partially Sighted',
+                        userStats['partially_sighted'].toString(),
+                      ),
+                      _buildStatBox(
+                        'Caretakers',
+                        userStats['caretaker'].toString(),
+                      ),
+                      _buildStatBox(
+                        'Active Accounts',
+                        userStats['active'].toString(),
+                      ),
                     ],
                   ),
                 ),
@@ -135,51 +184,104 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
             }
 
             if (_includePendingApprovals && pendingCaretakers != null) {
-              content.add(_buildSectionTitle('Pending Caretaker Registrations (${pendingCaretakers.length})'));
+              content.add(
+                _buildSectionTitle(
+                  'Pending Caretaker Registrations (${pendingCaretakers.length})',
+                ),
+              );
               if (pendingCaretakers.isEmpty) {
-                content.add(pw.Text('No pending caretakers at this time.', style: pw.TextStyle(fontStyle: pw.FontStyle.italic)));
+                content.add(
+                  pw.Text(
+                    'No pending caretakers at this time.',
+                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+                  ),
+                );
               } else {
-                final tableData = pendingCaretakers.map((ct) => [
-                  ct['name'] ?? 'Unknown',
-                  ct['email'] ?? 'N/A',
-                  ct['relationship'] ?? 'N/A',
-                  DateFormat('MMM dd, yyyy').format(DateTime.fromMillisecondsSinceEpoch(ct['createdAt'] ?? 0)),
-                ]).toList();
-                
-                content.add(pw.TableHelper.fromTextArray(
-                  headers: ['Name', 'Email', 'Relationship', 'Date Registered'],
-                  data: tableData,
-                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                  headerDecoration: pw.BoxDecoration(color: PdfColors.blueGrey600),
-                  cellStyle: pw.TextStyle(fontSize: 10),
-                ));
+                final tableData = pendingCaretakers
+                    .map(
+                      (ct) => [
+                        ct['name'] ?? 'Unknown',
+                        ct['email'] ?? 'N/A',
+                        ct['relationship'] ?? 'N/A',
+                        DateFormat('MMM dd, yyyy').format(
+                          DateTime.fromMillisecondsSinceEpoch(
+                            ct['createdAt'] ?? 0,
+                          ),
+                        ),
+                      ],
+                    )
+                    .toList();
+
+                content.add(
+                  pw.TableHelper.fromTextArray(
+                    headers: [
+                      'Name',
+                      'Email',
+                      'Relationship',
+                      'Date Registered',
+                    ],
+                    data: tableData,
+                    headerStyle: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.white,
+                    ),
+                    headerDecoration: pw.BoxDecoration(
+                      color: PdfColors.blueGrey600,
+                    ),
+                    cellStyle: pw.TextStyle(fontSize: 10),
+                  ),
+                );
               }
               content.add(pw.SizedBox(height: 24));
             }
 
             if (_includeRecentLogs && logs != null) {
-              content.add(_buildSectionTitle('System Activity Logs ($_selectedDateRange)'));
+              content.add(
+                _buildSectionTitle(
+                  'System Activity Logs ($_selectedDateRange)',
+                ),
+              );
               if (logs.isEmpty) {
-                content.add(pw.Text('No logs found for this period.', style: pw.TextStyle(fontStyle: pw.FontStyle.italic)));
+                content.add(
+                  pw.Text(
+                    'No logs found for this period.',
+                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic),
+                  ),
+                );
               } else {
-                final tableData = logs.map((log) => [
-                  DateFormat('MMM dd, hh:mm a').format(DateTime.fromMillisecondsSinceEpoch(log['timestamp'] ?? 0)),
-                  log['action']?.toString().toUpperCase() ?? 'N/A',
-                  log['details'] ?? 'No details',
-                ]).toList();
+                final tableData = logs
+                    .map(
+                      (log) => [
+                        DateFormat('MMM dd, hh:mm a').format(
+                          DateTime.fromMillisecondsSinceEpoch(
+                            log['timestamp'] ?? 0,
+                          ),
+                        ),
+                        log['action']?.toString().toUpperCase() ?? 'N/A',
+                        log['details'] ?? 'No details',
+                      ],
+                    )
+                    .toList();
 
-                content.add(pw.TableHelper.fromTextArray(
-                  headers: ['Date & Time', 'Action', 'Details'],
-                  data: tableData,
-                  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
-                  headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#8B5CF6')),
-                  cellStyle: pw.TextStyle(fontSize: 9),
-                  columnWidths: {
-                    0: pw.FlexColumnWidth(2),
-                    1: pw.FlexColumnWidth(2),
-                    2: pw.FlexColumnWidth(4),
-                  },
-                ));
+                content.add(
+                  pw.TableHelper.fromTextArray(
+                    headers: ['Date & Time', 'Action', 'Details'],
+                    data: tableData,
+                    headerStyle: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.white,
+                    ),
+                    headerDecoration: pw.BoxDecoration(
+                      color: PdfColor.fromHex('#8B5CF6'),
+                    ),
+                    cellStyle: pw.TextStyle(fontSize: 9),
+                    columnWidths: {
+                      0: pw.FlexColumnWidth(2),
+                      1: pw.FlexColumnWidth(2),
+                      2: pw.FlexColumnWidth(4),
+                    },
+                  ),
+                );
               }
             }
 
@@ -190,13 +292,16 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
 
       await Printing.layoutPdf(
         onLayout: (PdfPageFormat format) async => doc.save(),
-        name: 'SEELAI_Master_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
+        name:
+            'SEELAI_Master_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
       );
-
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error generating report: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Error generating report: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -204,7 +309,11 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
     }
   }
 
-  pw.Widget _buildPdfHeader(String adminName, String department, pw.MemoryImage? logoImage) {
+  pw.Widget _buildPdfHeader(
+    String adminName,
+    String department,
+    pw.MemoryImage? logoImage,
+  ) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -217,15 +326,33 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
               children: [
                 if (logoImage != null) ...[
                   pw.ClipOval(
-                    child: pw.Image(logoImage, width: 38, height: 38, fit: pw.BoxFit.cover),
+                    child: pw.Image(
+                      logoImage,
+                      width: 38,
+                      height: 38,
+                      fit: pw.BoxFit.cover,
+                    ),
                   ),
                   pw.SizedBox(width: 12),
                 ],
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('SEELAI', style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#8B5CF6'))),
-                    pw.Text('System Report', style: pw.TextStyle(fontSize: 14, color: PdfColors.grey700)),
+                    pw.Text(
+                      'SEELAI',
+                      style: pw.TextStyle(
+                        fontSize: 28,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColor.fromHex('#8B5CF6'),
+                      ),
+                    ),
+                    pw.Text(
+                      'System Report',
+                      style: pw.TextStyle(
+                        fontSize: 14,
+                        color: PdfColors.grey700,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -233,9 +360,18 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
             pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
-                pw.Text('Generated By: $adminName', style: pw.TextStyle(fontSize: 10)),
-                pw.Text('Department: $department', style: pw.TextStyle(fontSize: 10)),
-                pw.Text('Date: ${DateFormat('MMMM dd, yyyy - hh:mm a').format(DateTime.now())}', style: pw.TextStyle(fontSize: 10)),
+                pw.Text(
+                  'Generated By: $adminName',
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  'Department: $department',
+                  style: pw.TextStyle(fontSize: 10),
+                ),
+                pw.Text(
+                  'Date: ${DateFormat('MMMM dd, yyyy - hh:mm a').format(DateTime.now())}',
+                  style: pw.TextStyle(fontSize: 10),
+                ),
               ],
             ),
           ],
@@ -251,24 +387,40 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
     return pw.Container(
       alignment: pw.Alignment.centerRight,
       margin: pw.EdgeInsets.only(top: 10),
-      child: pw.Text('Page ${context.pageNumber} of ${context.pagesCount}', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+      child: pw.Text(
+        'Page ${context.pageNumber} of ${context.pagesCount}',
+        style: pw.TextStyle(fontSize: 10, color: PdfColors.grey),
+      ),
     );
   }
 
   pw.Widget _buildSectionTitle(String title) {
     return pw.Container(
       margin: pw.EdgeInsets.only(bottom: 10),
-      child: pw.Text(title, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+      child: pw.Text(
+        title,
+        style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
+      ),
     );
   }
 
   pw.Widget _buildStatBox(String label, String value) {
     return pw.Column(
       children: [
-        pw.Text(value, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColor.fromHex('#8B5CF6'))),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            fontSize: 20,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColor.fromHex('#8B5CF6'),
+          ),
+        ),
         pw.SizedBox(height: 4),
-        pw.Text(label, style: pw.TextStyle(fontSize: 10, color: PdfColors.grey800)),
-      ]
+        pw.Text(
+          label,
+          style: pw.TextStyle(fontSize: 10, color: PdfColors.grey800),
+        ),
+      ],
     );
   }
 
@@ -276,8 +428,12 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
   // WIDGET: SKELETON
   // ==========================================
   Widget _buildSkeletonExport() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -293,13 +449,31 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
             const SizedBox(height: 4),
             Container(width: 200, height: 14, color: Colors.white),
             const SizedBox(height: 32),
-            Container(height: 220, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 220,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
             const SizedBox(height: 24),
             Container(width: 180, height: 16, color: Colors.white),
             const SizedBox(height: 12),
-            Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             const SizedBox(height: 48),
-            Container(height: 56, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ],
         ),
       ),
@@ -308,11 +482,21 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color bgColor = widget.isDarkMode ? const Color(0xFF121212) : Colors.white;
-    final Color headerColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
-    final Color textColor = widget.isDarkMode ? Colors.white : const Color(0xFF111827);
-    final Color subTextColor = widget.isDarkMode ? Colors.white70 : const Color(0xFF6B7280);
-    final Color cardColor = widget.isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color bgColor = widget.isDarkMode
+        ? const Color(0xFF121212)
+        : Colors.white;
+    final Color headerColor = widget.isDarkMode
+        ? const Color(0xFF1E1E1E)
+        : Colors.white;
+    final Color textColor = widget.isDarkMode
+        ? Colors.white
+        : const Color(0xFF111827);
+    final Color subTextColor = widget.isDarkMode
+        ? Colors.white70
+        : const Color(0xFF6B7280);
+    final Color cardColor = widget.isDarkMode
+        ? const Color(0xFF1E1E1E)
+        : Colors.white;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -325,21 +509,36 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
         centerTitle: true,
         title: Text(
           'Export System Report',
-          style: TextStyle(color: textColor, fontWeight: FontWeight.w800, fontSize: 20, letterSpacing: -0.5),
+          style: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+            letterSpacing: -0.5,
+          ),
         ),
       ),
-      body: _isSimulatingLoad 
-        ? _buildSkeletonExport() 
-        : _isGenerating 
+      body: _isSimulatingLoad
+          ? _buildSkeletonExport()
+          : _isGenerating
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(color: _primaryColor),
                   const SizedBox(height: 20),
-                  Text('Compiling system data...', style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(
+                    'Compiling system data...',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  Text('This may take a moment depending on the data size.', style: TextStyle(color: subTextColor, fontSize: 13)),
+                  Text(
+                    'This may take a moment depending on the data size.',
+                    style: TextStyle(color: subTextColor, fontSize: 13),
+                  ),
                 ],
               ),
             )
@@ -350,12 +549,20 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                 children: [
                   Text(
                     'Configure Report Options',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textColor),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: textColor,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Select the specific modules and timeframes you want to include in your official exported document.',
-                    style: TextStyle(fontSize: 14, color: subTextColor, height: 1.5),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: subTextColor,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 32),
 
@@ -363,37 +570,68 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
-                      boxShadow: widget.isDarkMode ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                      border: Border.all(
+                        color: widget.isDarkMode
+                            ? Colors.white10
+                            : Colors.black.withValues(alpha: 0.05),
+                      ),
+                      boxShadow: widget.isDarkMode
+                          ? []
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                     ),
                     child: Column(
                       children: [
                         _buildCheckboxTile(
                           title: 'User Demographics & Statistics',
-                          subtitle: 'Total counts of patients, caretakers, and active statuses.',
+                          subtitle:
+                              'Total counts of patients, caretakers, and active statuses.',
                           icon: Icons.pie_chart_rounded,
                           value: _includeUserStats,
-                          onChanged: (val) => setState(() => _includeUserStats = val ?? false),
+                          onChanged: (val) =>
+                              setState(() => _includeUserStats = val ?? false),
                           textColor: textColor,
                           subTextColor: subTextColor,
                         ),
-                        Divider(height: 1, indent: 56, color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                        Divider(
+                          height: 1,
+                          indent: 56,
+                          color: widget.isDarkMode
+                              ? Colors.white10
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
                         _buildCheckboxTile(
                           title: 'Pending Caretaker Approvals',
-                          subtitle: 'List of caretakers currently awaiting MSWD verification.',
+                          subtitle:
+                              'List of caretakers currently awaiting MSWD verification.',
                           icon: Icons.how_to_reg_rounded,
                           value: _includePendingApprovals,
-                          onChanged: (val) => setState(() => _includePendingApprovals = val ?? false),
+                          onChanged: (val) => setState(
+                            () => _includePendingApprovals = val ?? false,
+                          ),
                           textColor: textColor,
                           subTextColor: subTextColor,
                         ),
-                        Divider(height: 1, indent: 56, color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
+                        Divider(
+                          height: 1,
+                          indent: 56,
+                          color: widget.isDarkMode
+                              ? Colors.white10
+                              : Colors.black.withValues(alpha: 0.05),
+                        ),
                         _buildCheckboxTile(
                           title: 'System Activity Logs',
-                          subtitle: 'Detailed chronological record of system events and alerts.',
+                          subtitle:
+                              'Detailed chronological record of system events and alerts.',
                           icon: Icons.history_rounded,
                           value: _includeRecentLogs,
-                          onChanged: (val) => setState(() => _includeRecentLogs = val ?? false),
+                          onChanged: (val) =>
+                              setState(() => _includeRecentLogs = val ?? false),
                           textColor: textColor,
                           subTextColor: subTextColor,
                         ),
@@ -413,28 +651,54 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                         children: [
                           Text(
                             'Data Timeframe (For Logs)',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textColor),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: cardColor,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade300),
+                              border: Border.all(
+                                color: widget.isDarkMode
+                                    ? Colors.white10
+                                    : Colors.grey.shade300,
+                              ),
                             ),
                             child: DropdownButtonHideUnderline(
                               child: DropdownButton<String>(
                                 isExpanded: true,
                                 value: _selectedDateRange,
                                 dropdownColor: cardColor,
-                                icon: Icon(Icons.calendar_today_rounded, color: _primaryColor, size: 18),
-                                style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600),
+                                icon: Icon(
+                                  Icons.calendar_today_rounded,
+                                  color: _primaryColor,
+                                  size: 18,
+                                ),
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
                                 items: _dateRanges.map((String value) {
-                                  return DropdownMenuItem<String>(value: value, child: Text(value));
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
                                 }).toList(),
                                 onChanged: (String? newValue) {
-                                  if (newValue != null) setState(() => _selectedDateRange = newValue);
+                                  if (newValue != null) {
+                                    setState(
+                                      () => _selectedDateRange = newValue,
+                                    );
+                                  }
                                 },
                               ),
                             ),
@@ -453,7 +717,9 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                       onPressed: _generateAndDownloadReport,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _primaryColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: widget.isDarkMode ? 0 : 4,
                         shadowColor: _primaryColor.withValues(alpha: 0.4),
                       ),
@@ -462,7 +728,14 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
                         children: const [
                           Icon(Icons.auto_awesome_rounded, color: Colors.white),
                           SizedBox(width: 12),
-                          Text('Generate & Export Document', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          Text(
+                            'Generate & Export Document',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -490,14 +763,28 @@ class _ExportSystemReportScreenState extends State<ExportSystemReportScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       title: Row(
         children: [
-          Icon(icon, size: 20, color: value ? _primaryColor : subTextColor.withValues(alpha: 0.5)),
+          Icon(
+            icon,
+            size: 20,
+            color: value ? _primaryColor : subTextColor.withValues(alpha: 0.5),
+          ),
           const SizedBox(width: 12),
-          Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 15)),
+          Text(
+            title,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+              fontSize: 15,
+            ),
+          ),
         ],
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(left: 32, top: 4),
-        child: Text(subtitle, style: TextStyle(color: subTextColor, fontSize: 13)),
+        child: Text(
+          subtitle,
+          style: TextStyle(color: subTextColor, fontSize: 13),
+        ),
       ),
       controlAffinity: ListTileControlAffinity.trailing,
     );

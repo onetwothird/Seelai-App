@@ -1,7 +1,7 @@
 // File: lib/roles/caretaker/home/sections/patients_screen/patient_details_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; 
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -32,13 +32,13 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   Map<String, dynamic>? _fullPatientData;
   bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
-  bool _isScrolled = false; 
+  bool _isScrolled = false;
 
   @override
   void initState() {
     super.initState();
     _loadFullPatientData();
-    
+
     // Add listener to detect scrolling
     _scrollController.addListener(_onScroll);
   }
@@ -71,7 +71,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll); 
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
@@ -79,8 +79,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   // ==================== SKELETON BUILDERS ====================
 
   Widget _buildSkeletonDetails() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -90,31 +94,79 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         child: Column(
           children: [
             // Avatar Skeleton
-            Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+            Container(
+              width: 100,
+              height: 100,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 16),
             // Name Skeleton
             Container(width: 160, height: 24, color: Colors.white),
             const SizedBox(height: 8),
             // Status Pill Skeleton
-            Container(width: 100, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+            Container(
+              width: 100,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
             const SizedBox(height: 24),
 
             // Quick Info Row Skeleton
             Row(
               children: [
-                Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
 
             // Cards Skeleton
-            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 130,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 16),
-            Container(height: 160, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 160,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 16),
-            Container(height: 160, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 160,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
           ],
         ),
       ),
@@ -122,8 +174,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   }
 
   Widget _buildSkeletonBottomBar(Color cardColor) {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -132,7 +188,9 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
+            color: Colors.black.withValues(
+              alpha: widget.isDarkMode ? 0.3 : 0.05,
+            ),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -144,9 +202,25 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           highlightColor: highlightColor,
           child: Row(
             children: [
-              Expanded(child: Container(height: 54, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+              Expanded(
+                child: Container(
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
               const SizedBox(width: 16),
-              Expanded(child: Container(height: 54, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+              Expanded(
+                child: Container(
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -159,13 +233,21 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     // Theme Colors
-    final bgColor = widget.isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFFAFAFA);
-    final cardColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white;
+    final bgColor = widget.isDarkMode
+        ? const Color(0xFF0A0E27)
+        : const Color(0xFFFAFAFA);
+    final cardColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.white;
     final textColor = widget.isDarkMode ? Colors.white : Colors.black87;
-    final subColor = widget.isDarkMode ? const Color(0xFFB0B8D4) : Colors.grey[600];
+    final subColor = widget.isDarkMode
+        ? const Color(0xFFB0B8D4)
+        : Colors.grey[600];
 
     // Ensure text is visible if dark mode is on but the header becomes white
-    final appBarTitleColor = _isScrolled && widget.isDarkMode ? Colors.black87 : textColor;
+    final appBarTitleColor = _isScrolled && widget.isDarkMode
+        ? Colors.black87
+        : textColor;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -180,9 +262,14 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           decoration: BoxDecoration(
             color: cardColor,
             shape: BoxShape.circle,
-            boxShadow: widget.isDarkMode ? [] : [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
-            ],
+            boxShadow: widget.isDarkMode
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 4,
+                    ),
+                  ],
           ),
           child: IconButton(
             icon: Icon(Icons.arrow_back_rounded, color: textColor, size: 20),
@@ -203,9 +290,14 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             decoration: BoxDecoration(
               color: cardColor,
               shape: BoxShape.circle,
-              boxShadow: widget.isDarkMode ? [] : [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
-              ],
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                      ),
+                    ],
             ),
             child: IconButton(
               icon: Icon(Icons.refresh_rounded, color: textColor, size: 20),
@@ -227,9 +319,9 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                       children: [
                         // 1. Header Profile
                         _buildProfileHeader(textColor, subColor!),
-                        
+
                         const SizedBox(height: 24),
-                        
+
                         // 2. Quick Info Row (Age/Gender)
                         _buildQuickInfoRow(cardColor, textColor),
 
@@ -239,10 +331,18 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Medical Information',
                           icon: Icons.medical_services_rounded,
-                          color: const Color(0xFF8B5CF6), 
+                          color: const Color(0xFF8B5CF6),
                           children: [
-                            _buildInfoRow('Disability', widget.patient.disabilityType, textColor),
-                            _buildInfoRow('Diagnosis', _fullPatientData?['diagnosis'] ?? 'Not specified', textColor),
+                            _buildInfoRow(
+                              'Disability',
+                              widget.patient.disabilityType,
+                              textColor,
+                            ),
+                            _buildInfoRow(
+                              'Diagnosis',
+                              _fullPatientData?['diagnosis'] ?? 'Not specified',
+                              textColor,
+                            ),
                           ],
                           cardColor: cardColor,
                           textColor: textColor,
@@ -254,11 +354,24 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Contact Details',
                           icon: Icons.contact_phone_rounded,
-                          color: const Color(0xFF8B5CF6), 
+                          color: const Color(0xFF8B5CF6),
                           children: [
-                            _buildInfoRow('Phone', widget.patient.contactNumber ?? 'N/A', textColor),
-                            _buildInfoRow('Address', widget.patient.address ?? 'N/A', textColor, isMultiline: true),
-                            _buildInfoRow('Email', _fullPatientData?['email'] ?? 'N/A', textColor),
+                            _buildInfoRow(
+                              'Phone',
+                              widget.patient.contactNumber ?? 'N/A',
+                              textColor,
+                            ),
+                            _buildInfoRow(
+                              'Address',
+                              widget.patient.address ?? 'N/A',
+                              textColor,
+                              isMultiline: true,
+                            ),
+                            _buildInfoRow(
+                              'Email',
+                              _fullPatientData?['email'] ?? 'N/A',
+                              textColor,
+                            ),
                           ],
                           cardColor: cardColor,
                           textColor: textColor,
@@ -270,11 +383,23 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                         _buildSectionCard(
                           title: 'Account Info',
                           icon: Icons.shield_rounded,
-                          color: const Color(0xFF8B5CF6), 
+                          color: const Color(0xFF8B5CF6),
                           children: [
-                            _buildInfoRow('ID Number', _fullPatientData?['idNumber'] ?? 'N/A', textColor),
-                            _buildInfoRow('Last Active', _formatLastActive(widget.patient.lastActive), textColor),
-                            _buildInfoRow('Member Since', _formatDate(_fullPatientData?['createdAt']), textColor),
+                            _buildInfoRow(
+                              'ID Number',
+                              _fullPatientData?['idNumber'] ?? 'N/A',
+                              textColor,
+                            ),
+                            _buildInfoRow(
+                              'Last Active',
+                              _formatLastActive(widget.patient.lastActive),
+                              textColor,
+                            ),
+                            _buildInfoRow(
+                              'Member Since',
+                              _formatDate(_fullPatientData?['createdAt']),
+                              textColor,
+                            ),
                           ],
                           cardColor: cardColor,
                           textColor: textColor,
@@ -283,7 +408,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                     ),
                   ),
           ),
-          
+
           // 6. Bottom Action Bar
           if (_isLoading)
             _buildSkeletonBottomBar(cardColor)
@@ -315,7 +440,9 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.black, width: 1),
-                    color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[200],
+                    color: widget.isDarkMode
+                        ? Colors.grey[800]
+                        : Colors.grey[200],
                     boxShadow: [
                       BoxShadow(
                         color: primary.withValues(alpha: 0.2),
@@ -346,8 +473,10 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                   color: isActive ? Colors.green : Colors.grey,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white, 
-                    width: 3
+                    color: widget.isDarkMode
+                        ? const Color(0xFF0A0E27)
+                        : Colors.white,
+                    width: 3,
                   ),
                 ),
               ),
@@ -369,7 +498,9 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: (isActive ? Colors.green : Colors.grey).withValues(alpha: 0.1),
+            color: (isActive ? Colors.green : Colors.grey).withValues(
+              alpha: 0.1,
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -396,8 +527,14 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       ),
       child: Center(
         child: Text(
-          widget.patient.name.isNotEmpty ? widget.patient.name[0].toUpperCase() : '?',
-          style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+          widget.patient.name.isNotEmpty
+              ? widget.patient.name[0].toUpperCase()
+              : '?',
+          style: const TextStyle(
+            fontSize: 40,
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -405,7 +542,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
 
   Widget _buildQuickInfoRow(Color cardColor, Color textColor) {
     final sex = _fullPatientData?['sex'] ?? 'N/A';
-    
+
     return Row(
       children: [
         Expanded(
@@ -413,7 +550,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             label: 'Age',
             value: '${widget.patient.age} yrs',
             icon: Icons.cake_rounded,
-            color: const Color(0xFF8B5CF6), 
+            color: const Color(0xFF8B5CF6),
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -424,7 +561,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
             label: 'Gender',
             value: sex,
             icon: Icons.wc_rounded,
-            color: const Color(0xFF8B5CF6), 
+            color: const Color(0xFF8B5CF6),
             cardColor: cardColor,
             textColor: textColor,
           ),
@@ -446,9 +583,15 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         children: [
@@ -456,11 +599,18 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
           ),
           Text(
             label,
-            style: TextStyle(fontSize: 12, color: widget.isDarkMode ? Colors.white60 : Colors.grey),
+            style: TextStyle(
+              fontSize: 12,
+              color: widget.isDarkMode ? Colors.white60 : Colors.grey,
+            ),
           ),
         ],
       ),
@@ -481,9 +631,15 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -516,7 +672,12 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, Color textColor, {bool isMultiline = false}) {
+  Widget _buildInfoRow(
+    String label,
+    String value,
+    Color textColor, {
+    bool isMultiline = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
@@ -544,11 +705,11 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
                       height: 1.3,
                     ),
                     textAlign: TextAlign.right,
-                    maxLines: null, 
+                    maxLines: null,
                   )
                 : SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    reverse: true, 
+                    reverse: true,
                     physics: const BouncingScrollPhysics(),
                     child: Text(
                       value,
@@ -575,7 +736,9 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
+            color: Colors.black.withValues(
+              alpha: widget.isDarkMode ? 0.3 : 0.05,
+            ),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -588,15 +751,21 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               child: SizedBox(
                 height: 54,
                 child: ElevatedButton.icon(
-                  onPressed: () => callPatient(context, patientName: widget.patient.name),
+                  onPressed: () =>
+                      callPatient(context, patientName: widget.patient.name),
                   icon: const Icon(Icons.phone_rounded),
                   label: const Text("Call"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -606,15 +775,21 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
               child: SizedBox(
                 height: 54,
                 child: ElevatedButton.icon(
-                  onPressed: () => messagePatient(context, patientName: widget.patient.name),
+                  onPressed: () =>
+                      messagePatient(context, patientName: widget.patient.name),
                   icon: const Icon(Icons.message_rounded),
                   label: const Text("Message"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -639,7 +814,7 @@ class _PatientDetailsScreenState extends State<PatientDetailsScreen> {
   String _formatDate(dynamic date) {
     if (date == null) return 'Unknown';
     try {
-      final dt = date is int 
+      final dt = date is int
           ? DateTime.fromMillisecondsSinceEpoch(date)
           : DateTime.parse(date.toString());
       return DateFormat('MMM dd, yyyy').format(dt);

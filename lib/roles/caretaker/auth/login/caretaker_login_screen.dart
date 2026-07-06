@@ -17,14 +17,15 @@ class CaretakerLoginScreen extends StatefulWidget {
   State<CaretakerLoginScreen> createState() => _CaretakerLoginScreenState();
 }
 
-class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with TickerProviderStateMixin {
+class _CaretakerLoginScreenState extends State<CaretakerLoginScreen>
+    with TickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -36,14 +37,15 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart),
+        );
 
     _entryController.forward();
   }
@@ -66,16 +68,18 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
       body: Stack(
         children: [
           // 1. Top Section: Hero Animation
-           Positioned(
-          top: -60, // Try -60, -80, or -100 to pull it up more
-          left: 0,
-          right: 0,
-          height: (size.height * 0.40) + 60, // Remember to add that exact amount back here
-          child: Image.asset(
-            'assets/seelai-icons/seelai_model.gif',
-            fit: BoxFit.cover, 
+          Positioned(
+            top: -60, // Try -60, -80, or -100 to pull it up more
+            left: 0,
+            right: 0,
+            height:
+                (size.height * 0.40) +
+                60, // Remember to add that exact amount back here
+            child: Image.asset(
+              'assets/seelai-icons/seelai_model.gif',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
 
           // 2. Back Button (High Contrast & Clear UX)
           Positioned(
@@ -83,7 +87,9 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
             left: 20,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3), // Semi-transparent dark circle
+                color: Colors.black.withValues(
+                  alpha: 0.3,
+                ), // Semi-transparent dark circle
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -91,7 +97,7 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
                 color: Colors.white, // Crisp white arrow
                 iconSize: 22,
-                tooltip: 'Go back', 
+                tooltip: 'Go back',
               ),
             ),
           ),
@@ -109,13 +115,13 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(40), 
+                      topLeft: Radius.circular(40),
                       topRight: Radius.circular(40),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05), 
-                        blurRadius: 30, 
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 30,
                         offset: const Offset(0, -10),
                       ),
                     ],
@@ -126,19 +132,19 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                       Positioned.fill(
                         child: ClipRRect(
                           borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(40), 
+                            topLeft: Radius.circular(40),
                             topRight: Radius.circular(40),
                           ),
                           child: Opacity(
-                            opacity: 0.08, 
+                            opacity: 0.08,
                             child: Image.asset(
-                              'assets/icons/eye background.jpg', 
+                              'assets/icons/eye background.jpg',
                               fit: BoxFit.cover,
                             ),
                           ),
                         ),
                       ),
-                      
+
                       // Content
                       SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
@@ -147,58 +153,60 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              "Welcome, Caretaker!", 
+                              "Welcome, Caretaker!",
                               style: TextStyle(
-                                fontSize: 28, 
-                                fontWeight: FontWeight.w800, 
-                                color: Color(0xFF1E293B), 
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E293B),
                                 letterSpacing: -0.5,
                               ),
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              "Sign in to manage and support your patients.", 
+                              "Sign in to manage and support your patients.",
                               style: TextStyle(
-                                fontSize: 16, 
-                                color: Color(0xFF64748B), 
+                                fontSize: 16,
+                                color: Color(0xFF64748B),
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
-                            
+
                             const SizedBox(height: 32),
-                            
+
                             // Standard Login Fields
                             _buildTextField(
-                              controller: _emailController, 
-                              hint: "Email address", 
+                              controller: _emailController,
+                              hint: "Email address",
                               icon: Icons.email_outlined,
                             ),
-                            
+
                             const SizedBox(height: 20),
-                            
+
                             _buildTextField(
-                              controller: _passwordController, 
-                              hint: "Password", 
-                              icon: Icons.lock_outline_rounded, 
+                              controller: _passwordController,
+                              hint: "Password",
+                              icon: Icons.lock_outline_rounded,
                               isPassword: true,
                             ),
-                            
+
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: _isLoading ? null : _showForgotPasswordDialog,
+                                onPressed: _isLoading
+                                    ? null
+                                    : _showForgotPasswordDialog,
                                 child: Text(
-                                  "Forgot password?", 
+                                  "Forgot password?",
                                   style: TextStyle(
-                                    color: brandColor, 
+                                    color: brandColor,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 24),
-                            
+
                             SizedBox(
                               width: double.infinity,
                               height: 56,
@@ -213,39 +221,55 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                                   ),
                                 ),
                                 child: const Text(
-                                  "Sign In", 
+                                  "Sign In",
                                   style: TextStyle(
-                                    fontSize: 16, 
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ),
                             ),
-                            
+
                             const SizedBox(height: 24),
 
                             // --- GOOGLE SECTION ---
                             Row(
                               children: [
-                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: const Text("OR", style: TextStyle(color: Color(0xFF94A3B8))),
+                                const Expanded(
+                                  child: Divider(color: Color(0xFFE2E8F0)),
                                 ),
-                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: const Text(
+                                    "OR",
+                                    style: TextStyle(color: Color(0xFF94A3B8)),
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Divider(color: Color(0xFFE2E8F0)),
+                                ),
                               ],
                             ),
-                            
+
                             const SizedBox(height: 24),
 
                             SizedBox(
                               width: double.infinity,
                               height: 56,
                               child: OutlinedButton(
-                                onPressed: _isLoading ? null : _handleGoogleLogin,
+                                onPressed: _isLoading
+                                    ? null
+                                    : _handleGoogleLogin,
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: const BorderSide(
+                                    color: Color(0xFFE2E8F0),
+                                    width: 1.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   backgroundColor: Colors.white,
                                   foregroundColor: const Color(0xFF1E293B),
                                   elevation: 0,
@@ -272,27 +296,37 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                                 ),
                               ),
                             ),
+
                             // --- END GOOGLE SECTION ---
-                            
                             const SizedBox(height: 24),
-                            
+
                             Center(
                               child: TextButton(
-                                onPressed: _isLoading ? null : () {
-                                  Navigator.push(
-                                    context, 
-                                    MaterialPageRoute(builder: (context) => const CaretakerSignupScreen()),
-                                  );
-                                },
+                                onPressed: _isLoading
+                                    ? null
+                                    : () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const CaretakerSignupScreen(),
+                                          ),
+                                        );
+                                      },
                                 child: RichText(
                                   text: TextSpan(
-                                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 15,
+                                    ),
                                     children: [
-                                      const TextSpan(text: "Don't have an account? "),
+                                      const TextSpan(
+                                        text: "Don't have an account? ",
+                                      ),
                                       TextSpan(
-                                        text: "Sign Up", 
+                                        text: "Sign Up",
                                         style: TextStyle(
-                                          color: brandColor, 
+                                          color: brandColor,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -319,9 +353,9 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
   // --- Widgets ---
 
   Widget _buildTextField({
-    required TextEditingController controller, 
-    required String hint, 
-    required IconData icon, 
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
     bool isPassword = false,
   }) {
     return Container(
@@ -341,14 +375,20 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, 
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: const Color(0xFF94A3B8),
                   ),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );
@@ -386,7 +426,10 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
                   Navigator.pop(dialogContext);
                   if (parentContext.mounted) {
                     ScaffoldMessenger.of(parentContext).showSnackBar(
-                      const SnackBar(content: Text('Please enter your email'), backgroundColor: error),
+                      const SnackBar(
+                        content: Text('Please enter your email'),
+                        backgroundColor: error,
+                      ),
                     );
                   }
                   return;
@@ -394,21 +437,27 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
 
                 try {
                   await authService.value.sendPasswordResetEmail(email: email);
-                  
+
                   if (!dialogContext.mounted) return;
                   Navigator.pop(dialogContext);
 
                   if (!parentContext.mounted) return;
                   ScaffoldMessenger.of(parentContext).showSnackBar(
-                    const SnackBar(content: Text('Password reset email sent!'), backgroundColor: success),
+                    const SnackBar(
+                      content: Text('Password reset email sent!'),
+                      backgroundColor: success,
+                    ),
                   );
                 } catch (e) {
                   if (!dialogContext.mounted) return;
                   Navigator.pop(dialogContext);
-                  
+
                   if (!parentContext.mounted) return;
                   ScaffoldMessenger.of(parentContext).showSnackBar(
-                    SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error),
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: error,
+                    ),
                   );
                 }
               },
@@ -425,21 +474,27 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
     setState(() => _isLoading = true);
 
     try {
-      UserCredential? userCredential = await authService.value.signInWithGoogle();
-      
+      UserCredential? userCredential = await authService.value
+          .signInWithGoogle();
+
       if (userCredential == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
-      
+      Map<String, dynamic>? userData = await databaseService.getUserData(
+        userCredential.user!.uid,
+      );
+
       if (userData != null) {
         if (userData['role'] != 'caretaker') {
           await authService.value.signOut();
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error),
+            const SnackBar(
+              content: Text('Not a registered Caretaker account'),
+              backgroundColor: error,
+            ),
           );
           return;
         }
@@ -459,11 +514,13 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
           action: 'login',
           details: 'Caretaker logged in via Google',
         );
-        
+
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
+          MaterialPageRoute(
+            builder: (context) => CaretakerHomeScreen(userData: userData),
+          ),
         );
       } else {
         // User not in DB, route to Signup
@@ -471,13 +528,14 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => CaretakerSignupScreen(googleUser: userCredential.user),
+            builder: (context) =>
+                CaretakerSignupScreen(googleUser: userCredential.user),
           ),
         );
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Almost there! Please complete your profile.'), 
+            content: Text('Almost there! Please complete your profile.'),
             backgroundColor: primary,
             duration: Duration(seconds: 4),
           ),
@@ -486,7 +544,10 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error),
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: error,
+          ),
         );
       }
     } finally {
@@ -498,13 +559,19 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in all fields'), backgroundColor: error),
+        const SnackBar(
+          content: Text('Please fill in all fields'),
+          backgroundColor: error,
+        ),
       );
       return;
     }
     if (!_emailController.text.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address'), backgroundColor: error),
+        const SnackBar(
+          content: Text('Please enter a valid email address'),
+          backgroundColor: error,
+        ),
       );
       return;
     }
@@ -517,10 +584,11 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
         password: _passwordController.text,
       );
 
-      Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
-      
+      Map<String, dynamic>? userData = await databaseService.getUserData(
+        userCredential.user!.uid,
+      );
+
       if (userData != null && userData['role'] == 'caretaker') {
-        
         bool isApproved = userData['approved'] == true;
 
         if (!isApproved) {
@@ -536,22 +604,27 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
           action: 'login',
           details: 'Caretaker logged in',
         );
-        
+
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => CaretakerHomeScreen(userData: userData)),
+          MaterialPageRoute(
+            builder: (context) => CaretakerHomeScreen(userData: userData),
+          ),
         );
       } else {
         await authService.value.signOut();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not a registered Caretaker account'), backgroundColor: error),
+          const SnackBar(
+            content: Text('Not a registered Caretaker account'),
+            backgroundColor: error,
+          ),
         );
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'An error occurred';
-      
+
       if (e.code == 'user-not-found') {
         errorMessage = 'No user found with this email';
       } else if (e.code == 'wrong-password') {
@@ -565,7 +638,7 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
       } else {
         errorMessage = e.message ?? 'Login failed';
       }
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(errorMessage), backgroundColor: error),
@@ -574,7 +647,10 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error),
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: error,
+          ),
         );
       }
     } finally {
@@ -602,7 +678,10 @@ class _CaretakerLoginScreenState extends State<CaretakerLoginScreen> with Ticker
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

@@ -24,9 +24,11 @@ class EmergencyHotlineService {
     try {
       // Check if global list already has the predefined hotlines
       final existingHotlines = await getHotlines();
-      
-      final needsInit = PredefinedEmergencyHotlines.needsInitialization(existingHotlines);
-      
+
+      final needsInit = PredefinedEmergencyHotlines.needsInitialization(
+        existingHotlines,
+      );
+
       if (!needsInit) {
         debugPrint('ℹ️ Global predefined hotlines already initialized');
         return true;
@@ -68,13 +70,17 @@ class EmergencyHotlineService {
   /// Save emergency hotline to global database
   Future<bool> saveHotline(EmergencyHotline hotline) async {
     try {
-      debugPrint('📍 Attempting to save to path: $_globalHotlinesPath/${hotline.id}');
+      debugPrint(
+        '📍 Attempting to save to path: $_globalHotlinesPath/${hotline.id}',
+      );
       debugPrint('📋 Hotline data: ${hotline.toJson()}');
-      
-      await _database.ref('$_globalHotlinesPath/${hotline.id}').set(hotline.toJson());
-      
+
+      await _database
+          .ref('$_globalHotlinesPath/${hotline.id}')
+          .set(hotline.toJson());
+
       debugPrint('✅ Global hotline saved: ${hotline.departmentName}');
-      
+
       // Log activity if an admin/user is logged in
       if (currentUserId != null) {
         await _logActivity(
@@ -82,7 +88,7 @@ class EmergencyHotlineService {
           details: 'Added global hotline: ${hotline.departmentName}',
         );
       }
-      
+
       return true;
     } catch (e) {
       debugPrint('❌ Error saving global hotline: $e');
@@ -94,7 +100,7 @@ class EmergencyHotlineService {
   Future<List<EmergencyHotline>> getHotlines() async {
     try {
       debugPrint('📍 Fetching global hotlines from: $_globalHotlinesPath');
-      
+
       final event = await _database.ref(_globalHotlinesPath).once();
 
       if (!event.snapshot.exists) {
@@ -108,7 +114,7 @@ class EmergencyHotlineService {
       hotlinesMap.forEach((key, value) {
         try {
           final hotline = EmergencyHotline.fromJson(
-            Map<String, dynamic>.from(value as Map)
+            Map<String, dynamic>.from(value as Map),
           );
           hotlines.add(hotline);
         } catch (e) {
@@ -123,7 +129,9 @@ class EmergencyHotlineService {
         return b.createdAt!.compareTo(a.createdAt!);
       });
 
-      debugPrint('✅ Loaded ${hotlines.length} global hotlines (${hotlines.where((h) => h.isPredefined).length} predefined)');
+      debugPrint(
+        '✅ Loaded ${hotlines.length} global hotlines (${hotlines.where((h) => h.isPredefined).length} predefined)',
+      );
       return hotlines;
     } catch (e) {
       debugPrint('❌ Error getting global hotlines: $e');
@@ -136,20 +144,24 @@ class EmergencyHotlineService {
     try {
       // Update with new timestamp
       final updatedHotline = hotline.copyWith(updatedAt: DateTime.now());
-      
-      debugPrint('🔄 Updating global hotline at: $_globalHotlinesPath/${hotline.id}');
-      
-      await _database.ref('$_globalHotlinesPath/${hotline.id}').update(updatedHotline.toJson());
-      
+
+      debugPrint(
+        '🔄 Updating global hotline at: $_globalHotlinesPath/${hotline.id}',
+      );
+
+      await _database
+          .ref('$_globalHotlinesPath/${hotline.id}')
+          .update(updatedHotline.toJson());
+
       debugPrint('✅ Global hotline updated: ${hotline.departmentName}');
-      
+
       if (currentUserId != null) {
         await _logActivity(
           action: 'hotline_updated',
           details: 'Updated global hotline: ${hotline.departmentName}',
         );
       }
-      
+
       return true;
     } catch (e) {
       debugPrint('❌ Error updating global hotline: $e');
@@ -161,29 +173,34 @@ class EmergencyHotlineService {
   Future<bool> deleteHotline(String hotlineId) async {
     try {
       // Get hotline name before deleting for logging
-      final event = await _database.ref('$_globalHotlinesPath/$hotlineId').once();
+      final event = await _database
+          .ref('$_globalHotlinesPath/$hotlineId')
+          .once();
       String hotlineName = 'Unknown';
       bool wasPredefined = false;
-      
+
       if (event.snapshot.exists) {
         final data = Map<String, dynamic>.from(event.snapshot.value as Map);
         hotlineName = data['departmentName'] ?? 'Unknown';
         wasPredefined = data['isPredefined'] ?? false;
       }
-      
-      debugPrint('🗑️ Deleting global hotline at: $_globalHotlinesPath/$hotlineId (predefined: $wasPredefined)');
-      
+
+      debugPrint(
+        '🗑️ Deleting global hotline at: $_globalHotlinesPath/$hotlineId (predefined: $wasPredefined)',
+      );
+
       await _database.ref('$_globalHotlinesPath/$hotlineId').remove();
-      
+
       debugPrint('✅ Global hotline deleted: $hotlineName');
-      
+
       if (currentUserId != null) {
         await _logActivity(
           action: 'hotline_deleted',
-          details: 'Deleted global hotline: $hotlineName (predefined: $wasPredefined)',
+          details:
+              'Deleted global hotline: $hotlineName (predefined: $wasPredefined)',
         );
       }
-      
+
       return true;
     } catch (e) {
       debugPrint('❌ Error deleting global hotline: $e');
@@ -194,7 +211,7 @@ class EmergencyHotlineService {
   /// Stream of global emergency hotlines (real-time updates)
   Stream<List<EmergencyHotline>> streamHotlines() {
     debugPrint('🔄 Starting stream for: $_globalHotlinesPath');
-    
+
     return _database.ref(_globalHotlinesPath).onValue.map((event) {
       if (!event.snapshot.exists) {
         debugPrint('ℹ️ Stream: No global hotlines found');
@@ -207,7 +224,7 @@ class EmergencyHotlineService {
       hotlinesMap.forEach((key, value) {
         try {
           final hotline = EmergencyHotline.fromJson(
-            Map<String, dynamic>.from(value as Map)
+            Map<String, dynamic>.from(value as Map),
           );
           hotlines.add(hotline);
         } catch (e) {
@@ -230,14 +247,17 @@ class EmergencyHotlineService {
   // ==================== EMERGENCY ACTIONS ====================
 
   /// Make emergency call
-  Future<bool> makeEmergencyCall(String phoneNumber, String departmentName) async {
+  Future<bool> makeEmergencyCall(
+    String phoneNumber,
+    String departmentName,
+  ) async {
     try {
       final Uri telUri = Uri(scheme: 'tel', path: phoneNumber);
-      
+
       if (await canLaunchUrl(telUri)) {
         await launchUrl(telUri);
         debugPrint('📞 Emergency call initiated to: $phoneNumber');
-        
+
         // Log the call
         if (currentUserId != null) {
           await _logActivity(
@@ -245,7 +265,7 @@ class EmergencyHotlineService {
             details: 'Called $departmentName at $phoneNumber',
           );
         }
-        
+
         return true;
       } else {
         debugPrint('❌ Cannot launch phone dialer');
@@ -265,11 +285,11 @@ class EmergencyHotlineService {
         path: phoneNumber,
         queryParameters: {'body': message},
       );
-      
+
       if (await canLaunchUrl(smsUri)) {
         await launchUrl(smsUri);
         debugPrint('📱 SMS sent to: $phoneNumber');
-        
+
         // Log the SMS
         if (currentUserId != null) {
           await _logActivity(
@@ -277,7 +297,7 @@ class EmergencyHotlineService {
             details: 'Sent SMS to $phoneNumber',
           );
         }
-        
+
         return true;
       } else {
         debugPrint('❌ Cannot launch SMS app');
@@ -293,13 +313,13 @@ class EmergencyHotlineService {
   Future<bool> openLocation(String address) async {
     try {
       final Uri mapsUri = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}'
+        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}',
       );
-      
+
       if (await canLaunchUrl(mapsUri)) {
         await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
         debugPrint('🗺️ Opening location: $address');
-        
+
         // Log the action
         if (currentUserId != null) {
           await _logActivity(
@@ -307,7 +327,7 @@ class EmergencyHotlineService {
             details: 'Opened location: $address',
           );
         }
-        
+
         return true;
       } else {
         debugPrint('❌ Cannot open maps');
@@ -330,14 +350,14 @@ class EmergencyHotlineService {
       if (currentUserId == null) return;
 
       final logId = _database.ref('activity_logs').push().key!;
-      
+
       await _database.ref('activity_logs/$logId').set({
         'userId': currentUserId,
         'action': action,
         'details': details,
         'timestamp': ServerValue.timestamp,
       });
-      
+
       debugPrint('📝 Activity logged: $action');
     } catch (e) {
       debugPrint('❌ Error logging activity: $e');
@@ -348,7 +368,7 @@ class EmergencyHotlineService {
   Future<bool> testConnection() async {
     try {
       debugPrint('📍 Testing connection to: $_globalHotlinesPath');
-      
+
       await _database.ref(_globalHotlinesPath).once();
       debugPrint('✅ Connection test successful');
       return true;
@@ -360,4 +380,5 @@ class EmergencyHotlineService {
 }
 
 // Singleton instance
-final EmergencyHotlineService emergencyHotlineService = EmergencyHotlineService();
+final EmergencyHotlineService emergencyHotlineService =
+    EmergencyHotlineService();

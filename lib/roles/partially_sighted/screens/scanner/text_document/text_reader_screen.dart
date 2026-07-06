@@ -7,7 +7,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
-import 'package:seelai_app/firebase/firebase_services.dart'; 
+import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/storage/cloudinary_service.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -43,12 +43,12 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
   int _brightnessCheckCounter = 0;
   bool _showFlashIndicator = false;
   Timer? _flashIndicatorTimer;
-  
+
   @override
   void initState() {
     super.initState();
     _initializeTts();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _announceMode();
@@ -71,7 +71,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     await _flutterTts.setSpeechRate(0.4);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
-    
+
     _flutterTts.setCompletionHandler(() {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -84,7 +84,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
         });
       }
     });
-    
+
     _flutterTts.setStartHandler(() {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -97,7 +97,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
         });
       }
     });
-    
+
     _flutterTts.setErrorHandler((msg) {
       if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -128,8 +128,8 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
 
   void _startContinuousDetection() async {
     while (mounted) {
-      if (!_isProcessing && 
-          widget.cameraService.isInitialized && 
+      if (!_isProcessing &&
+          widget.cameraService.isInitialized &&
           (!_isReading || !_hasReadText)) {
         await _detectAndReadText();
       }
@@ -142,7 +142,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     if (_brightnessCheckCounter < 5) return;
     _brightnessCheckCounter = 0;
 
-    if (!widget.cameraService.isInitialized || 
+    if (!widget.cameraService.isInitialized ||
         widget.cameraService.controller == null) {
       return;
     }
@@ -166,9 +166,9 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
           _isLowLight = true;
           _showFlashIndicator = true;
         });
-        
+
         _flutterTts.speak('Low light detected. Flashlight turned on.');
-        
+
         _flashIndicatorTimer?.cancel();
         _flashIndicatorTimer = Timer(Duration(seconds: 3), () {
           if (mounted) {
@@ -177,7 +177,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             });
           }
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -227,12 +227,12 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
 
   Rect _calculateBoundingBox(List<TextBlock> blocks) {
     if (blocks.isEmpty) return Rect.zero;
-    
+
     double minX = double.infinity;
     double minY = double.infinity;
     double maxX = double.negativeInfinity;
     double maxY = double.negativeInfinity;
-    
+
     for (var block in blocks) {
       final rect = block.boundingBox;
       if (rect.left < minX) minX = rect.left;
@@ -240,14 +240,14 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       if (rect.right > maxX) maxX = rect.right;
       if (rect.bottom > maxY) maxY = rect.bottom;
     }
-    
+
     final width = maxX - minX;
     final height = maxY - minY;
     final area = width * height;
-    
+
     double paddingHorizontal = 100.0;
     double paddingVertical = 100.0;
-    
+
     if (area > 500000) {
       paddingHorizontal = 150.0;
       paddingVertical = 150.0;
@@ -261,12 +261,13 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       paddingHorizontal = 80.0;
       paddingVertical = 80.0;
     }
-    
-    if (blocks.length > 1 || (blocks.isNotEmpty && blocks.first.lines.length > 2)) {
+
+    if (blocks.length > 1 ||
+        (blocks.isNotEmpty && blocks.first.lines.length > 2)) {
       paddingHorizontal *= 1.15;
       paddingVertical *= 1.15;
     }
-    
+
     return Rect.fromLTRB(
       minX - paddingHorizontal,
       minY - paddingVertical,
@@ -275,7 +276,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     );
   }
 
-  Future<void> _saveScannedTextToFirebase(String text, int blockCount, {String? imageUrl}) async {
+  Future<void> _saveScannedTextToFirebase(
+    String text,
+    int blockCount, {
+    String? imageUrl,
+  }) async {
     try {
       final userId = authService.value.currentUser?.uid;
       if (userId == null) {
@@ -307,18 +312,26 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
   }
 
   // --- NEW BACKGROUND UPLOAD METHOD ---
-  Future<void> _uploadTextDataInBackground(String imagePath, String extractedText, int blockCount) async {
+  Future<void> _uploadTextDataInBackground(
+    String imagePath,
+    String extractedText,
+    int blockCount,
+  ) async {
     final userId = authService.value.currentUser?.uid;
     if (userId == null) return;
 
     try {
       String? uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
-        File(imagePath), 
-        userId, 
-        'text'
+        File(imagePath),
+        userId,
+        'text',
       );
-      
-      await _saveScannedTextToFirebase(extractedText, blockCount, imageUrl: uploadedImageUrl);
+
+      await _saveScannedTextToFirebase(
+        extractedText,
+        blockCount,
+        imageUrl: uploadedImageUrl,
+      );
     } catch (e) {
       debugPrint('Background text upload failed: $e');
     }
@@ -326,48 +339,53 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
 
   Future<void> _detectAndReadText() async {
     if (_isProcessing || widget.cameraService.controller == null) return;
-    
+
     setState(() => _isProcessing = true);
-    
+
     try {
       final image = await widget.cameraService.controller!.takePicture();
       final inputImage = InputImage.fromFilePath(image.path);
       final recognizedText = await _textRecognizer.processImage(inputImage);
-      
+
       if (mounted) {
         final hasText = recognizedText.blocks.isNotEmpty;
         final extractedText = recognizedText.text.trim();
-        
+
         setState(() {
           _textBlockCount = recognizedText.blocks.length;
           _documentDetected = hasText;
           _extractedText = extractedText.isNotEmpty ? extractedText : null;
-          
+
           if (hasText) {
             _textBoundingBox = _calculateBoundingBox(recognizedText.blocks);
           } else {
             _textBoundingBox = null;
           }
         });
-        
+
         await _checkBrightnessAndToggleFlash();
-        
+
         if (extractedText.isNotEmpty) {
-          bool isDifferentText = (extractedText.length - _lastReadText.length).abs() > 10 ||
-                                 !extractedText.contains(_lastReadText.substring(0, _lastReadText.length.clamp(0, 20)));
-          
+          bool isDifferentText =
+              (extractedText.length - _lastReadText.length).abs() > 10 ||
+              !extractedText.contains(
+                _lastReadText.substring(0, _lastReadText.length.clamp(0, 20)),
+              );
+
           if ((isDifferentText || _lastReadText.isEmpty) && !_isReading) {
             _lastReadText = extractedText;
             _hasReadText = true;
             _readingCompleted = false;
-            
+
             // 1. SPEAK IMMEDIATELY
             await _flutterTts.speak(extractedText);
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Reading all detected text: ${recognizedText.blocks.length} blocks'),
+                  content: Text(
+                    'Reading all detected text: ${recognizedText.blocks.length} blocks',
+                  ),
                   backgroundColor: Colors.green,
                   duration: Duration(milliseconds: 800),
                 ),
@@ -375,7 +393,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             }
 
             // 2. FIRE AND FORGET THE UPLOAD
-            _uploadTextDataInBackground(image.path, extractedText, recognizedText.blocks.length);
+            _uploadTextDataInBackground(
+              image.path,
+              extractedText,
+              recognizedText.blocks.length,
+            );
           }
         } else {
           if (!_isReading) {
@@ -395,7 +417,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
   void _showTextModal() {
     final screenSize = MediaQuery.of(context).size;
     final screenHeight = screenSize.height;
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -415,8 +437,8 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: widget.isDarkMode 
-                    ? white.withValues(alpha: 0.3) 
+                color: widget.isDarkMode
+                    ? white.withValues(alpha: 0.3)
                     : Colors.grey[300],
                 borderRadius: BorderRadius.circular(2),
               ),
@@ -460,13 +482,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             Container(
               padding: EdgeInsets.all(spacingLarge),
               decoration: BoxDecoration(
-                color: widget.isDarkMode 
-                    ? Colors.grey[850] 
-                    : Colors.grey[100],
+                color: widget.isDarkMode ? Colors.grey[850] : Colors.grey[100],
                 border: Border(
                   top: BorderSide(
-                    color: widget.isDarkMode 
-                        ? Colors.grey[700]! 
+                    color: widget.isDarkMode
+                        ? Colors.grey[700]!
                         : Colors.grey[300]!,
                   ),
                 ),
@@ -476,7 +496,9 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        await Clipboard.setData(ClipboardData(text: _extractedText ?? ''));
+                        await Clipboard.setData(
+                          ClipboardData(text: _extractedText ?? ''),
+                        );
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -517,10 +539,12 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                       icon: Icon(Icons.volume_up_rounded),
                       label: Text('Read Aloud'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.isDarkMode 
-                            ? Colors.grey[800] 
+                        backgroundColor: widget.isDarkMode
+                            ? Colors.grey[800]
                             : Colors.grey[300],
-                        foregroundColor: widget.isDarkMode ? white : Colors.black,
+                        foregroundColor: widget.isDarkMode
+                            ? white
+                            : Colors.black,
                         padding: EdgeInsets.symmetric(vertical: spacingMedium),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(radiusMedium),
@@ -542,12 +566,12 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
-    
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          if (widget.cameraService.isInitialized && 
+          if (widget.cameraService.isInitialized &&
               widget.cameraService.controller != null)
             Positioned.fill(
               child: CameraPreview(widget.cameraService.controller!),
@@ -578,7 +602,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                 ),
               ),
             ),
-          
+
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -596,19 +620,17 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
               ),
             ),
           ),
-          
+
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: SafeArea(
-              child: _buildHeader(screenWidth),
-            ),
+            child: SafeArea(child: _buildHeader(screenWidth)),
           ),
-          
+
           if (_documentDetected && _textBoundingBox != null)
             _buildDynamicDocumentFrame(screenWidth, screenHeight),
-          
+
           Positioned(
             bottom: 0,
             left: 0,
@@ -624,7 +646,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
               ),
             ),
           ),
-          
+
           if (_isProcessing)
             Positioned(
               top: screenHeight * 0.5 - 40,
@@ -652,43 +674,52 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
 
   Widget _buildDynamicDocumentFrame(double screenWidth, double screenHeight) {
     if (_textBoundingBox == null) return SizedBox.shrink();
-    
+
     final controller = widget.cameraService.controller;
     if (controller == null) return SizedBox.shrink();
-    
+
     final previewSize = controller.value.previewSize;
     if (previewSize == null) return SizedBox.shrink();
-    
+
     final isPortrait = previewSize.height > previewSize.width;
     final cameraWidth = isPortrait ? previewSize.width : previewSize.height;
     final cameraHeight = isPortrait ? previewSize.height : previewSize.width;
-    
+
     final scaleX = screenWidth / cameraWidth;
     final scaleY = screenHeight / cameraHeight;
     final scale = scaleX > scaleY ? scaleX : scaleY;
-    
+
     final previewWidth = cameraWidth * scale;
     final previewHeight = cameraHeight * scale;
-    
+
     final offsetX = (previewWidth - screenWidth) / 2;
     final offsetY = (previewHeight - screenHeight) / 2;
-    
+
     final scaledLeft = (_textBoundingBox!.left * scale) - offsetX;
     final scaledTop = (_textBoundingBox!.top * scale) - offsetY;
     final scaledWidth = _textBoundingBox!.width * scale;
     final scaledHeight = _textBoundingBox!.height * scale;
-    
+
     final minMargin = screenWidth * 0.02;
     final topMargin = screenHeight * 0.12;
     final bottomMargin = screenHeight * 0.25;
-    
-    final constrainedLeft = scaledLeft.clamp(minMargin, screenWidth - minMargin - 50);
-    final constrainedTop = scaledTop.clamp(topMargin, screenHeight - bottomMargin - 50);
+
+    final constrainedLeft = scaledLeft.clamp(
+      minMargin,
+      screenWidth - minMargin - 50,
+    );
+    final constrainedTop = scaledTop.clamp(
+      topMargin,
+      screenHeight - bottomMargin - 50,
+    );
     final maxWidth = screenWidth - (minMargin * 2);
     final maxHeight = screenHeight - topMargin - bottomMargin;
     final constrainedWidth = scaledWidth.clamp(screenWidth * 0.2, maxWidth);
-    final constrainedHeight = scaledHeight.clamp(screenHeight * 0.08, maxHeight);
-    
+    final constrainedHeight = scaledHeight.clamp(
+      screenHeight * 0.08,
+      maxHeight,
+    );
+
     return Positioned(
       left: constrainedLeft,
       top: constrainedTop,
@@ -762,11 +793,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                   ),
                 ),
                 Text(
-                  _documentDetected 
-                      ? 'Reading: $_textBlockCount blocks' 
+                  _documentDetected
+                      ? 'Reading: $_textBlockCount blocks'
                       : 'Searching for text...',
                   style: caption.copyWith(
-                    color: _documentDetected 
+                    color: _documentDetected
                         ? (_isReading ? Colors.orange : Colors.green)
                         : white.withValues(alpha: 0.7),
                     fontSize: screenWidth * 0.03,
@@ -776,7 +807,9 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
             ),
           ),
           Semantics(
-            label: _isFlashOn ? 'Flashlight is on. Double tap to turn off' : 'Flashlight is off. Double tap to turn on',
+            label: _isFlashOn
+                ? 'Flashlight is on. Double tap to turn off'
+                : 'Flashlight is off. Double tap to turn on',
             button: true,
             child: Material(
               color: Colors.transparent,
@@ -789,7 +822,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                     vertical: screenWidth * 0.015,
                   ),
                   decoration: BoxDecoration(
-                    color: _isFlashOn 
+                    color: _isFlashOn
                         ? Colors.orange.withValues(alpha: 0.3)
                         : Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(radiusSmall),
@@ -880,9 +913,7 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
       padding: EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(radiusXLarge),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(radiusXLarge)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -933,8 +964,8 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                   ),
                   SizedBox(height: spacingSmall),
                   Text(
-                    _extractedText!.length > 100 
-                        ? '${_extractedText!.substring(0, 100)}...' 
+                    _extractedText!.length > 100
+                        ? '${_extractedText!.substring(0, 100)}...'
                         : _extractedText!,
                     style: caption.copyWith(
                       color: white.withValues(alpha: 0.7),
@@ -946,21 +977,21 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                 ],
               ),
             ),
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _isReading 
+                _isReading
                     ? Icons.volume_up
-                    : _documentDetected 
-                        ? Icons.check_circle 
-                        : Icons.search,
+                    : _documentDetected
+                    ? Icons.check_circle
+                    : Icons.search,
                 color: _isReading
                     ? Colors.orange
-                    : _documentDetected 
-                        ? Colors.green 
-                        : Colors.orange,
+                    : _documentDetected
+                    ? Colors.green
+                    : Colors.orange,
                 size: screenWidth * 0.06,
               ),
               SizedBox(width: spacingSmall),
@@ -968,9 +999,11 @@ class _TextReaderScreenState extends State<TextReaderScreen> {
                 child: Text(
                   _isReading
                       ? 'Reading text...'
-                      : _documentDetected 
-                          ? (_readingCompleted ? 'Done - Ready for next scan' : 'Auto-scanning active')
-                          : 'Looking for text...',
+                      : _documentDetected
+                      ? (_readingCompleted
+                            ? 'Done - Ready for next scan'
+                            : 'Auto-scanning active')
+                      : 'Looking for text...',
                   style: bodyBold.copyWith(
                     color: white.withValues(alpha: 0.9),
                     fontSize: screenWidth * 0.035,

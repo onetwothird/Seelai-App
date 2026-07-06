@@ -20,7 +20,8 @@ class RequestCaretakerButton extends StatefulWidget {
   State<RequestCaretakerButton> createState() => _RequestCaretakerButtonState();
 }
 
-class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with SingleTickerProviderStateMixin {
+class _RequestCaretakerButtonState extends State<RequestCaretakerButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -31,7 +32,7 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
@@ -70,8 +71,8 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
                 borderRadius: BorderRadius.circular(radiusLarge),
                 boxShadow: widget.isDarkMode ? [] : softShadow,
                 border: Border.all(
-                  color: widget.isDarkMode 
-                      ? Colors.white.withValues(alpha: 0.05) 
+                  color: widget.isDarkMode
+                      ? Colors.white.withValues(alpha: 0.05)
                       : Colors.black.withValues(alpha: 0.05),
                   width: 1,
                 ),
@@ -139,10 +140,11 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
   void _navigateToRequestForm(BuildContext context) {
     final userName = widget.userData['name'] ?? 'User';
     final userId = widget.userData['uid'] ?? '';
-    
+
     // Get assigned caretakers
-    final assignedCaretakers = widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
-    
+    final assignedCaretakers =
+        widget.userData['assignedCaretakers'] as Map<dynamic, dynamic>?;
+
     if (assignedCaretakers == null || assignedCaretakers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -168,10 +170,10 @@ class _RequestCaretakerButtonState extends State<RequestCaretakerButton> with Si
       );
       return;
     }
-    
+
     // Get first caretaker ID
     final caretakerId = assignedCaretakers.keys.first.toString();
-    
+
     // Navigate to full screen form
     Navigator.push(
       context,

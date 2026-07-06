@@ -3,14 +3,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shimmer/shimmer.dart'; 
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 
 import 'overview.dart';
 import 'announcement.dart';
-import 'my_patients.dart'; 
+import 'my_patients.dart';
 
 class HomeContent extends StatefulWidget {
   final bool isDarkMode;
@@ -40,14 +40,14 @@ class _HomeContentState extends State<HomeContent> {
   int _totalPatients = 0;
   int _pendingRequests = 0;
   int _completedRequests = 0;
-  int _activeRequests = 0;  
-  
+  int _activeRequests = 0;
+
   bool _isLoadingPatients = true;
   bool _isLoadingRequests = true;
   String? _caretakerId;
-  
+
   bool _isSimulatingLoad = true;
-  
+
   StreamSubscription? _patientsSubscription;
   StreamSubscription? _requestsSubscription;
 
@@ -75,7 +75,7 @@ class _HomeContentState extends State<HomeContent> {
   Future<void> _initializeCaretakerId() async {
     String? caretakerId = widget.userData['uid'] as String?;
     caretakerId ??= FirebaseAuth.instance.currentUser?.uid;
-    
+
     if (caretakerId == null || caretakerId.isEmpty) {
       if (mounted) {
         setState(() {
@@ -87,7 +87,7 @@ class _HomeContentState extends State<HomeContent> {
     }
 
     setState(() => _caretakerId = caretakerId);
-    
+
     _setupPatientsStream();
     _setupRequestsStream();
   }
@@ -104,28 +104,28 @@ class _HomeContentState extends State<HomeContent> {
     _patientsSubscription = caretakerPatientService
         .streamCaretakerPatients(_caretakerId!)
         .listen(
-      (patientsData) {
-        if (mounted) {
-          setState(() {
-            _assignedPatients = patientsData.map((data) {
-              return {
-                ...data,
-                'userId': data['userId']?.toString() ?? '',
-                'name': data['name']?.toString() ?? 'Unknown',
-                'profileImageUrl': data['profileImageUrl']?.toString(),
-              };
-            }).toList();
-            
-            _totalPatients = patientsData.length;
-            _isLoadingPatients = false;
-          });
-        }
-      },
-      onError: (error) {
-        debugPrint("Error loading assigned patients stream: $error");
-        if (mounted) setState(() => _isLoadingPatients = false);
-      },
-    );
+          (patientsData) {
+            if (mounted) {
+              setState(() {
+                _assignedPatients = patientsData.map((data) {
+                  return {
+                    ...data,
+                    'userId': data['userId']?.toString() ?? '',
+                    'name': data['name']?.toString() ?? 'Unknown',
+                    'profileImageUrl': data['profileImageUrl']?.toString(),
+                  };
+                }).toList();
+
+                _totalPatients = patientsData.length;
+                _isLoadingPatients = false;
+              });
+            }
+          },
+          onError: (error) {
+            debugPrint("Error loading assigned patients stream: $error");
+            if (mounted) setState(() => _isLoadingPatients = false);
+          },
+        );
   }
 
   void _setupRequestsStream() {
@@ -141,86 +141,170 @@ class _HomeContentState extends State<HomeContent> {
     _requestsSubscription = assistanceRequestService
         .streamCaretakerRequests(_caretakerId!)
         .listen(
-      (requests) {
-        if (mounted) {
-          int pending = 0;
-          int active = 0;
-          int completed = 0;
-          
-          for (var request in requests) {
-            final status = request.status.toString().split('.').last;
-            if (status == 'pending') {
-              pending++;
-            } else if (status == 'accepted' || status == 'inProgress') {
-              active++;
-            } else if (status == 'completed') {
-              completed++;
+          (requests) {
+            if (mounted) {
+              int pending = 0;
+              int active = 0;
+              int completed = 0;
+
+              for (var request in requests) {
+                final status = request.status.toString().split('.').last;
+                if (status == 'pending') {
+                  pending++;
+                } else if (status == 'accepted' || status == 'inProgress') {
+                  active++;
+                } else if (status == 'completed') {
+                  completed++;
+                }
+              }
+
+              setState(() {
+                _pendingRequests = pending;
+                _activeRequests = active;
+                _completedRequests = completed;
+                _isLoadingRequests = false;
+              });
             }
-          }
-          
-          setState(() {
-            _pendingRequests = pending;
-            _activeRequests = active;
-            _completedRequests = completed;
-            _isLoadingRequests = false;
-          });
-        }
-      },
-      onError: (error) {
-        if (mounted) setState(() => _isLoadingRequests = false);
-      },
-    );
+          },
+          onError: (error) {
+            if (mounted) setState(() => _isLoadingRequests = false);
+          },
+        );
   }
 
   Widget _buildSkeletonHome() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 120),
+        padding: const EdgeInsets.only(
+          left: 20,
+          right: 20,
+          top: 16,
+          bottom: 120,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(width: 140, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            Container(
+              width: 140,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Container(height: 110, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: Container(height: 110, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: Container(height: 110, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: Container(height: 110, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)))),
+                Expanded(
+                  child: Container(
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 32),
-            
-            Container(width: 120, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+
+            Container(
+              width: 120,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
             const SizedBox(height: 16),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(3, (index) => Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: Container(width: 140, height: 180, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
-                )),
+                children: List.generate(
+                  3,
+                  (index) => Padding(
+                    padding: const EdgeInsets.only(right: 16),
+                    child: Container(
+                      width: 140,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            Container(width: 160, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            Container(
+              width: 160,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
             const SizedBox(height: 16),
-            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
             const SizedBox(height: 12),
-            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ],
         ),
       ),
@@ -248,9 +332,9 @@ class _HomeContentState extends State<HomeContent> {
             activeRequests: _activeRequests,
             completedRequests: _completedRequests,
           ),
-          
+
           const SizedBox(height: 32),
-          
+
           MyPatientsSection(
             isDarkMode: widget.isDarkMode,
             theme: widget.theme,
@@ -260,11 +344,11 @@ class _HomeContentState extends State<HomeContent> {
 
           const SizedBox(height: 32),
 
-          if (_caretakerId != null) 
+          if (_caretakerId != null)
             AnnouncementSection(
               isDarkMode: widget.isDarkMode,
               theme: widget.theme,
-              caretakerId: _caretakerId!, 
+              caretakerId: _caretakerId!,
             ),
         ],
       ),

@@ -20,7 +20,8 @@ class NotificationsBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<NotificationsBottomSheet> createState() => _NotificationsBottomSheetState();
+  State<NotificationsBottomSheet> createState() =>
+      _NotificationsBottomSheetState();
 }
 
 class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
@@ -32,7 +33,8 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
       final userData = await databaseService.getUserData(patientId);
       if (mounted) {
         setState(() {
-          _profileImageCache[patientId] = userData?['profileImageUrl'] as String?;
+          _profileImageCache[patientId] =
+              userData?['profileImageUrl'] as String?;
         });
       }
     } catch (e) {
@@ -84,24 +86,30 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                     // Placeholder for Mark All as Read
                   },
                   tooltip: 'Mark all as read',
-                )
+                ),
               ],
             ),
           ),
           const Divider(height: 1),
-          
+
           // Notifications Stream
           Expanded(
             child: StreamBuilder<List<RequestModel>>(
               // FIX: Now correctly using streamRequests
               stream: widget.requestService.streamRequests(widget.caretakerId),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error loading notifications.', style: TextStyle(color: subTextColor)));
+                  return Center(
+                    child: Text(
+                      'Error loading notifications.',
+                      style: TextStyle(color: subTextColor),
+                    ),
+                  );
                 }
 
                 final requests = snapshot.data ?? [];
@@ -110,21 +118,34 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_off_outlined, size: 60, color: subTextColor.withValues(alpha: 0.5)),
+                        Icon(
+                          Icons.notifications_off_outlined,
+                          size: 60,
+                          color: subTextColor.withValues(alpha: 0.5),
+                        ),
                         const SizedBox(height: 16),
-                        Text("No notifications yet", style: TextStyle(color: subTextColor, fontSize: 16)),
+                        Text(
+                          "No notifications yet",
+                          style: TextStyle(color: subTextColor, fontSize: 16),
+                        ),
                       ],
                     ),
                   );
                 }
 
                 // Categorize into "New" (Pending) and "Earlier" (Handled)
-                final newRequests = requests.where((r) => r.status == RequestStatus.pending).toList();
-                final earlierRequests = requests.where((r) => r.status != RequestStatus.pending).toList();
+                final newRequests = requests
+                    .where((r) => r.status == RequestStatus.pending)
+                    .toList();
+                final earlierRequests = requests
+                    .where((r) => r.status != RequestStatus.pending)
+                    .toList();
 
                 // Sort both by timestamp (newest first)
                 newRequests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-                earlierRequests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+                earlierRequests.sort(
+                  (a, b) => b.timestamp.compareTo(a.timestamp),
+                );
 
                 // Preload images
                 for (var req in requests) {
@@ -136,12 +157,28 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                   children: [
                     if (newRequests.isNotEmpty) ...[
                       _buildSectionHeader('New', textColor),
-                      ...newRequests.map((req) => _buildNotificationTile(req, isNew: true, textColor: textColor, subTextColor: subTextColor)),
+                      ...newRequests.map(
+                        (req) => _buildNotificationTile(
+                          req,
+                          isNew: true,
+                          textColor: textColor,
+                          subTextColor: subTextColor,
+                        ),
+                      ),
                     ],
                     if (earlierRequests.isNotEmpty) ...[
                       if (newRequests.isNotEmpty) const Divider(height: 1),
                       _buildSectionHeader('Earlier', textColor),
-                      ...earlierRequests.take(20).map((req) => _buildNotificationTile(req, isNew: false, textColor: textColor, subTextColor: subTextColor)),
+                      ...earlierRequests
+                          .take(20)
+                          .map(
+                            (req) => _buildNotificationTile(
+                              req,
+                              isNew: false,
+                              textColor: textColor,
+                              subTextColor: subTextColor,
+                            ),
+                          ),
                     ],
                   ],
                 );
@@ -167,12 +204,19 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
     );
   }
 
-  Widget _buildNotificationTile(RequestModel request, {required bool isNew, required Color textColor, required Color subTextColor}) {
+  Widget _buildNotificationTile(
+    RequestModel request, {
+    required bool isNew,
+    required Color textColor,
+    required Color subTextColor,
+  }) {
     final profileUrl = _profileImageCache[request.patientId];
     final timeAgo = _getTimeAgo(request.timestamp);
-    
+
     // Facebook uses a subtle blue background for unread notifications
-    final unreadBgColor = widget.isDarkMode ? Colors.blueAccent.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.05);
+    final unreadBgColor = widget.isDarkMode
+        ? Colors.blueAccent.withValues(alpha: 0.1)
+        : Colors.blue.withValues(alpha: 0.05);
 
     return InkWell(
       onTap: () {
@@ -202,8 +246,12 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: Colors.grey[300],
-                  backgroundImage: profileUrl != null ? NetworkImage(profileUrl) : null,
-                  child: profileUrl == null ? Icon(Icons.person, color: Colors.grey[600], size: 30) : null,
+                  backgroundImage: profileUrl != null
+                      ? NetworkImage(profileUrl)
+                      : null,
+                  child: profileUrl == null
+                      ? Icon(Icons.person, color: Colors.grey[600], size: 30)
+                      : null,
                 ),
                 Positioned(
                   bottom: -2,
@@ -214,19 +262,27 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                       color: request.getPriorityColor(),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isNew 
-                          ? (widget.isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF0F8FF)) // match background
-                          : (widget.isDarkMode ? const Color(0xFF121212) : Colors.white), 
-                        width: 2
+                        color: isNew
+                            ? (widget.isDarkMode
+                                  ? const Color(0xFF1A1A2E)
+                                  : const Color(0xFFF0F8FF)) // match background
+                            : (widget.isDarkMode
+                                  ? const Color(0xFF121212)
+                                  : Colors.white),
+                        width: 2,
                       ),
                     ),
-                    child: Icon(request.getIcon(), size: 12, color: Colors.white),
+                    child: Icon(
+                      request.getIcon(),
+                      size: 12,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(width: 12),
-            
+
             // 2. Notification Body
             Expanded(
               child: Column(
@@ -234,22 +290,28 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(fontSize: 14, color: textColor, height: 1.4),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: textColor,
+                        height: 1.4,
+                      ),
                       children: [
                         TextSpan(
                           text: '${request.patientName} ',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text: isNew ? 'needs your assistance for a ' : 'sent a request for ',
+                          text: isNew
+                              ? 'needs your assistance for a '
+                              : 'sent a request for ',
                         ),
                         TextSpan(
                           text: '${request.requestType} ',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text: request.status == RequestStatus.pending 
-                              ? 'request.' 
+                          text: request.status == RequestStatus.pending
+                              ? 'request.'
                               : '(Status: ${request.status.name}).',
                         ),
                       ],
@@ -267,7 +329,7 @@ class _NotificationsBottomSheetState extends State<NotificationsBottomSheet> {
                 ],
               ),
             ),
-            
+
             // 3. Unread Indicator Dot
             if (isNew)
               Padding(

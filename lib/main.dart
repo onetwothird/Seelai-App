@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart'; 
-import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart'; 
-import 'package:flutter_callkit_incoming/entities/entities.dart'; 
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:seelai_app/core/firebase_options.dart';
 import 'package:seelai_app/screens/splash_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -15,26 +15,29 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   if (message.data['type'] == 'emergency_alarm') {
     final patientName = message.data['patientName'] ?? 'Patient';
-    final requestMsg = message.data['message'] ?? 'Emergency Assistance Needed!';
-    final requestId = message.data['requestId'] ?? 'req_${DateTime.now().millisecondsSinceEpoch}';
+    final requestMsg =
+        message.data['message'] ?? 'Emergency Assistance Needed!';
+    final requestId =
+        message.data['requestId'] ??
+        'req_${DateTime.now().millisecondsSinceEpoch}';
 
     final callParams = CallKitParams(
       id: requestId,
-      nameCaller: patientName, 
-      appName: 'SEELAI EMERGENCY', 
-      avatar: avatarUrl, 
-      handle: '🚨 $requestMsg', 
-      type: 0, 
-      duration: 30000, 
-      textAccept: 'Respond', 
+      nameCaller: patientName,
+      appName: 'SEELAI EMERGENCY',
+      avatar: avatarUrl,
+      handle: '🚨 $requestMsg',
+      type: 0,
+      duration: 30000,
+      textAccept: 'Respond',
       textDecline: 'Dismiss',
       extra: <String, dynamic>{'requestId': requestId},
       android: const AndroidParams(
         isCustomNotification: true,
-        isShowLogo: true, 
-        ringtonePath: 'system_ringtone_default', 
+        isShowLogo: true,
+        ringtonePath: 'system_ringtone_default',
         backgroundColor: '#991B1B',
-        actionColor: '#10B981', 
+        actionColor: '#10B981',
       ),
       ios: const IOSParams(
         iconName: 'AppIcon',
@@ -45,7 +48,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         ringtonePath: 'system_ringtone_default',
       ),
     );
-    
+
     await FlutterCallkitIncoming.showCallkitIncoming(callParams);
   }
 }
@@ -63,6 +66,7 @@ Future<void> requestNotificationPermissions() async {
   );
   debugPrint('User granted permission: ${settings.authorizationStatus}');
 }
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -80,7 +84,7 @@ void main() async {
   await requestNotificationPermissions();
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  
+
   runApp(const MainApp());
 }
 

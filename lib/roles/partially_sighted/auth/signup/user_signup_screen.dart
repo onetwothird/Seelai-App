@@ -1,7 +1,7 @@
 // File: lib/roles/partially_sighted/auth/signup/signup_screen.dart
 
 import 'dart:io';
-import 'dart:ui'; 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:seelai_app/storage/cloudinary_service.dart';
@@ -18,10 +18,13 @@ class PartiallySightedSignupScreen extends StatefulWidget {
   const PartiallySightedSignupScreen({super.key, this.googleUser});
 
   @override
-  State<PartiallySightedSignupScreen> createState() => _PartiallySightedSignupScreenState();
+  State<PartiallySightedSignupScreen> createState() =>
+      _PartiallySightedSignupScreenState();
 }
 
-class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScreen> with TickerProviderStateMixin {
+class _PartiallySightedSignupScreenState
+    extends State<PartiallySightedSignupScreen>
+    with TickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -36,18 +39,20 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _contactNumberController = TextEditingController();
+  final TextEditingController _contactNumberController =
+      TextEditingController();
   final TextEditingController _diagnosisController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
-  String? _selectedGender; 
+  String? _selectedGender;
   String? _selectedDisabilityType;
   DateTime? _selectedBirthdate;
 
-  final List<String> _genderOptions = ['Male', 'Female', 'Rather Not Say']; 
-  
+  final List<String> _genderOptions = ['Male', 'Female', 'Rather Not Say'];
+
   // Updated with WHO Classifications and functional descriptions
   final List<String> _disabilityTypes = [
     'Near Normal (Struggles with small print)',
@@ -65,14 +70,15 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart),
+        );
 
     _entryController.forward();
 
@@ -106,32 +112,49 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         maxHeight: 1024,
         imageQuality: 85,
       );
-      if (pickedFile != null) setState(() => _profileImage = File(pickedFile.path));
+      if (pickedFile != null) {
+        setState(() => _profileImage = File(pickedFile.path));
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: error),
+        );
+      }
     }
   }
 
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Choose Profile Picture', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              'Choose Profile Picture',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 20),
             ListTile(
               leading: Icon(Icons.camera_alt, color: primary),
               title: const Text('Take Photo'),
-              onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
             ),
             ListTile(
               leading: Icon(Icons.photo_library, color: primary),
               title: const Text('Gallery'),
-              onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
             ),
           ],
         ),
@@ -141,7 +164,11 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
 
   Future<String?> _uploadProfileImage(String userId) async {
     if (_profileImage == null) return null;
-    return await cloudinaryService.uploadProfileImage(_profileImage!, userId, 'partially_sighted');
+    return await cloudinaryService.uploadProfileImage(
+      _profileImage!,
+      userId,
+      'partially_sighted',
+    );
   }
 
   Future<void> _selectBirthdate() async {
@@ -151,7 +178,9 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(colorScheme: ColorScheme.light(primary: primary)),
+        data: Theme.of(
+          context,
+        ).copyWith(colorScheme: ColorScheme.light(primary: primary)),
         child: child!,
       ),
     );
@@ -171,7 +200,10 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           ),
           title: const Text(
             "Which category am I?",
-            style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
+            ),
           ),
           content: const SingleChildScrollView(
             child: Column(
@@ -179,27 +211,32 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
               children: [
                 _CategoryItem(
                   title: "Near Normal (20/30 to 20/60)",
-                  description: "You have slight difficulty with fine details, like reading small print or street signs, even with normal glasses.",
+                  description:
+                      "You have slight difficulty with fine details, like reading small print or street signs, even with normal glasses.",
                 ),
                 SizedBox(height: 16),
                 _CategoryItem(
                   title: "Moderate (20/70 to 20/160)",
-                  description: "You likely need strong magnifiers to read. Navigating is generally fine, but recognizing faces from across a room is difficult.",
+                  description:
+                      "You likely need strong magnifiers to read. Navigating is generally fine, but recognizing faces from across a room is difficult.",
                 ),
                 SizedBox(height: 16),
                 _CategoryItem(
                   title: "Severe (20/200 to 20/400)",
-                  description: "This is the threshold for legal blindness. You cannot read standard print. You can see shapes and large objects, but faces are very blurry even up close.",
+                  description:
+                      "This is the threshold for legal blindness. You cannot read standard print. You can see shapes and large objects, but faces are very blurry even up close.",
                 ),
                 SizedBox(height: 16),
                 _CategoryItem(
                   title: "Profound (20/500 to 20/1000)",
-                  description: "You rely heavily on screen readers and mobility aids (like a white cane). You might only be able to see very large, high-contrast letters extremely close to your face.",
+                  description:
+                      "You rely heavily on screen readers and mobility aids (like a white cane). You might only be able to see very large, high-contrast letters extremely close to your face.",
                 ),
                 SizedBox(height: 16),
                 _CategoryItem(
                   title: "Near Total (≤ 5° field)",
-                  description: "You cannot see shapes. You can only tell if a room is light or dark, or if someone is waving their hand right in front of your eyes.",
+                  description:
+                      "You cannot see shapes. You can only tell if a room is light or dark, or if someone is waving their hand right in front of your eyes.",
                 ),
               ],
             ),
@@ -207,7 +244,14 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text("Got it", style: TextStyle(color: primary, fontWeight: FontWeight.bold, fontSize: 16)),
+              child: Text(
+                "Got it",
+                style: TextStyle(
+                  color: primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ],
         );
@@ -227,10 +271,10 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        
+
         flexibleSpace: ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0), 
+            filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
             child: Container(color: Colors.white.withValues(alpha: 0.2)),
           ),
         ),
@@ -242,17 +286,24 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         ),
         title: const Text(
           "Complete Profile",
-          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w700, fontSize: 20),
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
         ),
         centerTitle: true,
       ),
-      
+
       body: Stack(
         children: [
           Positioned.fill(
             child: Opacity(
               opacity: 0.08,
-              child: Image.asset('assets/icons/eye background.jpg', fit: BoxFit.cover),
+              child: Image.asset(
+                'assets/icons/eye background.jpg',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
 
@@ -260,10 +311,10 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
-                left: 24, 
-                right: 24, 
-                top: 20, 
-                bottom: 20 + MediaQuery.of(context).viewInsets.bottom
+                left: 24,
+                right: 24,
+                top: 20,
+                bottom: 20 + MediaQuery.of(context).viewInsets.bottom,
               ),
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -282,15 +333,32 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: const Color(0xFFF1F5F9),
-                                border: Border.all(color: Colors.black, width: 2.0),
+                                border: Border.all(
+                                  color: Colors.black,
+                                  width: 2.0,
+                                ),
                                 image: _profileImage != null
-                                    ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover)
+                                    ? DecorationImage(
+                                        image: FileImage(_profileImage!),
+                                        fit: BoxFit.cover,
+                                      )
                                     : (widget.googleUser?.photoURL != null)
-                                        ? DecorationImage(image: NetworkImage(widget.googleUser!.photoURL!), fit: BoxFit.cover)
-                                        : null,
+                                    ? DecorationImage(
+                                        image: NetworkImage(
+                                          widget.googleUser!.photoURL!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
-                              child: _profileImage == null && widget.googleUser?.photoURL == null
-                                  ? const Icon(Icons.person_rounded, size: 60, color: Color(0xFFCBD5E1))
+                              child:
+                                  _profileImage == null &&
+                                      widget.googleUser?.photoURL == null
+                                  ? const Icon(
+                                      Icons.person_rounded,
+                                      size: 60,
+                                      color: Color(0xFFCBD5E1),
+                                    )
                                   : null,
                             ),
                             Container(
@@ -298,53 +366,92 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                               decoration: BoxDecoration(
                                 color: primary,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                               ),
-                              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 32),
 
                       _buildSectionHeader("Personal Information"),
                       const SizedBox(height: 16),
-                      _buildTextField(_idNumberController, 'ID Number', Icons.badge_outlined),
+                      _buildTextField(
+                        _idNumberController,
+                        'ID Number',
+                        Icons.badge_outlined,
+                      ),
                       const SizedBox(height: 16),
-                      _buildTextField(_nameController, 'Full Name', Icons.person_outline),
+                      _buildTextField(
+                        _nameController,
+                        'Full Name',
+                        Icons.person_outline,
+                      ),
                       const SizedBox(height: 16),
-                      
+
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
-                            flex: 2, 
-                            child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                            flex: 2,
+                            child: _buildTextField(
+                              _ageController,
+                              'Age',
+                              Icons.cake_outlined,
+                              keyboardType: TextInputType.number,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            flex: 3, 
+                            flex: 3,
                             child: _buildDropdownField(
-                              _selectedGender, _genderOptions, 'Gender', Icons.wc_outlined, 
-                              (val) => setState(() => _selectedGender = val)
+                              _selectedGender,
+                              _genderOptions,
+                              'Gender',
+                              Icons.wc_outlined,
+                              (val) => setState(() => _selectedGender = val),
                             ),
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      _buildDateField(_selectedBirthdate, 'Birthdate', Icons.calendar_today_outlined, _selectBirthdate),
+                      _buildDateField(
+                        _selectedBirthdate,
+                        'Birthdate',
+                        Icons.calendar_today_outlined,
+                        _selectBirthdate,
+                      ),
                       const SizedBox(height: 16),
-                      _buildTextField(_addressController, 'Address', Icons.home_outlined),
+                      _buildTextField(
+                        _addressController,
+                        'Address',
+                        Icons.home_outlined,
+                      ),
                       const SizedBox(height: 16),
-                      _buildTextField(_contactNumberController, 'Contact', Icons.phone_outlined, keyboardType: TextInputType.phone),
+                      _buildTextField(
+                        _contactNumberController,
+                        'Contact',
+                        Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
 
                       const SizedBox(height: 32),
 
                       Row(
                         children: [
-                          Expanded(child: _buildSectionHeader("Medical Details")),
+                          Expanded(
+                            child: _buildSectionHeader("Medical Details"),
+                          ),
                           IconButton(
                             icon: Icon(Icons.help_outline, color: primary),
                             onPressed: _showCategoryInfoDialog,
@@ -355,27 +462,34 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
                       _buildDropdownField(
-                        _selectedDisabilityType, _disabilityTypes, 'Category', Icons.accessible_outlined, 
-                        (val) => setState(() => _selectedDisabilityType = val)
+                        _selectedDisabilityType,
+                        _disabilityTypes,
+                        'Category',
+                        Icons.accessible_outlined,
+                        (val) => setState(() => _selectedDisabilityType = val),
                       ),
                       const SizedBox(height: 16),
-                      _buildTextField(_diagnosisController, 'Diagnosis', Icons.medical_information_outlined),
+                      _buildTextField(
+                        _diagnosisController,
+                        'Diagnosis',
+                        Icons.medical_information_outlined,
+                      ),
 
                       const SizedBox(height: 32),
 
                       _buildSectionHeader("Account Security"),
                       const SizedBox(height: 16),
-                      
+
                       _buildTextField(
-                        _emailController, 
-                        'Email', 
-                        Icons.email_outlined, 
+                        _emailController,
+                        'Email',
+                        Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-                        readOnly: widget.googleUser != null, 
+                        readOnly: widget.googleUser != null,
                       ),
-                      
+
                       if (widget.googleUser == null) ...[
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -393,7 +507,7 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                           isConfirm: true,
                         ),
                       ],
-                      
+
                       const SizedBox(height: 32),
 
                       SizedBox(
@@ -405,11 +519,18 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
                             backgroundColor: primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           child: Text(
-                            widget.googleUser != null ? "Save & Continue" : "Create Account", 
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                            widget.googleUser != null
+                                ? "Save & Continue"
+                                : "Create Account",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -431,51 +552,79 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
       alignment: Alignment.centerLeft,
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), letterSpacing: 1.0),
-      ),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: readOnly ? const Color(0xFFE2E8F0) : const Color(0xFFF8FAFC), 
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)), 
-      ),
-      child: TextField(
-        controller: ctrl,
-        readOnly: readOnly,
-        keyboardType: keyboardType,
-        obscureText: isPassword ? (isConfirm ? _obscureConfirmPassword : _obscurePassword) : false,
-        style: TextStyle(color: readOnly ? const Color(0xFF64748B) : const Color(0xFF1E293B)),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
-          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
-          suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  (isConfirm ? _obscureConfirmPassword : _obscurePassword) ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: const Color(0xFF94A3B8),
-                ),
-                onPressed: () => setState(() {
-                  if (isConfirm) {
-                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                  } else {
-                    _obscurePassword = !_obscurePassword;
-                  }
-                }),
-              )
-            : null,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF94A3B8),
+          letterSpacing: 1.0,
         ),
       ),
     );
   }
 
-  Widget _buildDropdownField(String? val, List<String> items, String hint, IconData icon, Function(String?) changed) {
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String hint,
+    IconData icon, {
+    TextInputType? keyboardType,
+    bool isPassword = false,
+    bool isConfirm = false,
+    bool readOnly = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: readOnly ? const Color(0xFFE2E8F0) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: TextField(
+        controller: ctrl,
+        readOnly: readOnly,
+        keyboardType: keyboardType,
+        obscureText: isPassword
+            ? (isConfirm ? _obscureConfirmPassword : _obscurePassword)
+            : false,
+        style: TextStyle(
+          color: readOnly ? const Color(0xFF64748B) : const Color(0xFF1E293B),
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    (isConfirm ? _obscureConfirmPassword : _obscurePassword)
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                  onPressed: () => setState(() {
+                    if (isConfirm) {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    } else {
+                      _obscurePassword = !_obscurePassword;
+                    }
+                  }),
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownField(
+    String? val,
+    List<String> items,
+    String hint,
+    IconData icon,
+    Function(String?) changed,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFC),
@@ -485,10 +634,14 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
       child: DropdownButtonFormField<String>(
         isExpanded: true,
         initialValue: val,
-        items: items.map((i) => DropdownMenuItem(
-          value: i, 
-          child: Text(i, overflow: TextOverflow.ellipsis) 
-        )).toList(),
+        items: items
+            .map(
+              (i) => DropdownMenuItem(
+                value: i,
+                child: Text(i, overflow: TextOverflow.ellipsis),
+              ),
+            )
+            .toList(),
         onChanged: _isLoading ? null : changed,
         style: const TextStyle(color: Color(0xFF1E293B), fontSize: 16),
         decoration: InputDecoration(
@@ -496,13 +649,21 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
           prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDateField(DateTime? date, String hint, IconData icon, VoidCallback tap) {
+  Widget _buildDateField(
+    DateTime? date,
+    String hint,
+    IconData icon,
+    VoidCallback tap,
+  ) {
     return GestureDetector(
       onTap: _isLoading ? null : tap,
       child: Container(
@@ -518,7 +679,12 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
             const SizedBox(width: 12),
             Text(
               date != null ? "${date.month}/${date.day}/${date.year}" : hint,
-              style: TextStyle(color: date != null ? const Color(0xFF1E293B) : const Color(0xFF94A3B8), fontSize: 16),
+              style: TextStyle(
+                color: date != null
+                    ? const Color(0xFF1E293B)
+                    : const Color(0xFF94A3B8),
+                fontSize: 16,
+              ),
             ),
           ],
         ),
@@ -529,7 +695,7 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
   Future<void> _handleSignup() async {
     if (_idNumberController.text.trim().isEmpty ||
         _nameController.text.trim().isEmpty ||
-        _selectedGender == null ||            
+        _selectedGender == null ||
         _ageController.text.trim().isEmpty ||
         _selectedBirthdate == null ||
         _selectedDisabilityType == null ||
@@ -537,35 +703,61 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         _addressController.text.trim().isEmpty ||
         _contactNumberController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: error,
+        ),
+      );
       return;
     }
 
     if (widget.googleUser == null) {
-      if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a password'), backgroundColor: error));
+      if (_passwordController.text.isEmpty ||
+          _confirmPasswordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a password'),
+            backgroundColor: error,
+          ),
+        );
         return;
       }
       if (_passwordController.text.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password must be at least 6 characters'),
+            backgroundColor: error,
+          ),
+        );
         return;
       }
       if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Passwords do not match'),
+            backgroundColor: error,
+          ),
+        );
         return;
       }
     }
 
     int? age = int.tryParse(_ageController.text.trim());
     if (age == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid age'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid age'),
+          backgroundColor: error,
+        ),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
-    
+
     User? finalUser;
-    bool isNewEmailUser = false; 
+    bool isNewEmailUser = false;
 
     try {
       if (widget.googleUser != null) {
@@ -576,8 +768,10 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           password: _passwordController.text,
         );
         finalUser = userCredential.user;
-        isNewEmailUser = true; 
-        await authService.value.updateUsername(userName: _nameController.text.trim());
+        isNewEmailUser = true;
+        await authService.value.updateUsername(
+          userName: _nameController.text.trim(),
+        );
       }
 
       if (finalUser == null) throw Exception("Failed to get user information.");
@@ -594,7 +788,7 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
           userId: finalUser.uid,
           idNumber: _idNumberController.text.trim(),
           name: _nameController.text.trim(),
-          sex: _selectedGender!, 
+          sex: _selectedGender!,
           age: age,
           birthdate: _selectedBirthdate!,
           disabilityType: _selectedDisabilityType!,
@@ -608,7 +802,9 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
         if (isNewEmailUser) {
           await finalUser.delete();
         }
-        throw Exception("Failed to save profile data. Please try again. ($dbError)");
+        throw Exception(
+          "Failed to save profile data. Please try again. ($dbError)",
+        );
       }
 
       if (profileImageUrl != null) {
@@ -626,13 +822,29 @@ class _PartiallySightedSignupScreenState extends State<PartiallySightedSignupScr
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account Setup Complete!'), backgroundColor: primary));
-        Navigator.pop(context); 
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account Setup Complete!'),
+            backgroundColor: primary,
+          ),
+        );
+        Navigator.pop(context);
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Signup failed'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Signup failed'),
+            backgroundColor: error,
+          ),
+        );
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: error),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

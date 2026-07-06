@@ -23,7 +23,7 @@ class PatientModel {
     this.lastLocation,
     this.lastActive,
     this.isOnline = false,
-    this.profileImageUrl, 
+    this.profileImageUrl,
     this.patientProfileImageUrl, // Add this line
   });
 
@@ -32,8 +32,8 @@ class PatientModel {
     // if Firestore accidentally returns it as a String (e.g., "25") instead of an int.
     int parsedAge = 0;
     if (json['age'] != null) {
-      parsedAge = json['age'] is int 
-          ? json['age'] 
+      parsedAge = json['age'] is int
+          ? json['age']
           : int.tryParse(json['age'].toString()) ?? 0;
     }
 
@@ -93,7 +93,8 @@ class PatientModel {
       lastActive: lastActive ?? this.lastActive,
       isOnline: isOnline ?? this.isOnline,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      patientProfileImageUrl: patientProfileImageUrl ?? this.patientProfileImageUrl,
+      patientProfileImageUrl:
+          patientProfileImageUrl ?? this.patientProfileImageUrl,
     );
   }
 }

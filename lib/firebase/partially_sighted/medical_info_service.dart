@@ -22,10 +22,12 @@ class MedicalInfoService {
       if (medications != null) updates['medicalInfo/medications'] = medications;
       if (allergies != null) updates['medicalInfo/allergies'] = allergies;
       if (lastCheckup != null) updates['medicalInfo/lastCheckup'] = lastCheckup;
-      
+
       updates['updatedAt'] = ServerValue.timestamp;
 
-      await _database.ref('user_info/partially_sighted/$userId').update(updates);
+      await _database
+          .ref('user_info/partially_sighted/$userId')
+          .update(updates);
     } catch (e) {
       throw Exception('Failed to update medical info: $e');
     }
@@ -37,9 +39,9 @@ class MedicalInfoService {
       DatabaseEvent event = await _database
           .ref('user_info/partially_sighted/$userId/medicalInfo')
           .once();
-      
+
       if (!event.snapshot.exists) return null;
-      
+
       return Map<String, dynamic>.from(event.snapshot.value as Map);
     } catch (e) {
       throw Exception('Failed to get medical info: $e');
@@ -55,11 +57,11 @@ class MedicalInfoService {
       // Get current conditions
       Map<String, dynamic>? medicalInfo = await getMedicalInfo(userId);
       List<String> conditions = [];
-      
+
       if (medicalInfo != null && medicalInfo['conditions'] != null) {
         conditions = List<String>.from(medicalInfo['conditions']);
       }
-      
+
       if (!conditions.contains(condition)) {
         conditions.add(condition);
         await updateMedicalInfo(userId: userId, conditions: conditions);
@@ -76,7 +78,7 @@ class MedicalInfoService {
   }) async {
     try {
       Map<String, dynamic>? medicalInfo = await getMedicalInfo(userId);
-      
+
       if (medicalInfo != null && medicalInfo['conditions'] != null) {
         List<String> conditions = List<String>.from(medicalInfo['conditions']);
         conditions.remove(condition);
@@ -95,11 +97,11 @@ class MedicalInfoService {
     try {
       Map<String, dynamic>? medicalInfo = await getMedicalInfo(userId);
       List<String> medications = [];
-      
+
       if (medicalInfo != null && medicalInfo['medications'] != null) {
         medications = List<String>.from(medicalInfo['medications']);
       }
-      
+
       if (!medications.contains(medication)) {
         medications.add(medication);
         await updateMedicalInfo(userId: userId, medications: medications);
@@ -116,9 +118,11 @@ class MedicalInfoService {
   }) async {
     try {
       Map<String, dynamic>? medicalInfo = await getMedicalInfo(userId);
-      
+
       if (medicalInfo != null && medicalInfo['medications'] != null) {
-        List<String> medications = List<String>.from(medicalInfo['medications']);
+        List<String> medications = List<String>.from(
+          medicalInfo['medications'],
+        );
         medications.remove(medication);
         await updateMedicalInfo(userId: userId, medications: medications);
       }
@@ -135,11 +139,11 @@ class MedicalInfoService {
     try {
       Map<String, dynamic>? medicalInfo = await getMedicalInfo(userId);
       List<String> allergies = [];
-      
+
       if (medicalInfo != null && medicalInfo['allergies'] != null) {
         allergies = List<String>.from(medicalInfo['allergies']);
       }
-      
+
       if (!allergies.contains(allergy)) {
         allergies.add(allergy);
         await updateMedicalInfo(userId: userId, allergies: allergies);
@@ -156,7 +160,7 @@ class MedicalInfoService {
   }) async {
     try {
       Map<String, dynamic>? medicalInfo = await getMedicalInfo(userId);
-      
+
       if (medicalInfo != null && medicalInfo['allergies'] != null) {
         List<String> allergies = List<String>.from(medicalInfo['allergies']);
         allergies.remove(allergy);
@@ -173,9 +177,9 @@ class MedicalInfoService {
         .ref('user_info/partially_sighted/$userId/medicalInfo')
         .onValue
         .map((event) {
-      if (!event.snapshot.exists) return null;
-      return Map<String, dynamic>.from(event.snapshot.value as Map);
-    });
+          if (!event.snapshot.exists) return null;
+          return Map<String, dynamic>.from(event.snapshot.value as Map);
+        });
   }
 }
 

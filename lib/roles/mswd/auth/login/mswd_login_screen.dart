@@ -15,14 +15,15 @@ class MSWDLoginScreen extends StatefulWidget {
   State<MSWDLoginScreen> createState() => _MSWDLoginScreenState();
 }
 
-class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderStateMixin {
+class _MSWDLoginScreenState extends State<MSWDLoginScreen>
+    with TickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
   bool _obscurePassword = true;
   bool _isLoading = false;
-  
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -34,14 +35,15 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart),
+        );
 
     _entryController.forward();
   }
@@ -65,15 +67,17 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
         children: [
           // 1. Top Section: Hero Animation
           Positioned(
-          top: -60, // Try -60, -80, or -100 to pull it up more
-          left: 0,
-          right: 0,
-          height: (size.height * 0.40) + 60, // Remember to add that exact amount back here
-          child: Image.asset(
-            'assets/seelai-icons/seelai_model.gif',
-            fit: BoxFit.cover, 
+            top: -60, // Try -60, -80, or -100 to pull it up more
+            left: 0,
+            right: 0,
+            height:
+                (size.height * 0.40) +
+                60, // Remember to add that exact amount back here
+            child: Image.asset(
+              'assets/seelai-icons/seelai_model.gif',
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
 
           // 2. Back Button (High Contrast & Clear UX)
           Positioned(
@@ -81,7 +85,9 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
             left: 20,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.3), // Semi-transparent dark circle
+                color: Colors.black.withValues(
+                  alpha: 0.3,
+                ), // Semi-transparent dark circle
                 shape: BoxShape.circle,
               ),
               child: IconButton(
@@ -89,7 +95,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                 icon: const Icon(Icons.arrow_back_ios_new_rounded),
                 color: Colors.white, // Crisp white arrow
                 iconSize: 22,
-                tooltip: 'Go back', 
+                tooltip: 'Go back',
               ),
             ),
           ),
@@ -169,7 +175,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                               hint: "Email address",
                               icon: Icons.email_outlined,
                             ),
-                            
+
                             const SizedBox(height: 20),
 
                             _buildTextField(
@@ -182,7 +188,9 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: _isLoading ? null : _showForgotPasswordDialog,
+                                onPressed: _isLoading
+                                    ? null
+                                    : _showForgotPasswordDialog,
                                 child: Text(
                                   "Forgot password?",
                                   style: TextStyle(
@@ -223,25 +231,41 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                             // --- GOOGLE SECTION ---
                             Row(
                               children: [
-                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: const Text("OR", style: TextStyle(color: Color(0xFF94A3B8))),
+                                const Expanded(
+                                  child: Divider(color: Color(0xFFE2E8F0)),
                                 ),
-                                const Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: const Text(
+                                    "OR",
+                                    style: TextStyle(color: Color(0xFF94A3B8)),
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Divider(color: Color(0xFFE2E8F0)),
+                                ),
                               ],
                             ),
-                            
+
                             const SizedBox(height: 24),
 
                             SizedBox(
                               width: double.infinity,
                               height: 56,
                               child: OutlinedButton(
-                                onPressed: _isLoading ? null : _handleGoogleLogin,
+                                onPressed: _isLoading
+                                    ? null
+                                    : _handleGoogleLogin,
                                 style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  side: const BorderSide(
+                                    color: Color(0xFFE2E8F0),
+                                    width: 1.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                   backgroundColor: Colors.white,
                                   foregroundColor: const Color(0xFF1E293B),
                                   elevation: 0,
@@ -268,25 +292,33 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                                 ),
                               ),
                             ),
-                            // --- END GOOGLE SECTION ---
 
+                            // --- END GOOGLE SECTION ---
                             const SizedBox(height: 24),
 
                             Center(
                               child: TextButton(
-                                onPressed: _isLoading ? null : () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const MSWDSignupScreen(),
-                                    ),
-                                  );
-                                },
+                                onPressed: _isLoading
+                                    ? null
+                                    : () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const MSWDSignupScreen(),
+                                          ),
+                                        );
+                                      },
                                 child: RichText(
                                   text: TextSpan(
-                                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 15),
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 15,
+                                    ),
                                     children: [
-                                      const TextSpan(text: "Don't have an account? "),
+                                      const TextSpan(
+                                        text: "Don't have an account? ",
+                                      ),
                                       TextSpan(
                                         text: "Register",
                                         style: TextStyle(
@@ -309,15 +341,12 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
             ),
           ),
 
-          if (_isLoading)
-            LoadingOverlay(
-              message: '',
-              isVisible: _isLoading,
-            ),
+          if (_isLoading) LoadingOverlay(message: '', isVisible: _isLoading),
         ],
       ),
     );
   }
+
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -341,14 +370,20 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
           suffixIcon: isPassword
               ? IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
                     color: const Color(0xFF94A3B8),
                   ),
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );
@@ -356,7 +391,7 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
 
   void _showForgotPasswordDialog() {
     // 1. Capture the parent context for the SnackBar
-    final parentContext = context; 
+    final parentContext = context;
     final TextEditingController emailController = TextEditingController();
 
     showDialog(
@@ -385,8 +420,10 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
               }
 
               try {
-                await authService.value.sendPasswordResetEmail(email: emailController.text.trim());
-                
+                await authService.value.sendPasswordResetEmail(
+                  email: emailController.text.trim(),
+                );
+
                 // 3. GUARD: Check if the dialog is still open before popping
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
@@ -394,7 +431,10 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
                 // 4. GUARD: Check if the main screen is still active before showing the SnackBar
                 if (!parentContext.mounted) return;
                 ScaffoldMessenger.of(parentContext).showSnackBar(
-                  const SnackBar(content: Text('Password reset email sent!'), backgroundColor: success),
+                  const SnackBar(
+                    content: Text('Password reset email sent!'),
+                    backgroundColor: success,
+                  ),
                 );
               } catch (e) {
                 // 5. GUARD: Check if the dialog is still open before popping on error
@@ -414,24 +454,43 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
     setState(() => _isLoading = true);
 
     try {
-      UserCredential? userCredential = await authService.value.signInWithGoogle();
-      
+      UserCredential? userCredential = await authService.value
+          .signInWithGoogle();
+
       if (userCredential == null) {
         setState(() => _isLoading = false);
         return;
       }
 
-      Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
-      
+      Map<String, dynamic>? userData = await databaseService.getUserData(
+        userCredential.user!.uid,
+      );
+
       if (userData != null) {
         if (userData['role'] == 'admin' || userData['role'] == 'mswd') {
-          await activityLogsService.logActivity(userId: userCredential.user!.uid, action: 'login', details: 'MSWD logged in via Google');
+          await activityLogsService.logActivity(
+            userId: userCredential.user!.uid,
+            action: 'login',
+            details: 'MSWD logged in via Google',
+          );
           if (mounted) {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MSWDHomeScreen(userData: userData)));
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MSWDHomeScreen(userData: userData),
+              ),
+            );
           }
         } else {
           await authService.value.signOut();
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access Denied: Not an MSWD account'), backgroundColor: error));
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Access Denied: Not an MSWD account'),
+                backgroundColor: error,
+              ),
+            );
+          }
         }
       } else {
         // User not in DB, route to Signup
@@ -439,13 +498,16 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MSWDSignupScreen(googleUser: userCredential.user),
+              builder: (context) =>
+                  MSWDSignupScreen(googleUser: userCredential.user),
             ),
           );
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Almost there! Please complete your staff profile.'), 
+              content: Text(
+                'Almost there! Please complete your staff profile.',
+              ),
               backgroundColor: primary,
               duration: Duration(seconds: 4),
             ),
@@ -453,7 +515,14 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
         }
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -462,25 +531,59 @@ class _MSWDLoginScreenState extends State<MSWDLoginScreen> with TickerProviderSt
   // ==================== STANDARD LOGIN LOGIC ====================
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all fields'),
+          backgroundColor: error,
+        ),
+      );
       return;
     }
     setState(() => _isLoading = true);
     try {
-      UserCredential userCredential = await authService.value.signIn(email: _emailController.text.trim(), password: _passwordController.text);
-      Map<String, dynamic>? userData = await databaseService.getUserData(userCredential.user!.uid);
-      
-      if (userData != null && (userData['role'] == 'admin' || userData['role'] == 'mswd')) {
-         await activityLogsService.logActivity(userId: userCredential.user!.uid, action: 'login', details: 'MSWD logged in');
+      UserCredential userCredential = await authService.value.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      Map<String, dynamic>? userData = await databaseService.getUserData(
+        userCredential.user!.uid,
+      );
+
+      if (userData != null &&
+          (userData['role'] == 'admin' || userData['role'] == 'mswd')) {
+        await activityLogsService.logActivity(
+          userId: userCredential.user!.uid,
+          action: 'login',
+          details: 'MSWD logged in',
+        );
         if (mounted) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => MSWDHomeScreen(userData: userData)));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MSWDHomeScreen(userData: userData),
+            ),
+          );
         }
       } else {
         await authService.value.signOut();
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Access Denied: Not an MSWD account'), backgroundColor: error));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access Denied: Not an MSWD account'),
+              backgroundColor: error,
+            ),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Login failed'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Login failed'),
+            backgroundColor: error,
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

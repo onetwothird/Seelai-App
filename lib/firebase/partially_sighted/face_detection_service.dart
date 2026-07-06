@@ -20,11 +20,11 @@ class FaceDetectionService {
       // Create reference - EXACT same pattern as object_detection_service
       final detectionRef = _database.ref('detected_faces/$userId').push();
       final detectionId = detectionRef.key;
-      
+
       if (detectionId == null) {
         return false;
       }
-      
+
       // Prepare faces data
       final facesList = detectedFaces.map((face) {
         try {
@@ -46,7 +46,7 @@ class FaceDetectionService {
           };
         }
       }).toList();
-      
+
       // Prepare data - EXACT same structure as object_detection_service
       final detectionData = {
         'userId': userId,
@@ -57,10 +57,10 @@ class FaceDetectionService {
         'metadata': metadata ?? {},
         'createdAt': ServerValue.timestamp,
       };
-      
+
       // Save to Firebase - EXACT same method as object_detection_service
       await detectionRef.set(detectionData);
-      
+
       // Log to activity logs
       await _logToActivityLogs(
         userId: userId,
@@ -91,7 +91,7 @@ class FaceDetectionService {
       }
 
       final facesMap = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       final faces = <Map<String, dynamic>>[];
 
@@ -129,34 +129,34 @@ class FaceDetectionService {
         .limitToLast(limit)
         .onValue
         .map((event) {
-      if (!event.snapshot.exists) {
-        return <Map<String, dynamic>>[];
-      }
+          if (!event.snapshot.exists) {
+            return <Map<String, dynamic>>[];
+          }
 
-      final facesMap = Map<String, dynamic>.from(
-        event.snapshot.value as Map
-      );
-      final faces = <Map<String, dynamic>>[];
+          final facesMap = Map<String, dynamic>.from(
+            event.snapshot.value as Map,
+          );
+          final faces = <Map<String, dynamic>>[];
 
-      facesMap.forEach((key, value) {
-        try {
-          final faceData = Map<String, dynamic>.from(value as Map);
-          faceData['detectionId'] = key;
-          faces.add(faceData);
-        } catch (e) {
-          // Skip invalid entries
-        }
-      });
+          facesMap.forEach((key, value) {
+            try {
+              final faceData = Map<String, dynamic>.from(value as Map);
+              faceData['detectionId'] = key;
+              faces.add(faceData);
+            } catch (e) {
+              // Skip invalid entries
+            }
+          });
 
-      // Sort by timestamp (newest first)
-      faces.sort((a, b) {
-        final aTime = DateTime.parse(a['timestamp'] as String);
-        final bTime = DateTime.parse(b['timestamp'] as String);
-        return bTime.compareTo(aTime);
-      });
+          // Sort by timestamp (newest first)
+          faces.sort((a, b) {
+            final aTime = DateTime.parse(a['timestamp'] as String);
+            final bTime = DateTime.parse(b['timestamp'] as String);
+            return bTime.compareTo(aTime);
+          });
 
-      return faces;
-    });
+          return faces;
+        });
   }
 
   /// Get a specific detection
@@ -174,7 +174,7 @@ class FaceDetectionService {
       }
 
       final detectionData = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       detectionData['detectionId'] = detectionId;
 
@@ -187,10 +187,8 @@ class FaceDetectionService {
   /// Delete a specific detection
   Future<bool> deleteDetection(String userId, String detectionId) async {
     try {
-      await _database
-          .ref('detected_faces/$userId/$detectionId')
-          .remove();
-      
+      await _database.ref('detected_faces/$userId/$detectionId').remove();
+
       return true;
     } catch (e) {
       return false;
@@ -200,10 +198,8 @@ class FaceDetectionService {
   /// Clear all detections for a user
   Future<bool> clearAllDetections(String userId) async {
     try {
-      await _database
-          .ref('detected_faces/$userId')
-          .remove();
-      
+      await _database.ref('detected_faces/$userId').remove();
+
       return true;
     } catch (e) {
       return false;
@@ -214,10 +210,10 @@ class FaceDetectionService {
   Future<void> clearOldDetections(String userId) async {
     try {
       final detections = await getDetectedFaces(userId, limit: 200);
-      
+
       if (detections.length > 100) {
         final toDelete = detections.skip(100).toList();
-        
+
         for (final detection in toDelete) {
           await _database
               .ref('detected_faces/$userId/${detection['detectionId']}')
@@ -235,15 +231,15 @@ class FaceDetectionService {
   Future<Map<String, dynamic>> getDetectionStatistics(String userId) async {
     try {
       final detections = await getDetectedFaces(userId, limit: 1000);
-      
+
       int totalDetections = detections.length;
       int totalFaces = 0;
       double totalConfidence = 0.0;
-      
+
       for (final detection in detections) {
         final faces = detection['faces'] as List? ?? [];
         totalFaces += faces.length;
-        
+
         for (final face in faces) {
           final faceMap = face as Map<String, dynamic>;
           totalConfidence += faceMap['confidence'] ?? 0.0;
@@ -253,14 +249,14 @@ class FaceDetectionService {
       return {
         'totalDetections': totalDetections,
         'totalFaces': totalFaces,
-        'averageFacesPerDetection': totalDetections > 0 
-            ? (totalFaces / totalDetections).toStringAsFixed(1) 
+        'averageFacesPerDetection': totalDetections > 0
+            ? (totalFaces / totalDetections).toStringAsFixed(1)
             : '0',
-        'averageConfidence': totalFaces > 0 
-            ? (totalConfidence / totalFaces).toStringAsFixed(2) 
+        'averageConfidence': totalFaces > 0
+            ? (totalConfidence / totalFaces).toStringAsFixed(2)
             : '0',
-        'lastDetectionDate': detections.isNotEmpty 
-            ? detections.first['timestamp'] 
+        'lastDetectionDate': detections.isNotEmpty
+            ? detections.first['timestamp']
             : null,
       };
     } catch (e) {
@@ -282,7 +278,7 @@ class FaceDetectionService {
   }) async {
     try {
       final allDetections = await getDetectedFaces(userId, limit: 1000);
-      
+
       final filteredDetections = allDetections.where((detection) {
         final timestamp = DateTime.parse(detection['timestamp'] as String);
         return timestamp.isAfter(startDate) && timestamp.isBefore(endDate);
@@ -302,7 +298,7 @@ class FaceDetectionService {
   }) async {
     try {
       final allDetections = await getDetectedFaces(userId, limit: limit);
-      
+
       final multipleDetections = allDetections.where((detection) {
         final faceCount = detection['faceCount'] as int? ?? 0;
         return faceCount >= minFaces;
@@ -317,9 +313,7 @@ class FaceDetectionService {
   // ==================== ADMIN FUNCTIONS ====================
 
   /// Get all detections across all users (Admin only)
-  Future<List<Map<String, dynamic>>> getAllDetections({
-    int limit = 100,
-  }) async {
+  Future<List<Map<String, dynamic>>> getAllDetections({int limit = 100}) async {
     try {
       final snapshot = await _database
           .ref('detected_faces')
@@ -331,7 +325,7 @@ class FaceDetectionService {
       }
 
       final usersMap = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       final allDetections = <Map<String, dynamic>>[];
 
@@ -374,7 +368,7 @@ class FaceDetectionService {
   }) async {
     try {
       final logRef = _database.ref('activity_logs').push();
-      
+
       await logRef.set({
         'userId': userId,
         'action': action,
@@ -390,7 +384,7 @@ class FaceDetectionService {
   /// Format time ago
   String getTimeAgo(DateTime timestamp) {
     final difference = DateTime.now().difference(timestamp);
-    
+
     if (difference.inSeconds < 60) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {
@@ -409,7 +403,7 @@ class FaceDetectionService {
     try {
       final snapshot = await _database.ref('.info/connected').once();
       final isConnected = snapshot.snapshot.value as bool? ?? false;
-      
+
       return isConnected;
     } catch (e) {
       return false;

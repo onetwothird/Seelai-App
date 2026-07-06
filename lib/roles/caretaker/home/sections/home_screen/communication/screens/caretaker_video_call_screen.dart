@@ -15,7 +15,7 @@ class CaretakerVideoCallScreen extends StatefulWidget {
   final void Function(bool wasConnected)? onClose;
 
   const CaretakerVideoCallScreen({
-    super.key, 
+    super.key,
     required this.patientData,
     this.callId,
     this.isCaller = true,
@@ -23,21 +23,21 @@ class CaretakerVideoCallScreen extends StatefulWidget {
     this.onClose,
   });
 
- static void startCall(
-    BuildContext context, 
+  static void startCall(
+    BuildContext context,
     Map<String, dynamic> patientData, {
     String? callId,
     bool isCaller = true,
     String callPath = 'caretaker_communication',
   }) {
     OverlayEntry? overlayEntry;
-    
+
     overlayEntry = OverlayEntry(
       builder: (overlayContext) => CaretakerVideoCallScreen(
         patientData: patientData,
-        callId: callId,          
-        isCaller: isCaller,       
-        callPath: callPath,      
+        callId: callId,
+        isCaller: isCaller,
+        callPath: callPath,
         onClose: (bool wasConnected) {
           overlayEntry?.remove();
 
@@ -45,11 +45,10 @@ class CaretakerVideoCallScreen extends StatefulWidget {
             Future.delayed(const Duration(milliseconds: 300), () {
               if (context.mounted) {
                 showDialog(
-                  context: context, 
+                  context: context,
                   barrierDismissible: false,
-                  builder: (dialogContext) => CallRatingDialog(
-                    onDismissed: () {},
-                  ),
+                  builder: (dialogContext) =>
+                      CallRatingDialog(onDismissed: () {}),
                 );
               }
             });
@@ -57,19 +56,21 @@ class CaretakerVideoCallScreen extends StatefulWidget {
         },
       ),
     );
-    
+
     Overlay.of(context).insert(overlayEntry);
   }
 
   @override
-  State<CaretakerVideoCallScreen> createState() => _CaretakerVideoCallScreenState();
+  State<CaretakerVideoCallScreen> createState() =>
+      _CaretakerVideoCallScreenState();
 }
 
-class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   bool _isMuted = false;
   bool _isVideoOff = false;
-  bool _hasRemoteStream = false; 
-  bool _isMinimized = false;     
+  bool _hasRemoteStream = false;
+  bool _isMinimized = false;
 
   bool _isAccepted = false;
   bool _isEnding = false;
@@ -77,8 +78,8 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
 
   String? _currentCallId;
   StreamSubscription<DatabaseEvent>? _callSubscription;
-  Timer? _ringingTimeout; 
-  
+  Timer? _ringingTimeout;
+
   final WebRTCService _webrtcService = WebRTCService();
   bool _isConnectionReady = false;
 
@@ -91,8 +92,8 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); 
-    
+    WidgetsBinding.instance.addObserver(this);
+
     _patientName = widget.patientData['name'] ?? 'Patient';
     _patientImage = widget.patientData['profileImageUrl'];
 
@@ -103,17 +104,17 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
   Future<bool> didPopRoute() async {
     if (!_isMinimized && mounted) {
       setState(() => _isMinimized = true);
-      return true; 
+      return true;
     }
-    return false; 
+    return false;
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); 
+    WidgetsBinding.instance.removeObserver(this);
     _callSubscription?.cancel();
-    _ringingTimeout?.cancel(); 
-    
+    _ringingTimeout?.cancel();
+
     if (_currentCallId != null && !_isEnding) {
       _isEnding = true;
       callTrackingService.updateCallStatus(
@@ -122,11 +123,11 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
         status: 'ended',
       );
     }
-    
+
     if (_currentCallId != null) {
-      _webrtcService.hangUp(widget.callPath, _currentCallId!); 
+      _webrtcService.hangUp(widget.callPath, _currentCallId!);
     }
-    
+
     super.dispose();
   }
 
@@ -137,7 +138,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
     if (!cameraStatus.isGranted || !micStatus.isGranted) {
       debugPrint("Permissions Denied! Ending call process.");
       if (mounted) _endCall();
-      return; 
+      return;
     }
 
     try {
@@ -147,7 +148,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
       _webrtcService.onAddRemoteStream = (stream) {
         if (mounted) setState(() => _hasRemoteStream = true);
       };
-      
+
       _webrtcService.onConnectionClosed = () {
         if (mounted) _endCall();
       };
@@ -157,18 +158,20 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
       await _handleCallConnection();
     } catch (e) {
       debugPrint("Failed to open camera/mic: $e");
-      if (mounted) _endCall(); 
+      if (mounted) _endCall();
     }
   }
-  
+
   Future<void> _handleCallConnection() async {
-    final currentUserId = databaseService.currentUserId ?? widget.patientData['caretakerId'];
+    final currentUserId =
+        databaseService.currentUserId ?? widget.patientData['caretakerId'];
     if (currentUserId == null) return;
 
-    final String receiverId = widget.patientData['userId'] ?? widget.patientData['id'] ?? ''; 
+    final String receiverId =
+        widget.patientData['userId'] ?? widget.patientData['id'] ?? '';
 
     if (widget.isCaller && widget.callId == null) {
-      if (receiverId.isEmpty) return; 
+      if (receiverId.isEmpty) return;
       _currentCallId = await callTrackingService.initiateCall(
         callerId: currentUserId,
         receiverId: receiverId,
@@ -180,10 +183,9 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
       _ringingTimeout = Timer(const Duration(seconds: 40), () {
         if (mounted) _endCall();
       });
-
     } else if (widget.callId != null) {
       _currentCallId = widget.callId;
-      _isAccepted = true; 
+      _isAccepted = true;
       await callTrackingService.updateCallStatus(
         path: widget.callPath,
         callId: _currentCallId!,
@@ -193,37 +195,43 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
     }
 
     if (_currentCallId != null) {
-      _callSubscription = callTrackingService.listenToCallStatus(widget.callPath, _currentCallId!).listen((event) {
-        if (event.snapshot.exists) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>;
+      _callSubscription = callTrackingService
+          .listenToCallStatus(widget.callPath, _currentCallId!)
+          .listen((event) {
+            if (event.snapshot.exists) {
+              final data = event.snapshot.value as Map<dynamic, dynamic>;
 
-          if (data['status'] == 'accepted') {
-            if (mounted) setState(() => _isAccepted = true);
-            _ringingTimeout?.cancel();
-          }
+              if (data['status'] == 'accepted') {
+                if (mounted) setState(() => _isAccepted = true);
+                _ringingTimeout?.cancel();
+              }
 
-          if (data['status'] == 'ended' || data['status'] == 'rejected' || data['status'] == 'missed') {
-            if (mounted) _endCall();
-          }
-        }
-      });
+              if (data['status'] == 'ended' ||
+                  data['status'] == 'rejected' ||
+                  data['status'] == 'missed') {
+                if (mounted) _endCall();
+              }
+            }
+          });
     }
   }
 
   Future<void> _endCall() async {
     if (_isEnding) return;
-    
+
     if (mounted) {
       setState(() => _isEnding = true);
     } else {
       _isEnding = true;
     }
-    
+
     _ringingTimeout?.cancel();
     _cleanupAndPop();
 
     if (_currentCallId != null) {
-      String finalStatus = (widget.isCaller && !_isAccepted) ? 'missed' : 'ended';
+      String finalStatus = (widget.isCaller && !_isAccepted)
+          ? 'missed'
+          : 'ended';
       try {
         await callTrackingService.updateCallStatus(
           path: widget.callPath,
@@ -240,16 +248,16 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
   void _cleanupAndPop() {
     if (!_hasPopped && widget.onClose != null) {
       _hasPopped = true;
-      widget.onClose!(_hasRemoteStream); 
+      widget.onClose!(_hasRemoteStream);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     double pipWidth = 120.0;
-    double pipHeight = 180.0; 
+    double pipHeight = 180.0;
 
     if (_hasRemoteStream) {
       final videoWidth = _webrtcService.remoteRenderer.videoWidth.toDouble();
@@ -291,24 +299,28 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
       children: [
         Positioned.fill(
           child: _hasRemoteStream
-              ? (!_isEnding 
-                  ? RTCVideoView(
-                      _webrtcService.remoteRenderer,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      key: const ValueKey('remoteVideo'),
-                    )
-                  : Container(color: Colors.black))
+              ? (!_isEnding
+                    ? RTCVideoView(
+                        _webrtcService.remoteRenderer,
+                        objectFit:
+                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey('remoteVideo'),
+                      )
+                    : Container(color: Colors.black))
               : (_isConnectionReady && !_isVideoOff && !_isEnding
-                  ? RTCVideoView(
-                      _webrtcService.localRenderer,
-                      mirror: true,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      key: const ValueKey('local_video_renderer'), // FIX: Standardized key
-                    )
-                  : Container(
-                      key: const ValueKey('clearLocalBackground'),
-                      child: _buildUserVideoFallback(null), 
-                    )),
+                    ? RTCVideoView(
+                        _webrtcService.localRenderer,
+                        mirror: true,
+                        objectFit:
+                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey(
+                          'local_video_renderer',
+                        ), // FIX: Standardized key
+                      )
+                    : Container(
+                        key: const ValueKey('clearLocalBackground'),
+                        child: _buildUserVideoFallback(null),
+                      )),
         ),
 
         if (!_hasRemoteStream)
@@ -327,7 +339,12 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                 const SizedBox(height: 24),
                 Text(
                   _patientName,
-                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -344,7 +361,11 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: () => setState(() => _isMinimized = true),
               ),
             ),
@@ -353,7 +374,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
 
         if (_hasRemoteStream && _isConnectionReady)
           Positioned(
-            bottom: 120, 
+            bottom: 120,
             right: 20,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -362,17 +383,26 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
               decoration: BoxDecoration(
                 color: const Color(0xFF334155),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 5))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16), 
-                child: _isVideoOff || _isEnding 
+                borderRadius: BorderRadius.circular(16),
+                child: _isVideoOff || _isEnding
                     ? _buildUserVideoFallback(null)
                     : RTCVideoView(
                         _webrtcService.localRenderer,
                         mirror: true,
-                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        key: const ValueKey('local_video_renderer'), // FIX: Matched key
+                        objectFit:
+                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey(
+                          'local_video_renderer',
+                        ), // FIX: Matched key
                       ),
               ),
             ),
@@ -401,7 +431,9 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                       onTap: () => _webrtcService.switchCamera(),
                     ),
                     _buildCallAction(
-                      icon: _isVideoOff ? Icons.videocam_off_rounded : Icons.videocam_rounded,
+                      icon: _isVideoOff
+                          ? Icons.videocam_off_rounded
+                          : Icons.videocam_rounded,
                       isActive: _isVideoOff,
                       onTap: () {
                         setState(() => _isVideoOff = !_isVideoOff);
@@ -409,7 +441,9 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                       },
                     ),
                     _buildCallAction(
-                      icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                      icon: _isMuted
+                          ? Icons.mic_off_rounded
+                          : Icons.mic_rounded,
                       isActive: _isMuted,
                       onTap: () {
                         setState(() => _isMuted = !_isMuted);
@@ -438,14 +472,17 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
               final size = MediaQuery.of(context).size;
               double newX = _pipPosition.dx + details.delta.dx;
               double newY = _pipPosition.dy + details.delta.dy;
-              
+
               newX = newX.clamp(10.0, size.width - pipWidth - 10.0);
-              newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
-              
+              newY = newY.clamp(
+                MediaQuery.of(context).padding.top + 10,
+                size.height - pipHeight - 10.0,
+              );
+
               _pipPosition = Offset(newX, newY);
             });
           },
-          onTap: () => setState(() => _isMinimized = false), 
+          onTap: () => setState(() => _isMinimized = false),
           child: Container(
             decoration: BoxDecoration(
               color: const Color(0xFF1E293B),
@@ -459,9 +496,10 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                   _hasRemoteStream && !_isEnding
                       ? RTCVideoView(
                           _webrtcService.remoteRenderer,
-                          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                          objectFit:
+                              RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                         )
-                      : _buildUserVideoFallback(_patientImage, iconSize: 0), 
+                      : _buildUserVideoFallback(_patientImage, iconSize: 0),
 
                   Positioned(
                     top: 8,
@@ -474,15 +512,19 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8), 
-                        child: (_isConnectionReady && !_isVideoOff && !_isEnding)
+                        borderRadius: BorderRadius.circular(8),
+                        child:
+                            (_isConnectionReady && !_isVideoOff && !_isEnding)
                             ? RTCVideoView(
                                 _webrtcService.localRenderer,
                                 mirror: true,
-                                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                                key: const ValueKey('local_video_renderer'), // FIX: Matched key
+                                objectFit: RTCVideoViewObjectFit
+                                    .RTCVideoViewObjectFitCover,
+                                key: const ValueKey(
+                                  'local_video_renderer',
+                                ), // FIX: Matched key
                               )
-                            : _buildUserVideoFallback(null, iconSize: 0), 
+                            : _buildUserVideoFallback(null, iconSize: 0),
                       ),
                     ),
                   ),
@@ -491,7 +533,7 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
             ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -503,7 +545,11 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: ClipOval(
@@ -511,7 +557,8 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
             ? Image.network(
                 _patientImage!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildAvatarFallback(size * 0.4),
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildAvatarFallback(size * 0.4),
               )
             : _buildAvatarFallback(size * 0.4),
       ),
@@ -536,25 +583,32 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
             Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF334155)),
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: const Color(0xFF334155)),
             )
           else
             Container(color: const Color(0xFF334155)),
-          
+
           Container(color: Colors.black.withValues(alpha: 0.2)),
         ],
       ),
     );
   }
 
-  Widget _buildCallAction({required IconData icon, required bool isActive, required VoidCallback onTap}) {
+  Widget _buildCallAction({
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isActive ? _primaryColor : Colors.white.withValues(alpha: 0.08),
+          color: isActive
+              ? _primaryColor
+              : Colors.white.withValues(alpha: 0.08),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white, size: 24),
@@ -571,10 +625,18 @@ class _CaretakerVideoCallScreenState extends State<CaretakerVideoCallScreen> wit
           color: const Color(0xFFEF4444),
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4)),
-          ]
+            BoxShadow(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 28),
+        child: const Icon(
+          Icons.call_end_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
     );
   }

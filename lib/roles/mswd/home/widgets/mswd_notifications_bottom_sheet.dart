@@ -5,7 +5,7 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 // USING THE MSWD DETAILS SCREEN INSTEAD OF CARETAKER
-import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart'; 
+import 'package:seelai_app/roles/mswd/home/sections/requests/requests_details.dart';
 
 class MSWDNotificationsBottomSheet extends StatefulWidget {
   final String adminId;
@@ -22,10 +22,12 @@ class MSWDNotificationsBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<MSWDNotificationsBottomSheet> createState() => _MSWDNotificationsBottomSheetState();
+  State<MSWDNotificationsBottomSheet> createState() =>
+      _MSWDNotificationsBottomSheetState();
 }
 
-class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSheet> {
+class _MSWDNotificationsBottomSheetState
+    extends State<MSWDNotificationsBottomSheet> {
   final Map<String, String?> _profileImageCache = {};
 
   Future<void> _loadProfileImage(String patientId) async {
@@ -34,7 +36,8 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
       final userData = await databaseService.getUserData(patientId);
       if (mounted) {
         setState(() {
-          _profileImageCache[patientId] = userData?['profileImageUrl'] as String?;
+          _profileImageCache[patientId] =
+              userData?['profileImageUrl'] as String?;
         });
       }
     } catch (e) {
@@ -84,24 +87,28 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                   icon: const Icon(Icons.done_all, color: primary),
                   onPressed: () {},
                   tooltip: 'Mark all as read',
-                )
+                ),
               ],
             ),
           ),
           const Divider(height: 1),
-          
+
           // Notifications Stream
           Expanded(
             child: StreamBuilder<List<RequestModel>>(
               stream: widget.assistanceRequestService.streamAllRequests(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
                   return Center(
-                    child: Text('Error loading notifications.', style: TextStyle(color: subTextColor))
+                    child: Text(
+                      'Error loading notifications.',
+                      style: TextStyle(color: subTextColor),
+                    ),
                   );
                 }
 
@@ -111,20 +118,33 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.notifications_off_outlined, size: 60, color: subTextColor.withValues(alpha: 0.5)),
+                        Icon(
+                          Icons.notifications_off_outlined,
+                          size: 60,
+                          color: subTextColor.withValues(alpha: 0.5),
+                        ),
                         const SizedBox(height: 16),
-                        Text("No system notifications yet", style: TextStyle(color: subTextColor, fontSize: 16)),
+                        Text(
+                          "No system notifications yet",
+                          style: TextStyle(color: subTextColor, fontSize: 16),
+                        ),
                       ],
                     ),
                   );
                 }
 
                 // Categorize into "New" (Pending) and "Earlier"
-                final newRequests = requests.where((r) => r.status == RequestStatus.pending).toList();
-                final earlierRequests = requests.where((r) => r.status != RequestStatus.pending).toList();
+                final newRequests = requests
+                    .where((r) => r.status == RequestStatus.pending)
+                    .toList();
+                final earlierRequests = requests
+                    .where((r) => r.status != RequestStatus.pending)
+                    .toList();
 
                 newRequests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-                earlierRequests.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+                earlierRequests.sort(
+                  (a, b) => b.timestamp.compareTo(a.timestamp),
+                );
 
                 for (var req in requests) {
                   _loadProfileImage(req.patientId);
@@ -135,22 +155,28 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                   children: [
                     if (newRequests.isNotEmpty) ...[
                       _buildSectionHeader('New Alerts', textColor),
-                      ...newRequests.map((req) => _buildNotificationTile(
-                        req, 
-                        isNew: true, 
-                        textColor: textColor, 
-                        subTextColor: subTextColor
-                      )),
+                      ...newRequests.map(
+                        (req) => _buildNotificationTile(
+                          req,
+                          isNew: true,
+                          textColor: textColor,
+                          subTextColor: subTextColor,
+                        ),
+                      ),
                     ],
                     if (earlierRequests.isNotEmpty) ...[
                       if (newRequests.isNotEmpty) const Divider(height: 1),
                       _buildSectionHeader('Earlier', textColor),
-                      ...earlierRequests.take(30).map((req) => _buildNotificationTile(
-                        req, 
-                        isNew: false, 
-                        textColor: textColor, 
-                        subTextColor: subTextColor
-                      )),
+                      ...earlierRequests
+                          .take(30)
+                          .map(
+                            (req) => _buildNotificationTile(
+                              req,
+                              isNew: false,
+                              textColor: textColor,
+                              subTextColor: subTextColor,
+                            ),
+                          ),
                     ],
                   ],
                 );
@@ -167,22 +193,26 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: textColor,
+        ),
       ),
     );
   }
 
   Widget _buildNotificationTile(
     RequestModel request, {
-    required bool isNew, 
-    required Color textColor, 
-    required Color subTextColor
+    required bool isNew,
+    required Color textColor,
+    required Color subTextColor,
   }) {
     final profileUrl = _profileImageCache[request.patientId];
     final timeAgo = _getTimeAgo(request.timestamp);
-    
-    final unreadBgColor = widget.isDarkMode 
-        ? Colors.blueAccent.withValues(alpha: 0.1) 
+
+    final unreadBgColor = widget.isDarkMode
+        ? Colors.blueAccent.withValues(alpha: 0.1)
         : Colors.blue.withValues(alpha: 0.05);
 
     return InkWell(
@@ -212,9 +242,11 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                 CircleAvatar(
                   radius: 28,
                   backgroundColor: Colors.grey[300],
-                  backgroundImage: profileUrl != null ? NetworkImage(profileUrl) : null,
-                  child: profileUrl == null 
-                      ? Icon(Icons.person, color: Colors.grey[600], size: 30) 
+                  backgroundImage: profileUrl != null
+                      ? NetworkImage(profileUrl)
+                      : null,
+                  child: profileUrl == null
+                      ? Icon(Icons.person, color: Colors.grey[600], size: 30)
                       : null,
                 ),
                 Positioned(
@@ -226,41 +258,55 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                       color: request.getPriorityColor(),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isNew 
-                          ? (widget.isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF0F8FF)) 
-                          : (widget.isDarkMode ? const Color(0xFF121212) : Colors.white), 
-                        width: 2
+                        color: isNew
+                            ? (widget.isDarkMode
+                                  ? const Color(0xFF1A1A2E)
+                                  : const Color(0xFFF0F8FF))
+                            : (widget.isDarkMode
+                                  ? const Color(0xFF121212)
+                                  : Colors.white),
+                        width: 2,
                       ),
                     ),
-                    child: Icon(request.getIcon(), size: 12, color: Colors.white),
+                    child: Icon(
+                      request.getIcon(),
+                      size: 12,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(width: 12),
-            
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(fontSize: 14, color: textColor, height: 1.4),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: textColor,
+                        height: 1.4,
+                      ),
                       children: [
                         TextSpan(
                           text: '${request.patientName} ',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text: isNew ? 'needs system assistance for a ' : 'generated a request for ',
+                          text: isNew
+                              ? 'needs system assistance for a '
+                              : 'generated a request for ',
                         ),
                         TextSpan(
                           text: '${request.requestType} ',
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         TextSpan(
-                          text: request.status == RequestStatus.pending 
-                              ? 'request.' 
+                          text: request.status == RequestStatus.pending
+                              ? 'request.'
                               : '(Status: ${request.status.name}).',
                         ),
                       ],
@@ -284,11 +330,14 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
                 child: Container(
                   width: 10,
                   height: 10,
-                  decoration: const BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                    color: Colors.blue,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               )
             else
-              const SizedBox(width: 18), 
+              const SizedBox(width: 18),
           ],
         ),
       ),
@@ -301,6 +350,6 @@ class _MSWDNotificationsBottomSheetState extends State<MSWDNotificationsBottomSh
     if (difference.inMinutes < 60) return '${difference.inMinutes}m';
     if (difference.inHours < 24) return '${difference.inHours}h';
     if (difference.inDays < 7) return '${difference.inDays}d';
-    return '${difference.inDays ~/ 7}w'; 
+    return '${difference.inDays ~/ 7}w';
   }
 }

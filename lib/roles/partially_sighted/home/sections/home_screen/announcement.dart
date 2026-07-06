@@ -2,8 +2,8 @@
 
 import 'dart:async'; // --- ADDED FOR STREAM SUBSCRIPTION ---
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; 
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_tts/flutter_tts.dart'; // --- ADDED TTS ---
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/mswd/announcement_service.dart';
@@ -36,7 +36,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   StreamSubscription<List<AnnouncementModel>>? _announcementSubscription;
   bool _isInitialLoad = true;
   DateTime? _latestTimestamp;
-  String? _currentlySpeakingId; // To track which announcement is playing manually
+  String?
+  _currentlySpeakingId; // To track which announcement is playing manually
 
   @override
   void initState() {
@@ -52,7 +53,7 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
     await _flutterTts.awaitSpeakCompletion(true);
-    
+
     // Reset speaking state when TTS finishes
     _flutterTts.setCompletionHandler(() {
       if (mounted) setState(() => _currentlySpeakingId = null);
@@ -61,13 +62,12 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
   void _initializeStream() {
     // --- ADD .asBroadcastStream() TO THE END OF THIS CALL ---
-    _announcementStream = _announcementService.getAnnouncementsForUser(
-      widget.userId,
-      'Partially Sighted',
-    ).asBroadcastStream(); // <--- THIS IS THE FIX
+    _announcementStream = _announcementService
+        .getAnnouncementsForUser(widget.userId, 'Partially Sighted')
+        .asBroadcastStream(); // <--- THIS IS THE FIX
 
     // --- BACKGROUND LISTENER FOR AUTO-TTS ---
-    _announcementSubscription?.cancel(); 
+    _announcementSubscription?.cancel();
     _announcementSubscription = _announcementStream.listen((announcements) {
       if (announcements.isEmpty) return;
 
@@ -78,11 +78,12 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       } else {
         // Check if there's a new announcement
         final newest = announcements.first;
-        if (_latestTimestamp == null || newest.timestamp.isAfter(_latestTimestamp!)) {
+        if (_latestTimestamp == null ||
+            newest.timestamp.isAfter(_latestTimestamp!)) {
           _latestTimestamp = newest.timestamp;
           _speakAnnouncement(
-            "New announcement: ${newest.title}. ${newest.message}", 
-            newest.id
+            "New announcement: ${newest.title}. ${newest.message}",
+            newest.id,
           );
         }
       }
@@ -112,7 +113,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
   void _refreshStream() {
     setState(() {
-      _isInitialLoad = true; // Reset so we don't accidentally auto-play older data
+      _isInitialLoad =
+          true; // Reset so we don't accidentally auto-play older data
       _initializeStream();
     });
   }
@@ -126,9 +128,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
     };
-    
+
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; 
+    return safeIcons[formattedCode] ?? Icons.notifications;
   }
 
   @override
@@ -171,7 +173,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
         StreamBuilder<List<AnnouncementModel>>(
           stream: _announcementStream,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
               return _buildSkeletonList();
             }
 
@@ -202,8 +205,11 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
               return _buildEmptyAnnouncementsCard();
             }
 
-            final displayedAnnouncements = allAnnouncements.take(maxDisplayedAnnouncements).toList();
-            final hasMoreAnnouncements = allAnnouncements.length > maxDisplayedAnnouncements;
+            final displayedAnnouncements = allAnnouncements
+                .take(maxDisplayedAnnouncements)
+                .toList();
+            final hasMoreAnnouncements =
+                allAnnouncements.length > maxDisplayedAnnouncements;
 
             return AnimationLimiter(
               child: Column(
@@ -238,52 +244,67 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
 
   // (Skeleton list, view all button, navigation, and empty card widgets remain the same)
   Widget _buildSkeletonList() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Column(
-      children: List.generate(3, (index) => Padding(
-        padding: const EdgeInsets.only(bottom: spacingMedium),
-        child: Shimmer.fromColors(
-          baseColor: baseColor,
-          highlightColor: highlightColor,
-          child: Container(
-            padding: const EdgeInsets.all(spacingMedium),
-            decoration: BoxDecoration(
-              color: widget.isDarkMode ? Colors.black : Colors.white,
-              borderRadius: BorderRadius.circular(radiusLarge),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(radiusMedium),
+      children: List.generate(
+        3,
+        (index) => Padding(
+          padding: const EdgeInsets.only(bottom: spacingMedium),
+          child: Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              padding: const EdgeInsets.all(spacingMedium),
+              decoration: BoxDecoration(
+                color: widget.isDarkMode ? Colors.black : Colors.white,
+                borderRadius: BorderRadius.circular(radiusLarge),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
                   ),
-                ),
-                const SizedBox(width: spacingMedium),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(width: double.infinity, height: 16, color: Colors.white),
-                      const SizedBox(height: 8),
-                      Container(width: 100, height: 12, color: Colors.white),
-                      const SizedBox(height: 16),
-                      Container(width: double.infinity, height: 12, color: Colors.white),
-                      const SizedBox(height: 4),
-                      Container(width: 150, height: 12, color: Colors.white),
-                    ],
+                  const SizedBox(width: spacingMedium),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 8),
+                        Container(width: 100, height: 12, color: Colors.white),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          height: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 4),
+                        Container(width: 150, height: 12, color: Colors.white),
+                      ],
+                    ),
                   ),
-                )
-              ],
+                ],
+              ),
             ),
           ),
         ),
-      )),
+      ),
     );
   }
 
@@ -302,8 +323,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
@@ -322,7 +343,11 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                   ),
                 ),
                 const SizedBox(width: spacingSmall),
-                const Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: primary,
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -331,7 +356,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     );
   }
 
-  void _navigateToAllAnnouncements(BuildContext context, List<AnnouncementModel> announcements) {
+  void _navigateToAllAnnouncements(
+    BuildContext context,
+    List<AnnouncementModel> announcements,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -348,14 +376,17 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
   Widget _buildEmptyAnnouncementsCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: spacingXLarge, horizontal: spacingLarge),
+      padding: const EdgeInsets.symmetric(
+        vertical: spacingXLarge,
+        horizontal: spacingLarge,
+      ),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -401,10 +432,13 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
     String timeAgo = _getTimeAgo(announcement.timestamp);
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
-    bool isSpeaking = _currentlySpeakingId == announcement.id; // Check if this card is playing
+    bool isSpeaking =
+        _currentlySpeakingId ==
+        announcement.id; // Check if this card is playing
 
     return Semantics(
-      label: 'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
+      label:
+          'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
       readOnly: true,
       child: Container(
         padding: const EdgeInsets.all(spacingMedium),
@@ -413,8 +447,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
           borderRadius: BorderRadius.circular(radiusLarge),
           boxShadow: widget.isDarkMode ? [] : softShadow,
           border: Border.all(
-            color: widget.isDarkMode 
-                ? Colors.white.withValues(alpha: 0.05) 
+            color: widget.isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
                 : Colors.black.withValues(alpha: 0.05),
             width: 1,
           ),
@@ -423,7 +457,8 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start, // Align to top to fit button nicely
+              crossAxisAlignment:
+                  CrossAxisAlignment.start, // Align to top to fit button nicely
               children: [
                 Container(
                   padding: const EdgeInsets.all(spacingSmall),
@@ -448,7 +483,10 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                       ),
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(radiusSmall),
@@ -460,7 +498,11 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(_getAudienceIcon(announcement.targetAudience), color: color, size: 12),
+                            Icon(
+                              _getAudienceIcon(announcement.targetAudience),
+                              color: color,
+                              size: 12,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               _getAudienceLabel(announcement),
@@ -479,7 +521,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                 // --- NEW TTS PLAY/STOP BUTTON ---
                 IconButton(
                   icon: Icon(
-                    isSpeaking ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
+                    isSpeaking
+                        ? Icons.stop_circle_rounded
+                        : Icons.volume_up_rounded,
                     color: isSpeaking ? Colors.red : primary,
                     size: 28,
                   ),
@@ -487,7 +531,9 @@ class _AnnouncementSectionState extends State<AnnouncementSection> {
                     "${announcement.title}. ${announcement.message}",
                     announcement.id,
                   ),
-                  tooltip: isSpeaking ? 'Stop playback' : 'Listen to announcement',
+                  tooltip: isSpeaking
+                      ? 'Stop playback'
+                      : 'Listen to announcement',
                 ),
               ],
             ),

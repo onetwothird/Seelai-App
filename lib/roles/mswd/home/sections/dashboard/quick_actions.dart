@@ -117,15 +117,21 @@ class QuickActions extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               // Replaced colorful border with a subtle neutral one
               border: Border.all(
-                color: isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
               // Removed colored shadows in favor of a clean, plain shadow
-              boxShadow: isDarkMode 
-                  ? [] 
-                  : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+              boxShadow: isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
             child: Icon(icon, color: color, size: 26),
           ),

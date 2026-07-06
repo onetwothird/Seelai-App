@@ -22,28 +22,28 @@ class PermissionService {
     try {
       // Request camera permission
       final cameraStatus = await Permission.camera.request();
-      
+
       // Request storage permissions based on Android version
       PermissionStatus storageStatus;
       if (await _isAndroid13OrHigher()) {
         // For Android 13+, request media permissions
         final photos = await Permission.photos.request();
         final videos = await Permission.videos.request();
-        storageStatus = (photos.isGranted && videos.isGranted) 
-          ? PermissionStatus.granted 
-          : PermissionStatus.denied;
+        storageStatus = (photos.isGranted && videos.isGranted)
+            ? PermissionStatus.granted
+            : PermissionStatus.denied;
       } else {
         // For Android 12 and below
         storageStatus = await Permission.storage.request();
       }
 
       final hasAll = cameraStatus.isGranted && storageStatus.isGranted;
-      
+
       return PermissionResult(
         hasAllPermissions: hasAll,
-        message: hasAll 
-          ? 'Camera and storage access enabled'
-          : _getPermissionDeniedMessage(cameraStatus, storageStatus),
+        message: hasAll
+            ? 'Camera and storage access enabled'
+            : _getPermissionDeniedMessage(cameraStatus, storageStatus),
         cameraStatus: cameraStatus,
         storageStatus: storageStatus,
       );
@@ -67,16 +67,16 @@ class PermissionService {
 
   /// Get detailed permission denial message
   String _getPermissionDeniedMessage(
-    PermissionStatus camera, 
-    PermissionStatus storage
+    PermissionStatus camera,
+    PermissionStatus storage,
   ) {
     List<String> denied = [];
-    
+
     if (!camera.isGranted) denied.add('Camera');
     if (!storage.isGranted) denied.add('Storage');
-    
+
     if (denied.isEmpty) return 'All permissions granted';
-    
+
     return '${denied.join(' and ')} permission${denied.length > 1 ? 's' : ''} denied';
   }
 

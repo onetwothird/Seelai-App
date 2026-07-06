@@ -1,4 +1,3 @@
-
 // File: lib/roles/partially_sighted/services/accessibility_service.dart
 import 'package:flutter/foundation.dart';
 
@@ -31,7 +30,10 @@ class AccessibilityService {
     announce(message);
   }
 
-  Future<void> announceSequence(List<String> messages, Duration delayBetween) async {
+  Future<void> announceSequence(
+    List<String> messages,
+    Duration delayBetween,
+  ) async {
     for (var message in messages) {
       announce(message);
       if (message != messages.last) {

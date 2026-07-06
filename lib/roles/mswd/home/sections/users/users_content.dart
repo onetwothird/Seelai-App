@@ -4,8 +4,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:shimmer/shimmer.dart'; 
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'user_profile_screen.dart';
 
 class UsersContent extends StatefulWidget {
@@ -13,7 +13,7 @@ class UsersContent extends StatefulWidget {
   final dynamic theme;
   final Map<String, dynamic> userData;
   final ScrollController? scrollController;
-  final VoidCallback? onNavigateToLocation; 
+  final VoidCallback? onNavigateToLocation;
 
   const UsersContent({
     super.key,
@@ -28,23 +28,24 @@ class UsersContent extends StatefulWidget {
   State<UsersContent> createState() => _UsersContentState();
 }
 
-class _UsersContentState extends State<UsersContent> with TickerProviderStateMixin {
+class _UsersContentState extends State<UsersContent>
+    with TickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   late TabController _tabController;
   int _selectedTab = 0;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<Map<String, dynamic>> _partiallySightedUsers = [];
   List<Map<String, dynamic>> _caretakersUsers = [];
-  List<Map<String, dynamic>> _pendingCaretakers = []; 
-  
+  List<Map<String, dynamic>> _pendingCaretakers = [];
+
   bool _isLoadingVI = true;
   bool _isLoadingCT = true;
   bool _isLoadingPending = true;
 
-  bool _isSimulatingLoad = true; 
+  bool _isSimulatingLoad = true;
 
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
@@ -76,20 +77,33 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
 
     // 1. Header Row - Fades & slides in from the left
     _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
     );
-    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
-    );
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
+          ),
+        );
 
     // 2. Mascot - Pops up playfully
     _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack),
+      ),
     );
 
     // 3. Speech Bubble - Pops out from the mascot
     _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack),
+      ),
     );
 
     // Start header animations immediately
@@ -102,7 +116,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
       }
     });
   }
-  
+
   void _startMessageTimer() {
     _messageTimer?.cancel();
     _messageTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
@@ -119,15 +133,16 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
     final parts = name.trim().split(RegExp(r'\s+'));
     return parts.isNotEmpty ? parts.first : 'Admin';
   }
-  
+
   List<String> _getMascotMessages() {
     int totalUsers = _partiallySightedUsers.length + _caretakersUsers.length;
     int pendingCount = _pendingCaretakers.length;
-    
+
     return [
       'Hello, ${_getFirstName()}! We have $totalUsers registered user${totalUsers != 1 ? 's' : ''} across the platform.',
-      if (pendingCount > 0) 'Action required: There are $pendingCount pending caretaker accounts waiting for your approval.',
-      'Tip: Use the tabs below to easily filter between Patients, Caretakers, and Requests.'
+      if (pendingCount > 0)
+        'Action required: There are $pendingCount pending caretaker accounts waiting for your approval.',
+      'Tip: Use the tabs below to easily filter between Patients, Caretakers, and Requests.',
     ];
   }
 
@@ -136,7 +151,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
     _messageTimer?.cancel();
     _tabController.dispose();
     _searchController.dispose();
-    _entryController.dispose(); 
+    _entryController.dispose();
     super.dispose();
   }
 
@@ -144,9 +159,9 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
     setState(() {
       _isSimulatingLoad = true;
     });
-    
+
     await _loadUsers();
-    
+
     await Future.delayed(const Duration(milliseconds: 600));
     if (mounted) {
       setState(() {
@@ -160,7 +175,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
   Future<void> _loadUsers() async {
     await _loadPartiallySightedUsers();
     await _loadCaretakersUsers();
-    await _loadPendingCaretakers(); 
+    await _loadPendingCaretakers();
   }
 
   Future<void> _loadPartiallySightedUsers() async {
@@ -205,7 +220,9 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
     }
   }
 
-  List<Map<String, dynamic>> _getFilteredUsers(List<Map<String, dynamic>> users) {
+  List<Map<String, dynamic>> _getFilteredUsers(
+    List<Map<String, dynamic>> users,
+  ) {
     var filtered = users.where((user) {
       if (_searchQuery.isNotEmpty) {
         final name = user['name']?.toString().toLowerCase() ?? '';
@@ -232,20 +249,24 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
         ),
       ),
     );
-    _loadUsers(); 
+    _loadUsers();
   }
 
   // ==========================================
   // WIDGETS: Skeleton Loaders
   // ==========================================
   Widget _buildSkeletonSearchBar() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Container(
-        height: 56, 
+        height: 56,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(radiusLarge),
@@ -255,13 +276,17 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
   }
 
   Widget _buildSkeletonTabBar() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Container(
-        height: 68, 
+        height: 68,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(radiusLarge),
@@ -271,40 +296,54 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
   }
 
   Widget _buildSkeletonList() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Column(
-        children: List.generate(4, (index) => Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              children: [
-                Container(width: 60, height: 60, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(width: 140, height: 16, color: Colors.white),
-                      const SizedBox(height: 8),
-                      Container(width: 100, height: 12, color: Colors.white),
-                    ],
+        children: List.generate(
+          4,
+          (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                Container(width: 16, height: 16, color: Colors.white),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(width: 140, height: 16, color: Colors.white),
+                        const SizedBox(height: 8),
+                        Container(width: 100, height: 12, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                  Container(width: 16, height: 16, color: Colors.white),
+                ],
+              ),
             ),
           ),
-        )),
+        ),
       ),
     );
   }
@@ -318,7 +357,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
       color: _primaryColor,
       child: SingleChildScrollView(
         controller: widget.scrollController,
-        physics: const AlwaysScrollableScrollPhysics(), 
+        physics: const AlwaysScrollableScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -338,9 +377,9 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
               ),
             ),
             const SizedBox(height: spacingMedium),
-            
+
             _buildMascotBanner(),
-            
+
             // === NO MORE CONTENT SLIDE - Skeleton shows instantly ===
             Padding(
               padding: EdgeInsets.symmetric(horizontal: width * 0.05),
@@ -348,16 +387,20 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: spacingMedium),
-                  
-                  _isSimulatingLoad ? _buildSkeletonSearchBar() : _buildSearchBar(),
+
+                  _isSimulatingLoad
+                      ? _buildSkeletonSearchBar()
+                      : _buildSearchBar(),
                   const SizedBox(height: 24),
-                  
-                  _isSimulatingLoad ? _buildSkeletonTabBar() : _buildTabBar(width),
+
+                  _isSimulatingLoad
+                      ? _buildSkeletonTabBar()
+                      : _buildTabBar(width),
                   const SizedBox(height: 24),
-                  
+
                   _isSimulatingLoad ? _buildSkeletonList() : _buildTabContent(),
-                  
-                  const SizedBox(height: 120), 
+
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -383,10 +426,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
         const SizedBox(height: 4),
         Text(
           'Manage all registered users',
-          style: TextStyle(
-            fontSize: 14,
-            color: widget.theme.subtextColor,
-          ),
+          style: TextStyle(fontSize: 14, color: widget.theme.subtextColor),
         ),
       ],
     );
@@ -396,14 +436,14 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
     final messages = _getMascotMessages();
     final safeIndex = _currentMessageIndex % messages.length;
     final displayMessage = messages[safeIndex];
-    
-    final longestMessage = messages.isNotEmpty 
-        ? messages.reduce((a, b) => a.length > b.length ? a : b) 
+
+    final longestMessage = messages.isNotEmpty
+        ? messages.reduce((a, b) => a.length > b.length ? a : b)
         : '';
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final double mascotSize = (screenWidth * 0.32).clamp(90.0, 130.0);
-    final double tailBottomMargin = mascotSize * 0.333; 
+    final double tailBottomMargin = mascotSize * 0.333;
     final double bubbleBottomMargin = mascotSize * 0.166;
 
     return Stack(
@@ -420,7 +460,9 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(
+                      alpha: widget.isDarkMode ? 0.25 : 0.15,
+                    ),
                     _primaryColor.withValues(alpha: 0.0),
                   ],
                   begin: Alignment.topCenter,
@@ -430,11 +472,9 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
             ),
           ),
         ),
-        
+
         Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -444,10 +484,10 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                 alignment: Alignment.bottomCenter,
                 child: Image.asset(
                   'assets/seelai-icons/seelai2.png',
-                  height: mascotSize, 
+                  height: mascotSize,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    height: mascotSize * 0.8, 
+                    height: mascotSize * 0.8,
                     width: mascotSize * 0.8,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
@@ -455,24 +495,26 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.image_not_supported, 
+                      Icons.image_not_supported,
                       color: widget.theme.subtextColor,
-                      size: mascotSize * 0.3
+                      size: mascotSize * 0.3,
                     ),
                   ),
                 ),
               ),
-              
+
               // === TAIL SCALE ===
               Container(
-                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                margin: EdgeInsets.only(bottom: tailBottomMargin),
                 child: ScaleTransition(
                   scale: _bubbleScale,
                   alignment: Alignment.bottomRight,
                   child: CustomPaint(
                     size: const Size(12, 16),
                     painter: _TailPainter(
-                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                      color: widget.isDarkMode
+                          ? const Color(0xFF1A1F3A)
+                          : Colors.white,
                     ),
                   ),
                 ),
@@ -481,26 +523,33 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
               // === BUBBLE SCALE ===
               Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin),
                   child: ScaleTransition(
                     scale: _bubbleScale,
                     alignment: Alignment.bottomLeft,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
-                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF1A1F3A)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: widget.isDarkMode ? [] : [
-                          BoxShadow(
-                            color: _primaryColor.withValues(alpha: 0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          )
-                        ],
+                        boxShadow: widget.isDarkMode
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: _primaryColor.withValues(alpha: 0.1),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min, 
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             'Seelai',
@@ -512,7 +561,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                             ),
                           ),
                           const SizedBox(height: 6),
-                          
+
                           Stack(
                             children: [
                               Text(
@@ -520,7 +569,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.transparent, 
+                                  color: Colors.transparent,
                                   height: 1.4,
                                 ),
                               ),
@@ -531,7 +580,9 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
-                                    color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                    color: widget.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : Colors.black87,
                                     height: 1.4,
                                   ),
                                 ),
@@ -585,7 +636,10 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
           ),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.clear_rounded, color: widget.theme.subtextColor),
+                  icon: Icon(
+                    Icons.clear_rounded,
+                    color: widget.theme.subtextColor,
+                  ),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
@@ -651,9 +705,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
           padding: const EdgeInsets.symmetric(vertical: spacingMedium),
           decoration: BoxDecoration(
             gradient: isSelected
-                ? LinearGradient(
-                    colors: [color, color.withValues(alpha: 0.8)],
-                  )
+                ? LinearGradient(colors: [color, color.withValues(alpha: 0.8)])
                 : null,
             color: isSelected ? null : Colors.transparent,
             borderRadius: BorderRadius.circular(radiusMedium),
@@ -667,7 +719,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                   ]
                 : [],
           ),
-          child: Column( 
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
@@ -679,7 +731,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 10, 
+                  fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                   color: isSelected ? white : widget.theme.subtextColor,
                 ),
@@ -707,7 +759,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
   }
 
   Widget _buildPartiallySightedList() {
-    if (_isLoadingVI) return _buildSkeletonList(); 
+    if (_isLoadingVI) return _buildSkeletonList();
 
     final filteredUsers = _getFilteredUsers(_partiallySightedUsers);
 
@@ -743,7 +795,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
   }
 
   Widget _buildCaretakersList() {
-    if (_isLoadingCT) return _buildSkeletonList(); 
+    if (_isLoadingCT) return _buildSkeletonList();
 
     final filteredCaretakers = _getFilteredUsers(_caretakersUsers);
 
@@ -779,7 +831,7 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
   }
 
   Widget _buildPendingList() {
-    if (_isLoadingPending) return _buildSkeletonList(); 
+    if (_isLoadingPending) return _buildSkeletonList();
 
     final filteredPending = _getFilteredUsers(_pendingCaretakers);
 
@@ -788,7 +840,11 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
         child: Column(
           children: [
             const SizedBox(height: 40),
-            Icon(Icons.check_circle_outline_rounded, size: 48, color: widget.theme.subtextColor.withOpacity(0.5)),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: 48,
+              color: widget.theme.subtextColor.withOpacity(0.5),
+            ),
             const SizedBox(height: 8),
             Text(
               'No pending requests',
@@ -820,7 +876,8 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
 
   Widget _buildUserCard(Map<String, dynamic> user) {
     final profileImageUrl = user['profileImageUrl'] as String?;
-    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
+    final hasProfileImage =
+        profileImageUrl != null && profileImageUrl.isNotEmpty;
 
     return Container(
       decoration: BoxDecoration(
@@ -841,15 +898,26 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
             child: Row(
               children: [
                 Container(
-                  width: 60, height: 60,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.grey.shade900,
                   ),
                   child: ClipOval(
                     child: hasProfileImage
-                        ? Image.network(profileImageUrl, fit: BoxFit.cover, errorBuilder: (_,_,_) => _buildDefaultAvatarText(user['name'] ?? 'U', _primaryColor))
-                        : _buildDefaultAvatarText(user['name'] ?? 'U', _primaryColor),
+                        ? Image.network(
+                            profileImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _buildDefaultAvatarText(
+                              user['name'] ?? 'U',
+                              _primaryColor,
+                            ),
+                          )
+                        : _buildDefaultAvatarText(
+                            user['name'] ?? 'U',
+                            _primaryColor,
+                          ),
                   ),
                 ),
                 const SizedBox(width: spacingMedium),
@@ -857,12 +925,24 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(user['name'] ?? 'Unknown', style: bodyBold.copyWith(color: widget.theme.textColor)),
-                      Text(user['disabilityType'] ?? 'Patient', style: caption.copyWith(color: widget.theme.subtextColor)),
+                      Text(
+                        user['name'] ?? 'Unknown',
+                        style: bodyBold.copyWith(color: widget.theme.textColor),
+                      ),
+                      Text(
+                        user['disabilityType'] ?? 'Patient',
+                        style: caption.copyWith(
+                          color: widget.theme.subtextColor,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios_rounded, size: 16, color: widget.theme.subtextColor),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: widget.theme.subtextColor,
+                ),
               ],
             ),
           ),
@@ -871,10 +951,14 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
     );
   }
 
-  Widget _buildCaretakerCard(Map<String, dynamic> caretaker, {required bool isPending}) {
+  Widget _buildCaretakerCard(
+    Map<String, dynamic> caretaker, {
+    required bool isPending,
+  }) {
     final profileImageUrl = caretaker['profileImageUrl'] as String?;
-    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
-    
+    final hasProfileImage =
+        profileImageUrl != null && profileImageUrl.isNotEmpty;
+
     final color = isPending ? Colors.orange : _primaryColor;
 
     return Container(
@@ -920,9 +1004,16 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                             ? Image.network(
                                 profileImageUrl,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) => _buildDefaultAvatarText(caretaker['name'] ?? 'U', color),
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildDefaultAvatarText(
+                                      caretaker['name'] ?? 'U',
+                                      color,
+                                    ),
                               )
-                            : _buildDefaultAvatarText(caretaker['name'] ?? 'U', color),
+                            : _buildDefaultAvatarText(
+                                caretaker['name'] ?? 'U',
+                                color,
+                              ),
                       ),
                     ),
                     const SizedBox(width: spacingMedium),
@@ -944,21 +1035,31 @@ class _UsersContentState extends State<UsersContent> with TickerProviderStateMix
                               ),
                               if (isPending)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.orange.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Text(
                                     "PENDING",
-                                    style: TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            caretaker['relationship'] != null && caretaker['relationship'].toString().isNotEmpty
+                            caretaker['relationship'] != null &&
+                                    caretaker['relationship']
+                                        .toString()
+                                        .isNotEmpty
                                 ? 'Relation to Patient: ${caretaker['relationship']}'
                                 : 'Caretaker account',
                             style: caption.copyWith(
@@ -1015,12 +1116,12 @@ class _TailPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
     final path = Path();
-    
-    path.moveTo(size.width, 0); 
-    path.lineTo(0, size.height / 2); 
-    path.lineTo(size.width, size.height); 
+
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
     path.close();
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -1032,30 +1133,27 @@ class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
 
-  const TypewriterText({
-    super.key,
-    required this.text,
-    required this.style,
-  });
+  const TypewriterText({super.key, required this.text, required this.style});
 
   @override
   State<TypewriterText> createState() => _TypewriterTextState();
 }
 
-class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+class _TypewriterTextState extends State<TypewriterText>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<int> _characterCount;
 
   @override
   void initState() {
     super.initState();
-    int msDuration = widget.text.length * 40; 
+    int msDuration = widget.text.length * 40;
     _controller = AnimationController(
-      vsync: this, 
+      vsync: this,
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    
+
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _controller.forward();
     });
@@ -1065,7 +1163,7 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   void didUpdateWidget(TypewriterText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
-      int msDuration = widget.text.length * 40; 
+      int msDuration = widget.text.length * 40;
       _controller.duration = Duration(milliseconds: msDuration);
       _setupAnimation();
       _controller.reset();
@@ -1074,9 +1172,10 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   }
 
   void _setupAnimation() {
-    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _characterCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
   }
 
   @override
@@ -1093,11 +1192,8 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
         int end = _characterCount.value;
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
-        
-        return Text(
-          widget.text.substring(0, end),
-          style: widget.style,
-        );
+
+        return Text(widget.text.substring(0, end), style: widget.style);
       },
     );
   }

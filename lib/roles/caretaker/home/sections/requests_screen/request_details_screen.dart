@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_tts/flutter_tts.dart'; 
-import 'package:shimmer/shimmer.dart'; 
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:seelai_app/firebase/caretaker/request_service.dart';
@@ -32,7 +32,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   bool _isProcessing = false;
   late RequestModel _currentRequest;
   String? _profileImageUrl;
-  
+
   final FlutterTts _flutterTts = FlutterTts();
   bool _isSimulatingLoad = true;
 
@@ -41,7 +41,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     super.initState();
     _currentRequest = widget.request;
     _profileImageUrl = widget.preloadedProfileImage;
-    
+
     _initializeTts();
 
     if (_profileImageUrl == null) {
@@ -65,7 +65,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Future<void> _initializeTts() async {
     try {
-      await _flutterTts.setLanguage("en-US"); 
+      await _flutterTts.setLanguage("en-US");
       await _flutterTts.setSpeechRate(0.5);
       await _flutterTts.setVolume(1.0);
       await _flutterTts.setPitch(1.0);
@@ -76,7 +76,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Future<void> _loadProfileImage() async {
     try {
-      final userData = await databaseService.getUserData(_currentRequest.patientId);
+      final userData = await databaseService.getUserData(
+        _currentRequest.patientId,
+      );
       if (mounted) {
         setState(() {
           _profileImageUrl = userData?['profileImageUrl'] as String?;
@@ -95,7 +97,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     setState(() => _isProcessing = true);
     final success = await widget.requestService.acceptRequest(
       _currentRequest.id,
-      _currentUserId, 
+      _currentUserId,
     );
     if (mounted) {
       setState(() => _isProcessing = false);
@@ -114,12 +116,16 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Future<void> _markInProgress() async {
     setState(() => _isProcessing = true);
-    final success = await widget.requestService.markInProgress(_currentRequest.id);
+    final success = await widget.requestService.markInProgress(
+      _currentRequest.id,
+    );
     if (mounted) {
       setState(() => _isProcessing = false);
       if (success) {
         setState(() {
-          _currentRequest = _currentRequest.copyWith(status: RequestStatus.inProgress);
+          _currentRequest = _currentRequest.copyWith(
+            status: RequestStatus.inProgress,
+          );
         });
         _showSnackbar('Marked as in progress', accent, showContainer: false);
         await _flutterTts.speak("REQUEST IN PROGRESS");
@@ -166,8 +172,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   Widget _buildSkeletonRequestDetails() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -176,15 +186,34 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 40),
         child: Column(
           children: [
-            Container(width: 110, height: 110, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+            Container(
+              width: 110,
+              height: 110,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+            ),
             const SizedBox(height: 16),
             Container(width: 200, height: 28, color: Colors.white),
             const SizedBox(height: 6),
             Container(width: 150, height: 16, color: Colors.white),
             const SizedBox(height: 24),
-            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 24),
-            Container(height: 120, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
           ],
         ),
       ),
@@ -195,11 +224,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const bgColor = Colors.white; 
-    const cardColor = Colors.white; 
-    const textColor = Colors.black87; 
+    const bgColor = Colors.white;
+    const cardColor = Colors.white;
+    const textColor = Colors.black87;
     final subColor = Colors.grey[600];
-    
+
     final size = MediaQuery.of(context).size;
     final isSmallScreen = size.width < 360;
     final horizontalPadding = isSmallScreen ? 16.0 : 20.0;
@@ -213,9 +242,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: CircleAvatar(
-            backgroundColor: Colors.grey[100], 
+            backgroundColor: Colors.grey[100],
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded, color: textColor, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: textColor,
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -230,30 +263,43 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           ),
         ),
         actions: [
-           Padding(
+          Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(child: _buildStatusPill(textColor)),
-          )
+          ),
         ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: _isSimulatingLoad 
+            child: _isSimulatingLoad
                 ? _buildSkeletonRequestDetails()
                 : CustomScrollView(
                     physics: const BouncingScrollPhysics(),
                     slivers: [
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: EdgeInsets.fromLTRB(horizontalPadding, 10, horizontalPadding, 20),
+                          padding: EdgeInsets.fromLTRB(
+                            horizontalPadding,
+                            10,
+                            horizontalPadding,
+                            20,
+                          ),
                           child: Column(
                             children: [
                               _buildProfileHeader(textColor, subColor!),
                               const SizedBox(height: 24),
-                              _buildKeyStatsGrid(cardColor, textColor, subColor),
+                              _buildKeyStatsGrid(
+                                cardColor,
+                                textColor,
+                                subColor,
+                              ),
                               const SizedBox(height: 24),
-                              _buildMessageBubble(cardColor, textColor, subColor),
+                              _buildMessageBubble(
+                                cardColor,
+                                textColor,
+                                subColor,
+                              ),
                               const SizedBox(height: 24),
                               if (_currentRequest.location != null)
                                 _buildLocationCard(cardColor, textColor),
@@ -281,10 +327,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: Colors.grey[200],
-              border: Border.all(
-                color: Colors.black,
-                width: 1.5,
-              ),
+              border: Border.all(color: Colors.black, width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.1),
@@ -353,7 +396,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
-          )
+          ),
         ],
       ),
       child: IntrinsicHeight(
@@ -446,7 +489,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   Widget _buildVerticalDivider(Color color) => Container(
-    width: 1, 
+    width: 1,
     color: color.withValues(alpha: 0.2),
     margin: const EdgeInsets.symmetric(vertical: 4),
   );
@@ -458,20 +501,20 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'REQUEST MESSAGE', 
+            'REQUEST MESSAGE',
             style: TextStyle(
               color: subColor,
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.0,
-            )
+            ),
           ),
         ),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6), 
+            color: const Color(0xFFF3F4F6),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
@@ -481,11 +524,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           ),
           child: Text(
             _currentRequest.message,
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.5,
-              color: textColor,
-            ),
+            style: TextStyle(fontSize: 15, height: 1.5, color: textColor),
           ),
         ),
       ],
@@ -499,13 +538,16 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(
+          color: Colors.green.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Material(
@@ -513,9 +555,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Opening Maps...')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Opening Maps...')));
           },
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -527,7 +569,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     color: Colors.green.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.location_on_rounded, color: Colors.green, size: 24),
+                  child: const Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.green,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -553,7 +599,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: Colors.grey,
+                ),
               ],
             ),
           ),
@@ -574,10 +624,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       child: Text(
         _currentRequest.status.name.toUpperCase(),
         style: TextStyle(
-          color: color, 
-          fontWeight: FontWeight.bold, 
-          fontSize: 10, 
-          letterSpacing: 0.5
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+          letterSpacing: 0.5,
         ),
       ),
     );
@@ -606,10 +656,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           ),
         ],
       ),
-      child: SafeArea(
-        top: false, 
-        child: _buildActionButtons(),
-      ),
+      child: SafeArea(top: false, child: _buildActionButtons()),
     );
   }
 
@@ -618,19 +665,19 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       return Row(
         children: [
           Expanded(
-            flex: 1, 
+            flex: 1,
             child: _buildButton(
               label: 'Decline',
               icon: Icons.close_rounded,
               color: Colors.transparent,
               textColor: error,
-              borderColor: error, 
+              borderColor: error,
               onTap: _declineRequest,
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
-            flex: 1, 
+            flex: 1,
             child: _buildButton(
               label: 'Accept',
               icon: Icons.check_rounded,
@@ -718,27 +765,39 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           backgroundColor: isFilled ? color : Colors.transparent,
           foregroundColor: textColor,
           elevation: isFilled ? 4 : 0,
-          shadowColor: isFilled ? color.withValues(alpha: 0.4) : Colors.transparent,
+          shadowColor: isFilled
+              ? color.withValues(alpha: 0.4)
+              : Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: borderColor != null 
-                ? BorderSide(color: borderColor, width: 1.5) 
+            side: borderColor != null
+                ? BorderSide(color: borderColor, width: 1.5)
                 : BorderSide.none,
           ),
         ),
         child: _isProcessing && isFilled
-            ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: textColor, strokeWidth: 2.5))
+            ? SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: textColor,
+                  strokeWidth: 2.5,
+                ),
+              )
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(icon, size: 20),
                   const SizedBox(width: 8),
-                  Flexible( 
+                  Flexible(
                     child: Text(
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                   ),
                 ],
@@ -748,7 +807,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   // ==================== DIALOGS ====================
-  
+
   Future<String?> _showDeclineDialog() {
     final controller = TextEditingController();
     return showDialog<String>(
@@ -763,7 +822,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             hintText: 'Reason for declining...',
             filled: true,
             fillColor: Colors.grey[50],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
           maxLines: 3,
         ),
@@ -774,7 +836,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: Text('Decline', style: TextStyle(color: error, fontWeight: FontWeight.bold)),
+            child: Text(
+              'Decline',
+              style: TextStyle(color: error, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -795,7 +860,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             hintText: 'Add notes (optional)...',
             filled: true,
             fillColor: Colors.grey[50],
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
           ),
           maxLines: 3,
         ),
@@ -805,8 +873,17 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, controller.text.isEmpty ? 'Completed' : controller.text),
-            child: const Text('Complete', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+            onPressed: () => Navigator.pop(
+              context,
+              controller.text.isEmpty ? 'Completed' : controller.text,
+            ),
+            child: const Text(
+              'Complete',
+              style: TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -817,10 +894,15 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (showContainer) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: Text(
+            message,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           backgroundColor: color,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.all(16),
         ),
       );
@@ -830,10 +912,14 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   Color _getStatusColor(RequestStatus status) {
     switch (status) {
       case RequestStatus.accepted:
-      case RequestStatus.completed: return Colors.green;
-      case RequestStatus.declined: return error;
-      case RequestStatus.inProgress: return accent;
-      default: return primary;
+      case RequestStatus.completed:
+        return Colors.green;
+      case RequestStatus.declined:
+        return error;
+      case RequestStatus.inProgress:
+        return accent;
+      default:
+        return primary;
     }
   }
 
@@ -843,7 +929,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   String _getTimeAgo(DateTime timestamp) {
     final now = DateTime.now();
     Duration diff = now.difference(timestamp);
-    
+
     if (diff.isNegative || diff.inSeconds < 10) {
       return 'Just now';
     }
@@ -852,6 +938,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${diff.inDays ~/ 7}w ago'; 
+    return '${diff.inDays ~/ 7}w ago';
   }
 }

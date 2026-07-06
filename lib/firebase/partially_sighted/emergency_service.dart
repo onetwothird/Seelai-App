@@ -7,7 +7,7 @@ class EmergencyService {
   Future<bool> makeEmergencyCall(String phoneNumber) async {
     try {
       final Uri telUri = Uri(scheme: 'tel', path: phoneNumber);
-      
+
       if (await canLaunchUrl(telUri)) {
         await launchUrl(telUri);
         debugPrint('Emergency call initiated to: $phoneNumber');
@@ -30,7 +30,7 @@ class EmergencyService {
         path: phoneNumber,
         queryParameters: {'body': message},
       );
-      
+
       if (await canLaunchUrl(smsUri)) {
         await launchUrl(smsUri);
         debugPrint('SMS sent to: $phoneNumber');
@@ -50,9 +50,9 @@ class EmergencyService {
     try {
       // Google Maps URL with the address
       final Uri mapsUri = Uri.parse(
-        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}'
+        'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}',
       );
-      
+
       if (await canLaunchUrl(mapsUri)) {
         await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
         debugPrint('Opening location: $address');
@@ -66,6 +66,4 @@ class EmergencyService {
       return false;
     }
   }
-
-  
 }

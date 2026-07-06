@@ -1,7 +1,7 @@
 // File: lib/roles/caretaker/auth/signup/signup_screen.dart
 
 import 'dart:io';
-import 'dart:ui'; 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:seelai_app/storage/cloudinary_service.dart';
@@ -13,7 +13,7 @@ import 'package:seelai_app/mobile/loading_overlay.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class CaretakerSignupScreen extends StatefulWidget {
-  final User? googleUser; 
+  final User? googleUser;
 
   const CaretakerSignupScreen({super.key, this.googleUser});
 
@@ -21,7 +21,8 @@ class CaretakerSignupScreen extends StatefulWidget {
   State<CaretakerSignupScreen> createState() => _CaretakerSignupScreenState();
 }
 
-class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with TickerProviderStateMixin {
+class _CaretakerSignupScreenState extends State<CaretakerSignupScreen>
+    with TickerProviderStateMixin {
   late AnimationController _entryController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -38,7 +39,8 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _relationshipController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   String? _selectedGender; // ADDED GENDER STATE
 
@@ -50,14 +52,15 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart),
+        );
 
     _entryController.forward();
 
@@ -89,32 +92,49 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
         maxHeight: 1024,
         imageQuality: 85,
       );
-      if (pickedFile != null) setState(() => _profileImage = File(pickedFile.path));
+      if (pickedFile != null) {
+        setState(() => _profileImage = File(pickedFile.path));
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: error),
+        );
+      }
     }
   }
 
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Choose Profile Picture', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              'Choose Profile Picture',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 20),
             ListTile(
               leading: Icon(Icons.camera_alt, color: primary),
               title: const Text('Take Photo'),
-              onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
             ),
             ListTile(
               leading: Icon(Icons.photo_library, color: primary),
               title: const Text('Gallery'),
-              onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
             ),
           ],
         ),
@@ -124,7 +144,11 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
 
   Future<String?> _uploadProfileImage(String userId) async {
     if (_profileImage == null) return null;
-    return await cloudinaryService.uploadProfileImage(_profileImage!, userId, 'caretaker');
+    return await cloudinaryService.uploadProfileImage(
+      _profileImage!,
+      userId,
+      'caretaker',
+    );
   }
 
   @override
@@ -134,20 +158,18 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
 
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        
+
         flexibleSpace: ClipRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10.0, sigmaY: 10.0),
-            child: Container(
-              color: Colors.white.withValues(alpha: 0.2),
-            ),
+            child: Container(color: Colors.white.withValues(alpha: 0.2)),
           ),
         ),
 
@@ -158,7 +180,11 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
         ),
         title: const Text(
           "Create Account",
-          style: TextStyle(color: Color(0xFF1E293B), fontWeight: FontWeight.w700, fontSize: 20),
+          style: TextStyle(
+            color: Color(0xFF1E293B),
+            fontWeight: FontWeight.w700,
+            fontSize: 20,
+          ),
         ),
         centerTitle: true,
       ),
@@ -167,7 +193,10 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
           Positioned.fill(
             child: Opacity(
               opacity: 0.08,
-              child: Image.asset('assets/icons/eye background.jpg', fit: BoxFit.cover),
+              child: Image.asset(
+                'assets/icons/eye background.jpg',
+                fit: BoxFit.cover,
+              ),
             ),
           ),
 
@@ -175,10 +204,10 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: EdgeInsets.only(
-                left: 24, 
-                right: 24, 
-                top: 20, 
-                bottom: 20 + keyboardHeight 
+                left: 24,
+                right: 24,
+                top: 20,
+                bottom: 20 + keyboardHeight,
               ),
               child: FadeTransition(
                 opacity: _fadeAnimation,
@@ -197,17 +226,34 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: const Color(0xFFF1F5F9),
-                                border: Border.all(color: Colors.black, width: 2.0),
+                                border: Border.all(
+                                  color: Colors.black,
+                                  width: 2.0,
+                                ),
                                 // 1. Prioritize picked image. 2. Fallback to Google image.
                                 image: _profileImage != null
-                                    ? DecorationImage(image: FileImage(_profileImage!), fit: BoxFit.cover)
+                                    ? DecorationImage(
+                                        image: FileImage(_profileImage!),
+                                        fit: BoxFit.cover,
+                                      )
                                     : (widget.googleUser?.photoURL != null)
-                                        ? DecorationImage(image: NetworkImage(widget.googleUser!.photoURL!), fit: BoxFit.cover)
-                                        : null,
+                                    ? DecorationImage(
+                                        image: NetworkImage(
+                                          widget.googleUser!.photoURL!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
                               // Show icon ONLY if both picked image and Google image are missing
-                              child: _profileImage == null && widget.googleUser?.photoURL == null
-                                  ? const Icon(Icons.person_rounded, size: 60, color: Color(0xFFCBD5E1))
+                              child:
+                                  _profileImage == null &&
+                                      widget.googleUser?.photoURL == null
+                                  ? const Icon(
+                                      Icons.person_rounded,
+                                      size: 60,
+                                      color: Color(0xFFCBD5E1),
+                                    )
                                   : null,
                             ),
                             Container(
@@ -215,54 +261,82 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                               decoration: BoxDecoration(
                                 color: primary,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
                               ),
-                              child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 20),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 32),
 
                       _buildSectionHeader("Personal Information"),
                       const SizedBox(height: 16),
-                      _buildTextField(_nameController, 'Full Name', Icons.person_outline),
+                      _buildTextField(
+                        _nameController,
+                        'Full Name',
+                        Icons.person_outline,
+                      ),
                       const SizedBox(height: 16),
-                      
+
                       // RESPONSIVE AGE & GENDER ROW
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             flex: 2, // Smaller flex for Age
-                            child: _buildTextField(_ageController, 'Age', Icons.cake_outlined, keyboardType: TextInputType.number),
+                            child: _buildTextField(
+                              _ageController,
+                              'Age',
+                              Icons.cake_outlined,
+                              keyboardType: TextInputType.number,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            flex: 3, // Larger flex for Gender to prevent text cramming
+                            flex:
+                                3, // Larger flex for Gender to prevent text cramming
                             child: _buildGenderDropdown(),
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 16),
-                      _buildTextField(_phoneController, 'Phone Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
+                      _buildTextField(
+                        _phoneController,
+                        'Phone Number',
+                        Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
                       const SizedBox(height: 16),
-                      _buildTextField(_relationshipController, 'Relationship to Patient', Icons.people_outline),
-                      
+                      _buildTextField(
+                        _relationshipController,
+                        'Relationship to Patient',
+                        Icons.people_outline,
+                      ),
+
                       const SizedBox(height: 32),
 
                       _buildSectionHeader("Account Security"),
                       const SizedBox(height: 16),
                       _buildTextField(
-                        _emailController, 
-                        'Email', 
-                        Icons.email_outlined, 
+                        _emailController,
+                        'Email',
+                        Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-                        readOnly: widget.googleUser != null, // Lock email if Google user
+                        readOnly:
+                            widget.googleUser !=
+                            null, // Lock email if Google user
                       ),
-                      
+
                       // Only show password fields if NOT signing up with Google
                       if (widget.googleUser == null) ...[
                         const SizedBox(height: 16),
@@ -281,7 +355,7 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                           isConfirm: true,
                         ),
                       ],
-                      
+
                       const SizedBox(height: 32),
 
                       SizedBox(
@@ -293,11 +367,18 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                             backgroundColor: primary,
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
                           child: Text(
-                            widget.googleUser != null ? "Save & Continue" : "Create Account", 
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                            widget.googleUser != null
+                                ? "Save & Continue"
+                                : "Create Account",
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -319,7 +400,12 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
       alignment: Alignment.centerLeft,
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF94A3B8), letterSpacing: 1.0),
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF94A3B8),
+          letterSpacing: 1.0,
+        ),
       ),
     );
   }
@@ -328,70 +414,95 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
   Widget _buildGenderDropdown() {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC), 
-        borderRadius: BorderRadius.circular(16), 
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: DropdownButtonFormField<String>(
         isExpanded: true, // Prevents layout overflow issues
         initialValue: _selectedGender,
-        icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF64748B)),
+        icon: const Icon(
+          Icons.arrow_drop_down_rounded,
+          color: Color(0xFF64748B),
+        ),
         decoration: const InputDecoration(
           hintText: 'Gender',
           hintStyle: TextStyle(color: Color(0xFF94A3B8)),
           prefixIcon: Icon(Icons.wc_outlined, color: Color(0xFF64748B)),
-          border: InputBorder.none, 
+          border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
         items: ['Male', 'Female', 'Rather not Say']
-            .map((sex) => DropdownMenuItem(
-                  value: sex, 
-                  child: Text(
-                    sex, 
-                    style: const TextStyle(color: Color(0xFF1E293B)),
-                    overflow: TextOverflow.ellipsis, // Elegantly truncates text on tiny screens
-                  )
-                ))
+            .map(
+              (sex) => DropdownMenuItem(
+                value: sex,
+                child: Text(
+                  sex,
+                  style: const TextStyle(color: Color(0xFF1E293B)),
+                  overflow: TextOverflow
+                      .ellipsis, // Elegantly truncates text on tiny screens
+                ),
+              ),
+            )
             .toList(),
         onChanged: (val) => setState(() => _selectedGender = val),
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType, bool isPassword = false, bool isConfirm = false, bool readOnly = false}) {
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String hint,
+    IconData icon, {
+    TextInputType? keyboardType,
+    bool isPassword = false,
+    bool isConfirm = false,
+    bool readOnly = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
-        color: readOnly ? const Color(0xFFE2E8F0) : const Color(0xFFF8FAFC), // Grey out if read only
+        color: readOnly
+            ? const Color(0xFFE2E8F0)
+            : const Color(0xFFF8FAFC), // Grey out if read only
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0)), 
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: TextField(
         controller: ctrl,
         readOnly: readOnly,
         keyboardType: keyboardType,
-        obscureText: isPassword ? (isConfirm ? _obscureConfirmPassword : _obscurePassword) : false,
-        style: TextStyle(color: readOnly ? const Color(0xFF64748B) : const Color(0xFF1E293B)),
+        obscureText: isPassword
+            ? (isConfirm ? _obscureConfirmPassword : _obscurePassword)
+            : false,
+        style: TextStyle(
+          color: readOnly ? const Color(0xFF64748B) : const Color(0xFF1E293B),
+        ),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
           prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
           suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  (isConfirm ? _obscureConfirmPassword : _obscurePassword) ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: const Color(0xFF94A3B8),
-                ),
-                onPressed: () => setState(() {
-                  if (isConfirm) {
-                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                  } else {
-                    _obscurePassword = !_obscurePassword;
-                  }
-                }),
-              )
-            : null,
+              ? IconButton(
+                  icon: Icon(
+                    (isConfirm ? _obscureConfirmPassword : _obscurePassword)
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                  onPressed: () => setState(() {
+                    if (isConfirm) {
+                      _obscureConfirmPassword = !_obscureConfirmPassword;
+                    } else {
+                      _obscurePassword = !_obscurePassword;
+                    }
+                  }),
+                )
+              : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );
@@ -399,42 +510,68 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
 
   Future<void> _handleSignup() async {
     // 1. STRICT VALIDATION: All fields except password must be filled out
-    if (_nameController.text.trim().isEmpty || 
-        _ageController.text.trim().isEmpty || 
-        _selectedGender == null ||            // Enforced Gender Validation
-        _emailController.text.trim().isEmpty || 
-        _phoneController.text.trim().isEmpty || 
+    if (_nameController.text.trim().isEmpty ||
+        _ageController.text.trim().isEmpty ||
+        _selectedGender == null || // Enforced Gender Validation
+        _emailController.text.trim().isEmpty ||
+        _phoneController.text.trim().isEmpty ||
         _relationshipController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in all required fields'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: error,
+        ),
+      );
       return;
     }
-    
+
     // 2. Validate passwords ONLY if they are NOT a Google User
     if (widget.googleUser == null) {
-      if (_passwordController.text.isEmpty || _confirmPasswordController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a password'), backgroundColor: error));
+      if (_passwordController.text.isEmpty ||
+          _confirmPasswordController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a password'),
+            backgroundColor: error,
+          ),
+        );
         return;
       }
       if (_passwordController.text.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters'), backgroundColor: error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Password must be at least 6 characters'),
+            backgroundColor: error,
+          ),
+        );
         return;
       }
       if (_passwordController.text != _confirmPasswordController.text) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords do not match'), backgroundColor: error));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Passwords do not match'),
+            backgroundColor: error,
+          ),
+        );
         return;
       }
     }
 
     int? age = int.tryParse(_ageController.text.trim());
     if (age == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid age'), backgroundColor: error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid age'),
+          backgroundColor: error,
+        ),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
-    
+
     User? finalUser;
-    bool isNewEmailUser = false; 
+    bool isNewEmailUser = false;
 
     try {
       // 3. Determine Auth Flow
@@ -447,7 +584,9 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
         );
         finalUser = userCredential.user;
         isNewEmailUser = true;
-        await authService.value.updateUsername(userName: _nameController.text.trim());
+        await authService.value.updateUsername(
+          userName: _nameController.text.trim(),
+        );
       }
 
       if (finalUser == null) throw Exception("Failed to get user information.");
@@ -477,7 +616,9 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
         if (isNewEmailUser) {
           await finalUser.delete();
         }
-        throw Exception("Failed to save profile data. Please try again. ($dbError)");
+        throw Exception(
+          "Failed to save profile data. Please try again. ($dbError)",
+        );
       }
 
       // 6. Update Database Image URL
@@ -503,7 +644,9 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             title: const Text('Account Created'),
             content: const Text(
               'Your account has been successfully created.\n\nPlease note that you must be verified by MSWD before you can log in.',
@@ -515,17 +658,31 @@ class _CaretakerSignupScreenState extends State<CaretakerSignupScreen> with Tick
                   Navigator.pop(context); // Close dialog
                   Navigator.pop(context); // Go back to login
                 },
-                child: const Text('OK', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
         );
       }
     } on FirebaseAuthException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Signup failed'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Signup failed'),
+            backgroundColor: error,
+          ),
+        );
+      }
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: error));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: error),
+        );
+      }
       if (mounted) setState(() => _isLoading = false);
     }
   }
