@@ -1,17 +1,17 @@
 // File: lib/roles/partially_sighted/models/activity_model.dart
-import 'package:flutter/material.dart';
+// No Flutter imports required here; keep model pure Dart to simplify analysis
 
 class ActivityModel {
   final String title;
   final String description;
-  final IconData icon;
+  final int iconCode;
   final bool isEmergency;
   final DateTime? timestamp;
 
   ActivityModel({
     required this.title,
     required this.description,
-    required this.icon,
+    required this.iconCode,
     this.isEmergency = false,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
@@ -21,7 +21,7 @@ class ActivityModel {
     return ActivityModel(
       title: json['title'] as String,
       description: json['description'] as String,
-      icon: IconData(json['iconCode'] as int, fontFamily: 'MaterialIcons'),
+      iconCode: json['iconCode'] as int,
       isEmergency: json['isEmergency'] as bool? ?? false,
       timestamp: json['timestamp'] != null
           ? DateTime.parse(json['timestamp'] as String)
@@ -33,7 +33,7 @@ class ActivityModel {
     return {
       'title': title,
       'description': description,
-      'iconCode': icon.codePoint,
+      'iconCode': iconCode,
       'isEmergency': isEmergency,
       'timestamp': timestamp?.toIso8601String(),
     };
@@ -41,18 +41,18 @@ class ActivityModel {
 
   // Copy with method for immutable updates
   ActivityModel copyWith({
-    String? title,
-    String? description,
-    IconData? icon,
-    bool? isEmergency,
-    DateTime? timestamp,
+    String? newTitle,
+    String? newDescription,
+    int? icon,
+    bool? newIsEmergency,
+    DateTime? newTimestamp,
   }) {
     return ActivityModel(
-      title: title ?? this.title,
-      description: description ?? this.description,
-      icon: icon ?? this.icon,
-      isEmergency: isEmergency ?? this.isEmergency,
-      timestamp: timestamp ?? this.timestamp,
+      title: newTitle ?? title,
+      description: newDescription ?? description,
+      iconCode: icon ?? iconCode,
+      isEmergency: newIsEmergency ?? isEmergency,
+      timestamp: newTimestamp ?? timestamp,
     );
   }
 
