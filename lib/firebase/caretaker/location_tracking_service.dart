@@ -67,11 +67,11 @@ class LocationTrackingService {
         .ref('user_locations/partially_sighted/$patientId')
         .onValue
         .map((event) {
-      if (event.snapshot.exists) {
-        return Map<String, dynamic>.from(event.snapshot.value as Map);
-      }
-      return null;
-    });
+          if (event.snapshot.exists) {
+            return Map<String, dynamic>.from(event.snapshot.value as Map);
+          }
+          return null;
+        });
   }
 
   // ==================== CARETAKER LOCATION ====================
@@ -130,10 +130,9 @@ class LocationTrackingService {
 
   /// Stream caretaker location updates (real-time)
   Stream<Map<String, dynamic>?> trackCaretakerLocation(String caretakerId) {
-    return _database
-        .ref('user_locations/caretaker/$caretakerId')
-        .onValue
-        .map((event) {
+    return _database.ref('user_locations/caretaker/$caretakerId').onValue.map((
+      event,
+    ) {
       if (event.snapshot.exists) {
         return Map<String, dynamic>.from(event.snapshot.value as Map);
       }
@@ -160,12 +159,12 @@ class LocationTrackingService {
     final double dLon = _toRadians(lon2 - lon1);
 
     // Haversine formula
-    final double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(lat1Rad) * cos(lat2Rad) *
-        sin(dLon / 2) * sin(dLon / 2);
+    final double a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1Rad) * cos(lat2Rad) * sin(dLon / 2) * sin(dLon / 2);
 
     final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    
+
     // Distance in meters
     final double distance = earthRadiusMeters * c;
 
@@ -193,8 +192,10 @@ class LocationTrackingService {
     Duration duration = const Duration(hours: 24),
   }) async {
     try {
-      final cutoffTime = DateTime.now().subtract(duration).millisecondsSinceEpoch;
-      
+      final cutoffTime = DateTime.now()
+          .subtract(duration)
+          .millisecondsSinceEpoch;
+
       final snapshot = await _database
           .ref('user_locations/partially_sighted/$patientId')
           .orderByChild('lastUpdateMillis')
@@ -204,7 +205,7 @@ class LocationTrackingService {
       if (snapshot.snapshot.exists) {
         List<Map<String, dynamic>> history = [];
         Map<dynamic, dynamic> data = snapshot.snapshot.value as Map;
-        
+
         data.forEach((key, value) {
           if (value is Map) {
             Map<String, dynamic> location = Map<String, dynamic>.from(value);
@@ -219,7 +220,7 @@ class LocationTrackingService {
           final bTime = b['lastUpdateMillis'] as int? ?? 0;
           return bTime.compareTo(aTime);
         });
-        
+
         return history;
       }
       return [];
@@ -254,7 +255,7 @@ class LocationTrackingService {
     try {
       final accuracy = locationData['accuracy'] as double?;
       if (accuracy == null) return false;
-      
+
       return accuracy <= 50.0; // Consider accurate if within 50 meters
     } catch (e) {
       return false;
@@ -263,4 +264,5 @@ class LocationTrackingService {
 }
 
 // Singleton instance
-final LocationTrackingService locationTrackingService = LocationTrackingService();
+final LocationTrackingService locationTrackingService =
+    LocationTrackingService();

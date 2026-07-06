@@ -28,7 +28,7 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
   List<RequestModel> _topEmergencies = [];
   bool _isLoading = true;
   bool _hasError = false;
-  
+
   // ADDED: Cache to store patient and caretaker data to pass to RequestDetailsScreen
   final Map<String, Map<String, dynamic>> _userDataCache = {};
 
@@ -43,10 +43,13 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
     _requestsSubscription = assistanceRequestService.streamAllRequests().listen(
       (requests) async {
         if (mounted) {
-          final emergencies = requests.where((req) => 
-            req.priority.toString().contains('emergency') && 
-            req.status != RequestStatus.completed
-          ).toList();
+          final emergencies = requests
+              .where(
+                (req) =>
+                    req.priority.toString().contains('emergency') &&
+                    req.status != RequestStatus.completed,
+              )
+              .toList();
 
           emergencies.sort((a, b) => b.timestamp.compareTo(a.timestamp));
           final topEmergencies = emergencies.take(3).toList();
@@ -85,7 +88,8 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
           }
         } catch (_) {}
       }
-      if (request.caretakerId != null && !_userDataCache.containsKey(request.caretakerId!)) {
+      if (request.caretakerId != null &&
+          !_userDataCache.containsKey(request.caretakerId!)) {
         try {
           final data = await databaseService.getUserData(request.caretakerId!);
           if (data != null && mounted) {
@@ -127,9 +131,12 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
               ),
             ),
             TextButton(
-              onPressed: () => widget.onNavigateToTab(2), 
+              onPressed: () => widget.onNavigateToTab(2),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
@@ -143,7 +150,7 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
             ),
           ],
         ),
-        const SizedBox(height: 16), 
+        const SizedBox(height: 16),
         _buildContent(),
       ],
     );
@@ -154,7 +161,9 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
     if (_isLoading) {
       return const Padding(
         padding: EdgeInsets.all(20.0),
-        child: Center(child: CircularProgressIndicator(color: Color(0xFFEF4444))),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFEF4444)),
+        ),
       );
     }
 
@@ -167,7 +176,9 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
     }
 
     return Column(
-      children: _topEmergencies.map((request) => _buildAlertCard(request)).toList(),
+      children: _topEmergencies
+          .map((request) => _buildAlertCard(request))
+          .toList(),
     );
   }
 
@@ -179,8 +190,8 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -188,9 +199,9 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
       child: Column(
         children: [
           Icon(
-            Icons.check_circle_outline_rounded, 
-            size: 32, 
-            color: const Color(0xFF10B981).withValues(alpha: 0.5), 
+            Icons.check_circle_outline_rounded,
+            size: 32,
+            color: const Color(0xFF10B981).withValues(alpha: 0.5),
           ),
           const SizedBox(height: 12),
           Text(
@@ -208,10 +219,10 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
   }
 
   Widget _buildAlertCard(RequestModel request) {
-    const color = Color(0xFFEF4444); 
+    const color = Color(0xFFEF4444);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16), 
+      padding: const EdgeInsets.only(bottom: 16),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -223,7 +234,8 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
                   request: request,
                   isDarkMode: widget.isDarkMode,
                   theme: widget.theme,
-                  userDataCache: _userDataCache, // FIXED: Now passes the populated cache instead of const {}
+                  userDataCache:
+                      _userDataCache, // FIXED: Now passes the populated cache instead of const {}
                 ),
               ),
             );
@@ -235,8 +247,8 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
@@ -250,10 +262,14 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
                     color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.warning_rounded, color: color, size: 24),
+                  child: const Icon(
+                    Icons.warning_rounded,
+                    color: color,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 16),
-                
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,7 +292,7 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
                             _formatShortTime(request.timestamp),
                             style: caption.copyWith(
                               fontSize: 11,
-                              color: color, 
+                              color: color,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -296,7 +312,10 @@ class _UrgentAlertsSectionState extends State<UrgentAlertsSection> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded, color: widget.theme.subtextColor.withValues(alpha: 0.5)),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: widget.theme.subtextColor.withValues(alpha: 0.5),
+                ),
               ],
             ),
           ),

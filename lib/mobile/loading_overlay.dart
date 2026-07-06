@@ -29,10 +29,7 @@ class _LoadingOverlayState extends State<LoadingOverlay>
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _fadeController,
-        curve: Curves.easeInOut,
-      ),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
 
     if (widget.isVisible) {
@@ -63,7 +60,7 @@ class _LoadingOverlayState extends State<LoadingOverlay>
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
-        // CHANGED HERE: Set to white instead of black. 
+        // CHANGED HERE: Set to white instead of black.
         // Use Colors.white.withValues(alpha: 0.8) if you want it semi-transparent.
         color: Colors.white,
         child: Center(
@@ -87,8 +84,10 @@ class _LoadingOverlayState extends State<LoadingOverlay>
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87, // Dark text to contrast the white background
-                    decoration: TextDecoration.none, // Ensures no yellow underlines from missing Scaffold
+                    color: Colors
+                        .black87, // Dark text to contrast the white background
+                    decoration: TextDecoration
+                        .none, // Ensures no yellow underlines from missing Scaffold
                   ),
                 ),
               ],

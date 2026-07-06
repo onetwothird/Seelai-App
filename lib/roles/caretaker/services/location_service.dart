@@ -6,7 +6,7 @@ class LocationService {
   Future<Map<String, dynamic>?> getPatientLocation(String patientId) async {
     try {
       await Future.delayed(Duration(milliseconds: 500));
-      
+
       // Sample data
       return {
         'latitude': 14.2456,
@@ -33,23 +33,19 @@ class LocationService {
   }
 
   // Get distance between two coordinates using Haversine formula
-  double calculateDistance(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
+  double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371; // Earth's radius in km
-    
+
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lon2 - lon1);
-    
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_toRadians(lat1)) *
             math.cos(_toRadians(lat2)) *
             math.sin(dLon / 2) *
             math.sin(dLon / 2);
-    
+
     final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
     return R * c;
   }

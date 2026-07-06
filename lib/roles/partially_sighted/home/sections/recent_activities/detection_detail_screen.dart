@@ -67,8 +67,12 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
   // WIDGET: SKELETON
   // ==========================================
   Widget _buildSkeletonDetail() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -82,7 +86,10 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
             Container(
               width: double.infinity,
               height: 280,
-              margin: EdgeInsets.symmetric(horizontal: spacingLarge, vertical: spacingSmall),
+              margin: EdgeInsets.symmetric(
+                horizontal: spacingLarge,
+                vertical: spacingSmall,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(radiusLarge),
@@ -91,7 +98,12 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
 
             // Title & Action Row Placeholder
             Padding(
-              padding: EdgeInsets.fromLTRB(spacingLarge, spacingMedium, spacingLarge, spacingMedium),
+              padding: EdgeInsets.fromLTRB(
+                spacingLarge,
+                spacingMedium,
+                spacingLarge,
+                spacingMedium,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -107,9 +119,23 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                   ),
                   Row(
                     children: [
-                      Container(width: 40, height: 40, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      ),
                       SizedBox(width: 8),
-                      Container(width: 40, height: 40, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -128,19 +154,55 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                      Expanded(
+                        child: Container(
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(radiusMedium),
+                          ),
+                        ),
+                      ),
                       SizedBox(width: spacingSmall),
-                      Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                      Expanded(
+                        child: Container(
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(radiusMedium),
+                          ),
+                        ),
+                      ),
                       SizedBox(width: spacingSmall),
-                      Expanded(child: Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium)))),
+                      Expanded(
+                        child: Container(
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(radiusMedium),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: spacingXLarge),
                   Container(width: 130, height: 20, color: Colors.white),
                   SizedBox(height: spacingMedium),
-                  Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium))),
+                  Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                  ),
                   SizedBox(height: spacingMedium),
-                  Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium))),
+                  Container(
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -161,7 +223,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
       backgroundColor: widget.theme.backgroundColor,
       appBar: AppBar(
         backgroundColor: widget.theme.backgroundColor,
-        surfaceTintColor: Colors.transparent, 
+        surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
         elevation: 0,
         leading: Semantics(
@@ -169,10 +231,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
           button: true,
           hint: 'Double tap to go back',
           child: IconButton(
-            icon: Icon(
-              Icons.arrow_back_rounded,
-              color: widget.theme.textColor,
-            ),
+            icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -187,69 +246,78 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
         centerTitle: true,
       ),
       body: _isSimulatingLoad
-        ? _buildSkeletonDetail()
-        : SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Hero Image Section
-                if (imageUrl != null && imageUrl.isNotEmpty)
-                  _buildHeroImage(imageUrl, color)
-                else
-                  _buildFallbackHeader(color, type),
+          ? _buildSkeletonDetail()
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Hero Image Section
+                  if (imageUrl != null && imageUrl.isNotEmpty)
+                    _buildHeroImage(imageUrl, color)
+                  else
+                    _buildFallbackHeader(color, type),
 
-                // 2. Title & Action Row
-                Padding(
-                  // Reduced bottom padding here so the Summary sits tighter against the header
-                  padding: EdgeInsets.fromLTRB(spacingLarge, spacingMedium, spacingLarge, spacingMedium),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _getTypeLabel(type),
-                              style: h2.copyWith(
-                                fontSize: 24,
-                                color: widget.theme.textColor,
-                                fontWeight: FontWeight.w800,
+                  // 2. Title & Action Row
+                  Padding(
+                    // Reduced bottom padding here so the Summary sits tighter against the header
+                    padding: EdgeInsets.fromLTRB(
+                      spacingLarge,
+                      spacingMedium,
+                      spacingLarge,
+                      spacingMedium,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _getTypeLabel(type),
+                                style: h2.copyWith(
+                                  fontSize: 24,
+                                  color: widget.theme.textColor,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                            ),
-                            SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Icon(Icons.calendar_today_rounded, size: 14, color: widget.theme.subtextColor),
-                                SizedBox(width: 6),
-                                Text(
-                                  _formatDateTime(timestamp),
-                                  style: bodyBold.copyWith(
-                                    fontSize: 13,
+                              SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today_rounded,
+                                    size: 14,
                                     color: widget.theme.subtextColor,
                                   ),
-                                ),
-                              ],
-                            ),
-                          ],
+                                  SizedBox(width: 6),
+                                  Text(
+                                    _formatDateTime(timestamp),
+                                    style: bodyBold.copyWith(
+                                      fontSize: 13,
+                                      color: widget.theme.subtextColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      _buildActionButtons(type, color),
-                    ],
+                        _buildActionButtons(type, color),
+                      ],
+                    ),
                   ),
-                ),
 
-                // 3. Dynamic Details Content (Summary & List)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: spacingLarge),
-                  child: _buildDetailsContent(type, color),
-                ),
+                  // 3. Dynamic Details Content (Summary & List)
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: spacingLarge),
+                    child: _buildDetailsContent(type, color),
+                  ),
 
-                SizedBox(height: spacingXLarge * 2), // Bottom padding
-              ],
+                  SizedBox(height: spacingXLarge * 2), // Bottom padding
+                ],
+              ),
             ),
-          ),
     );
   }
 
@@ -259,18 +327,25 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
     return Container(
       width: double.infinity,
       height: 280,
-      margin: EdgeInsets.symmetric(horizontal: spacingLarge, vertical: spacingSmall),
+      margin: EdgeInsets.symmetric(
+        horizontal: spacingLarge,
+        vertical: spacingSmall,
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radiusLarge),
         color: widget.theme.cardColor,
-        boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(
-            color: themeColor.withValues(alpha: 0.15),
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-        border: widget.isDarkMode ? Border.all(color: themeColor.withValues(alpha: 0.2)) : null,
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: themeColor.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                ),
+              ],
+        border: widget.isDarkMode
+            ? Border.all(color: themeColor.withValues(alpha: 0.2))
+            : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: Image.network(
@@ -282,7 +357,8 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
             child: CircularProgressIndicator(
               color: themeColor,
               value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  ? loadingProgress.cumulativeBytesLoaded /
+                        loadingProgress.expectedTotalBytes!
                   : null,
             ),
           );
@@ -293,9 +369,16 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.broken_image_rounded, color: widget.theme.subtextColor, size: 48),
+                Icon(
+                  Icons.broken_image_rounded,
+                  color: widget.theme.subtextColor,
+                  size: 48,
+                ),
                 SizedBox(height: spacingSmall),
-                Text('Image unavailable', style: caption.copyWith(color: widget.theme.subtextColor)),
+                Text(
+                  'Image unavailable',
+                  style: caption.copyWith(color: widget.theme.subtextColor),
+                ),
               ],
             ),
           ),
@@ -307,17 +390,24 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
   Widget _buildFallbackHeader(Color color, String type) {
     IconData getFallbackIcon() {
       switch (type) {
-        case 'face': return Icons.face_rounded;
-        case 'object': return Icons.search_rounded;
-        case 'text': return Icons.document_scanner_rounded;
-        default: return Icons.image_rounded;
+        case 'face':
+          return Icons.face_rounded;
+        case 'object':
+          return Icons.search_rounded;
+        case 'text':
+          return Icons.document_scanner_rounded;
+        default:
+          return Icons.image_rounded;
       }
     }
 
     return Container(
       width: double.infinity,
       height: 140,
-      margin: EdgeInsets.symmetric(horizontal: spacingLarge, vertical: spacingSmall),
+      margin: EdgeInsets.symmetric(
+        horizontal: spacingLarge,
+        vertical: spacingSmall,
+      ),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -331,13 +421,19 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
         border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: Center(
-        child: Icon(getFallbackIcon(), size: 64, color: color.withValues(alpha: 0.5)),
+        child: Icon(
+          getFallbackIcon(),
+          size: 64,
+          color: color.withValues(alpha: 0.5),
+        ),
       ),
     );
   }
 
   Widget _buildActionButtons(String type, Color themeColor) {
-    if (type != 'text' && type != 'face' && type != 'object') return SizedBox.shrink();
+    if (type != 'text' && type != 'face' && type != 'object') {
+      return SizedBox.shrink();
+    }
 
     return Row(
       children: [
@@ -369,7 +465,9 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
           button: true,
           child: Container(
             decoration: BoxDecoration(
-              color: _isSpeaking ? Colors.red.withValues(alpha: 0.1) : themeColor.withValues(alpha: 0.1),
+              color: _isSpeaking
+                  ? Colors.red.withValues(alpha: 0.1)
+                  : themeColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: IconButton(
@@ -413,10 +511,14 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
 
   Widget _buildDetailsContent(String type, Color themeColor) {
     switch (type) {
-      case 'face': return _buildFaceDetails(themeColor);
-      case 'object': return _buildObjectDetails(themeColor);
-      case 'text': return _buildTextDetails(themeColor);
-      default: return SizedBox.shrink();
+      case 'face':
+        return _buildFaceDetails(themeColor);
+      case 'object':
+        return _buildObjectDetails(themeColor);
+      case 'text':
+        return _buildTextDetails(themeColor);
+      default:
+        return SizedBox.shrink();
     }
   }
 
@@ -433,23 +535,40 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
         // 1. Detection Summary FIRST
         _buildSectionTitle('Detection Summary'),
         _buildInfoGrid([
-          _buildGridItem('Total Faces', '$faceCount', Icons.people_alt_rounded, themeColor),
+          _buildGridItem(
+            'Total Faces',
+            '$faceCount',
+            Icons.people_alt_rounded,
+            themeColor,
+          ),
           if (metadata['fps'] != null)
-            _buildGridItem('FPS', '${metadata['fps']}', Icons.speed_rounded, Colors.blue),
+            _buildGridItem(
+              'FPS',
+              '${metadata['fps']}',
+              Icons.speed_rounded,
+              Colors.blue,
+            ),
           if (metadata['lowLight'] != null)
-            _buildGridItem('Light', metadata['lowLight'] == true ? 'Low' : 'Good', Icons.brightness_6_rounded, Colors.orange),
+            _buildGridItem(
+              'Light',
+              metadata['lowLight'] == true ? 'Low' : 'Good',
+              Icons.brightness_6_rounded,
+              Colors.orange,
+            ),
         ]),
-        
+
         // 2. Detected Faces SECOND
         if (faces.isNotEmpty) ...[
           SizedBox(height: spacingXLarge), // Spacing added between sections
           _buildSectionTitle('Identified Faces'),
-          ...faces.map((face) => _buildItemCard(
-            label: face['label'] ?? 'Face',
-            confidence: (face['confidence'] ?? 0.0) * 100,
-            icon: Icons.face_rounded,
-            themeColor: themeColor,
-          )),
+          ...faces.map(
+            (face) => _buildItemCard(
+              label: face['label'] ?? 'Face',
+              confidence: (face['confidence'] ?? 0.0) * 100,
+              icon: Icons.face_rounded,
+              themeColor: themeColor,
+            ),
+          ),
         ],
       ],
     );
@@ -466,11 +585,26 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
         // 1. Detection Summary FIRST
         _buildSectionTitle('Detection Summary'),
         _buildInfoGrid([
-          _buildGridItem('Total Objects', '$objectCount', Icons.category_rounded, themeColor),
+          _buildGridItem(
+            'Total Objects',
+            '$objectCount',
+            Icons.category_rounded,
+            themeColor,
+          ),
           if (metadata['fps'] != null)
-            _buildGridItem('FPS', '${metadata['fps']}', Icons.speed_rounded, Colors.blue),
+            _buildGridItem(
+              'FPS',
+              '${metadata['fps']}',
+              Icons.speed_rounded,
+              Colors.blue,
+            ),
           if (metadata['flashUsed'] != null)
-            _buildGridItem('Flash', metadata['flashUsed'] == true ? 'Used' : 'Off', Icons.flashlight_on_rounded, Colors.orange),
+            _buildGridItem(
+              'Flash',
+              metadata['flashUsed'] == true ? 'Used' : 'Off',
+              Icons.flashlight_on_rounded,
+              Colors.orange,
+            ),
         ]),
 
         // 2. Detected Objects SECOND
@@ -479,7 +613,8 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
           _buildSectionTitle('Detected Objects'),
           ...objects.map((obj) {
             String rawLabel = obj['label'] ?? 'Unknown';
-            String cleanLabel = '${rawLabel[0].toUpperCase()}${rawLabel.substring(1).toLowerCase()}';
+            String cleanLabel =
+                '${rawLabel[0].toUpperCase()}${rawLabel.substring(1).toLowerCase()}';
             return _buildItemCard(
               label: cleanLabel,
               confidence: (obj['confidence'] ?? 0.0) * 100,
@@ -504,10 +639,25 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
         // 1. Scan Summary FIRST
         _buildSectionTitle('Scan Summary'),
         _buildInfoGrid([
-          _buildGridItem('Text Blocks', '$textBlockCount', Icons.view_agenda_rounded, themeColor),
-          _buildGridItem('Word Count', '$wordCount', Icons.text_snippet_rounded, Colors.blue),
+          _buildGridItem(
+            'Text Blocks',
+            '$textBlockCount',
+            Icons.view_agenda_rounded,
+            themeColor,
+          ),
+          _buildGridItem(
+            'Word Count',
+            '$wordCount',
+            Icons.text_snippet_rounded,
+            Colors.blue,
+          ),
           if (metadata['flashUsed'] != null)
-            _buildGridItem('Flash', metadata['flashUsed'] == true ? 'Used' : 'Off', Icons.flashlight_on_rounded, Colors.orange),
+            _buildGridItem(
+              'Flash',
+              metadata['flashUsed'] == true ? 'Used' : 'Off',
+              Icons.flashlight_on_rounded,
+              Colors.orange,
+            ),
         ]),
 
         // 2. Extracted Document SECOND
@@ -520,7 +670,9 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusLarge),
-              border: Border.all(color: widget.theme.subtextColor.withValues(alpha: 0.1)),
+              border: Border.all(
+                color: widget.theme.subtextColor.withValues(alpha: 0.1),
+              ),
               boxShadow: widget.isDarkMode ? [] : softShadow,
             ),
             child: SelectableText(
@@ -561,7 +713,7 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(
-              right: item == items.last ? 0 : spacingSmall, 
+              right: item == items.last ? 0 : spacingSmall,
             ),
             child: item,
           ),
@@ -570,13 +722,20 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
     );
   }
 
-  Widget _buildGridItem(String label, String value, IconData icon, Color color) {
+  Widget _buildGridItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: spacingMedium, horizontal: 4),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusMedium),
-        border: Border.all(color: widget.theme.subtextColor.withValues(alpha: 0.1)),
+        border: Border.all(
+          color: widget.theme.subtextColor.withValues(alpha: 0.1),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -593,7 +752,10 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
           SizedBox(height: 8),
           Text(
             label,
-            style: caption.copyWith(fontSize: 11, color: widget.theme.subtextColor),
+            style: caption.copyWith(
+              fontSize: 11,
+              color: widget.theme.subtextColor,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -601,7 +763,11 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
           SizedBox(height: 2),
           Text(
             value,
-            style: bodyBold.copyWith(fontSize: 14, color: widget.theme.textColor, fontWeight: FontWeight.w700),
+            style: bodyBold.copyWith(
+              fontSize: 14,
+              color: widget.theme.textColor,
+              fontWeight: FontWeight.w700,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
@@ -611,19 +777,32 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
     );
   }
 
-  Widget _buildItemCard({required String label, required double confidence, required IconData icon, required Color themeColor}) {
+  Widget _buildItemCard({
+    required String label,
+    required double confidence,
+    required IconData icon,
+    required Color themeColor,
+  }) {
     final confColor = _getConfidenceColor(confidence);
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: spacingMedium),
       padding: EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusMedium),
-        border: Border.all(color: widget.theme.subtextColor.withValues(alpha: 0.1)),
-        boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: Offset(0, 4))
-        ],
+        border: Border.all(
+          color: widget.theme.subtextColor.withValues(alpha: 0.1),
+        ),
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -653,12 +832,18 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
                   children: [
                     Text(
                       'Confidence:',
-                      style: caption.copyWith(fontSize: 12, color: widget.theme.subtextColor),
+                      style: caption.copyWith(
+                        fontSize: 12,
+                        color: widget.theme.subtextColor,
+                      ),
                     ),
                     SizedBox(width: 4),
                     Text(
                       '${confidence.toStringAsFixed(1)}%',
-                      style: bodyBold.copyWith(fontSize: 12, color: widget.theme.textColor),
+                      style: bodyBold.copyWith(
+                        fontSize: 12,
+                        color: widget.theme.textColor,
+                      ),
                     ),
                   ],
                 ),
@@ -701,19 +886,40 @@ class _DetectionDetailScreenState extends State<DetectionDetailScreen> {
 
   String _getTypeLabel(String type) {
     switch (type) {
-      case 'face': return 'Face Detection';
-      case 'object': return 'Object Detection';
-      case 'text': return 'Text Scan';
-      default: return 'Detection';
+      case 'face':
+        return 'Face Detection';
+      case 'object':
+        return 'Object Detection';
+      case 'text':
+        return 'Text Scan';
+      default:
+        return 'Detection';
     }
   }
 
   String _formatDateTime(DateTime dateTime) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     final month = months[dateTime.month - 1];
     final day = dateTime.day;
     final year = dateTime.year;
-    final hour = dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour == 0 ? 12 : dateTime.hour;
+    final hour = dateTime.hour > 12
+        ? dateTime.hour - 12
+        : dateTime.hour == 0
+        ? 12
+        : dateTime.hour;
     final minute = dateTime.minute.toString().padLeft(2, '0');
     final period = dateTime.hour >= 12 ? 'PM' : 'AM';
 

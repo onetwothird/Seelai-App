@@ -15,7 +15,11 @@ class CloudinaryService {
   static const String uploadPresetProfile = 'profile_images';
   static const String uploadPresetDetections = 'detection_images';
 
-  Future<String?> uploadProfileImage(File imageFile, String userId, String role) async {
+  Future<String?> uploadProfileImage(
+    File imageFile,
+    String userId,
+    String role,
+  ) async {
     try {
       var request = http.MultipartRequest(
         'POST',
@@ -26,7 +30,9 @@ class CloudinaryService {
       request.fields['folder'] = 'seelai_profiles/$role';
       request.fields['public_id'] = userId;
 
-      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      request.files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path),
+      );
       var response = await request.send();
 
       if (response.statusCode == 200) {
@@ -35,7 +41,9 @@ class CloudinaryService {
         return jsonResponse['secure_url'] as String;
       } else {
         var responseData = await response.stream.bytesToString();
-        throw Exception('Upload failed: ${response.statusCode} - $responseData');
+        throw Exception(
+          'Upload failed: ${response.statusCode} - $responseData',
+        );
       }
     } catch (e) {
       throw Exception('Failed to upload to Cloudinary: $e');
@@ -52,7 +60,9 @@ class CloudinaryService {
       request.fields['upload_preset'] = uploadPresetProfile;
       request.fields['folder'] = 'seelai_sos_contacts/$patientId';
 
-      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      request.files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path),
+      );
       var response = await request.send();
 
       if (response.statusCode == 200) {
@@ -61,7 +71,9 @@ class CloudinaryService {
         return jsonResponse['secure_url'] as String;
       } else {
         var responseData = await response.stream.bytesToString();
-        debugPrint('❌ Contact upload failed: ${response.statusCode} - $responseData');
+        debugPrint(
+          '❌ Contact upload failed: ${response.statusCode} - $responseData',
+        );
         return null;
       }
     } catch (e) {
@@ -79,9 +91,14 @@ class CloudinaryService {
     String detectionType, // 'face' | 'object' | 'text'
   ) async {
     try {
-      final timestamp = (DateTime.now().millisecondsSinceEpoch / 1000).round().toString();
+      final timestamp = (DateTime.now().millisecondsSinceEpoch / 1000)
+          .round()
+          .toString();
       final folder = 'detected_images/$detectionType/$userId';
-      final signature = _generateDetectionSignature(folder: folder, timestamp: timestamp);
+      final signature = _generateDetectionSignature(
+        folder: folder,
+        timestamp: timestamp,
+      );
 
       var request = http.MultipartRequest(
         'POST',
@@ -93,7 +110,9 @@ class CloudinaryService {
       request.fields['folder'] = folder;
       request.fields['signature'] = signature;
 
-      request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      request.files.add(
+        await http.MultipartFile.fromPath('file', imageFile.path),
+      );
 
       debugPrint('📤 Uploading detection image to: $folder');
       var response = await request.send();
@@ -105,7 +124,9 @@ class CloudinaryService {
         debugPrint('✅ Detection image uploaded: $url');
         return url;
       } else {
-        debugPrint('❌ Detection upload failed: ${response.statusCode} - $responseData');
+        debugPrint(
+          '❌ Detection upload failed: ${response.statusCode} - $responseData',
+        );
         return null;
       }
     } catch (e) {
@@ -117,7 +138,9 @@ class CloudinaryService {
   Future<bool> deleteProfileImage(String userId, String role) async {
     try {
       final publicId = 'seelai_profiles/$role/$userId';
-      final timestamp = (DateTime.now().millisecondsSinceEpoch / 1000).round().toString();
+      final timestamp = (DateTime.now().millisecondsSinceEpoch / 1000)
+          .round()
+          .toString();
       final signature = _generateSignature(publicId, timestamp);
 
       final response = await http.post(
@@ -141,7 +164,10 @@ class CloudinaryService {
     }
   }
 
-  String _generateDetectionSignature({required String folder, required String timestamp}) {
+  String _generateDetectionSignature({
+    required String folder,
+    required String timestamp,
+  }) {
     final stringToSign = 'folder=$folder&timestamp=$timestamp$apiSecret';
     final bytes = utf8.encode(stringToSign);
     final digest = sha1.convert(bytes);

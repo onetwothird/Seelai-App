@@ -22,7 +22,7 @@ class _CallRatingDialogState extends State<CallRatingDialog> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A2232), 
+          color: const Color(0xFF1A2232),
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
@@ -72,7 +72,7 @@ class _CallRatingDialogState extends State<CallRatingDialog> {
             const SizedBox(height: 32),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF334155), 
+                color: const Color(0xFF334155),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: TextButton(
@@ -81,14 +81,19 @@ class _CallRatingDialogState extends State<CallRatingDialog> {
                   widget.onDismissed();
                 },
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text(
                   'Not now',
                   style: TextStyle(
-                    color: Colors.white, 
-                    fontSize: 14, 
+                    color: Colors.white,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

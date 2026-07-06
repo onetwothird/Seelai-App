@@ -1,6 +1,6 @@
 // File: lib/roles/partially_sighted/home/sections/home_screen/widgets/location_map_widget.dart
 
-import 'dart:ui'; 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
@@ -10,7 +10,7 @@ import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/caretaker/location_tracking_service.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'dart:async';
-import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:flutter_tts/flutter_tts.dart';
 import 'map_marker_helper.dart';
 
 class LocationMapWidget extends StatefulWidget {
@@ -18,7 +18,7 @@ class LocationMapWidget extends StatefulWidget {
   final dynamic theme;
   final String userId;
   final Map<String, dynamic> userData;
-  final bool isFullScreen; 
+  final bool isFullScreen;
 
   const LocationMapWidget({
     super.key,
@@ -26,16 +26,17 @@ class LocationMapWidget extends StatefulWidget {
     required this.theme,
     required this.userId,
     required this.userData,
-    this.isFullScreen = false, 
+    this.isFullScreen = false,
   });
 
   @override
   State<LocationMapWidget> createState() => _LocationMapWidgetState();
 }
 
-class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindingObserver {
+class _LocationMapWidgetState extends State<LocationMapWidget>
+    with WidgetsBindingObserver {
   GoogleMapController? _mapController;
-  late FlutterTts _flutterTts; 
+  late FlutterTts _flutterTts;
 
   Map<String, dynamic>? _freshUserData;
 
@@ -43,30 +44,30 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   bool _isLoading = true;
   bool _isTrackingActive = false;
   bool _permissionDenied = false;
-  bool _isInitializing = false; 
+  bool _isInitializing = false;
 
   Set<Marker> _markers = {};
 
   StreamSubscription<Position>? _positionStreamSubscription;
   StreamSubscription<ServiceStatus>? _serviceStatusStream;
-  
+
   Position? _currentPosition;
-  
-  final double _currentZoom = 17.0; 
-  
+
+  final double _currentZoom = 17.0;
+
   Timer? _updateTimer;
   bool _isUpdatingMarkers = false;
 
   @override
   void initState() {
     super.initState();
-    _freshUserData = widget.userData; 
+    _freshUserData = widget.userData;
     WidgetsBinding.instance.addObserver(this);
-    
+
     _initializeTts();
-    _listenToServiceStatus(); 
-    _fetchFreshUserData(); 
-    
+    _listenToServiceStatus();
+    _fetchFreshUserData();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeLocationTracking();
     });
@@ -74,7 +75,10 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   Future<void> _fetchFreshUserData() async {
     try {
-      final freshData = await databaseService.getUserDataByRole(widget.userId, 'partially_sighted');
+      final freshData = await databaseService.getUserDataByRole(
+        widget.userId,
+        'partially_sighted',
+      );
       if (freshData != null && mounted) {
         setState(() {
           _freshUserData = freshData;
@@ -100,7 +104,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _flutterTts.stop(); 
+    _flutterTts.stop();
     _serviceStatusStream?.cancel();
     _positionStreamSubscription?.cancel();
     _updateTimer?.cancel();
@@ -118,13 +122,15 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   }
 
   void _listenToServiceStatus() {
-    _serviceStatusStream = Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
+    _serviceStatusStream = Geolocator.getServiceStatusStream().listen((
+      ServiceStatus status,
+    ) {
       if (status == ServiceStatus.enabled) {
         if (!_isTrackingActive && !_isInitializing) {
           if (mounted) {
             setState(() {
-               _isLoading = true;
-               _permissionDenied = false;
+              _isLoading = true;
+              _permissionDenied = false;
             });
           }
           _initializeLocationTracking();
@@ -133,7 +139,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     });
   }
 
- Future<void> _initializeLocationTracking() async {
+  Future<void> _initializeLocationTracking() async {
     if (_isTrackingActive || _isInitializing) return;
     _isInitializing = true;
 
@@ -144,42 +150,65 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     });
 
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled()
-          .timeout(const Duration(seconds: 2));
-          
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled().timeout(
+        const Duration(seconds: 2),
+      );
+
       if (!serviceEnabled) {
-        if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _permissionDenied = true;
+          });
+        }
         return;
       }
 
       LocationPermission permission = await Geolocator.checkPermission()
           .timeout(const Duration(seconds: 2));
-          
+
       if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission()
-            .timeout(const Duration(seconds: 5));
-            
-        if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-          if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
+        permission = await Geolocator.requestPermission().timeout(
+          const Duration(seconds: 5),
+        );
+
+        if (permission == LocationPermission.denied ||
+            permission == LocationPermission.deniedForever) {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+              _permissionDenied = true;
+            });
+          }
           return;
         }
         await Future.delayed(const Duration(seconds: 1));
       } else if (permission == LocationPermission.deniedForever) {
-        if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _permissionDenied = true;
+          });
+        }
         return;
       }
 
       await _startLocationTracking();
     } catch (e) {
       debugPrint('Error initializing location: $e');
-      if (mounted) setState(() { _isLoading = false; _permissionDenied = true; });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _permissionDenied = true;
+        });
+      }
     } finally {
       _isInitializing = false;
     }
   }
 
   Future<void> _startLocationTracking() async {
-    _isTrackingActive = true; 
+    _isTrackingActive = true;
 
     Timer(const Duration(seconds: 5), () {
       if (mounted && _isLoading) {
@@ -189,65 +218,73 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
     try {
       Position? startPosition;
-      
+
       try {
-        startPosition = await Geolocator.getLastKnownPosition().timeout(const Duration(seconds: 1));
+        startPosition = await Geolocator.getLastKnownPosition().timeout(
+          const Duration(seconds: 1),
+        );
       } catch (_) {}
-      
+
       if (startPosition == null) {
         try {
           startPosition = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(accuracy: LocationAccuracy.low),
-          ).timeout(const Duration(seconds: 3)); 
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.low,
+            ),
+          ).timeout(const Duration(seconds: 3));
         } catch (_) {}
       }
 
       if (mounted) {
         setState(() {
           if (startPosition != null) _currentPosition = startPosition;
-          _isLoading = false; 
+          _isLoading = false;
           _permissionDenied = false;
         });
 
         if (startPosition != null && _isMapReady) {
           await _updateMapMarker();
-          await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-             LatLng(startPosition.latitude, startPosition.longitude), _currentZoom
-          ));
-          _updateFirebaseLocation(startPosition); 
+          await _mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(startPosition.latitude, startPosition.longitude),
+              _currentZoom,
+            ),
+          );
+          _updateFirebaseLocation(startPosition);
         }
       }
 
       _positionStreamSubscription?.cancel();
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.bestForNavigation,
-          distanceFilter: 2, 
-        ),
-      ).listen(
-        (Position position) async {
-          if (!mounted) return;
-          
-          bool wasNull = _currentPosition == null; 
-          
-          setState(() {
-            _currentPosition = position;
-            _isLoading = false; 
-          });
+      _positionStreamSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.bestForNavigation,
+              distanceFilter: 2,
+            ),
+          ).listen((Position position) async {
+            if (!mounted) return;
 
-          if (_isMapReady) {
-            await _updateMapMarker();
-            
-            if (wasNull) {
-              await _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-                LatLng(position.latitude, position.longitude), _currentZoom
-              ));
+            bool wasNull = _currentPosition == null;
+
+            setState(() {
+              _currentPosition = position;
+              _isLoading = false;
+            });
+
+            if (_isMapReady) {
+              await _updateMapMarker();
+
+              if (wasNull) {
+                await _mapController?.animateCamera(
+                  CameraUpdate.newLatLngZoom(
+                    LatLng(position.latitude, position.longitude),
+                    _currentZoom,
+                  ),
+                );
+              }
             }
-          }
-          _updateFirebaseLocation(position);
-        },
-        onError: (error) => debugPrint('Position stream error: $error'),
-      );
+            _updateFirebaseLocation(position);
+          }, onError: (error) => debugPrint('Position stream error: $error'));
 
       _updateTimer?.cancel();
       _updateTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
@@ -255,35 +292,50 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
           _updateFirebaseLocation(_currentPosition!);
         }
       });
-
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _updateMapMarker() async {
-    if (!_isMapReady || _currentPosition == null || !mounted || _isUpdatingMarkers) return;
+    if (!_isMapReady ||
+        _currentPosition == null ||
+        !mounted ||
+        _isUpdatingMarkers) {
+      return;
+    }
     _isUpdatingMarkers = true;
 
     try {
       Set<Marker> newMarkers = {};
 
-      final userLatLng = LatLng(_currentPosition!.latitude, _currentPosition!.longitude);
-      
-      final String? userImageUrl = _extractImageUrl(_freshUserData ?? widget.userData);
-      final String userName = (_freshUserData?['name'] as String?)?.trim() ?? 'You';
+      final userLatLng = LatLng(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+      );
+
+      final String? userImageUrl = _extractImageUrl(
+        _freshUserData ?? widget.userData,
+      );
+      final String userName =
+          (_freshUserData?['name'] as String?)?.trim() ?? 'You';
 
       final userMarkerBytes = await MapMarkerHelper.createProfileMarker(
-        imageUrl: userImageUrl, name: userName, borderColor: primary, size: 35.0,
+        imageUrl: userImageUrl,
+        name: userName,
+        borderColor: primary,
+        size: 35.0,
       );
 
       if (userMarkerBytes != null) {
-        newMarkers.add(Marker(
-          markerId: const MarkerId('user_marker'),
-          position: userLatLng,
-          icon: BitmapDescriptor.bytes(userMarkerBytes),
-          zIndexInt: 2, 
-        ));
+        newMarkers.add(
+          Marker(
+            markerId: const MarkerId('user_marker'),
+            position: userLatLng,
+            icon: BitmapDescriptor.bytes(userMarkerBytes),
+            zIndexInt: 2,
+          ),
+        );
       }
 
       if (mounted) {
@@ -297,7 +349,14 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   }
 
   String? _extractImageUrl(Map<String, dynamic> data) {
-    const possibleKeys = ['profileImageUrl', 'profileImage', 'imageUrl', 'photoUrl', 'avatarUrl', 'photo'];
+    const possibleKeys = [
+      'profileImageUrl',
+      'profileImage',
+      'imageUrl',
+      'photoUrl',
+      'avatarUrl',
+      'photo',
+    ];
     for (final key in possibleKeys) {
       final val = data[key];
       if (val is String && val.trim().isNotEmpty) return val.trim();
@@ -308,8 +367,13 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   Future<void> _updateFirebaseLocation(Position position) async {
     try {
       await locationTrackingService.updatePatientLocation(
-        patientId: widget.userId, latitude: position.latitude, longitude: position.longitude,
-        accuracy: position.accuracy, altitude: position.altitude, speed: position.speed, heading: position.heading,
+        patientId: widget.userId,
+        latitude: position.latitude,
+        longitude: position.longitude,
+        accuracy: position.accuracy,
+        altitude: position.altitude,
+        speed: position.speed,
+        heading: position.heading,
       );
     } catch (_) {}
   }
@@ -317,9 +381,12 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   Future<void> _centerOnMyLocation() async {
     await _flutterTts.speak('Centering map on your location.');
     if (_currentPosition != null && _mapController != null) {
-      await _mapController!.animateCamera(CameraUpdate.newLatLngZoom(
-        LatLng(_currentPosition!.latitude, _currentPosition!.longitude), _currentZoom
-      ));
+      await _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(
+          LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+          _currentZoom,
+        ),
+      );
     }
   }
 
@@ -328,36 +395,52 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
       await _flutterTts.speak('Scanning for GPS signal. Please wait.');
       return;
     }
-    
+
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(_currentPosition!.latitude, _currentPosition!.longitude);
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        _currentPosition!.latitude,
+        _currentPosition!.longitude,
+      );
       String locationSpeech = "I cannot determine your exact street name.";
 
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks.first;
         List<String> addressParts = [];
-        
-        if (place.name != null && place.name!.isNotEmpty && !place.name!.contains('+')) {
+
+        if (place.name != null &&
+            place.name!.isNotEmpty &&
+            !place.name!.contains('+')) {
           addressParts.add(place.name!);
-        } else if (place.street != null && place.street!.isNotEmpty && !place.street!.contains('+')) {
+        } else if (place.street != null &&
+            place.street!.isNotEmpty &&
+            !place.street!.contains('+')) {
           addressParts.add(place.street!);
         }
-        
-        if (place.subLocality != null && place.subLocality!.isNotEmpty) addressParts.add(place.subLocality!);
-        if (place.locality != null && place.locality!.isNotEmpty) addressParts.add(place.locality!);
-        if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) addressParts.add(place.administrativeArea!);
+
+        if (place.subLocality != null && place.subLocality!.isNotEmpty) {
+          addressParts.add(place.subLocality!);
+        }
+        if (place.locality != null && place.locality!.isNotEmpty) {
+          addressParts.add(place.locality!);
+        }
+        if (place.administrativeArea != null &&
+            place.administrativeArea!.isNotEmpty) {
+          addressParts.add(place.administrativeArea!);
+        }
 
         if (addressParts.isNotEmpty) {
-          locationSpeech = 'You are currently located near ${addressParts.join(', ')}.';
+          locationSpeech =
+              'You are currently located near ${addressParts.join(', ')}.';
         } else {
           locationSpeech = 'You are in ${place.locality ?? 'an unknown area'}.';
         }
       }
 
       await _flutterTts.speak(locationSpeech);
-      
     } catch (_) {
-      await _flutterTts.speak('Your GPS coordinates are active, but I cannot read the street name right now.');
+      await _flutterTts.speak(
+        'Your GPS coordinates are active, but I cannot read the street name right now.',
+      );
     }
   }
 
@@ -366,38 +449,57 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     Widget mapStack = Stack(
       children: [
         if (!_permissionDenied) _buildMapView(),
-        if (_isLoading) _buildLoadingOverlay()
-        else if (_permissionDenied) _buildPermissionDeniedState(),
+        if (_isLoading)
+          _buildLoadingOverlay()
+        else if (_permissionDenied)
+          _buildPermissionDeniedState(),
         if (!_permissionDenied && !_isLoading) _buildControlButtons(),
-        
+
         if (widget.isFullScreen)
-          Positioned(top: MediaQuery.of(context).padding.top + 16, left: 16, child: _buildBackButton()),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 16,
+            left: 16,
+            child: _buildBackButton(),
+          ),
       ],
     );
 
     if (widget.isFullScreen) {
-      return Scaffold(backgroundColor: widget.isDarkMode ? const Color(0xFF0A0E27) : Colors.white, body: mapStack);
+      return Scaffold(
+        backgroundColor: widget.isDarkMode
+            ? const Color(0xFF0A0E27)
+            : Colors.white,
+        body: mapStack,
+      );
     }
 
     return Semantics(
       label: 'Your current location map',
       child: Container(
-        height: 280, 
+        height: 280,
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: widget.isDarkMode ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20, offset: const Offset(0, 6),
+              color: widget.isDarkMode
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
             ),
           ],
           border: Border.all(
-            color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05),
+            color: widget.isDarkMode
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.05),
             width: 1,
           ),
         ),
-        child: ClipRRect(borderRadius: BorderRadius.circular(24), child: mapStack),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: mapStack,
+        ),
       ),
     );
   }
@@ -405,18 +507,33 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   Widget _buildBackButton() {
     return Container(
       decoration: BoxDecoration(
-        color: widget.isDarkMode ? const Color(0xFF1A1F3A).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9),
+        color: widget.isDarkMode
+            ? const Color(0xFF1A1F3A).withValues(alpha: 0.85)
+            : Colors.white.withValues(alpha: 0.9),
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: IconButton(icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor), onPressed: () => Navigator.pop(context)),
+      child: IconButton(
+        icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
+        onPressed: () => Navigator.pop(context),
+      ),
     );
   }
 
   // === UPDATED SKELETON LOADING OVERLAY ===
   Widget _buildLoadingOverlay() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Positioned.fill(
       child: Shimmer.fromColors(
@@ -424,7 +541,7 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
         highlightColor: highlightColor,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white, 
+            color: Colors.white,
             borderRadius: BorderRadius.circular(24),
           ),
         ),
@@ -434,23 +551,47 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   Widget _buildPermissionDeniedState() {
     return Container(
-      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : const Color(0xFFF4F4F5),
+      color: widget.isDarkMode
+          ? const Color(0xFF1A1F3A)
+          : const Color(0xFFF4F4F5),
       padding: const EdgeInsets.all(spacingLarge),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.location_off_rounded, size: 42, color: widget.theme.subtextColor.withOpacity(0.5)),
+            Icon(
+              Icons.location_off_rounded,
+              size: 42,
+              color: widget.theme.subtextColor.withOpacity(0.5),
+            ),
             const SizedBox(height: spacingMedium),
-            Text('Location Access Denied', style: bodyBold.copyWith(color: widget.theme.textColor, fontSize: 16), textAlign: TextAlign.center),
+            Text(
+              'Location Access Denied',
+              style: bodyBold.copyWith(
+                color: widget.theme.textColor,
+                fontSize: 16,
+              ),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: spacingMedium),
             ElevatedButton(
               onPressed: () async {
-                setState(() { _isLoading = true; _permissionDenied = false; });
+                setState(() {
+                  _isLoading = true;
+                  _permissionDenied = false;
+                });
                 await _initializeLocationTracking();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: Text('Enable', style: bodyBold.copyWith(color: Colors.white, fontSize: 14)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Enable',
+                style: bodyBold.copyWith(color: Colors.white, fontSize: 14),
+              ),
             ),
           ],
         ),
@@ -461,20 +602,23 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
   Widget _buildMapView() {
     return GoogleMap(
       initialCameraPosition: const CameraPosition(
-        target: LatLng(14.3167, 120.7667), 
+        target: LatLng(14.3167, 120.7667),
         zoom: 16.0,
       ),
       onMapCreated: (controller) {
         _mapController = controller;
         setState(() => _isMapReady = true);
         if (_currentPosition != null) {
-          _mapController?.animateCamera(CameraUpdate.newLatLngZoom(
-            LatLng(_currentPosition!.latitude, _currentPosition!.longitude), _currentZoom
-          ));
+          _mapController?.animateCamera(
+            CameraUpdate.newLatLngZoom(
+              LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+              _currentZoom,
+            ),
+          );
         }
       },
       markers: _markers,
-      myLocationEnabled: false, 
+      myLocationEnabled: false,
       myLocationButtonEnabled: false,
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
@@ -484,41 +628,79 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
 
   Widget _buildControlButtons() {
     return Positioned(
-      right: 12, bottom: widget.isFullScreen ? 24 : 12, 
+      right: 12,
+      bottom: widget.isFullScreen ? 24 : 12,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 16, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), 
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
             child: Container(
               decoration: BoxDecoration(
-                color: widget.isDarkMode ? const Color(0xFF1A1F3A).withValues(alpha: 0.85) : Colors.white.withValues(alpha: 0.9), 
+                color: widget.isDarkMode
+                    ? const Color(0xFF1A1F3A).withValues(alpha: 0.85)
+                    : Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.05), width: 1),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildMapAction(icon: Icons.my_location_rounded, onTap: _centerOnMyLocation, tooltip: 'Center on my location', color: primary),
-                  _buildDivider(),
-                  _buildMapAction(icon: Icons.volume_up_rounded, onTap: _announceCurrentLocationAndContext, tooltip: 'Read current address', color: const Color(0xFF8B5CF6)),
+                  _buildMapAction(
+                    icon: Icons.my_location_rounded,
+                    onTap: _centerOnMyLocation,
+                    tooltip: 'Center on my location',
+                    color: primary,
+                  ),
                   _buildDivider(),
                   _buildMapAction(
-                    icon: widget.isFullScreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded, 
+                    icon: Icons.volume_up_rounded,
+                    onTap: _announceCurrentLocationAndContext,
+                    tooltip: 'Read current address',
+                    color: const Color(0xFF8B5CF6),
+                  ),
+                  _buildDivider(),
+                  _buildMapAction(
+                    icon: widget.isFullScreen
+                        ? Icons.fullscreen_exit_rounded
+                        : Icons.fullscreen_rounded,
                     onTap: () {
                       if (widget.isFullScreen) {
-                        Navigator.pop(context); 
+                        Navigator.pop(context);
                       } else {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => LocationMapWidget(
-                          isDarkMode: widget.isDarkMode, theme: widget.theme, userId: widget.userId, userData: widget.userData, isFullScreen: true, 
-                        )));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LocationMapWidget(
+                              isDarkMode: widget.isDarkMode,
+                              theme: widget.theme,
+                              userId: widget.userId,
+                              userData: widget.userData,
+                              isFullScreen: true,
+                            ),
+                          ),
+                        );
                       }
                     },
-                    tooltip: widget.isFullScreen ? 'Minimize map' : 'Expand map', color: const Color(0xFF8B5CF6), 
+                    tooltip: widget.isFullScreen
+                        ? 'Minimize map'
+                        : 'Expand map',
+                    color: const Color(0xFF8B5CF6),
                   ),
                 ],
               ),
@@ -529,16 +711,36 @@ class _LocationMapWidgetState extends State<LocationMapWidget> with WidgetsBindi
     );
   }
 
-  Widget _buildDivider() => Container(height: 1, width: 36, color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.2));
+  Widget _buildDivider() => Container(
+    height: 1,
+    width: 36,
+    color: widget.isDarkMode
+        ? Colors.white.withValues(alpha: 0.1)
+        : Colors.grey.withValues(alpha: 0.2),
+  );
 
-  Widget _buildMapAction({required IconData icon, required VoidCallback onTap, required String tooltip, required Color color}) {
+  Widget _buildMapAction({
+    required IconData icon,
+    required VoidCallback onTap,
+    required String tooltip,
+    required Color color,
+  }) {
     return Semantics(
-      label: tooltip, button: true,
+      label: tooltip,
+      button: true,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap, splashColor: color.withValues(alpha: 0.1), highlightColor: Colors.transparent,
-          child: Padding(padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 14.0), child: Icon(icon, color: color, size: 24)),
+          onTap: onTap,
+          splashColor: color.withValues(alpha: 0.1),
+          highlightColor: Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14.0,
+              vertical: 14.0,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
         ),
       ),
     );

@@ -1,8 +1,8 @@
 // File: lib/roles/caretaker/home/sections/profile_screen/caretaker_profile_content.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_tts/flutter_tts.dart'; 
-import 'package:shimmer/shimmer.dart'; 
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/firebase/auth_service.dart';
 import 'package:seelai_app/firebase/database_service.dart';
 import 'package:intl/intl.dart';
@@ -30,23 +30,23 @@ class ProfileContent extends StatefulWidget {
 class _ProfileContentState extends State<ProfileContent> {
   late Map<String, dynamic> _userData;
   bool _isLoading = false;
-  
+
   bool _isSimulatingLoad = true;
-  
+
   final FlutterTts _flutterTts = FlutterTts();
 
-  final Color _colVerifications = const Color(0xFF3B82F6); 
-  final Color _colTracking = const Color(0xFF8B5CF6);      
-  final Color _colSafety = const Color(0xFFEF4444);        
-  final Color _colSupport = const Color(0xFF06B6D4);       
+  final Color _colVerifications = const Color(0xFF3B82F6);
+  final Color _colTracking = const Color(0xFF8B5CF6);
+  final Color _colSafety = const Color(0xFFEF4444);
+  final Color _colSupport = const Color(0xFF06B6D4);
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
   void initState() {
     super.initState();
     _userData = Map<String, dynamic>.from(widget.userData);
-    _initTts(); 
-    
+    _initTts();
+
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
@@ -57,7 +57,7 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("en-US"); 
+    await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -65,7 +65,7 @@ class _ProfileContentState extends State<ProfileContent> {
 
   @override
   void dispose() {
-    _flutterTts.stop(); 
+    _flutterTts.stop();
     super.dispose();
   }
 
@@ -94,14 +94,23 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   Widget _buildSkeletonProfile() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Padding(
-        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
+        padding: const EdgeInsets.only(
+          left: 20.0,
+          right: 20.0,
+          top: 24.0,
+          bottom: 120.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -110,7 +119,14 @@ class _ProfileContentState extends State<ProfileContent> {
             Center(
               child: Column(
                 children: [
-                  Container(width: 100, height: 100, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Container(width: 150, height: 24, color: Colors.white),
                 ],
@@ -119,11 +135,23 @@ class _ProfileContentState extends State<ProfileContent> {
             const SizedBox(height: 32),
             Container(width: 150, height: 14, color: Colors.white),
             const SizedBox(height: 8),
-            Container(height: 250, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 250,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
             const SizedBox(height: 24),
             Container(width: 150, height: 14, color: Colors.white),
             const SizedBox(height: 8),
-            Container(height: 150, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ],
         ),
       ),
@@ -137,24 +165,29 @@ class _ProfileContentState extends State<ProfileContent> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
+      padding: const EdgeInsets.only(
+        left: 20.0,
+        right: 20.0,
+        top: 24.0,
+        bottom: 120.0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Profile & Settings',
-           style: TextStyle(
-            fontSize: 30,
-            fontWeight: FontWeight.w900,
-            color: widget.theme.textColor,
-            letterSpacing: -0.5,
-          ),
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+              color: widget.theme.textColor,
+              letterSpacing: -0.5,
+            ),
           ),
           const SizedBox(height: 32),
 
           _buildCenteredProfileImage(),
           const SizedBox(height: 32),
-          
+
           _buildSettingsGroup(
             title: 'Personal Information',
             children: [
@@ -168,14 +201,17 @@ class _ProfileContentState extends State<ProfileContent> {
                 title: 'Phone Number',
                 icon: Icons.phone_outlined,
                 iconColor: _colVerifications,
-                value: _userData['phone'] ?? _userData['contactNumber'] ?? 'Not provided',
+                value:
+                    _userData['phone'] ??
+                    _userData['contactNumber'] ??
+                    'Not provided',
               ),
               _buildSettingsTile(
                 title: 'Relationship',
                 icon: Icons.people_outline_rounded,
                 iconColor: _colVerifications,
-                value: _userData['relationship']?.toString().isNotEmpty == true 
-                    ? _userData['relationship'] 
+                value: _userData['relationship']?.toString().isNotEmpty == true
+                    ? _userData['relationship']
                     : 'Not specified',
                 isLast: true,
               ),
@@ -238,16 +274,16 @@ class _ProfileContentState extends State<ProfileContent> {
                 onTap: _showHowToUseDialog,
               ),
               _buildSettingsTile(
-                title: 'About Seelai', 
+                title: 'About Seelai',
                 icon: Icons.info_outline_rounded,
                 iconColor: _colSupport,
-                onTap: _showAboutDialog, 
+                onTap: _showAboutDialog,
               ),
               _buildSettingsTile(
                 title: 'Privacy Policy',
                 icon: Icons.privacy_tip_outlined,
                 iconColor: _colSupport,
-                onTap: _showPrivacyDialog, 
+                onTap: _showPrivacyDialog,
                 isLast: true,
               ),
             ],
@@ -274,7 +310,9 @@ class _ProfileContentState extends State<ProfileContent> {
   Widget _buildCenteredProfileImage() {
     final profileUrl = _userData['profileImageUrl'] as String?;
     final name = _userData['name'] ?? 'Caretaker';
-    final initial = name.toString().isNotEmpty ? name.toString()[0].toUpperCase() : '?';
+    final initial = name.toString().isNotEmpty
+        ? name.toString()[0].toUpperCase()
+        : '?';
 
     return Center(
       child: Column(
@@ -332,10 +370,7 @@ class _ProfileContentState extends State<ProfileContent> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            _colVerifications,
-            _colVerifications.withValues(alpha: 0.6),
-          ],
+          colors: [_colVerifications, _colVerifications.withValues(alpha: 0.6)],
         ),
       ),
       child: Center(
@@ -360,7 +395,10 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  Widget _buildSettingsGroup({required String title, required List<Widget> children}) {
+  Widget _buildSettingsGroup({
+    required String title,
+    required List<Widget> children,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Column(
@@ -385,24 +423,28 @@ class _ProfileContentState extends State<ProfileContent> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
               ),
-              boxShadow: widget.isDarkMode 
-                  ? [] 
-                  : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
-            child: Column(
-              children: children,
-            ),
+            child: Column(children: children),
           ),
         ],
       ),
     );
   }
 
- Widget _buildSettingsTile({
+  Widget _buildSettingsTile({
     required String title,
     required IconData icon,
     required Color iconColor,
@@ -411,9 +453,11 @@ class _ProfileContentState extends State<ProfileContent> {
     bool isDestructive = false,
     bool isLast = false,
   }) {
-    final displayIconColor = isDestructive ? _colSafety : widget.theme.textColor;
-    final displayContainerColor = isDestructive 
-        ? _colSafety.withValues(alpha: 0.1) 
+    final displayIconColor = isDestructive
+        ? _colSafety
+        : widget.theme.textColor;
+    final displayContainerColor = isDestructive
+        ? _colSafety.withValues(alpha: 0.1)
         : widget.theme.textColor.withValues(alpha: 0.05);
 
     final textColor = isDestructive ? _colSafety : widget.theme.textColor;
@@ -422,13 +466,16 @@ class _ProfileContentState extends State<ProfileContent> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: isLast 
-            ? const BorderRadius.vertical(bottom: Radius.circular(16)) 
+        borderRadius: isLast
+            ? const BorderRadius.vertical(bottom: Radius.circular(16))
             : null,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 14.0,
+              ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
@@ -441,7 +488,7 @@ class _ProfileContentState extends State<ProfileContent> {
                     child: Icon(icon, size: 20, color: displayIconColor),
                   ),
                   const SizedBox(width: 16),
-                  
+
                   Expanded(
                     flex: 3,
                     child: Text(
@@ -453,15 +500,15 @@ class _ProfileContentState extends State<ProfileContent> {
                       ),
                     ),
                   ),
-              
+
                   if (value != null) ...[
                     const SizedBox(width: 16),
                     Expanded(
-                      flex: 4, 
+                      flex: 4,
                       child: Text(
                         value,
                         textAlign: TextAlign.end,
-                        softWrap: true, 
+                        softWrap: true,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -470,14 +517,14 @@ class _ProfileContentState extends State<ProfileContent> {
                       ),
                     ),
                   ],
-                  
+
                   if (onTap != null && value == null) ...[
                     Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
                       color: widget.theme.subtextColor.withOpacity(0.5),
                     ),
-                  ]
+                  ],
                 ],
               ),
             ),
@@ -486,8 +533,8 @@ class _ProfileContentState extends State<ProfileContent> {
                 height: 1,
                 thickness: 1,
                 indent: 56,
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
               ),
           ],
@@ -496,7 +543,10 @@ class _ProfileContentState extends State<ProfileContent> {
     );
   }
 
-  Widget _buildDialogTextField(String label, TextEditingController controller, IconData icon, {
+  Widget _buildDialogTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
     bool isPassword = false,
     TextInputType inputType = TextInputType.text,
     Color? focusColor,
@@ -514,8 +564,13 @@ class _ProfileContentState extends State<ProfileContent> {
           labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
           prefixIcon: Icon(icon, color: widget.theme.subtextColor, size: 22),
           filled: true,
-          fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          fillColor: widget.isDarkMode
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
@@ -548,7 +603,7 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   void _speakMessage(String message) {
-    _flutterTts.speak(message); 
+    _flutterTts.speak(message);
   }
 
   void _showAboutDialog() {
@@ -576,12 +631,18 @@ class _ProfileContentState extends State<ProfileContent> {
   }
 
   void _showEditProfileDialog() {
-    final parentContext = context; 
+    final parentContext = context;
 
     final nameController = TextEditingController(text: _userData['name']);
-    final phoneController = TextEditingController(text: _userData['phone'] ?? _userData['contactNumber']);
-    final relationshipController = TextEditingController(text: _userData['relationship']);
-    final ageController = TextEditingController(text: _userData['age']?.toString() ?? '');
+    final phoneController = TextEditingController(
+      text: _userData['phone'] ?? _userData['contactNumber'],
+    );
+    final relationshipController = TextEditingController(
+      text: _userData['relationship'],
+    );
+    final ageController = TextEditingController(
+      text: _userData['age']?.toString() ?? '',
+    );
     String? selectedSex = _userData['sex'];
 
     showDialog(
@@ -596,9 +657,17 @@ class _ProfileContentState extends State<ProfileContent> {
               decoration: BoxDecoration(
                 color: widget.theme.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? Colors.white10
+                      : Colors.transparent,
+                ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
                 ],
               ),
               child: SingleChildScrollView(
@@ -607,25 +676,54 @@ class _ProfileContentState extends State<ProfileContent> {
                   children: [
                     Text(
                       'Update Profile',
-                      style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                      style: TextStyle(
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Modify your personal and contact details below.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+                      style: TextStyle(
+                        color: widget.theme.subtextColor,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 32),
-                    
-                    _buildDialogTextField('Full Name', nameController, Icons.person_outline, focusColor: _primaryColor),
-                    _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone, focusColor: _primaryColor),
-                    _buildDialogTextField('Relationship', relationshipController, Icons.people_outline, focusColor: _primaryColor),
-                    
+
+                    _buildDialogTextField(
+                      'Full Name',
+                      nameController,
+                      Icons.person_outline,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Phone Number',
+                      phoneController,
+                      Icons.phone_outlined,
+                      inputType: TextInputType.phone,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Relationship',
+                      relationshipController,
+                      Icons.people_outline,
+                      focusColor: _primaryColor,
+                    ),
+
                     Row(
                       children: [
                         Expanded(
                           flex: 1,
-                          child: _buildDialogTextField('Age', ageController, Icons.cake_outlined, inputType: TextInputType.number, focusColor: _primaryColor),
+                          child: _buildDialogTextField(
+                            'Age',
+                            ageController,
+                            Icons.cake_outlined,
+                            inputType: TextInputType.number,
+                            focusColor: _primaryColor,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -635,31 +733,68 @@ class _ProfileContentState extends State<ProfileContent> {
                             child: DropdownButtonFormField<String>(
                               initialValue: selectedSex,
                               dropdownColor: widget.theme.cardColor,
-                              icon: Icon(Icons.arrow_drop_down_rounded, color: widget.theme.subtextColor),
+                              icon: Icon(
+                                Icons.arrow_drop_down_rounded,
+                                color: widget.theme.subtextColor,
+                              ),
                               decoration: InputDecoration(
                                 labelText: 'Gender',
-                                labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
-                                prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor, size: 22),
+                                labelStyle: TextStyle(
+                                  color: widget.theme.subtextColor,
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.wc_outlined,
+                                  color: widget.theme.subtextColor,
+                                  size: 22,
+                                ),
                                 filled: true,
-                                fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                fillColor: widget.isDarkMode
+                                    ? Colors.black.withValues(alpha: 0.2)
+                                    : Colors.grey.shade50,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: widget.isDarkMode
+                                        ? Colors.white10
+                                        : Colors.grey.shade200,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: widget.isDarkMode
+                                        ? Colors.white10
+                                        : Colors.grey.shade200,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(color: _primaryColor, width: 2),
+                                  borderSide: BorderSide(
+                                    color: _primaryColor,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                               items: ['Male', 'Female', 'Not Specified']
-                                  .map((sex) => DropdownMenuItem(value: sex, child: Text(sex, style: TextStyle(color: widget.theme.textColor))))
+                                  .map(
+                                    (sex) => DropdownMenuItem(
+                                      value: sex,
+                                      child: Text(
+                                        sex,
+                                        style: TextStyle(
+                                          color: widget.theme.textColor,
+                                        ),
+                                      ),
+                                    ),
+                                  )
                                   .toList(),
-                              onChanged: (val) => setStateDialog(() => selectedSex = val),
+                              onChanged: (val) =>
+                                  setStateDialog(() => selectedSex = val),
                             ),
                           ),
                         ),
@@ -667,17 +802,25 @@ class _ProfileContentState extends State<ProfileContent> {
                     ),
 
                     const SizedBox(height: 16),
-                    
+
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             onPressed: () => Navigator.pop(dialogContext),
-                            child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -686,46 +829,74 @@ class _ProfileContentState extends State<ProfileContent> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               elevation: widget.isDarkMode ? 0 : 4,
                               shadowColor: _primaryColor.withValues(alpha: 0.4),
                             ),
-                            onPressed: _isLoading ? null : () async {
-                              setStateDialog(() => _isLoading = true);
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    setStateDialog(() => _isLoading = true);
 
-                              try {
-                                await databaseService.updateUserProfile(
-                                  userId: databaseService.currentUserId!,
-                                  role: 'caretaker',
-                                  name: nameController.text.trim(),
-                                  phone: phoneController.text.trim(),
-                                  contactNumber: phoneController.text.trim(),
-                                  relationship: relationshipController.text.trim(),
-                                  age: int.tryParse(ageController.text.trim()),
-                                  sex: selectedSex,
-                                );
+                                    try {
+                                      await databaseService.updateUserProfile(
+                                        userId: databaseService.currentUserId!,
+                                        role: 'caretaker',
+                                        name: nameController.text.trim(),
+                                        phone: phoneController.text.trim(),
+                                        contactNumber: phoneController.text
+                                            .trim(),
+                                        relationship: relationshipController
+                                            .text
+                                            .trim(),
+                                        age: int.tryParse(
+                                          ageController.text.trim(),
+                                        ),
+                                        sex: selectedSex,
+                                      );
 
-                                await _refreshUserData();
+                                      await _refreshUserData();
 
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(dialogContext); 
-                                }
-                                if (mounted) {
-                                  _speakMessage('Profile updated successfully');
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  _speakMessage('Error updating profile: $e');
-                                }
-                              } finally {
-                                if (dialogContext.mounted) {
-                                  setStateDialog(() => _isLoading = false);
-                                }
-                              }
-                            },
+                                      if (dialogContext.mounted) {
+                                        Navigator.pop(dialogContext);
+                                      }
+                                      if (mounted) {
+                                        _speakMessage(
+                                          'Profile updated successfully',
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        _speakMessage(
+                                          'Error updating profile: $e',
+                                        );
+                                      }
+                                    } finally {
+                                      if (dialogContext.mounted) {
+                                        setStateDialog(
+                                          () => _isLoading = false,
+                                        );
+                                      }
+                                    }
+                                  },
                             child: _isLoading
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Save Changes',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -757,9 +928,17 @@ class _ProfileContentState extends State<ProfileContent> {
               decoration: BoxDecoration(
                 color: widget.theme.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? Colors.white10
+                      : Colors.transparent,
+                ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
                 ],
               ),
               child: SingleChildScrollView(
@@ -768,7 +947,11 @@ class _ProfileContentState extends State<ProfileContent> {
                   children: [
                     Text(
                       'Change Password',
-                      style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                      style: TextStyle(
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -778,35 +961,69 @@ class _ProfileContentState extends State<ProfileContent> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline_rounded, color: widget.theme.subtextColor, size: 20),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: widget.theme.subtextColor,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'For security, you will be required to sign in again after changing your password.',
-                              style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, height: 1.4),
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
-                    _buildDialogTextField('Current Password', currentPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
-                    _buildDialogTextField('New Password', newPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
-                    _buildDialogTextField('Confirm Password', confirmPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
-                    
+
+                    _buildDialogTextField(
+                      'Current Password',
+                      currentPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'New Password',
+                      newPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Confirm Password',
+                      confirmPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+
                     const SizedBox(height: 16),
-                    
+
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             onPressed: () => Navigator.pop(builderContext),
-                            child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -815,47 +1032,77 @@ class _ProfileContentState extends State<ProfileContent> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               elevation: widget.isDarkMode ? 0 : 4,
                               shadowColor: _primaryColor.withValues(alpha: 0.4),
                             ),
-                            onPressed: _isLoading ? null : () async {
-                              if (newPassController.text != confirmPassController.text) {
-                                _speakMessage('New passwords do not match');
-                                return;
-                              }
-                              if (newPassController.text.length < 6) {
-                                _speakMessage('Password must be at least 6 characters');
-                                return;
-                              }
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    if (newPassController.text !=
+                                        confirmPassController.text) {
+                                      _speakMessage(
+                                        'New passwords do not match',
+                                      );
+                                      return;
+                                    }
+                                    if (newPassController.text.length < 6) {
+                                      _speakMessage(
+                                        'Password must be at least 6 characters',
+                                      );
+                                      return;
+                                    }
 
-                              setStateDialog(() => _isLoading = true);
-                              try {
-                                await authService.value.resetPasswordFromCurrentPassword(
-                                  email: _userData['email'],
-                                  currentPassword: currentPassController.text,
-                                  newPassword: newPassController.text,
-                                );
-                                
-                                if (builderContext.mounted) {
-                                  Navigator.pop(builderContext);
-                                }
-                                if (mounted) {
-                                  _speakMessage('Password changed successfully');
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  _speakMessage('Failed to change password. Check current password.');
-                                }
-                              } finally {
-                                if (builderContext.mounted) {
-                                  setStateDialog(() => _isLoading = false);
-                                }
-                              }
-                            },
+                                    setStateDialog(() => _isLoading = true);
+                                    try {
+                                      await authService.value
+                                          .resetPasswordFromCurrentPassword(
+                                            email: _userData['email'],
+                                            currentPassword:
+                                                currentPassController.text,
+                                            newPassword: newPassController.text,
+                                          );
+
+                                      if (builderContext.mounted) {
+                                        Navigator.pop(builderContext);
+                                      }
+                                      if (mounted) {
+                                        _speakMessage(
+                                          'Password changed successfully',
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        _speakMessage(
+                                          'Failed to change password. Check current password.',
+                                        );
+                                      }
+                                    } finally {
+                                      if (builderContext.mounted) {
+                                        setStateDialog(
+                                          () => _isLoading = false,
+                                        );
+                                      }
+                                    }
+                                  },
                             child: _isLoading
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Update',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -865,7 +1112,7 @@ class _ProfileContentState extends State<ProfileContent> {
               ),
             ),
           );
-        }
+        },
       ),
     );
   }
@@ -883,9 +1130,15 @@ class _ProfileContentState extends State<ProfileContent> {
           decoration: BoxDecoration(
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+            border: Border.all(
+              color: widget.isDarkMode ? Colors.white10 : Colors.transparent,
+            ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
             ],
           ),
           child: Column(
@@ -893,13 +1146,20 @@ class _ProfileContentState extends State<ProfileContent> {
             children: [
               Text(
                 'Sign Out',
-                style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                style: TextStyle(
+                  color: widget.theme.textColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Are you sure you want to sign out?',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: widget.theme.subtextColor, fontSize: 15),
+                style: TextStyle(
+                  color: widget.theme.subtextColor,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 32),
               Row(
@@ -908,21 +1168,31 @@ class _ProfileContentState extends State<ProfileContent> {
                     child: TextButton(
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(dialogContext),
-                      child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: widget.theme.subtextColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        Navigator.pop(dialogContext); 
-                        await authService.value.signOut(); 
+                        Navigator.pop(dialogContext);
+                        await authService.value.signOut();
                         if (!parentContext.mounted) return;
                         Navigator.of(parentContext).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const OnboardingScreen(),
+                          ),
                           (route) => false,
                         );
                         if (mounted) _speakMessage('Successfully signed out');
@@ -930,11 +1200,19 @@ class _ProfileContentState extends State<ProfileContent> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _colSafety,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: widget.isDarkMode ? 0 : 4,
                         shadowColor: _colSafety.withValues(alpha: 0.4),
                       ),
-                      child: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -969,10 +1247,12 @@ class CaretakerGuideSliderDialog extends StatefulWidget {
   });
 
   @override
-  State<CaretakerGuideSliderDialog> createState() => _CaretakerGuideSliderDialogState();
+  State<CaretakerGuideSliderDialog> createState() =>
+      _CaretakerGuideSliderDialogState();
 }
 
-class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog> {
+class _CaretakerGuideSliderDialogState
+    extends State<CaretakerGuideSliderDialog> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final Color _brandPurple = const Color(0xFF8B5CF6);
@@ -981,67 +1261,77 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic1.png",
       "title": "Role Selection",
-      "description": "Select the Caretaker category to get started."
+      "description": "Select the Caretaker category to get started.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic2.png",
       "title": "Login",
-      "description": "Log in to your existing Seelai account."
+      "description": "Log in to your existing Seelai account.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic3.png",
       "title": "Register",
-      "description": "Fill out your details to create a new account."
+      "description": "Fill out your details to create a new account.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic4.png",
       "title": "Dashboard",
-      "description": "View statistics for Total Registered patients, Pending, In Progress, and Completed tasks."
+      "description":
+          "View statistics for Total Registered patients, Pending, In Progress, and Completed tasks.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic5.png",
       "title": "Assistance & Announcements",
-      "description": "View the partially sighted users you handle and check announcements created by MSWD."
+      "description":
+          "View the partially sighted users you handle and check announcements created by MSWD.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic6.png",
       "title": "Voice Call",
-      "description": "Initiate or receive clear voice calls with your patients."
+      "description":
+          "Initiate or receive clear voice calls with your patients.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic7.png",
       "title": "Video Call",
-      "description": "Connect face-to-face with your patients using the video call feature."
+      "description":
+          "Connect face-to-face with your patients using the video call feature.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic8.png",
       "title": "My Patients",
-      "description": "View your patients' age, category, and address. Easily phone call or message them."
+      "description":
+          "View your patients' age, category, and address. Easily phone call or message them.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic9.png",
       "title": "Patient Profile",
-      "description": "View the complete profile information that was listed when the patient registered."
+      "description":
+          "View the complete profile information that was listed when the patient registered.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic10.png",
       "title": "Location Tracking",
-      "description": "Select a specific patient from your list to view their real-time location."
+      "description":
+          "Select a specific patient from your list to view their real-time location.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic11.png",
       "title": "Route & Distance",
-      "description": "View the profiles of both users and see the exact route or distance between you."
+      "description":
+          "View the profiles of both users and see the exact route or distance between you.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic12.png",
       "title": "Assistance Requests",
-      "description": "Track Pending, Active, History, and Deleted requests along with dashboard statistics."
+      "description":
+          "Track Pending, Active, History, and Deleted requests along with dashboard statistics.",
     },
     {
       "image": "assets/how-to-use-seelai_images/caretaker/pic13.png",
       "title": "Manage Requests",
-      "description": "Review pending requests to decline, accept, or update their status to in-progress or done."
+      "description":
+          "Review pending requests to decline, accept, or update their status to in-progress or done.",
     },
   ];
 
@@ -1078,16 +1368,16 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.85, 
+        height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(32), 
+          borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 40,
               offset: const Offset(0, 20),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -1100,10 +1390,16 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                      color: widget.isDarkMode
+                          ? Colors.white10
+                          : Colors.grey.shade100,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.close_rounded, color: widget.theme.subtextColor, size: 18),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: widget.theme.subtextColor,
+                      size: 18,
+                    ),
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
@@ -1128,31 +1424,42 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
                           child: Container(
                             width: double.infinity,
                             margin: const EdgeInsets.only(bottom: 24),
-                            color: Colors.transparent, 
+                            color: Colors.transparent,
                             child: Padding(
-                              padding: const EdgeInsets.all(8.0), 
+                              padding: const EdgeInsets.all(8.0),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Image.asset(
                                   item['image']!,
-                                  fit: BoxFit.contain, 
+                                  fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Center(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.image_not_supported_rounded, size: 40, color: widget.theme.subtextColor),
+                                          Icon(
+                                            Icons.image_not_supported_rounded,
+                                            size: 40,
+                                            color: widget.theme.subtextColor,
+                                          ),
                                           const SizedBox(height: 12),
                                           Text(
                                             'Image missing:\n${item['image']}',
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 12),
+                                            style: TextStyle(
+                                              color: widget.theme.subtextColor,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
                                             '(Check pubspec.yaml)',
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 10),
+                                            style: TextStyle(
+                                              color: widget.theme.subtextColor,
+                                              fontSize: 10,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -1168,7 +1475,7 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 22,
-                            fontWeight: FontWeight.w800, 
+                            fontWeight: FontWeight.w800,
                             color: widget.theme.textColor,
                             letterSpacing: -0.5,
                           ),
@@ -1182,7 +1489,7 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
                             style: TextStyle(
                               fontSize: 14,
                               color: widget.theme.subtextColor,
-                              height: 1.5, 
+                              height: 1.5,
                             ),
                           ),
                         ),
@@ -1224,23 +1531,24 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
                   ),
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(
-                      _guideData.length,
-                      (index) {
-                        final isActive = _currentPage == index;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                          height: 6,
-                          width: isActive ? 18 : 6,
-                          decoration: BoxDecoration(
-                            color: isActive ? _brandPurple : widget.theme.subtextColor.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        );
-                      },
-                    ),
+                    children: List.generate(_guideData.length, (index) {
+                      final isActive = _currentPage == index;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                        height: 6,
+                        width: isActive ? 18 : 6,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? _brandPurple
+                              : widget.theme.subtextColor.withValues(
+                                  alpha: 0.2,
+                                ),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
                   ),
                   Expanded(
                     child: Align(
@@ -1250,8 +1558,11 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
-                          padding: isLastPage 
-                              ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+                          padding: isLastPage
+                              ? const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                )
                               : const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: _brandPurple,
@@ -1261,22 +1572,22 @@ class _CaretakerGuideSliderDialogState extends State<CaretakerGuideSliderDialog>
                                 color: _brandPurple.withValues(alpha: 0.3),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
-                              )
+                              ),
                             ],
                           ),
                           child: isLastPage
                               ? const Text(
-                                  "Done", 
+                                  "Done",
                                   style: TextStyle(
-                                    color: Colors.white, 
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
                                 )
                               : const Icon(
-                                  Icons.arrow_forward_rounded, 
-                                  color: Colors.white, 
-                                  size: 20
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
                         ),
                       ),

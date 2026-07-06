@@ -18,10 +18,12 @@ class ViNotificationsBottomSheet extends StatefulWidget {
   });
 
   @override
-  State<ViNotificationsBottomSheet> createState() => _ViNotificationsBottomSheetState();
+  State<ViNotificationsBottomSheet> createState() =>
+      _ViNotificationsBottomSheetState();
 }
 
-class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet> {
+class _ViNotificationsBottomSheetState
+    extends State<ViNotificationsBottomSheet> {
   // Cache to hold Caretaker Name and Profile Image
   final Map<String, Map<String, dynamic>?> _caretakerCache = {};
 
@@ -85,29 +87,39 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                     onPressed: () => Navigator.pop(context),
                     tooltip: 'Mark all as read',
                   ),
-                )
+                ),
               ],
             ),
           ),
           const Divider(height: 1),
-          
+
           // Notifications Stream
           Expanded(
             child: StreamBuilder<List<RequestModel>>(
-              stream: widget.requestService.streamPatientRequests(widget.userId),
+              stream: widget.requestService.streamPatientRequests(
+                widget.userId,
+              ),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                if (snapshot.connectionState == ConnectionState.waiting &&
+                    !snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error loading notifications.', style: TextStyle(color: subTextColor)));
+                  return Center(
+                    child: Text(
+                      'Error loading notifications.',
+                      style: TextStyle(color: subTextColor),
+                    ),
+                  );
                 }
 
                 final requests = snapshot.data ?? [];
-                
+
                 // Filter out 'pending' requests (since those are sent BY the patient, not notifications TO them)
-                final notifications = requests.where((r) => r.status != RequestStatus.pending).toList();
+                final notifications = requests
+                    .where((r) => r.status != RequestStatus.pending)
+                    .toList();
 
                 if (notifications.isEmpty) {
                   return Center(
@@ -116,9 +128,16 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.notifications_off_outlined, size: 60, color: subTextColor.withValues(alpha: 0.5)),
+                          Icon(
+                            Icons.notifications_off_outlined,
+                            size: 60,
+                            color: subTextColor.withValues(alpha: 0.5),
+                          ),
                           const SizedBox(height: 16),
-                          Text("No notifications yet", style: TextStyle(color: subTextColor, fontSize: 16)),
+                          Text(
+                            "No notifications yet",
+                            style: TextStyle(color: subTextColor, fontSize: 16),
+                          ),
                         ],
                       ),
                     ),
@@ -129,8 +148,11 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
 
                 // Categorize into "New" and "Earlier"
                 final newNotifications = notifications.where((r) {
-                  if (r.status == RequestStatus.accepted || r.status == RequestStatus.inProgress) return true;
-                  
+                  if (r.status == RequestStatus.accepted ||
+                      r.status == RequestStatus.inProgress) {
+                    return true;
+                  }
+
                   // Show declined as 'New' if it happened within the last 24 hours
                   if (r.status == RequestStatus.declined) {
                     final time = r.responseTime ?? r.timestamp;
@@ -139,11 +161,21 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                   return false;
                 }).toList();
 
-                final earlierNotifications = notifications.where((r) => !newNotifications.contains(r)).toList();
+                final earlierNotifications = notifications
+                    .where((r) => !newNotifications.contains(r))
+                    .toList();
 
                 // Sort both by response timestamp (newest first)
-                newNotifications.sort((a, b) => (b.responseTime ?? b.timestamp).compareTo(a.responseTime ?? a.timestamp));
-                earlierNotifications.sort((a, b) => (b.responseTime ?? b.timestamp).compareTo(a.responseTime ?? a.timestamp));
+                newNotifications.sort(
+                  (a, b) => (b.responseTime ?? b.timestamp).compareTo(
+                    a.responseTime ?? a.timestamp,
+                  ),
+                );
+                earlierNotifications.sort(
+                  (a, b) => (b.responseTime ?? b.timestamp).compareTo(
+                    a.responseTime ?? a.timestamp,
+                  ),
+                );
 
                 // Preload caretaker images and names
                 for (var req in notifications) {
@@ -155,12 +187,28 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                   children: [
                     if (newNotifications.isNotEmpty) ...[
                       _buildSectionHeader('New', textColor),
-                      ...newNotifications.map((req) => _buildNotificationTile(req, isNew: true, textColor: textColor, subTextColor: subTextColor)),
+                      ...newNotifications.map(
+                        (req) => _buildNotificationTile(
+                          req,
+                          isNew: true,
+                          textColor: textColor,
+                          subTextColor: subTextColor,
+                        ),
+                      ),
                     ],
                     if (earlierNotifications.isNotEmpty) ...[
                       if (newNotifications.isNotEmpty) const Divider(height: 1),
                       _buildSectionHeader('Earlier', textColor),
-                      ...earlierNotifications.take(20).map((req) => _buildNotificationTile(req, isNew: false, textColor: textColor, subTextColor: subTextColor)),
+                      ...earlierNotifications
+                          .take(20)
+                          .map(
+                            (req) => _buildNotificationTile(
+                              req,
+                              isNew: false,
+                              textColor: textColor,
+                              subTextColor: subTextColor,
+                            ),
+                          ),
                     ],
                   ],
                 );
@@ -189,19 +237,26 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
     );
   }
 
-  Widget _buildNotificationTile(RequestModel request, {required bool isNew, required Color textColor, required Color subTextColor}) {
+  Widget _buildNotificationTile(
+    RequestModel request, {
+    required bool isNew,
+    required Color textColor,
+    required Color subTextColor,
+  }) {
     // 1. Extract Caretaker Data securely
     String caretakerName = 'A caretaker';
     String? profileUrl;
-    
-    if (request.caretakerId != null && _caretakerCache.containsKey(request.caretakerId)) {
-      caretakerName = _caretakerCache[request.caretakerId]?['name'] ?? 'A caretaker';
+
+    if (request.caretakerId != null &&
+        _caretakerCache.containsKey(request.caretakerId)) {
+      caretakerName =
+          _caretakerCache[request.caretakerId]?['name'] ?? 'A caretaker';
       profileUrl = _caretakerCache[request.caretakerId]?['profileImageUrl'];
     }
 
     // 2. Format Action Text Based on Status
     String actionText = '';
-    switch(request.status) {
+    switch (request.status) {
       case RequestStatus.accepted:
         actionText = 'accepted your request for';
         break;
@@ -219,10 +274,13 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
     }
 
     final timeAgo = _getTimeAgo(request.responseTime ?? request.timestamp);
-    final unreadBgColor = widget.isDarkMode ? Colors.blueAccent.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.05);
+    final unreadBgColor = widget.isDarkMode
+        ? Colors.blueAccent.withValues(alpha: 0.1)
+        : Colors.blue.withValues(alpha: 0.05);
 
     return Semantics(
-      label: 'Notification: $caretakerName $actionText ${request.requestType}. $timeAgo.',
+      label:
+          'Notification: $caretakerName $actionText ${request.requestType}. $timeAgo.',
       button: true,
       child: InkWell(
         onTap: () {
@@ -242,8 +300,17 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                     CircleAvatar(
                       radius: 28,
                       backgroundColor: Colors.grey[300],
-                      backgroundImage: profileUrl != null && profileUrl.isNotEmpty ? NetworkImage(profileUrl) : null,
-                      child: (profileUrl == null || profileUrl.isEmpty) ? Icon(Icons.person, color: Colors.grey[600], size: 30) : null,
+                      backgroundImage:
+                          profileUrl != null && profileUrl.isNotEmpty
+                          ? NetworkImage(profileUrl)
+                          : null,
+                      child: (profileUrl == null || profileUrl.isEmpty)
+                          ? Icon(
+                              Icons.person,
+                              color: Colors.grey[600],
+                              size: 30,
+                            )
+                          : null,
                     ),
                     Positioned(
                       bottom: -2,
@@ -254,20 +321,28 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                           color: request.getPriorityColor(),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isNew 
-                              ? (widget.isDarkMode ? const Color(0xFF1A1A2E) : const Color(0xFFF0F8FF))
-                              : (widget.isDarkMode ? const Color(0xFF121212) : Colors.white), 
-                            width: 2
+                            color: isNew
+                                ? (widget.isDarkMode
+                                      ? const Color(0xFF1A1A2E)
+                                      : const Color(0xFFF0F8FF))
+                                : (widget.isDarkMode
+                                      ? const Color(0xFF121212)
+                                      : Colors.white),
+                            width: 2,
                           ),
                         ),
-                        child: Icon(request.getIcon(), size: 12, color: Colors.white),
+                        child: Icon(
+                          request.getIcon(),
+                          size: 12,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
-              
+
               // Notification Body
               Expanded(
                 child: Column(
@@ -276,16 +351,24 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                     ExcludeSemantics(
                       child: RichText(
                         text: TextSpan(
-                          style: TextStyle(fontSize: 14, color: textColor, height: 1.4),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: textColor,
+                            height: 1.4,
+                          ),
                           children: [
                             TextSpan(
                               text: '$caretakerName ',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             TextSpan(text: '$actionText '),
                             TextSpan(
                               text: '${request.requestType}.',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ],
                         ),
@@ -298,14 +381,16 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
                         style: TextStyle(
                           fontSize: 13,
                           color: isNew ? Colors.blue : subTextColor,
-                          fontWeight: isNew ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isNew
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              
+
               // Unread Indicator Dot
               if (isNew)
                 ExcludeSemantics(
@@ -336,6 +421,6 @@ class _ViNotificationsBottomSheetState extends State<ViNotificationsBottomSheet>
     if (difference.inMinutes < 60) return '${difference.inMinutes}m';
     if (difference.inHours < 24) return '${difference.inHours}h';
     if (difference.inDays < 7) return '${difference.inDays}d';
-    return '${difference.inDays ~/ 7}w'; 
+    return '${difference.inDays ~/ 7}w';
   }
 }

@@ -23,7 +23,7 @@ class LocationSection extends StatelessWidget {
     if (userId.isEmpty) {
       return _buildLocationUnavailable();
     }
-    
+
     return _buildLocationSection();
   }
 
@@ -34,8 +34,8 @@ class LocationSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(radiusXLarge),
         boxShadow: isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -92,8 +92,8 @@ class LocationSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(radiusXLarge),
         boxShadow: isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -106,27 +106,17 @@ class LocationSection extends StatelessWidget {
               color: error.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.location_off_rounded,
-              size: 48,
-              color: error,
-            ),
+            child: Icon(Icons.location_off_rounded, size: 48, color: error),
           ),
           SizedBox(height: spacingLarge),
           Text(
             'Location Unavailable',
-            style: bodyBold.copyWith(
-              fontSize: 16,
-              color: theme.textColor,
-            ),
+            style: bodyBold.copyWith(fontSize: 16, color: theme.textColor),
           ),
           SizedBox(height: spacingSmall),
           Text(
             'Please log in to use location tracking',
-            style: body.copyWith(
-              fontSize: 13,
-              color: theme.subtextColor,
-            ),
+            style: body.copyWith(fontSize: 13, color: theme.subtextColor),
             textAlign: TextAlign.center,
           ),
         ],

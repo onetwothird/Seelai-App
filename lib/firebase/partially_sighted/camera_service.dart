@@ -15,16 +15,16 @@ class CameraService {
         debugPrint('No cameras available');
         return false;
       }
-      
+
       _controller = CameraController(
         cameras[0],
-        ResolutionPreset.high, 
+        ResolutionPreset.high,
         enableAudio: false,
       );
-      
+
       await _controller!.initialize();
       _isInitialized = true;
-      
+
       return true;
     } catch (e) {
       debugPrint('Camera initialization error: $e');

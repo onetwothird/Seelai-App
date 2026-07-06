@@ -21,7 +21,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
   late Animation<Offset> _slideAnimation;
 
   String? _selectedRole;
-  
+
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
@@ -38,11 +38,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
       CurvedAnimation(parent: _contentController, curve: Curves.easeOut),
     );
 
-    _slideAnimation = Tween<Offset>(
-            begin: const Offset(0, 0.1), end: Offset.zero)
-        .animate(
-      CurvedAnimation(parent: _contentController, curve: Curves.easeOutQuart),
-    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _contentController,
+            curve: Curves.easeOutQuart,
+          ),
+        );
 
     _contentController.forward();
   }
@@ -65,15 +67,19 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
               children: [
                 // Back Button
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
                         onPressed: () {
                           Navigator.pushReplacement(
                             context,
-                            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => const OnboardingScreen(),
+                            ),
                           );
                         },
                         icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -135,7 +141,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                     subtitle:
                                         "I need assistance navigating my world.",
                                     icon: Icons.visibility_off_outlined,
-                                    color: _primaryColor, 
+                                    color: _primaryColor,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildRoleCard(
@@ -143,7 +149,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                     title: "Caretaker / Family",
                                     subtitle: "I want to support a loved one.",
                                     icon: Icons.favorite_border_rounded,
-                                    color: _primaryColor, 
+                                    color: _primaryColor,
                                   ),
                                   const SizedBox(height: 16),
                                   _buildRoleCard(
@@ -152,7 +158,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                                     subtitle:
                                         "I manage cases and support services.",
                                     icon: Icons.badge_outlined,
-                                    color: _primaryColor, 
+                                    color: _primaryColor,
                                   ),
                                   const SizedBox(height: 100),
                                 ],
@@ -179,10 +185,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.0),
-                    Colors.white,
-                  ],
+                  colors: [Colors.white.withValues(alpha: 0.0), Colors.white],
                   stops: const [0.0, 0.3],
                 ),
               ),
@@ -206,10 +209,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   ),
                   child: const Text(
                     "Continue",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -236,7 +236,8 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
         curve: Curves.easeInOutCubic,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white, // FIX: Always white. Prevents the grey/brown animation flash!
+          color: Colors
+              .white, // FIX: Always white. Prevents the grey/brown animation flash!
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : Colors.grey.shade200,
@@ -289,10 +290,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
             if (isSelected)
               Container(
                 padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                ),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                 child: const Icon(Icons.check, color: Colors.white, size: 14),
               ),
           ],
@@ -300,7 +298,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
       ),
     );
   }
-  
+
   void _showAuthBottomSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -315,7 +313,12 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 16, 32, 40), // Adjusted padding
+          padding: const EdgeInsets.fromLTRB(
+            32,
+            16,
+            32,
+            40,
+          ), // Adjusted padding
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start, // Left aligned text
@@ -332,7 +335,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   ),
                 ),
               ),
-              
+
               // Clean Typography Header (No Icon)
               const Text(
                 "Let's get you in",
@@ -341,20 +344,20 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.5,
                   color: Color(0xFF1E293B),
-                )
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
                 "Log in or create a new account to continue.",
                 style: TextStyle(
-                  color: Color(0xFF64748B), 
+                  color: Color(0xFF64748B),
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
-                )
+                ),
               ),
-              
+
               const SizedBox(height: 36),
-              
+
               // Buttons
               SizedBox(
                 width: double.infinity,
@@ -369,11 +372,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: const Text("Log In",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    "Log In",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -389,11 +394,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
                     side: BorderSide(color: Colors.grey.shade300),
                     foregroundColor: const Color(0xFF1E293B),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: const Text("Create Account",
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    "Create Account",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -419,7 +426,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
     }
     if (targetScreen != null) {
       Navigator.push(
-          context, MaterialPageRoute(builder: (context) => targetScreen!));
+        context,
+        MaterialPageRoute(builder: (context) => targetScreen!),
+      );
     }
   }
 
@@ -438,7 +447,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen>
     }
     if (targetScreen != null) {
       Navigator.push(
-          context, MaterialPageRoute(builder: (context) => targetScreen!));
+        context,
+        MaterialPageRoute(builder: (context) => targetScreen!),
+      );
     }
   }
 }

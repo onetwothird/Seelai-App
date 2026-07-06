@@ -24,7 +24,6 @@ class AllAnnouncementsVIPage extends StatefulWidget {
 }
 
 class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
-  
   // --- NEW TTS VARIABLES ---
   final FlutterTts _flutterTts = FlutterTts();
   String? _currentlySpeakingId;
@@ -75,9 +74,9 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
     };
-    
+
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; 
+    return safeIcons[formattedCode] ?? Icons.notifications;
   }
 
   @override
@@ -160,10 +159,12 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
     String timeAgo = _getTimeAgo(announcement.timestamp);
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
-    bool isSpeaking = _currentlySpeakingId == announcement.id; // Check TTS state
+    bool isSpeaking =
+        _currentlySpeakingId == announcement.id; // Check TTS state
 
     return Semantics(
-      label: 'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
+      label:
+          'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
       readOnly: true,
       child: Container(
         padding: EdgeInsets.all(spacingMedium),
@@ -172,8 +173,8 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
           borderRadius: BorderRadius.circular(radiusLarge),
           boxShadow: widget.isDarkMode ? [] : softShadow,
           border: Border.all(
-            color: widget.isDarkMode 
-                ? Colors.white.withValues(alpha: 0.05) 
+            color: widget.isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
                 : Colors.black.withValues(alpha: 0.05),
             width: 1,
           ),
@@ -190,11 +191,7 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
                     color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(radiusMedium),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
                 SizedBox(width: spacingMedium),
                 Expanded(
@@ -211,7 +208,10 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
                       ),
                       SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(radiusSmall),
@@ -246,7 +246,9 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
                 // --- NEW TTS BUTTON ---
                 IconButton(
                   icon: Icon(
-                    isSpeaking ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
+                    isSpeaking
+                        ? Icons.stop_circle_rounded
+                        : Icons.volume_up_rounded,
                     color: isSpeaking ? Colors.red : primary,
                     size: 28,
                   ),
@@ -254,7 +256,9 @@ class _AllAnnouncementsVIPageState extends State<AllAnnouncementsVIPage> {
                     "${announcement.title}. ${announcement.message}",
                     announcement.id,
                   ),
-                  tooltip: isSpeaking ? 'Stop playback' : 'Listen to announcement',
+                  tooltip: isSpeaking
+                      ? 'Stop playback'
+                      : 'Listen to announcement',
                 ),
               ],
             ),

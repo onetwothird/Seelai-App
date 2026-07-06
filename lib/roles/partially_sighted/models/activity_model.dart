@@ -21,14 +21,11 @@ class ActivityModel {
     return ActivityModel(
       title: json['title'] as String,
       description: json['description'] as String,
-      icon: IconData(
-        json['iconCode'] as int,
-        fontFamily: 'MaterialIcons',
-      ),
+      icon: IconData(json['iconCode'] as int, fontFamily: 'MaterialIcons'),
       isEmergency: json['isEmergency'] as bool? ?? false,
       timestamp: json['timestamp'] != null
-        ? DateTime.parse(json['timestamp'] as String)
-        : null,
+          ? DateTime.parse(json['timestamp'] as String)
+          : null,
     );
   }
 

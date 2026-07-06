@@ -6,9 +6,9 @@ ValueNotifier<AuthService> authService = ValueNotifier(AuthService());
 
 class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
-  
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance; 
-  
+
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+
   bool _isGoogleSignInInitialized = false;
 
   User? get currentUser => firebaseAuth.currentUser;
@@ -18,7 +18,8 @@ class AuthService {
   Future<void> _ensureGoogleSignInInitialized() async {
     if (!_isGoogleSignInInitialized) {
       await _googleSignIn.initialize(
-        serverClientId: '697931553557-304p5dirv4gm14ihl6fhb38gso704gcs.apps.googleusercontent.com', 
+        serverClientId:
+            '697931553557-304p5dirv4gm14ihl6fhb38gso704gcs.apps.googleusercontent.com',
       );
       _isGoogleSignInInitialized = true;
     }
@@ -30,7 +31,7 @@ class AuthService {
       final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
       final GoogleSignInAuthentication googleAuth = googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: null, 
+        accessToken: null,
         idToken: googleAuth.idToken,
       );
 
@@ -71,9 +72,7 @@ class AuthService {
     await firebaseAuth.sendPasswordResetEmail(email: email);
   }
 
-  Future<void> updateUsername({
-    required String userName,
-  }) async {
+  Future<void> updateUsername({required String userName}) async {
     await currentUser?.updateDisplayName(userName);
   }
 
@@ -89,14 +88,17 @@ class AuthService {
     await currentUser?.reauthenticateWithCredential(credential);
     await currentUser?.delete();
     await signOut();
-  }  
+  }
 
   Future<void> resetPasswordFromCurrentPassword({
     required String currentPassword,
     required String newPassword,
     required String email,
   }) async {
-    AuthCredential credential = EmailAuthProvider.credential(email: email, password: currentPassword);
+    AuthCredential credential = EmailAuthProvider.credential(
+      email: email,
+      password: currentPassword,
+    );
     await currentUser?.reauthenticateWithCredential(credential);
     await currentUser?.updatePassword(newPassword);
   }

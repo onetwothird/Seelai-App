@@ -25,11 +25,11 @@ class VILocationService {
   /// Request location permission
   Future<LocationPermission> requestPermission() async {
     LocationPermission permission = await Geolocator.checkPermission();
-    
+
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    
+
     return permission;
   }
 
@@ -104,32 +104,35 @@ class VILocationService {
         distanceFilter: 10, // Update every 10 meters
       );
 
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: locationSettings,
-      ).listen(
-        (Position position) {
-          _currentPosition = position;
-          
-          // Update Firebase with new location
-          locationTrackingService.updatePatientLocation(
-            patientId: userId,
-            latitude: position.latitude,
-            longitude: position.longitude,
-            accuracy: position.accuracy,
-            altitude: position.altitude,
-            speed: position.speed,
-            heading: position.heading,
+      _positionStream =
+          Geolocator.getPositionStream(
+            locationSettings: locationSettings,
+          ).listen(
+            (Position position) {
+              _currentPosition = position;
+
+              // Update Firebase with new location
+              locationTrackingService.updatePatientLocation(
+                patientId: userId,
+                latitude: position.latitude,
+                longitude: position.longitude,
+                accuracy: position.accuracy,
+                altitude: position.altitude,
+                speed: position.speed,
+                heading: position.heading,
+              );
+
+              // Callback for UI updates
+              onLocationUpdate?.call(position);
+
+              debugPrint(
+                '📍 Location updated: ${position.latitude}, ${position.longitude}',
+              );
+            },
+            onError: (error) {
+              debugPrint('❌ Location stream error: $error');
+            },
           );
-
-          // Callback for UI updates
-          onLocationUpdate?.call(position);
-
-          debugPrint('📍 Location updated: ${position.latitude}, ${position.longitude}');
-        },
-        onError: (error) {
-          debugPrint('❌ Location stream error: $error');
-        },
-      );
 
       _isTracking = true;
       debugPrint('✅ Location tracking started for user: $userId');

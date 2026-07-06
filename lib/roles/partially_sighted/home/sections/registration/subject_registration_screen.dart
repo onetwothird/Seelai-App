@@ -20,7 +20,8 @@ class SubjectRegistrationScreen extends StatefulWidget {
   });
 
   @override
-  State<SubjectRegistrationScreen> createState() => _SubjectRegistrationScreenState();
+  State<SubjectRegistrationScreen> createState() =>
+      _SubjectRegistrationScreenState();
 }
 
 class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
@@ -28,7 +29,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
   List<CameraDescription>? _cameras;
   int _selectedCameraIndex = 0;
   bool _isCameraInitialized = false;
-  
+
   // Video-like Recording State
   bool _isRecording = false;
   Timer? _recordingTimer;
@@ -42,20 +43,20 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
   @override
   void initState() {
     super.initState();
-    _instructions = widget.subjectType == SubjectType.face 
+    _instructions = widget.subjectType == SubjectType.face
         ? [
             'Look straight ahead',
             'Turn head slightly left',
             'Turn head slightly right',
             'Tilt head slightly up',
-            'Tilt head slightly down'
+            'Tilt head slightly down',
           ]
         : [
             'Show the front view',
             'Rotate object slightly left',
             'Rotate object slightly right',
             'Show from a higher angle',
-            'Show from a lower angle'
+            'Show from a lower angle',
           ];
     _initializeCamera();
   }
@@ -99,7 +100,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
   void _toggleCamera() {
     if (_cameras == null || _cameras!.length < 2 || _isRecording) return;
     setState(() {
-      _isCameraInitialized = false; 
+      _isCameraInitialized = false;
       _selectedCameraIndex = (_selectedCameraIndex + 1) % _cameras!.length;
     });
     _setupCameraController();
@@ -114,7 +115,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
   }
 
   void _startRecording() {
-    if (_cameraController == null || !_cameraController!.value.isInitialized) return;
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
 
     setState(() {
       _isRecording = true;
@@ -123,7 +126,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
       _currentInstructionIndex = 0;
     });
 
-    final String typeString = widget.subjectType == SubjectType.face ? 'face' : 'object';
+    final String typeString = widget.subjectType == SubjectType.face
+        ? 'face'
+        : 'object';
 
     // Timer for duration & rotating instructions every 3 seconds
     _instructionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -131,16 +136,19 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
       setState(() {
         _recordingSeconds++;
         if (_recordingSeconds % 3 == 0) {
-          _currentInstructionIndex = (_currentInstructionIndex + 1) % _instructions.length;
+          _currentInstructionIndex =
+              (_currentInstructionIndex + 1) % _instructions.length;
         }
       });
     });
 
     // Capture and upload a frame every 1.5 seconds smoothly
-    _recordingTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
+    _recordingTimer = Timer.periodic(const Duration(milliseconds: 1500), (
+      timer,
+    ) async {
       try {
         final XFile photo = await _cameraController!.takePicture();
-        
+
         RoboflowService.uploadImage(photo, typeString).then((success) {
           if (success && mounted) {
             setState(() {
@@ -180,10 +188,12 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
   Widget build(BuildContext context) {
     final isFace = widget.subjectType == SubjectType.face;
     final title = isFace ? 'Register Caretaker' : 'Register Object';
-    
+
     // Core Theme Colors
-    const Color primaryColor = Color(0xFF8B5CF6); 
-    final bgColor = widget.isDarkMode ? const Color(0xFF0A0E27) : backgroundPrimary;
+    const Color primaryColor = Color(0xFF8B5CF6);
+    final bgColor = widget.isDarkMode
+        ? const Color(0xFF0A0E27)
+        : backgroundPrimary;
     final textColor = widget.isDarkMode ? Colors.white : Colors.black87;
 
     return Scaffold(
@@ -198,8 +208,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
         title: Text(
           title,
           style: TextStyle(
-            color: textColor, 
-            fontSize: 20, 
+            color: textColor,
+            fontSize: 20,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.5,
           ),
@@ -217,7 +227,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
         child: Column(
           children: [
             const SizedBox(height: 16),
-            
+
             // --- LIVE CAMERA PREVIEW ---
             Expanded(
               child: Container(
@@ -239,7 +249,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                         fit: StackFit.expand,
                         children: [
                           CameraPreview(_cameraController!),
-                          
+
                           // --- BEAUTIFUL GLASSMORPHIC HUD OVERLAY ---
                           if (_isRecording)
                             Positioned(
@@ -249,22 +259,34 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(24),
                                 child: BackdropFilter(
-                                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 12,
+                                    sigmaY: 12,
+                                  ),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 20,
+                                      horizontal: 20,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1E1E2C).withValues(alpha: 0.6), // Darker glass
+                                      color: const Color(
+                                        0xFF1E1E2C,
+                                      ).withValues(alpha: 0.6), // Darker glass
                                       borderRadius: BorderRadius.circular(24),
                                       border: Border.all(
-                                        color: primaryColor.withValues(alpha: 0.5),
+                                        color: primaryColor.withValues(
+                                          alpha: 0.5,
+                                        ),
                                         width: 2,
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: primaryColor.withValues(alpha: 0.2),
+                                          color: primaryColor.withValues(
+                                            alpha: 0.2,
+                                          ),
                                           blurRadius: 10,
                                           spreadRadius: 2,
-                                        )
+                                        ),
                                       ],
                                     ),
                                     child: Row(
@@ -273,21 +295,26 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
-                                            color: primaryColor.withValues(alpha: 0.2),
+                                            color: primaryColor.withValues(
+                                              alpha: 0.2,
+                                            ),
                                             shape: BoxShape.circle,
                                           ),
                                           child: Icon(
-                                            isFace ? Icons.face_retouching_natural : Icons.view_in_ar,
+                                            isFace
+                                                ? Icons.face_retouching_natural
+                                                : Icons.view_in_ar,
                                             color: primaryColor,
                                             size: 28,
                                           ),
                                         ),
                                         const SizedBox(width: 16),
-                                        
+
                                         // Instruction Text & Timer
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Row(
@@ -295,10 +322,13 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                                                   Container(
                                                     width: 8,
                                                     height: 8,
-                                                    decoration: const BoxDecoration(
-                                                      color: Colors.redAccent,
-                                                      shape: BoxShape.circle,
-                                                    ),
+                                                    decoration:
+                                                        const BoxDecoration(
+                                                          color:
+                                                              Colors.redAccent,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
                                                   ),
                                                   const SizedBox(width: 8),
                                                   Text(
@@ -306,7 +336,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                                                     style: const TextStyle(
                                                       color: Colors.redAccent,
                                                       fontSize: 12,
-                                                      fontWeight: FontWeight.w800,
+                                                      fontWeight:
+                                                          FontWeight.w800,
                                                       letterSpacing: 1.5,
                                                     ),
                                                   ),
@@ -333,7 +364,9 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                             ),
                         ],
                       )
-                    : const Center(child: CircularProgressIndicator(color: primaryColor)),
+                    : const Center(
+                        child: CircularProgressIndicator(color: primaryColor),
+                      ),
               ),
             ),
 
@@ -346,13 +379,14 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                 onTap: _isRecording ? _stopRecording : _startRecording,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  height: 72, 
+                  height: 72,
                   decoration: BoxDecoration(
                     color: _isRecording ? Colors.redAccent : primaryColor,
                     borderRadius: BorderRadius.circular(36),
                     boxShadow: [
                       BoxShadow(
-                        color: (_isRecording ? Colors.redAccent : primaryColor).withValues(alpha: 0.4),
+                        color: (_isRecording ? Colors.redAccent : primaryColor)
+                            .withValues(alpha: 0.4),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),

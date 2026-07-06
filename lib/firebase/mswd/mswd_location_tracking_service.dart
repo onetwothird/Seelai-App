@@ -33,7 +33,9 @@ class MswdLocationTrackingService {
 
   Future<List<Map<String, dynamic>>> getAllPatientLocations() async {
     try {
-      final snapshot = await _database.ref('user_locations/partially_sighted').once();
+      final snapshot = await _database
+          .ref('user_locations/partially_sighted')
+          .once();
       if (!snapshot.snapshot.exists) return [];
 
       Map<dynamic, dynamic> locationsMap = snapshot.snapshot.value as Map;
@@ -41,7 +43,9 @@ class MswdLocationTrackingService {
 
       locationsMap.forEach((userId, locationData) {
         if (locationData is Map) {
-          Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
+          Map<String, dynamic> location = Map<String, dynamic>.from(
+            locationData,
+          );
           location['userId'] = userId;
           location['userType'] = 'partially_sighted';
           locations.add(location);
@@ -63,7 +67,9 @@ class MswdLocationTrackingService {
 
       locationsMap.forEach((userId, locationData) {
         if (locationData is Map) {
-          Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
+          Map<String, dynamic> location = Map<String, dynamic>.from(
+            locationData,
+          );
           location['userId'] = userId;
           location['userType'] = 'caretaker';
           locations.add(location);
@@ -79,11 +85,13 @@ class MswdLocationTrackingService {
   Future<List<Map<String, dynamic>>> getAllUserLocations() async {
     try {
       List<Map<String, dynamic>> allLocations = [];
-      
-      List<Map<String, dynamic>> patientLocations = await getAllPatientLocations();
+
+      List<Map<String, dynamic>> patientLocations =
+          await getAllPatientLocations();
       allLocations.addAll(patientLocations);
-      
-      List<Map<String, dynamic>> caretakerLocations = await getAllCaretakerLocations();
+
+      List<Map<String, dynamic>> caretakerLocations =
+          await getAllCaretakerLocations();
       allLocations.addAll(caretakerLocations);
 
       // Fetch other admins
@@ -92,14 +100,16 @@ class MswdLocationTrackingService {
         Map<dynamic, dynamic> mswdMap = snapshot.snapshot.value as Map;
         mswdMap.forEach((userId, locationData) {
           if (locationData is Map) {
-            Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
+            Map<String, dynamic> location = Map<String, dynamic>.from(
+              locationData,
+            );
             location['userId'] = userId;
             location['userType'] = 'mswd';
             allLocations.add(location);
           }
         });
       }
-      
+
       return allLocations;
     } catch (e) {
       return [];
@@ -124,7 +134,9 @@ class MswdLocationTrackingService {
         Map<dynamic, dynamic> patientsMap = data['partially_sighted'] as Map;
         patientsMap.forEach((userId, locationData) {
           if (locationData is Map) {
-            Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
+            Map<String, dynamic> location = Map<String, dynamic>.from(
+              locationData,
+            );
             location['userId'] = userId;
             location['userType'] = 'partially_sighted';
             result['patients']!.add(location);
@@ -136,7 +148,9 @@ class MswdLocationTrackingService {
         Map<dynamic, dynamic> caretakersMap = data['caretaker'] as Map;
         caretakersMap.forEach((userId, locationData) {
           if (locationData is Map) {
-            Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
+            Map<String, dynamic> location = Map<String, dynamic>.from(
+              locationData,
+            );
             location['userId'] = userId;
             location['userType'] = 'caretaker';
             result['caretakers']!.add(location);
@@ -149,7 +163,9 @@ class MswdLocationTrackingService {
         Map<dynamic, dynamic> mswdMap = data['mswd'] as Map;
         mswdMap.forEach((userId, locationData) {
           if (locationData is Map) {
-            Map<String, dynamic> location = Map<String, dynamic>.from(locationData);
+            Map<String, dynamic> location = Map<String, dynamic>.from(
+              locationData,
+            );
             location['userId'] = userId;
             location['userType'] = 'mswd';
             result['mswd']!.add(location);
@@ -163,14 +179,21 @@ class MswdLocationTrackingService {
 
   // ==================== DISTANCE CALCULATIONS ====================
 
-  double calculateDistance({required double lat1, required double lon1, required double lat2, required double lon2}) {
+  double calculateDistance({
+    required double lat1,
+    required double lon1,
+    required double lat2,
+    required double lon2,
+  }) {
     const double earthRadiusMeters = 6371000;
     final double lat1Rad = lat1 * pi / 180;
     final double lat2Rad = lat2 * pi / 180;
     final double dLat = (lat2 - lat1) * pi / 180;
     final double dLon = (lon2 - lon1) * pi / 180;
 
-    final double a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1Rad) * cos(lat2Rad) * sin(dLon / 2) * sin(dLon / 2);
+    final double a =
+        sin(dLat / 2) * sin(dLat / 2) +
+        cos(lat1Rad) * cos(lat2Rad) * sin(dLon / 2) * sin(dLon / 2);
     final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return earthRadiusMeters * c;
   }
@@ -207,4 +230,5 @@ class MswdLocationTrackingService {
   }
 }
 
-final MswdLocationTrackingService mswdLocationTrackingService = MswdLocationTrackingService();
+final MswdLocationTrackingService mswdLocationTrackingService =
+    MswdLocationTrackingService();

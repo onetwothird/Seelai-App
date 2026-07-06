@@ -31,7 +31,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Important Notice',
     iconCodePoint: '0xe362',
   ),
-  
+
   // Emergency & Alerts
   AnnouncementIcon(
     icon: Icons.warning_rounded,
@@ -48,7 +48,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Alert',
     iconCodePoint: '0xe361',
   ),
-  
+
   // Health & Medical
   AnnouncementIcon(
     icon: Icons.medical_services_rounded,
@@ -75,7 +75,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Health & Safety',
     iconCodePoint: '0xe2e2',
   ),
-  
+
   // Financial Assistance
   AnnouncementIcon(
     icon: Icons.account_balance_wallet_rounded,
@@ -92,7 +92,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Subsidy Program',
     iconCodePoint: '0xe3fc',
   ),
-  
+
   // Food & Nutrition
   AnnouncementIcon(
     icon: Icons.restaurant_rounded,
@@ -109,7 +109,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Grocery Assistance',
     iconCodePoint: '0xe3e4',
   ),
-  
+
   // Training & Education
   AnnouncementIcon(
     icon: Icons.school_rounded,
@@ -131,7 +131,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Educational Seminar',
     iconCodePoint: '0xefec',
   ),
-  
+
   // Events & Activities
   AnnouncementIcon(
     icon: Icons.event_rounded,
@@ -153,7 +153,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Festival',
     iconCodePoint: '0xea68',
   ),
-  
+
   // Community & Social
   AnnouncementIcon(
     icon: Icons.groups_rounded,
@@ -175,7 +175,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Partnership',
     iconCodePoint: '0xe8cb',
   ),
-  
+
   // Livelihood & Employment
   AnnouncementIcon(
     icon: Icons.work_rounded,
@@ -192,7 +192,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Business Assistance',
     iconCodePoint: '0xe609',
   ),
-  
+
   // Housing & Shelter
   AnnouncementIcon(
     icon: Icons.home_rounded,
@@ -209,7 +209,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Home Repair',
     iconCodePoint: '0xf03a',
   ),
-  
+
   // Documents & Registration
   AnnouncementIcon(
     icon: Icons.description_rounded,
@@ -226,7 +226,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'ID Distribution',
     iconCodePoint: '0xea67',
   ),
-  
+
   // Schedule & Deadlines
   AnnouncementIcon(
     icon: Icons.calendar_today_rounded,
@@ -243,7 +243,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Deadline',
     iconCodePoint: '0xe622',
   ),
-  
+
   // Support Services
   AnnouncementIcon(
     icon: Icons.support_agent_rounded,
@@ -260,7 +260,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Hotline',
     iconCodePoint: '0xe3c1',
   ),
-  
+
   // Transportation
   AnnouncementIcon(
     icon: Icons.directions_bus_rounded,
@@ -272,7 +272,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Mobility Assistance',
     iconCodePoint: '0xe037',
   ),
-  
+
   // Disaster & Relief
   AnnouncementIcon(
     icon: Icons.umbrella_rounded,
@@ -289,7 +289,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Safety Drill',
     iconCodePoint: '0xe8f1',
   ),
-  
+
   // Legal & Rights
   AnnouncementIcon(
     icon: Icons.gavel_rounded,
@@ -301,7 +301,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Policy Update',
     iconCodePoint: '0xea17',
   ),
-  
+
   // Recreation & Wellness
   AnnouncementIcon(
     icon: Icons.sports_rounded,
@@ -318,7 +318,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Therapy Session',
     iconCodePoint: '0xe5e8',
   ),
-  
+
   // Technology & Updates
   AnnouncementIcon(
     icon: Icons.update_rounded,
@@ -330,7 +330,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'App Training',
     iconCodePoint: '0xe3c6',
   ),
-  
+
   // Recognition & Awards
   AnnouncementIcon(
     icon: Icons.star_rounded,
@@ -347,7 +347,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Incentive',
     iconCodePoint: '0xe0d4',
   ),
-  
+
   // Tips & Guidelines
   AnnouncementIcon(
     icon: Icons.lightbulb_rounded,
@@ -359,7 +359,7 @@ final List<AnnouncementIcon> announcementIcons = [
     label: 'Guidelines',
     iconCodePoint: '0xe79a',
   ),
-  
+
   // Maintenance & Closure
   AnnouncementIcon(
     icon: Icons.build_rounded,

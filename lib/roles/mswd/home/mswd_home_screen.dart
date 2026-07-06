@@ -3,9 +3,9 @@
 import 'dart:async';
 import 'dart:math' show sqrt; // === IMPORTED MATH FOR CIRCLE RADIUS ===
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart'; 
+import 'package:flutter/rendering.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:shimmer/shimmer.dart'; 
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/urgent_alerts_section.dart';
 import 'package:seelai_app/roles/mswd/home/sections/location_track/location_tracking_screen.dart';
 import 'package:seelai_app/roles/mswd/home/widgets/mswd_header_section.dart';
@@ -16,7 +16,7 @@ import 'package:seelai_app/roles/mswd/home/sections/requests/mswd_requests_conte
 import 'package:seelai_app/roles/mswd/home/sections/profile_content/more_content.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/dashboard_stats.dart';
 import 'package:seelai_app/roles/mswd/home/sections/dashboard/quick_actions.dart';
-import 'package:seelai_app/roles/mswd/home/widgets/mswd_notifications_bottom_sheet.dart'; 
+import 'package:seelai_app/roles/mswd/home/widgets/mswd_notifications_bottom_sheet.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/screens/onboarding_screen.dart';
 import 'package:seelai_app/roles/mswd/home/sections/registration/subject_registration_screen.dart';
@@ -24,37 +24,36 @@ import 'package:seelai_app/roles/mswd/home/sections/registration/subject_registr
 class MSWDHomeScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const MSWDHomeScreen({
-    super.key,
-    required this.userData,
-  });
+  const MSWDHomeScreen({super.key, required this.userData});
 
   @override
   State<MSWDHomeScreen> createState() => _MSWDHomeScreenState();
 }
 
-class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStateMixin { // === Added TickerProviderStateMixin ===
+class _MSWDHomeScreenState extends State<MSWDHomeScreen>
+    with TickerProviderStateMixin {
+  // === Added TickerProviderStateMixin ===
   // UI State
   bool _isDarkMode = false;
-  
+
   // === THE SECRET SAUCE: Holding the old state while we animate ===
-  bool? _previousIsDarkMode; 
-  
+  bool? _previousIsDarkMode;
+
   int _selectedIndex = 0;
-  
+
   // Data State for Notifications & Dashboard
   int _pendingRequestsCount = 0;
   StreamSubscription<DatabaseEvent>? _requestsSubscription;
-  late Future<Map<String, int>> _dashboardStatsFuture; 
-  
+  late Future<Map<String, int>> _dashboardStatsFuture;
+
   // Loading State for Skeleton
   bool _isSimulatingDashboardLoad = true;
   bool _isLoadingStats = true;
-  
+
   // === NEW: Circular Reveal Variables ===
   late AnimationController _revealController;
   late Animation<double> _revealAnimation;
-  
+
   // Scroll Navigation State
   bool _isNavVisible = true;
 
@@ -62,14 +61,16 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
   void initState() {
     super.initState();
     _startPendingRequestsListener();
-    
-    _dashboardStatsFuture = adminService.getUserStatistics(); 
-    _dashboardStatsFuture.then((_) {
-      if (mounted) setState(() => _isLoadingStats = false);
-    }).catchError((error) {
-      debugPrint('Error loading stats: $error');
-      if (mounted) setState(() => _isLoadingStats = false);
-    });
+
+    _dashboardStatsFuture = adminService.getUserStatistics();
+    _dashboardStatsFuture
+        .then((_) {
+          if (mounted) setState(() => _isLoadingStats = false);
+        })
+        .catchError((error) {
+          debugPrint('Error loading stats: $error');
+          if (mounted) setState(() => _isLoadingStats = false);
+        });
 
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
@@ -81,10 +82,10 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
 
     // === NEW: Initialize the Circular Reveal animation ===
     _revealController = AnimationController(
-      duration: const Duration(milliseconds: 800), 
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _revealAnimation = CurvedAnimation(
       parent: _revealController,
       curve: Curves.easeInOutCubic,
@@ -97,29 +98,32 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
         .orderByChild('status')
         .equalTo('pending')
         .onValue
-        .listen((event) {
-      if (mounted) {
-        int count = 0;
-        if (event.snapshot.exists) {
-          final map = event.snapshot.value as Map<dynamic, dynamic>;
-          count = map.length;
-        }
-        setState(() {
-          _pendingRequestsCount = count;
-        });
-      }
-    }, onError: (error) {
-      debugPrint('Error listening to pending requests: $error');
-    });
+        .listen(
+          (event) {
+            if (mounted) {
+              int count = 0;
+              if (event.snapshot.exists) {
+                final map = event.snapshot.value as Map<dynamic, dynamic>;
+                count = map.length;
+              }
+              setState(() {
+                _pendingRequestsCount = count;
+              });
+            }
+          },
+          onError: (error) {
+            debugPrint('Error listening to pending requests: $error');
+          },
+        );
   }
 
   void _toggleDarkMode() {
     // Prevent spam clicking while it's animating
-    if (_revealController.isAnimating) return; 
+    if (_revealController.isAnimating) return;
 
     setState(() {
       // 1. Lock in the old theme state for the bottom layer
-      _previousIsDarkMode = _isDarkMode; 
+      _previousIsDarkMode = _isDarkMode;
       // 2. Set the new theme state for the top expanding layer
       _isDarkMode = !_isDarkMode;
     });
@@ -129,19 +133,19 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
       if (mounted) {
         setState(() {
           // 4. Once fully expanded, destroy the old bottom layer
-          _previousIsDarkMode = null; 
+          _previousIsDarkMode = null;
         });
       }
     });
   }
 
   void _onNavItemTapped(int index) {
-    if (_selectedIndex == index) return; 
+    if (_selectedIndex == index) return;
 
     setState(() {
       _selectedIndex = index;
-      _isNavVisible = true; 
-      
+      _isNavVisible = true;
+
       if (index == 0) {
         _isSimulatingDashboardLoad = true;
       }
@@ -169,55 +173,75 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
     if (_selectedIndex != 0) {
       setState(() {
         _selectedIndex = 0;
-        _isNavVisible = true; 
+        _isNavVisible = true;
       });
-      return false; 
+      return false;
     }
 
     return (await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: _isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)), 
-            const SizedBox(width: 10),
-            Text('Exit App?', style: TextStyle(color: _isDarkMode ? Colors.white : Colors.black)),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to exit and log out?',
-          style: TextStyle(color: _isDarkMode ? Colors.white70 : Colors.black87),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: _isDarkMode
+                ? const Color(0xFF1A1F3A)
+                : Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                const Icon(Icons.logout_rounded, color: Color(0xFF8B5CF6)),
+                const SizedBox(width: 10),
+                Text(
+                  'Exit App?',
+                  style: TextStyle(
+                    color: _isDarkMode ? Colors.white : Colors.black,
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'Are you sure you want to exit and log out?',
+              style: TextStyle(
+                color: _isDarkMode ? Colors.white70 : Colors.black87,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  Navigator.of(context).pop(true);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                ),
+                child: const Text(
+                  'Exit',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop(true);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-            child: const Text('Exit', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    )) ?? false;
+        )) ??
+        false;
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: false, 
+      canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
-        if (didPop) return; 
+        if (didPop) return;
         final bool shouldPop = await _onWillPop();
         if (shouldPop && context.mounted) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-            (Route<dynamic> route) => false, 
+            (Route<dynamic> route) => false,
           );
         }
       },
@@ -226,8 +250,11 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
         animation: _revealAnimation,
         builder: (context, child) {
           // Precise coordinates for the sun/moon toggle button
-          final centerOffset = Offset(MediaQuery.of(context).size.width - 48, 65);
-          
+          final centerOffset = Offset(
+            MediaQuery.of(context).size.width - 48,
+            65,
+          );
+
           return Stack(
             children: [
               // LAYER 1: The completely rendered OLD theme.
@@ -237,7 +264,9 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
               // LAYER 2: The completely rendered NEW theme wrapped in the expanding mask
               ClipPath(
                 clipper: ThemeRevealClipper(
-                  fraction: _revealController.isAnimating ? _revealAnimation.value : 1.0,
+                  fraction: _revealController.isAnimating
+                      ? _revealAnimation.value
+                      : 1.0,
                   center: centerOffset,
                 ),
                 child: _buildScaffoldLayer(isDarkLayer: _isDarkMode),
@@ -258,12 +287,12 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
     return Scaffold(
       extendBody: true,
       backgroundColor: Colors.transparent, // Let gradient show
-      
+
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _isNavVisible 
+      floatingActionButton: _isNavVisible
           ? (_selectedIndex != 2 ? _buildAddFaceObjectFab(context) : null)
-          : null, 
-      
+          : null,
+
       body: Container(
         decoration: BoxDecoration(gradient: theme.backgroundGradient),
         child: SafeArea(
@@ -275,43 +304,48 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
                   onNotification: (notification) {
                     if (notification.direction == ScrollDirection.forward) {
                       if (!_isNavVisible) setState(() => _isNavVisible = true);
-                    } else if (notification.direction == ScrollDirection.reverse) {
+                    } else if (notification.direction ==
+                        ScrollDirection.reverse) {
                       if (_isNavVisible) setState(() => _isNavVisible = false);
                     }
-                    return false; 
+                    return false;
                   },
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 300),
                     switchInCurve: Curves.easeInOutCubic,
                     switchOutCurve: Curves.easeInOutCubic,
-                    layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                      return Stack(
-                        alignment: Alignment.topCenter, 
-                        children: <Widget>[
-                          ...previousChildren,
-                          ?currentChild,
-                        ],
-                      );
-                    },
+                    layoutBuilder:
+                        (Widget? currentChild, List<Widget> previousChildren) {
+                          return Stack(
+                            alignment: Alignment.topCenter,
+                            children: <Widget>[
+                              ...previousChildren,
+                              ?currentChild,
+                            ],
+                          );
+                        },
                     child: SizedBox(
                       key: ValueKey<int>(_selectedIndex),
-                      child: _buildMainContent(screenWidth, screenHeight, theme, isDarkLayer),
+                      child: _buildMainContent(
+                        screenWidth,
+                        screenHeight,
+                        theme,
+                        isDarkLayer,
+                      ),
                     ),
                   ),
                 ),
               ),
-              
+
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOutCubic,
-                bottom: (_isNavVisible || _selectedIndex != 3) 
-                    ? -100 
+                bottom: (_isNavVisible || _selectedIndex != 3)
+                    ? -100
                     : MediaQuery.of(context).padding.bottom + 20,
                 left: 0,
                 right: 0,
-                child: Center(
-                  child: _buildShowMenuFab(isDarkLayer),
-                ),
+                child: Center(child: _buildShowMenuFab(isDarkLayer)),
               ),
             ],
           ),
@@ -336,19 +370,24 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
     );
   }
 
-  Widget _buildMainContent(double width, double height, _AppTheme theme, bool isDarkLayer) {
+  Widget _buildMainContent(
+    double width,
+    double height,
+    _AppTheme theme,
+    bool isDarkLayer,
+  ) {
     Widget buildScrollableHeader() {
       final adminName = widget.userData['name'] ?? 'Admin';
       return HeaderSection(
         adminName: adminName,
         profileImageUrl: widget.userData['profileImageUrl'] as String?,
         isDarkMode: isDarkLayer, // Tied to layer state
-        pendingRequestsCount: _pendingRequestsCount, 
+        pendingRequestsCount: _pendingRequestsCount,
         onToggleDarkMode: _toggleDarkMode,
         onProfileTap: () {
           setState(() {
             _selectedIndex = 4;
-            _isNavVisible = true; 
+            _isNavVisible = true;
           });
         },
         onNotificationTap: () {
@@ -361,7 +400,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
               height: MediaQuery.of(context).size.height * 0.85,
               child: MSWDNotificationsBottomSheet(
                 adminId: widget.userData['userId'] ?? '',
-                isDarkMode: _isDarkMode, 
+                isDarkMode: _isDarkMode,
                 theme: theme, // <--- ADD THIS LINE
                 assistanceRequestService: assistanceRequestService,
               ),
@@ -374,7 +413,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
     }
 
     Widget content;
-    
+
     switch (_selectedIndex) {
       case 0:
         content = Column(
@@ -434,13 +473,13 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
           ],
         );
     }
-    
+
     if (_selectedIndex == 1 || _selectedIndex == 2 || _selectedIndex == 3) {
       return content;
     }
-    
+
     return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(), 
+      physics: const AlwaysScrollableScrollPhysics(),
       child: content,
     );
   }
@@ -449,9 +488,17 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
   // DASHBOARD SKELETON BUILDER
   // =========================================================================
 
-  Widget _buildSkeletonDashboard(double width, _AppTheme theme, bool isDarkLayer) {
-    final baseColor = isDarkLayer ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = isDarkLayer ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+  Widget _buildSkeletonDashboard(
+    double width,
+    _AppTheme theme,
+    bool isDarkLayer,
+  ) {
+    final baseColor = isDarkLayer
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = isDarkLayer
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -460,76 +507,181 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
         padding: EdgeInsets.only(
           left: width * 0.05,
           right: width * 0.05,
-          top: 16, 
-          bottom: 120, 
+          top: 16,
+          bottom: 120,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+                Expanded(
+                  child: Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+                Expanded(
+                  child: Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+                Expanded(
+                  child: Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: Container(height: 140, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+                Expanded(
+                  child: Container(
+                    height: 140,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            Container(height: 220, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
-            
+            Container(
+              height: 220,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+
             const SizedBox(height: 32),
 
-            Container(width: 130, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            Container(
+              width: 130,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
             const SizedBox(height: 16),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: List.generate(4, (index) => Padding(
-                  padding: const EdgeInsets.only(right: 24),
-                  child: Column(
-                    children: [
-                      Container(width: 60, height: 60, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-                      const SizedBox(height: 8),
-                      Container(width: 50, height: 12, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
-                    ],
+                children: List.generate(
+                  4,
+                  (index) => Padding(
+                    padding: const EdgeInsets.only(right: 24),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: 50,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )),
+                ),
               ),
             ),
 
             const SizedBox(height: 40),
 
-            Container(width: 160, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
+            Container(
+              width: 160,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
             const SizedBox(height: 16),
-            Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 90,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
 
             const SizedBox(height: 32),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(width: 140, height: 24, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(6))),
-                Container(width: 80, height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+                Container(
+                  width: 140,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                Container(
+                  width: 80,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
-            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 130,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
             const SizedBox(height: 12),
-            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 130,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDashboardContent(double width, _AppTheme theme, bool isDarkLayer) {
+  Widget _buildDashboardContent(
+    double width,
+    _AppTheme theme,
+    bool isDarkLayer,
+  ) {
     if (_isSimulatingDashboardLoad || _isLoadingStats) {
       return _buildSkeletonDashboard(width, theme, isDarkLayer);
     }
@@ -538,8 +690,8 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
       padding: EdgeInsets.only(
         left: width * 0.05,
         right: width * 0.05,
-        top: 16, 
-        bottom: 120, 
+        top: 16,
+        bottom: 120,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -547,15 +699,15 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
           DashboardStats(
             isDarkMode: isDarkLayer, // Tied to layer state
             theme: theme,
-            statsFuture: _dashboardStatsFuture, 
+            statsFuture: _dashboardStatsFuture,
           ),
-          
+
           const SizedBox(height: 20),
 
           QuickActions(
             isDarkMode: isDarkLayer, // Tied to layer state
             theme: theme,
-            onNavigateToTab: _onNavItemTapped, 
+            onNavigateToTab: _onNavItemTapped,
           ),
 
           const SizedBox(height: 40),
@@ -572,7 +724,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
             isDarkMode: isDarkLayer, // Tied to layer state
             theme: theme,
           ),
-          
+
           const SizedBox(height: 32),
         ],
       ),
@@ -659,7 +811,7 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
               children: [
                 const Icon(
                   Icons.keyboard_arrow_up_rounded,
-                  color: Color(0xFF8B5CF6), 
+                  color: Color(0xFF8B5CF6),
                   size: 24,
                 ),
                 const SizedBox(width: 8),
@@ -735,7 +887,9 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 24),
                     decoration: BoxDecoration(
-                      color: _isDarkMode ? Colors.white24 : Colors.grey.shade300,
+                      color: _isDarkMode
+                          ? Colors.white24
+                          : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -754,16 +908,18 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: _isDarkMode ? Colors.white60 : const Color(0xFF64748B),
+                    color: _isDarkMode
+                        ? Colors.white60
+                        : const Color(0xFF64748B),
                   ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 _buildAddOptionCard(
                   icon: Icons.face_retouching_natural_rounded,
                   title: 'Caretaker Face',
                   subtitle: 'Scan and register a new trusted person',
-                  primaryColor: primaryColor, 
+                  primaryColor: primaryColor,
                   onTap: () {
                     Navigator.pop(bc);
                     Navigator.push(
@@ -777,14 +933,15 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
                     );
                   },
                 ),
-                
+
                 const SizedBox(height: 16),
-                
-               _buildAddOptionCard(
-                  icon: Icons.view_in_ar_rounded, 
+
+                _buildAddOptionCard(
+                  icon: Icons.view_in_ar_rounded,
                   title: 'New Object',
                   subtitle: 'Scan an everyday item for detection',
-                  primaryColor: primaryColor, // <-- Now it uses the same purple color
+                  primaryColor:
+                      primaryColor, // <-- Now it uses the same purple color
                   onTap: () {
                     Navigator.pop(bc);
                     Navigator.push(
@@ -825,13 +982,15 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
           border: Border.all(
             color: _isDarkMode ? Colors.white10 : Colors.grey.shade200,
           ),
-          boxShadow: _isDarkMode ? [] : [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: _isDarkMode
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Row(
           children: [
@@ -854,7 +1013,9 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -0.3,
-                      color: _isDarkMode ? Colors.white : const Color(0xFF1E293B),
+                      color: _isDarkMode
+                          ? Colors.white
+                          : const Color(0xFF1E293B),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -863,7 +1024,9 @@ class _MSWDHomeScreenState extends State<MSWDHomeScreen> with TickerProviderStat
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: _isDarkMode ? Colors.white60 : const Color(0xFF64748B),
+                      color: _isDarkMode
+                          ? Colors.white60
+                          : const Color(0xFF64748B),
                     ),
                   ),
                 ],
@@ -909,9 +1072,11 @@ class ThemeRevealClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     // Calculates the absolute longest distance from the toggle button to the furthest corner
-    final double maxRadius = sqrt(size.width * size.width + size.height * size.height);
+    final double maxRadius = sqrt(
+      size.width * size.width + size.height * size.height,
+    );
     final double radius = maxRadius * fraction;
-    
+
     return Path()..addOval(Rect.fromCircle(center: center, radius: radius));
   }
 

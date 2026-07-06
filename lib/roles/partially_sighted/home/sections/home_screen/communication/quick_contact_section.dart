@@ -74,7 +74,8 @@ class _ContactAction extends StatefulWidget {
   State<_ContactAction> createState() => _ContactActionState();
 }
 
-class _ContactActionState extends State<_ContactAction> with SingleTickerProviderStateMixin {
+class _ContactActionState extends State<_ContactAction>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
 
@@ -120,30 +121,26 @@ class _ContactActionState extends State<_ContactAction> with SingleTickerProvide
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
                 // Clean white background for light mode, standard card color for dark mode
-                color: widget.isDarkMode 
-                    ? const Color(0xFF1A1F3A) 
+                color: widget.isDarkMode
+                    ? const Color(0xFF1A1F3A)
                     : Colors.white,
-                borderRadius: BorderRadius.circular(20), 
+                borderRadius: BorderRadius.circular(20),
                 // Subtle border to define the shape just like the reference image
                 border: Border.all(
-                  color: widget.isDarkMode 
-                      ? Colors.white12 
+                  color: widget.isDarkMode
+                      ? Colors.white12
                       : Colors.black.withValues(alpha: 0.05),
                   width: 1.5,
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center, 
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    widget.icon,
-                    size: 24, 
-                    color: widget.primaryColor,
-                  ),
-                  const SizedBox(width: 8), 
+                  Icon(widget.icon, size: 24, color: widget.primaryColor),
+                  const SizedBox(width: 8),
                   Flexible(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
@@ -155,12 +152,14 @@ class _ContactActionState extends State<_ContactAction> with SingleTickerProvide
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2), 
+                        const SizedBox(height: 2),
                         Text(
                           widget.subtitle,
                           style: TextStyle(
                             fontSize: 12,
-                            color: widget.theme.textColor.withValues(alpha: 0.5),
+                            color: widget.theme.textColor.withValues(
+                              alpha: 0.5,
+                            ),
                             fontWeight: FontWeight.w500,
                           ),
                           overflow: TextOverflow.ellipsis,

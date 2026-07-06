@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart'; // NEW: Imported Shimmer
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/partially_sighted/camera_service.dart';
 import 'package:seelai_app/roles/partially_sighted/services/permission_service.dart';
@@ -53,8 +53,12 @@ class _HomeContentState extends State<HomeContent> {
 
   // === NEW: FULL PAGE SKELETON LOADER ===
   Widget _buildSkeletonHome() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -65,33 +69,79 @@ class _HomeContentState extends State<HomeContent> {
           // Quick Contacts Skeleton
           Row(
             children: [
-              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+              Expanded(
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
               const SizedBox(width: 12),
-              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)))),
+              Expanded(
+                child: Container(
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: spacingXLarge),
-          
+
           // Location/Map Skeleton
-          Container(height: 350, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24))),
+          Container(
+            height: 350,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+            ),
+          ),
           const SizedBox(height: spacingXLarge),
-          
+
           // Announcements Title Skeleton
           Container(width: 150, height: 24, color: Colors.white),
           const SizedBox(height: spacingMedium),
-          
+
           // Announcements List Skeletons
-          Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          Container(
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
           const SizedBox(height: spacingMedium),
-          Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          Container(
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
           const SizedBox(height: spacingMedium),
-          
+
           // Help & Support Skeletons
           Container(width: 120, height: 24, color: Colors.white),
           const SizedBox(height: spacingMedium),
-          Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          Container(
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
           const SizedBox(height: spacingMedium),
-          Container(height: 90, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+          Container(
+            height: 90,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+          ),
         ],
       ),
     );
@@ -100,7 +150,10 @@ class _HomeContentState extends State<HomeContent> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final userId = widget.userData['uid'] as String? ?? widget.userData['userId'] as String? ?? '';
+    final userId =
+        widget.userData['uid'] as String? ??
+        widget.userData['userId'] as String? ??
+        '';
 
     return Padding(
       padding: EdgeInsets.only(
@@ -109,8 +162,8 @@ class _HomeContentState extends State<HomeContent> {
         top: spacingMedium,
         bottom: 100,
       ),
-      child: _isSimulatingLoad 
-          ? _buildSkeletonHome() 
+      child: _isSimulatingLoad
+          ? _buildSkeletonHome()
           : _buildActualContent(userId),
     );
   }
@@ -137,7 +190,7 @@ class _HomeContentState extends State<HomeContent> {
       ),
       const SizedBox(height: spacingMedium),
       Padding(
-        padding: const EdgeInsets.only(left: 4), 
+        padding: const EdgeInsets.only(left: 4),
         child: Text(
           'Help & Support',
           style: h3.copyWith(

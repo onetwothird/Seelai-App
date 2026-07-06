@@ -7,7 +7,7 @@ class PredefinedEmergencyHotlines {
   /// Get list of predefined emergency hotlines for Naic, Cavite
   static List<EmergencyHotline> getNaicHotlines(String userId) {
     final now = DateTime.now();
-    
+
     return [
       EmergencyHotline(
         id: 'predefined_police_$userId',
@@ -20,7 +20,7 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/pnp.png', // Updated
       ),
       EmergencyHotline(
@@ -34,12 +34,13 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/bfp.png', // Updated
       ),
       EmergencyHotline(
         id: 'predefined_emergency_$userId',
-        departmentName: 'MDRRMO Naic', // Updated name to match file usually associated with ER
+        departmentName:
+            'MDRRMO Naic', // Updated name to match file usually associated with ER
         phoneNumber: '4105725',
         address: '',
         description: 'Naic Emergency Response Unit',
@@ -48,7 +49,7 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/mdrrmo.png', // Updated
       ),
       EmergencyHotline(
@@ -62,7 +63,7 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/dilg.png', // Updated
       ),
       EmergencyHotline(
@@ -76,7 +77,7 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/mswd.png', // Updated
       ),
       EmergencyHotline(
@@ -90,7 +91,7 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/menro.png', // Updated
       ),
       EmergencyHotline(
@@ -104,7 +105,7 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/rural_health.png', // Updated
       ),
       EmergencyHotline(
@@ -118,7 +119,7 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/office_mayor.png', // Updated
       ),
       // Added Naic Doctors based on your file list
@@ -133,12 +134,12 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
+        isPredefined: true,
         imageAsset: 'assets/emergency_images/naic_doctors.jpg', // Updated
       ),
     ];
   }
-  
+
   static bool needsInitialization(List<EmergencyHotline> existingHotlines) {
     final hasPredefined = existingHotlines.any((h) => h.isPredefined == true);
     return !hasPredefined;

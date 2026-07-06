@@ -22,25 +22,26 @@ class EditHotlineScreen extends StatefulWidget {
   State<EditHotlineScreen> createState() => _EditHotlineScreenState();
 }
 
-class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTickerProviderStateMixin {
+class _EditHotlineScreenState extends State<EditHotlineScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final Color _primaryColor = const Color(0xFF8B5CF6);
   final ImagePicker _picker = ImagePicker();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
   late TextEditingController _descriptionController;
-  
+
   String _selectedImageAsset = 'assets/emergency_images/pnp.png';
   Color _selectedColor = Colors.blue;
-  
+
   final List<String> _customImages = [];
-  
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
-  
+
   final List<Map<String, String>> _availableImages = [
     {'path': 'assets/emergency_images/pnp.png', 'label': 'Police'},
     {'path': 'assets/emergency_images/bfp.png', 'label': 'Fire'},
@@ -52,7 +53,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
     {'path': 'assets/emergency_images/office_mayor.png', 'label': 'Mayor'},
     {'path': 'assets/emergency_images/naic_doctors.jpg', 'label': 'Doctors'},
   ];
-  
+
   final List<Map<String, dynamic>> _availableColors = [
     {'color': Colors.blue, 'label': 'Blue'},
     {'color': Colors.red, 'label': 'Red'},
@@ -67,36 +68,49 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.hotline?.departmentName ?? '');
-    _phoneController = TextEditingController(text: widget.hotline?.phoneNumber ?? '');
-    _addressController = TextEditingController(text: widget.hotline?.address ?? '');
-    _descriptionController = TextEditingController(text: widget.hotline?.description ?? '');
-    
+    _nameController = TextEditingController(
+      text: widget.hotline?.departmentName ?? '',
+    );
+    _phoneController = TextEditingController(
+      text: widget.hotline?.phoneNumber ?? '',
+    );
+    _addressController = TextEditingController(
+      text: widget.hotline?.address ?? '',
+    );
+    _descriptionController = TextEditingController(
+      text: widget.hotline?.description ?? '',
+    );
+
     if (widget.hotline != null) {
       if (widget.hotline!.imageAsset.isNotEmpty) {
         _selectedImageAsset = widget.hotline!.imageAsset;
-        bool isDefault = _availableImages.any((img) => img['path'] == _selectedImageAsset);
+        bool isDefault = _availableImages.any(
+          (img) => img['path'] == _selectedImageAsset,
+        );
         if (!isDefault && !_selectedImageAsset.startsWith('assets/')) {
-           _customImages.add(_selectedImageAsset);
+          _customImages.add(_selectedImageAsset);
         }
       }
       _selectedColor = widget.hotline!.color;
     }
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
-    
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
     _animationController.forward();
   }
 
@@ -131,7 +145,10 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
       debugPrint('Error picking image: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e'), backgroundColor: error),
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: error,
+          ),
         );
       }
     }
@@ -140,17 +157,19 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
   void _saveHotline() {
     if (_formKey.currentState!.validate()) {
       final hotline = EmergencyHotline(
-        id: widget.hotline?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        id:
+            widget.hotline?.id ??
+            DateTime.now().millisecondsSinceEpoch.toString(),
         departmentName: _nameController.text.trim(),
         phoneNumber: _phoneController.text.trim(),
         address: _addressController.text.trim(),
         description: _descriptionController.text.trim(),
-        icon: Icons.phone_in_talk_rounded, 
+        icon: Icons.phone_in_talk_rounded,
         color: _selectedColor,
-        isActive: true, 
+        isActive: true,
         imageAsset: _selectedImageAsset,
       );
-      
+
       Navigator.pop(context, hotline);
     }
   }
@@ -276,8 +295,8 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             borderRadius: BorderRadius.circular(radiusLarge),
             boxShadow: widget.isDarkMode ? [] : softShadow,
             border: Border.all(
-              color: widget.isDarkMode 
-                  ? Colors.white.withValues(alpha: 0.05) 
+              color: widget.isDarkMode
+                  ? Colors.white.withValues(alpha: 0.05)
                   : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
@@ -341,7 +360,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
               final imagePath = item['path']!;
               final label = item['label']!;
               final isSelected = imagePath == _selectedImageAsset;
-              
+
               return TweenAnimationBuilder<double>(
                 duration: Duration(milliseconds: 200 + (index * 30)),
                 tween: Tween(begin: 0.0, end: 1.0),
@@ -349,7 +368,10 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                 builder: (context, value, child) {
                   return Opacity(
                     opacity: value,
-                    child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
+                    child: Transform.scale(
+                      scale: 0.8 + (0.2 * value),
+                      child: child,
+                    ),
                   );
                 },
                 child: Semantics(
@@ -359,7 +381,8 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => setState(() => _selectedImageAsset = imagePath),
+                      onTap: () =>
+                          setState(() => _selectedImageAsset = imagePath),
                       borderRadius: BorderRadius.circular(radiusMedium),
                       child: AnimatedContainer(
                         duration: Duration(milliseconds: 200),
@@ -367,7 +390,9 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                         height: 60,
                         padding: EdgeInsets.all(2),
                         decoration: BoxDecoration(
-                          color: isSelected ? _selectedColor : Colors.transparent,
+                          color: isSelected
+                              ? _selectedColor
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(radiusMedium),
                           border: Border.all(
                             color: isSelected
@@ -441,7 +466,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             final color = item['color'] as Color;
             final label = item['label'] as String;
             final isSelected = color == _selectedColor;
-            
+
             return TweenAnimationBuilder<double>(
               duration: Duration(milliseconds: 200 + (index * 30)),
               tween: Tween(begin: 0.0, end: 1.0),
@@ -449,7 +474,10 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
               builder: (context, value, child) {
                 return Opacity(
                   opacity: value,
-                  child: Transform.scale(scale: 0.8 + (0.2 * value), child: child),
+                  child: Transform.scale(
+                    scale: 0.8 + (0.2 * value),
+                    child: child,
+                  ),
                 );
               },
               child: Semantics(
@@ -477,7 +505,9 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
                           width: 3,
                         ),
                       ),
-                      child: isSelected ? Icon(Icons.check_rounded, color: white, size: 24) : null,
+                      child: isSelected
+                          ? Icon(Icons.check_rounded, color: white, size: 24)
+                          : null,
                     ),
                   ),
                 ),
@@ -516,8 +546,8 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             borderRadius: BorderRadius.circular(radiusMedium),
             boxShadow: widget.isDarkMode ? [] : softShadow,
             border: Border.all(
-              color: widget.isDarkMode 
-                  ? Colors.white.withValues(alpha: 0.05) 
+              color: widget.isDarkMode
+                  ? Colors.white.withValues(alpha: 0.05)
                   : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
@@ -526,10 +556,7 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             controller: controller,
             keyboardType: keyboardType,
             maxLines: maxLines,
-            style: body.copyWith(
-              color: widget.theme.textColor,
-              fontSize: 14,
-            ),
+            style: body.copyWith(color: widget.theme.textColor, fontSize: 14),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: caption.copyWith(
@@ -563,7 +590,9 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
 
   Widget _buildSaveButton() {
     return Semantics(
-      label: widget.hotline == null ? 'Add hotline button' : 'Save changes button',
+      label: widget.hotline == null
+          ? 'Add hotline button'
+          : 'Save changes button',
       button: true,
       child: Material(
         color: Colors.transparent,
@@ -574,14 +603,16 @@ class _EditHotlineScreenState extends State<EditHotlineScreen> with SingleTicker
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: spacingMedium),
             decoration: BoxDecoration(
-              color: _primaryColor, 
+              color: _primaryColor,
               borderRadius: BorderRadius.circular(radiusMedium),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  widget.hotline == null ? Icons.add_rounded : Icons.save_rounded,
+                  widget.hotline == null
+                      ? Icons.add_rounded
+                      : Icons.save_rounded,
                   color: white,
                   size: 20,
                 ),

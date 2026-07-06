@@ -1,7 +1,7 @@
 // File: lib/roles/partially_sighted/home/sections/recent_activities/all_detections_screen.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/themes/constants.dart';
 import 'detection_detail_screen.dart';
@@ -66,8 +66,12 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
   // WIDGET: SKELETON
   // ==========================================
   Widget _buildSkeletonList(double width) {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -101,7 +105,9 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                     height: 180,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(radiusLarge)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(radiusLarge),
+                      ),
                     ),
                   ),
                   // Text Content Placeholder
@@ -113,12 +119,24 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(width: 120, height: 20, color: Colors.white),
-                            Container(width: 60, height: 14, color: Colors.white),
+                            Container(
+                              width: 120,
+                              height: 20,
+                              color: Colors.white,
+                            ),
+                            Container(
+                              width: 60,
+                              height: 14,
+                              color: Colors.white,
+                            ),
                           ],
                         ),
                         SizedBox(height: spacingSmall),
-                        Container(width: double.infinity, height: 14, color: Colors.white),
+                        Container(
+                          width: double.infinity,
+                          height: 14,
+                          color: Colors.white,
+                        ),
                         SizedBox(height: 4),
                         Container(width: 200, height: 14, color: Colors.white),
                       ],
@@ -147,10 +165,7 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
           button: true,
           hint: 'Double tap to go back',
           child: IconButton(
-            icon: Icon(
-              Icons.arrow_back_rounded,
-              color: widget.theme.textColor,
-            ),
+            icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor),
             onPressed: () => Navigator.pop(context),
           ),
         ),
@@ -175,7 +190,10 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
           ),
 
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: width * 0.06, vertical: spacingSmall),
+            padding: EdgeInsets.symmetric(
+              horizontal: width * 0.06,
+              vertical: spacingSmall,
+            ),
             child: Row(
               children: [
                 Text(
@@ -194,34 +212,34 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               child: _isSimulatingLoad
-                ? _buildSkeletonList(width)
-                : _filteredDetections.isEmpty
-                    ? _buildEmptyState()
-                    : AnimationLimiter(
-                        child: ListView.builder(
-                          key: ValueKey(_selectedFilter),
-                          padding: EdgeInsets.only(
-                            left: width * 0.06,
-                            right: width * 0.06,
-                            bottom: spacingLarge,
-                            top: spacingMedium,
-                          ),
-                          itemCount: _filteredDetections.length,
-                          itemBuilder: (context, index) {
-                            final detection = _filteredDetections[index];
-                            return AnimationConfiguration.staggeredList(
-                              position: index,
-                              duration: const Duration(milliseconds: 375),
-                              child: SlideAnimation(
-                                verticalOffset: 50.0,
-                                child: FadeInAnimation(
-                                  child: _buildVisualFeedCard(detection),
-                                ),
-                              ),
-                            );
-                          },
+                  ? _buildSkeletonList(width)
+                  : _filteredDetections.isEmpty
+                  ? _buildEmptyState()
+                  : AnimationLimiter(
+                      child: ListView.builder(
+                        key: ValueKey(_selectedFilter),
+                        padding: EdgeInsets.only(
+                          left: width * 0.06,
+                          right: width * 0.06,
+                          bottom: spacingLarge,
+                          top: spacingMedium,
                         ),
+                        itemCount: _filteredDetections.length,
+                        itemBuilder: (context, index) {
+                          final detection = _filteredDetections[index];
+                          return AnimationConfiguration.staggeredList(
+                            position: index,
+                            duration: const Duration(milliseconds: 375),
+                            child: SlideAnimation(
+                              verticalOffset: 50.0,
+                              child: FadeInAnimation(
+                                child: _buildVisualFeedCard(detection),
+                              ),
+                            ),
+                          );
+                        },
                       ),
+                    ),
             ),
           ),
         ],
@@ -250,7 +268,7 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                   _selectedFilter = filter['label'] as String;
                   _isSimulatingLoad = true; // Trigger skeleton on filter change
                   _updateFilteredDetections();
-                  
+
                   Future.delayed(const Duration(milliseconds: 400), () {
                     if (mounted) setState(() => _isSimulatingLoad = false);
                   });
@@ -309,21 +327,23 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
 
     String title = '';
     String description = '';
-    String detectedLabel = ''; 
+    String detectedLabel = '';
 
     switch (type) {
       case 'face':
         final faceCount = detection['faceCount'] as int;
         title = 'Face Detection';
         detectedLabel = 'Face';
-        description = 'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
+        description =
+            'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
         break;
       case 'object':
         final objects = detection['objects'] as List? ?? [];
         title = 'Object Detection';
         if (objects.isNotEmpty) {
           final firstObject = objects.first['label'] as String;
-          detectedLabel = '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
+          detectedLabel =
+              '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
           final conf = objects.first['confidence'];
           if (conf != null) {
             description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
@@ -391,14 +411,21 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                         imageUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Center(
-                          child: Icon(Icons.broken_image_rounded, size: 40, color: widget.theme.subtextColor),
+                          child: Icon(
+                            Icons.broken_image_rounded,
+                            size: 40,
+                            color: widget.theme.subtextColor,
+                          ),
                         ),
                       ),
                       Positioned(
                         top: spacingMedium,
                         right: spacingMedium,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: 0.7),
                             borderRadius: BorderRadius.circular(radiusLarge),
@@ -407,7 +434,11 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(detection['icon'] as IconData, color: color, size: 14),
+                              Icon(
+                                detection['icon'] as IconData,
+                                color: color,
+                                size: 14,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 title,
@@ -420,7 +451,7 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                             ],
                           ),
                         ),
-                      )
+                      ),
                     ],
                   ),
                 )
@@ -430,13 +461,20 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
                   height: 100,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [color.withValues(alpha: 0.2), color.withValues(alpha: 0.05)],
+                      colors: [
+                        color.withValues(alpha: 0.2),
+                        color.withValues(alpha: 0.05),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                   child: Center(
-                    child: Icon(detection['icon'] as IconData, size: 40, color: color.withValues(alpha: 0.5)),
+                    child: Icon(
+                      detection['icon'] as IconData,
+                      size: 40,
+                      color: color.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
 
@@ -494,29 +532,48 @@ class _AllDetectionsScreenState extends State<AllDetectionsScreen> {
   Widget _buildEmptyState() {
     return Center(
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.06),
-        padding: EdgeInsets.symmetric(vertical: spacingXLarge, horizontal: spacingLarge),
+        margin: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width * 0.06,
+        ),
+        padding: EdgeInsets.symmetric(
+          vertical: spacingXLarge,
+          horizontal: spacingLarge,
+        ),
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
           borderRadius: BorderRadius.circular(radiusLarge),
           boxShadow: widget.isDarkMode ? [] : softShadow,
-          border: Border.all(color: widget.theme.subtextColor.withOpacity(0.2), width: 1),
+          border: Border.all(
+            color: widget.theme.subtextColor.withOpacity(0.2),
+            width: 1,
+          ),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off_rounded, color: widget.theme.subtextColor.withOpacity(0.5), size: 48),
+            Icon(
+              Icons.search_off_rounded,
+              color: widget.theme.subtextColor.withOpacity(0.5),
+              size: 48,
+            ),
             SizedBox(height: spacingMedium),
             Text(
               'No $_selectedFilter records',
-              style: bodyBold.copyWith(fontSize: 16, color: widget.theme.textColor, fontWeight: FontWeight.w600),
+              style: bodyBold.copyWith(
+                fontSize: 16,
+                color: widget.theme.textColor,
+                fontWeight: FontWeight.w600,
+              ),
             ),
             SizedBox(height: spacingSmall),
             Text(
               'Try scanning with $_selectedFilter mode',
-              style: caption.copyWith(fontSize: 13, color: widget.theme.subtextColor),
+              style: caption.copyWith(
+                fontSize: 13,
+                color: widget.theme.subtextColor,
+              ),
             ),
           ],
         ),
