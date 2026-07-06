@@ -15,7 +15,7 @@ class VoiceCallScreen extends StatefulWidget {
   final void Function(bool wasConnected)? onClose;
 
   const VoiceCallScreen({
-    super.key, 
+    super.key,
     required this.userData,
     this.callId,
     this.isCaller = true,
@@ -24,14 +24,14 @@ class VoiceCallScreen extends StatefulWidget {
   });
 
   static void startCall(
-    BuildContext context, 
+    BuildContext context,
     Map<String, dynamic> userData, {
     String? callId,
     bool isCaller = true,
     String callPath = 'partially_sighted_communication',
   }) {
     OverlayEntry? overlayEntry;
-    
+
     overlayEntry = OverlayEntry(
       builder: (overlayContext) => VoiceCallScreen(
         userData: userData,
@@ -40,16 +40,15 @@ class VoiceCallScreen extends StatefulWidget {
         callPath: callPath,
         onClose: (bool wasConnected) {
           overlayEntry?.remove();
-          
+
           if (wasConnected) {
             Future.delayed(const Duration(milliseconds: 300), () {
               if (context.mounted) {
                 showDialog(
-                  context: context, 
+                  context: context,
                   barrierDismissible: false,
-                  builder: (dialogContext) => CallRatingDialog(
-                    onDismissed: () {},
-                  ),
+                  builder: (dialogContext) =>
+                      CallRatingDialog(onDismissed: () {}),
                 );
               }
             });
@@ -57,7 +56,7 @@ class VoiceCallScreen extends StatefulWidget {
         },
       ),
     );
-    
+
     Overlay.of(context).insert(overlayEntry);
   }
 
@@ -65,11 +64,12 @@ class VoiceCallScreen extends StatefulWidget {
   State<VoiceCallScreen> createState() => _VoiceCallScreenState();
 }
 
-class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _VoiceCallScreenState extends State<VoiceCallScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _pulseController;
   bool _isMuted = false;
   bool _isSpeaker = false;
-  bool _isMinimized = false; 
+  bool _isMinimized = false;
 
   bool _isAccepted = false;
   bool _isEnding = false;
@@ -77,10 +77,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
 
   String? _currentCallId;
   StreamSubscription<DatabaseEvent>? _callSubscription;
-  Timer? _ringingTimeout; 
-  
+  Timer? _ringingTimeout;
+
   final WebRTCService _webrtcService = WebRTCService();
-  final Color _primaryColor = const Color(0xFF10B981); 
+  final Color _primaryColor = const Color(0xFF10B981);
   Offset _pipPosition = const Offset(20, 40);
 
   String _caretakerName = 'Caretaker';
@@ -89,8 +89,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); 
-    
+    WidgetsBinding.instance.addObserver(this);
+
     final ac = widget.userData['assignedCaretakers'];
     if (ac is Map && ac.isNotEmpty) {
       final firstVal = ac.values.first;
@@ -112,16 +112,16 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   Future<bool> didPopRoute() async {
     if (!_isMinimized && mounted) {
       setState(() => _isMinimized = true);
-      return true; 
+      return true;
     }
     return false;
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); 
+    WidgetsBinding.instance.removeObserver(this);
     _callSubscription?.cancel();
-    _ringingTimeout?.cancel(); 
+    _ringingTimeout?.cancel();
     if (_currentCallId != null && !_isEnding) {
       _isEnding = true;
       callTrackingService.updateCallStatus(
@@ -141,13 +141,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
     if (!micStatus.isGranted) {
       debugPrint("Microphone Permission Denied! Ending call process.");
       if (mounted) _endCall();
-      return; 
+      return;
     }
 
     try {
       await _webrtcService.initRenderers();
-      await _webrtcService.openUserMedia(false); 
-      
+      await _webrtcService.openUserMedia(false);
+
       _webrtcService.onConnectionClosed = () {
         if (mounted) _endCall();
       };
@@ -155,15 +155,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
       await _handleCallConnection();
     } catch (e) {
       debugPrint("Failed to open mic: $e");
-      if (mounted) _endCall(); 
+      if (mounted) _endCall();
     }
   }
 
   Future<void> _handleCallConnection() async {
-    final currentUserId = databaseService.currentUserId ?? widget.userData['uid'] ?? widget.userData['userId'];
+    final currentUserId =
+        databaseService.currentUserId ??
+        widget.userData['uid'] ??
+        widget.userData['userId'];
     if (currentUserId == null) return;
 
-    String receiverId = ''; 
+    String receiverId = '';
     final ac = widget.userData['assignedCaretakers'];
     if (ac is Map && ac.isNotEmpty) {
       receiverId = ac.keys.first.toString();
@@ -185,57 +188,62 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
         type: 'voice',
         path: widget.callPath,
       );
-      
+
       await _webrtcService.makeCall(widget.callPath, _currentCallId!, false);
 
       _ringingTimeout = Timer(const Duration(seconds: 40), () {
         if (mounted) _endCall();
       });
-
     } else if (widget.callId != null) {
       _currentCallId = widget.callId;
-      _isAccepted = true; 
+      _isAccepted = true;
       await callTrackingService.updateCallStatus(
         path: widget.callPath,
         callId: _currentCallId!,
         status: 'accepted',
       );
-      
+
       await _webrtcService.answerCall(widget.callPath, _currentCallId!, false);
     }
 
     if (_currentCallId != null) {
-      _callSubscription = callTrackingService.listenToCallStatus(widget.callPath, _currentCallId!).listen((event) {
-        if (event.snapshot.exists) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>;
-          
-          if (data['status'] == 'accepted') {
-            if (mounted) setState(() => _isAccepted = true);
-            _ringingTimeout?.cancel();
-          }
+      _callSubscription = callTrackingService
+          .listenToCallStatus(widget.callPath, _currentCallId!)
+          .listen((event) {
+            if (event.snapshot.exists) {
+              final data = event.snapshot.value as Map<dynamic, dynamic>;
 
-          if (data['status'] == 'ended' || data['status'] == 'rejected' || data['status'] == 'missed') {
-            if (mounted) _endCall();
-          }
-        }
-      });
+              if (data['status'] == 'accepted') {
+                if (mounted) setState(() => _isAccepted = true);
+                _ringingTimeout?.cancel();
+              }
+
+              if (data['status'] == 'ended' ||
+                  data['status'] == 'rejected' ||
+                  data['status'] == 'missed') {
+                if (mounted) _endCall();
+              }
+            }
+          });
     }
   }
 
   Future<void> _endCall() async {
     if (_isEnding) return;
-    
+
     if (mounted) {
       setState(() => _isEnding = true);
     } else {
       _isEnding = true;
     }
-    
-    _ringingTimeout?.cancel(); 
-    _cleanupAndPop(); 
+
+    _ringingTimeout?.cancel();
+    _cleanupAndPop();
 
     if (_currentCallId != null) {
-      String finalStatus = (widget.isCaller && !_isAccepted) ? 'missed' : 'ended';
+      String finalStatus = (widget.isCaller && !_isAccepted)
+          ? 'missed'
+          : 'ended';
       try {
         await callTrackingService.updateCallStatus(
           path: widget.callPath,
@@ -252,12 +260,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   void _cleanupAndPop() {
     if (!_hasPopped && widget.onClose != null) {
       _hasPopped = true;
-      widget.onClose!(_isAccepted); 
+      widget.onClose!(_isAccepted);
     }
   }
 
   Widget _buildProfileAvatar(double size) {
-    final hasProfileImage = _caretakerImage != null && _caretakerImage!.isNotEmpty;
+    final hasProfileImage =
+        _caretakerImage != null && _caretakerImage!.isNotEmpty;
 
     return Container(
       width: size,
@@ -265,7 +274,11 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: ClipOval(
@@ -273,7 +286,8 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
             ? Image.network(
                 _caretakerImage!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildAvatarFallback(size * 0.4),
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildAvatarFallback(size * 0.4),
               )
             : _buildAvatarFallback(size * 0.4),
       ),
@@ -283,14 +297,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
   Widget _buildAvatarFallback(double iconSize) {
     return Container(
       decoration: const BoxDecoration(color: Color(0xFF1E293B)),
-      child: Center(child: Icon(Icons.person_rounded, color: Colors.white38, size: iconSize)),
+      child: Center(
+        child: Icon(
+          Icons.person_rounded,
+          color: Colors.white38,
+          size: iconSize,
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     double pipWidth = 120.0;
     double pipHeight = 180.0;
 
@@ -341,8 +361,12 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
-                    onPressed: () => setState(() => _isMinimized = true), 
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () => setState(() => _isMinimized = true),
                   ),
                 ),
               ),
@@ -351,13 +375,15 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
                 animation: _pulseController,
                 builder: (context, child) {
                   return Container(
-                    width: 180, 
+                    width: 180,
                     height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: _primaryColor.withValues(alpha: 0.15 * _pulseController.value), 
+                          color: _primaryColor.withValues(
+                            alpha: 0.15 * _pulseController.value,
+                          ),
                           blurRadius: 50 * _pulseController.value,
                           spreadRadius: 20 * _pulseController.value,
                         ),
@@ -371,21 +397,38 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
               const SizedBox(height: 40),
               Text(
                 _caretakerName,
-                style: h3.copyWith(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                style: h3.copyWith(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Connected',
-                style: body.copyWith(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.w500),
+                style: body.copyWith(
+                  color: _primaryColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const Spacer(),
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 40,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 24,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(40),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(40),
@@ -395,7 +438,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildCallAction(
-                          icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                          icon: _isMuted
+                              ? Icons.mic_off_rounded
+                              : Icons.mic_rounded,
                           isActive: _isMuted,
                           label: 'Mute',
                           onTap: () {
@@ -405,7 +450,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
                         ),
                         _buildEndCallButton(context),
                         _buildCallAction(
-                          icon: _isSpeaker ? Icons.volume_up_rounded : Icons.volume_down_rounded,
+                          icon: _isSpeaker
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_down_rounded,
                           isActive: _isSpeaker,
                           label: 'Speaker',
                           onTap: () {
@@ -432,17 +479,20 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
           final size = MediaQuery.of(context).size;
           double newX = _pipPosition.dx + details.delta.dx;
           double newY = _pipPosition.dy + details.delta.dy;
-          
-          newX = newX.clamp(10.0, size.width - pipWidth - 10.0); 
-          newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
-          
+
+          newX = newX.clamp(10.0, size.width - pipWidth - 10.0);
+          newY = newY.clamp(
+            MediaQuery.of(context).padding.top + 10,
+            size.height - pipHeight - 10.0,
+          );
+
           _pipPosition = Offset(newX, newY);
         });
       },
-      onTap: () => setState(() => _isMinimized = false), 
+      onTap: () => setState(() => _isMinimized = false),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B), 
+          color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(16),
         ),
         child: ClipRRect(
@@ -463,10 +513,10 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded, 
-                    color: _primaryColor, 
-                    size: 20
-                  ), 
+                    _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                    color: _primaryColor,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -484,17 +534,23 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
           Image.network(
             imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF334155)),
+            errorBuilder: (context, error, stackTrace) =>
+                Container(color: const Color(0xFF334155)),
           )
         else
           Container(color: const Color(0xFF334155)),
-        
-        Container(color: Colors.black.withValues(alpha: 0.3)), 
+
+        Container(color: Colors.black.withValues(alpha: 0.3)),
       ],
     );
   }
 
-  Widget _buildCallAction({required IconData icon, required bool isActive, required String label, required VoidCallback onTap}) {
+  Widget _buildCallAction({
+    required IconData icon,
+    required bool isActive,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return Semantics(
       label: label,
       button: true,
@@ -504,7 +560,9 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isActive ? Colors.white.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.08),
+            color: isActive
+                ? Colors.white.withValues(alpha: 0.25)
+                : Colors.white.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.white, size: 28),
@@ -525,10 +583,18 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> with SingleTickerProv
             color: const Color(0xFFEF4444),
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4)),
-            ]
-          ), 
-          child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 32),
+              BoxShadow(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.call_end_rounded,
+            color: Colors.white,
+            size: 32,
+          ),
         ),
       ),
     );

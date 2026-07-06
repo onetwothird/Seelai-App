@@ -7,10 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 class CaretakerSelectionScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
 
-  const CaretakerSelectionScreen({
-    super.key,
-    required this.userData,
-  });
+  const CaretakerSelectionScreen({super.key, required this.userData});
 
   @override
   State<CaretakerSelectionScreen> createState() =>
@@ -52,11 +49,10 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
       CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _fadeController, curve: Curves.easeOutCubic),
+        );
 
     _fadeController.forward();
   }
@@ -67,8 +63,9 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
     });
 
     try {
-      final DatabaseReference caretakerRef =
-          databaseService.database.ref('user_info/caretaker');
+      final DatabaseReference caretakerRef = databaseService.database.ref(
+        'user_info/caretaker',
+      );
       final DatabaseEvent event = await caretakerRef.once();
 
       if (event.snapshot.exists) {
@@ -162,8 +159,9 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         details: 'Selected caretaker: $_selectedCaretakerId',
       );
 
-      Map<String, dynamic>? updatedUserData =
-          await databaseService.getUserData(patientId);
+      Map<String, dynamic>? updatedUserData = await databaseService.getUserData(
+        patientId,
+      );
 
       if (mounted && updatedUserData != null) {
         updatedUserData['uid'] = patientId;
@@ -171,9 +169,8 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => PartiallySightedHomeScreen(
-              userData: updatedUserData,
-            ),
+            builder: (context) =>
+                PartiallySightedHomeScreen(userData: updatedUserData),
           ),
         );
       }
@@ -185,8 +182,10 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isLimitError ? cleanErrorMessage : 'Failed to assign caretaker.'),
-            backgroundColor: isLimitError ? Colors.redAccent : null, 
+            content: Text(
+              isLimitError ? cleanErrorMessage : 'Failed to assign caretaker.',
+            ),
+            backgroundColor: isLimitError ? Colors.redAccent : null,
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'Retry',
@@ -209,9 +208,8 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => PartiallySightedHomeScreen(
-          userData: widget.userData,
-        ),
+        builder: (context) =>
+            PartiallySightedHomeScreen(userData: widget.userData),
       ),
     );
   }
@@ -313,8 +311,11 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                                 ),
                                 suffixIcon: _searchQuery.isNotEmpty
                                     ? IconButton(
-                                        icon: Icon(Icons.clear_rounded,
-                                            color: _slateLight, size: 20),
+                                        icon: Icon(
+                                          Icons.clear_rounded,
+                                          color: _slateLight,
+                                          size: 20,
+                                        ),
                                         onPressed: () {
                                           _searchController.clear();
                                           setState(() => _searchQuery = '');
@@ -344,29 +345,27 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                               ),
                             )
                           : _filteredCaretakers.isEmpty
-                              ? _buildEmptyState()
-                              : ListView.builder(
-                                  physics: const BouncingScrollPhysics(),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 24),
-                                  itemCount: _filteredCaretakers.length,
-                                  itemBuilder: (context, index) {
-                                    final caretaker =
-                                        _filteredCaretakers[index];
-                                    final isSelected =
-                                        _selectedCaretakerId ==
-                                            caretaker['uid'];
+                          ? _buildEmptyState()
+                          : ListView.builder(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                              ),
+                              itemCount: _filteredCaretakers.length,
+                              itemBuilder: (context, index) {
+                                final caretaker = _filteredCaretakers[index];
+                                final isSelected =
+                                    _selectedCaretakerId == caretaker['uid'];
 
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 16),
-                                      child: _buildCaretakerCard(
-                                        caretaker: caretaker,
-                                        isSelected: isSelected,
-                                      ),
-                                    );
-                                  },
-                                ),
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildCaretakerCard(
+                                    caretaker: caretaker,
+                                    isSelected: isSelected,
+                                  ),
+                                );
+                              },
+                            ),
                     ),
 
                     // BOTTOM BUTTON SECTION
@@ -389,7 +388,8 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                           duration: const Duration(milliseconds: 300),
                           opacity: _selectedCaretakerId != null ? 1.0 : 0.5,
                           child: ElevatedButton(
-                            onPressed: _selectedCaretakerId == null || _isAssigning
+                            onPressed:
+                                _selectedCaretakerId == null || _isAssigning
                                 ? null
                                 : _assignCaretaker,
                             style: ElevatedButton.styleFrom(
@@ -422,7 +422,7 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                                       strokeWidth: 2,
                                     ),
                                   ),
-                                ]
+                                ],
                               ],
                             ),
                           ),
@@ -433,12 +433,9 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
               ),
             ),
           ),
-          
+
           if (_isAssigning)
-             LoadingOverlay(
-              message: 'Assigning...',
-              isVisible: _isAssigning,
-            ),
+            LoadingOverlay(message: 'Assigning...', isVisible: _isAssigning),
         ],
       ),
     );
@@ -470,9 +467,11 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
   }) {
     final name = caretaker['name'] ?? 'Unknown';
     final age = caretaker['age']?.toString() ?? 'N/A';
-    final phone = caretaker['phone'] ?? caretaker['contactNumber'] ?? 'No phone';
+    final phone =
+        caretaker['phone'] ?? caretaker['contactNumber'] ?? 'No phone';
     final profileImageUrl = caretaker['profileImageUrl'] as String?;
-    final hasProfileImage = profileImageUrl != null && profileImageUrl.isNotEmpty;
+    final hasProfileImage =
+        profileImageUrl != null && profileImageUrl.isNotEmpty;
 
     // 1. Calculate patient limit data safely
     final assignedPatients = caretaker['assignedPatients'] as Map?;
@@ -482,8 +481,8 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
 
     return GestureDetector(
       // 2. Disable tap if the caretaker is at max capacity
-      onTap: isFull 
-          ? null 
+      onTap: isFull
+          ? null
           : () {
               setState(() {
                 _selectedCaretakerId = isSelected ? null : caretaker['uid'];
@@ -494,7 +493,9 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? _primaryColor.withValues(alpha: 0.04) : Colors.white,
+          color: isSelected
+              ? _primaryColor.withValues(alpha: 0.04)
+              : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? _primaryColor : Colors.grey.shade100,
@@ -561,8 +562,11 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        Icon(Icons.verified_rounded,
-                            size: 14, color: _primaryColor),
+                        Icon(
+                          Icons.verified_rounded,
+                          size: 14,
+                          color: _primaryColor,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           "Registered Caretaker",
@@ -577,20 +581,20 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                     const SizedBox(height: 4),
                     Text(
                       "$phone • Age: $age",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[400],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[400]),
                     ),
                     const SizedBox(height: 8),
                     // 4. The new sleek Patient Capacity Badge
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: isFull 
-                                ? Colors.redAccent.withValues(alpha: 0.1) 
+                            color: isFull
+                                ? Colors.redAccent.withValues(alpha: 0.1)
                                 : _primaryColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
@@ -600,7 +604,9 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                               Icon(
                                 Icons.people_alt_rounded,
                                 size: 12,
-                                color: isFull ? Colors.redAccent : _primaryColor,
+                                color: isFull
+                                    ? Colors.redAccent
+                                    : _primaryColor,
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -608,7 +614,9 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: isFull ? Colors.redAccent : _primaryColor,
+                                  color: isFull
+                                      ? Colors.redAccent
+                                      : _primaryColor,
                                 ),
                               ),
                             ],
@@ -639,7 +647,11 @@ class _CaretakerSelectionScreenState extends State<CaretakerSelectionScreen>
                     shape: BoxShape.circle,
                     color: Colors.grey.shade200,
                   ),
-                  child: Icon(Icons.lock_rounded, color: Colors.grey.shade400, size: 14),
+                  child: Icon(
+                    Icons.lock_rounded,
+                    color: Colors.grey.shade400,
+                    size: 14,
+                  ),
                 )
               else if (isSelected)
                 Container(

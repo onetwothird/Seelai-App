@@ -1,12 +1,12 @@
 // File: lib/roles/mswd/home/sections/requests/requests_details.dart
 
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; 
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
-import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:flutter_tts/flutter_tts.dart';
 
 class RequestDetailsScreen extends StatefulWidget {
   final RequestModel request;
@@ -31,8 +31,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   Map<String, dynamic>? _caretakerData;
   late RequestModel _currentRequest;
   bool _isUpdating = false;
-  
-  bool _isSimulatingLoad = true; 
+
+  bool _isSimulatingLoad = true;
 
   // --- TTS STATE ---
   final FlutterTts _flutterTts = FlutterTts();
@@ -47,10 +47,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (_currentRequest.caretakerId != null) {
       _caretakerData = widget.userDataCache[_currentRequest.caretakerId!];
     }
-    
+
     // FETCH DATA IF IT IS MISSING FROM CACHE (e.g. from Notifications)
     _loadMissingData();
-    
+
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) setState(() => _isSimulatingLoad = false);
     });
@@ -59,7 +59,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   // --- ADDED THIS METHOD TO FIX THE "UNKNOWN" BUG ---
   Future<void> _loadMissingData() async {
     bool needsUpdate = false;
-    
+
     // Fetch patient data if missing
     if (_patientData == null) {
       final data = await databaseService.getUserData(_currentRequest.patientId);
@@ -68,16 +68,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         needsUpdate = true;
       }
     }
-    
+
     // Fetch caretaker data if assigned and missing
     if (_currentRequest.caretakerId != null && _caretakerData == null) {
-      final data = await databaseService.getUserData(_currentRequest.caretakerId!);
+      final data = await databaseService.getUserData(
+        _currentRequest.caretakerId!,
+      );
       if (data != null) {
         _caretakerData = data;
         needsUpdate = true;
       }
     }
-    
+
     // Refresh the UI if new data was found
     if (needsUpdate && mounted) {
       setState(() {});
@@ -98,7 +100,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   @override
   void dispose() {
-    _flutterTts.stop(); 
+    _flutterTts.stop();
     super.dispose();
   }
 
@@ -107,31 +109,36 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        _speakMessage(fallbackMessage); 
+        _speakMessage(fallbackMessage);
       }
     } catch (e) {
-      _speakMessage('Action failed: $e'); 
+      _speakMessage('Action failed: $e');
     }
   }
 
   void _callPhone(String? phone) {
     if (phone == null || phone.isEmpty || phone == 'Not Provided') {
-      _speakMessage('No valid phone number available.'); 
+      _speakMessage('No valid phone number available.');
       return;
     }
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
-    _launchUrl(Uri(scheme: 'tel', path: cleanPhone), 'Could not open phone dialer.');
+    _launchUrl(
+      Uri(scheme: 'tel', path: cleanPhone),
+      'Could not open phone dialer.',
+    );
   }
 
   void _openMap() {
     final loc = _currentRequest.location;
     if (loc == null || loc['latitude'] == null || loc['longitude'] == null) {
-      _speakMessage('No exact GPS coordinates available.'); 
+      _speakMessage('No exact GPS coordinates available.');
       return;
     }
     final lat = loc['latitude'];
     final lng = loc['longitude'];
-    final url = Uri.parse('http://googleusercontent.com/maps.google.com/maps?q=$lat,$lng');
+    final url = Uri.parse(
+      'http://googleusercontent.com/maps.google.com/maps?q=$lat,$lng',
+    );
     _launchUrl(url, 'Could not open maps application.');
   }
 
@@ -161,10 +168,15 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               const SizedBox(height: 8),
               Text(
                 'Update the current status of this request. Changes will immediately reflect for the patient and assigned responder.',
-                style: TextStyle(fontSize: 13, color: widget.theme.subtextColor),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: widget.theme.subtextColor,
+                ),
               ),
               const SizedBox(height: 24),
-              ...RequestStatus.values.map((status) => _buildStatusOption(status)),
+              ...RequestStatus.values.map(
+                (status) => _buildStatusOption(status),
+              ),
             ],
           ),
         ),
@@ -182,23 +194,25 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         if (isSelected) return;
 
         setState(() => _isUpdating = true);
-        
+
         final success = await assistanceRequestService.updateRequestStatus(
           _currentRequest.id,
           status,
         );
-        
+
         if (mounted) {
           if (success) {
             setState(() {
               _currentRequest = _currentRequest.copyWith(status: status);
               _isUpdating = false;
             });
-            _speakMessage('Status forcefully updated to ${status.name.toUpperCase()}'); 
+            _speakMessage(
+              'Status forcefully updated to ${status.name.toUpperCase()}',
+            );
           } else {
             setState(() => _isUpdating = false);
-            _speakMessage('Failed to update status in database.'); 
-            
+            _speakMessage('Failed to update status in database.');
+
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Failed to update. Check connection.'),
@@ -212,16 +226,22 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : widget.theme.cardColor,
+          color: isSelected
+              ? color.withValues(alpha: 0.1)
+              : widget.theme.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : (widget.isDarkMode ? Colors.white10 : Colors.black12),
+            color: isSelected
+                ? color
+                : (widget.isDarkMode ? Colors.white10 : Colors.black12),
           ),
         ),
         child: Row(
           children: [
             Icon(
-              isSelected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+              isSelected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_off_rounded,
               color: isSelected ? color : widget.theme.subtextColor,
             ),
             const SizedBox(width: 12),
@@ -241,9 +261,17 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   IconData _getRequestIcon(String type) {
     final t = type.toLowerCase();
-    if (t.contains('medical') || t.contains('health')) return Icons.medical_services_rounded;
-    if (t.contains('transport') || t.contains('ride') || t.contains('navigation')) return Icons.directions_car_rounded;
-    if (t.contains('food') || t.contains('grocery')) return Icons.shopping_basket_rounded;
+    if (t.contains('medical') || t.contains('health')) {
+      return Icons.medical_services_rounded;
+    }
+    if (t.contains('transport') ||
+        t.contains('ride') ||
+        t.contains('navigation')) {
+      return Icons.directions_car_rounded;
+    }
+    if (t.contains('food') || t.contains('grocery')) {
+      return Icons.shopping_basket_rounded;
+    }
     if (t.contains('emergency')) return Icons.warning_rounded;
     if (t.contains('read')) return Icons.text_fields_rounded;
     return Icons.assignment_rounded;
@@ -259,8 +287,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   Widget _buildSkeletonDetails() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -269,17 +301,49 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
         child: Column(
           children: [
-            Container(width: 110, height: 110, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white)),
+            Container(
+              width: 110,
+              height: 110,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+              ),
+            ),
             const SizedBox(height: 16),
             Container(width: 180, height: 24, color: Colors.white),
             const SizedBox(height: 8),
-            Container(width: 140, height: 36, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              width: 140,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 24),
-            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 24),
-            Container(height: 120, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
             const SizedBox(height: 24),
-            Container(height: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20))),
+            Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
           ],
         ),
       ),
@@ -288,14 +352,14 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.theme.backgroundGradient.colors.last; 
-    final primaryColor = const Color(0xFF8B5CF6); 
+    final bgColor = widget.theme.backgroundGradient.colors.last;
+    final primaryColor = const Color(0xFF8B5CF6);
 
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: bgColor,
-        surfaceTintColor: Colors.transparent, 
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: Padding(
@@ -303,7 +367,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           child: CircleAvatar(
             backgroundColor: widget.theme.cardColor,
             child: IconButton(
-              icon: Icon(Icons.arrow_back_rounded, color: widget.theme.textColor, size: 20),
+              icon: Icon(
+                Icons.arrow_back_rounded,
+                color: widget.theme.textColor,
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -313,17 +381,17 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             Text(
               'Ref #${_currentRequest.id.length > 6 ? _currentRequest.id.substring(0, 6).toUpperCase() : _currentRequest.id.toUpperCase()}',
               style: TextStyle(
-                color: widget.theme.textColor, 
-                fontSize: 14, 
+                color: widget.theme.textColor,
+                fontSize: 14,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 1.0
+                letterSpacing: 1.0,
               ),
             ),
             Text(
               'MSWD Admin',
               style: TextStyle(
-                color: widget.theme.subtextColor, 
-                fontSize: 10, 
+                color: widget.theme.subtextColor,
+                fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -333,15 +401,19 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
-              child: _isUpdating 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              child: _isUpdating
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : _buildStatusPill(),
             ),
-          )
+          ),
         ],
       ),
-      body: _isSimulatingLoad 
-          ? _buildSkeletonDetails() 
+      body: _isSimulatingLoad
+          ? _buildSkeletonDetails()
           : SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
@@ -368,7 +440,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Widget _buildPatientProfileHeader(Color primaryColor) {
     final profileImageUrl = _patientData?['profileImageUrl'] as String?;
-    final contactNumber = _patientData?['contactNumber'] ?? _patientData?['phone'] ?? 'Not Provided';
+    final contactNumber =
+        _patientData?['contactNumber'] ??
+        _patientData?['phone'] ??
+        'Not Provided';
 
     return Column(
       children: [
@@ -380,25 +455,33 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: widget.isDarkMode ? Colors.white30 : Colors.black, 
-                width: 1.5
+                color: widget.isDarkMode ? Colors.white30 : Colors.black,
+                width: 1.5,
               ),
-              boxShadow: widget.isDarkMode ? [] : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, 10),
-                )
-              ],
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
             ),
             child: ClipOval(
               child: profileImageUrl != null && profileImageUrl.isNotEmpty
                   ? Image.network(
                       profileImageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _buildDefaultAvatar(_currentRequest.patientName, primaryColor),
+                      errorBuilder: (_, _, _) => _buildDefaultAvatar(
+                        _currentRequest.patientName,
+                        primaryColor,
+                      ),
                     )
-                  : _buildDefaultAvatar(_currentRequest.patientName, primaryColor),
+                  : _buildDefaultAvatar(
+                      _currentRequest.patientName,
+                      primaryColor,
+                    ),
             ),
           ),
         ),
@@ -431,7 +514,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                 const SizedBox(width: 8),
                 Text(
                   contactNumber,
-                  style: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: primaryColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -451,15 +538,19 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+          color: widget.isDarkMode
+              ? Colors.white10
+              : Colors.black.withValues(alpha: 0.04),
         ),
-        boxShadow: widget.isDarkMode ? [] : [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -491,9 +582,9 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   }
 
   Widget _buildStatItem({
-    required IconData icon, 
-    required Color color, 
-    required String label, 
+    required IconData icon,
+    required Color color,
+    required String label,
     required String value,
     bool isBold = false,
   }) {
@@ -519,13 +610,21 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(fontSize: 11, color: widget.theme.subtextColor, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 11,
+            color: widget.theme.subtextColor,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildVerticalDivider() => Container(height: 40, width: 1, color: widget.theme.subtextColor.withValues(alpha: 0.15));
+  Widget _buildVerticalDivider() => Container(
+    height: 40,
+    width: 1,
+    color: widget.theme.subtextColor.withValues(alpha: 0.15),
+  );
 
   Widget _buildMessageBubble() {
     return Column(
@@ -544,7 +643,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               topLeft: Radius.circular(20),
               topRight: Radius.circular(20),
               bottomRight: Radius.circular(20),
-              bottomLeft: Radius.circular(6), 
+              bottomLeft: Radius.circular(6),
             ),
           ),
           child: Text(
@@ -562,7 +661,7 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Widget _buildLocationCard() {
     if (_currentRequest.location == null) return const SizedBox.shrink();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -571,14 +670,16 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           child: Text('GPS LOCATION', style: _sectionHeaderStyle()),
         ),
         InkWell(
-          onTap: _openMap, 
+          onTap: _openMap,
           borderRadius: BorderRadius.circular(20),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFF3B82F6).withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.3)),
+              border: Border.all(
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               children: [
@@ -588,23 +689,41 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.map_rounded, color: Color(0xFF3B82F6), size: 24),
+                  child: const Icon(
+                    Icons.map_rounded,
+                    color: Color(0xFF3B82F6),
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Location Attached', style: TextStyle(color: Color(0xFF3B82F6), fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text(
+                        'Location Attached',
+                        style: TextStyle(
+                          color: Color(0xFF3B82F6),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 2),
                       Text(
-                        'Tap to open in Google Maps', 
-                        style: TextStyle(color: const Color(0xFF3B82F6).withValues(alpha: 0.7), fontSize: 12)
+                        'Tap to open in Google Maps',
+                        style: TextStyle(
+                          color: const Color(0xFF3B82F6).withValues(alpha: 0.7),
+                          fontSize: 12,
+                        ),
                       ),
                     ],
-                  )
+                  ),
                 ),
-                const Icon(Icons.open_in_new_rounded, color: Color(0xFF3B82F6), size: 18),
+                const Icon(
+                  Icons.open_in_new_rounded,
+                  color: Color(0xFF3B82F6),
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -617,7 +736,8 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     final hasCaretaker = _currentRequest.caretakerId != null;
     final name = _caretakerData?['name'] ?? 'Unknown Responder';
     final img = _caretakerData?['profileImageUrl'];
-    final caretakerPhone = _caretakerData?['contactNumber'] ?? _caretakerData?['phone'];
+    final caretakerPhone =
+        _caretakerData?['contactNumber'] ?? _caretakerData?['phone'];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -632,16 +752,22 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: hasCaretaker ? primaryColor.withValues(alpha: 0.3) : (widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
+              color: hasCaretaker
+                  ? primaryColor.withValues(alpha: 0.3)
+                  : (widget.isDarkMode
+                        ? Colors.white10
+                        : Colors.black.withValues(alpha: 0.04)),
               width: hasCaretaker ? 1.5 : 1.0,
             ),
-            boxShadow: widget.isDarkMode ? [] : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
+            boxShadow: widget.isDarkMode
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: hasCaretaker
               ? Row(
@@ -652,32 +778,59 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: primaryColor.withValues(alpha: 0.1),
-                        border: Border.all(color: primaryColor.withValues(alpha: 0.2), width: 1.5),
-                        image: (img != null && img.isNotEmpty) ? DecorationImage(image: NetworkImage(img), fit: BoxFit.cover) : null,
+                        border: Border.all(
+                          color: primaryColor.withValues(alpha: 0.2),
+                          width: 1.5,
+                        ),
+                        image: (img != null && img.isNotEmpty)
+                            ? DecorationImage(
+                                image: NetworkImage(img),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ),
-                      child: (img == null || img.isEmpty) ? Icon(Icons.security_rounded, color: primaryColor) : null,
+                      child: (img == null || img.isEmpty)
+                          ? Icon(Icons.security_rounded, color: primaryColor)
+                          : null,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: widget.theme.textColor)),
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: widget.theme.textColor,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text('Caretaker', style: TextStyle(color: widget.theme.subtextColor, fontSize: 11,)),
+                          Text(
+                            'Caretaker',
+                            style: TextStyle(
+                              color: widget.theme.subtextColor,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    if (caretakerPhone != null && caretakerPhone.toString().isNotEmpty)
+                    if (caretakerPhone != null &&
+                        caretakerPhone.toString().isNotEmpty)
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.green.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.phone_in_talk_rounded, size: 20),
+                          icon: const Icon(
+                            Icons.phone_in_talk_rounded,
+                            size: 20,
+                          ),
                           color: Colors.green,
-                          onPressed: () => _callPhone(caretakerPhone), 
+                          onPressed: () => _callPhone(caretakerPhone),
                         ),
                       ),
                   ],
@@ -687,10 +840,16 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: widget.isDarkMode ? Colors.white10 : Colors.grey[100],
+                        color: widget.isDarkMode
+                            ? Colors.white10
+                            : Colors.grey[100],
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.support_agent_rounded, color: widget.theme.subtextColor, size: 24),
+                      child: Icon(
+                        Icons.support_agent_rounded,
+                        color: widget.theme.subtextColor,
+                        size: 24,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -699,11 +858,18 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                         children: [
                           Text(
                             'Escalated to MSWD',
-                            style: TextStyle(color: widget.theme.textColor, fontSize: 14, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: widget.theme.textColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Text(
                             'No caretaker available. MSWD handling.',
-                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 12),
+                            style: TextStyle(
+                              color: widget.theme.subtextColor,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -718,9 +884,13 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
   Widget _buildTimelineSection(Color primaryColor) {
     DateTime? responseTime;
     DateTime? completedTime;
-    
-    try { responseTime = _currentRequest.responseTime; } catch (_) {}
-    try { completedTime = _currentRequest.completedTime; } catch (_) {}
+
+    try {
+      responseTime = _currentRequest.responseTime;
+    } catch (_) {}
+    try {
+      completedTime = _currentRequest.completedTime;
+    } catch (_) {}
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -734,14 +904,20 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           decoration: BoxDecoration(
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.black.withValues(alpha: 0.04)),
-            boxShadow: widget.isDarkMode ? [] : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
+            border: Border.all(
+              color: widget.isDarkMode
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.04),
+            ),
+            boxShadow: widget.isDarkMode
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Column(
             children: [
@@ -756,7 +932,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                 primaryColor: primaryColor,
                 title: 'Assigned / Accepted',
                 time: responseTime,
-                isActive: _currentRequest.status.index > RequestStatus.pending.index && _currentRequest.status != RequestStatus.declined,
+                isActive:
+                    _currentRequest.status.index >
+                        RequestStatus.pending.index &&
+                    _currentRequest.status != RequestStatus.declined,
               ),
               _buildTimelineStep(
                 primaryColor: primaryColor,
@@ -780,8 +959,10 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     bool isTop = false,
     bool isBottom = false,
   }) {
-    final color = isActive ? primaryColor : widget.theme.subtextColor.withValues(alpha: 0.3);
-    
+    final color = isActive
+        ? primaryColor
+        : widget.theme.subtextColor.withValues(alpha: 0.3);
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -792,30 +973,37 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
               children: [
                 if (!isTop) Expanded(child: Container(width: 2, color: color)),
                 Container(
-                  width: 14, height: 14,
+                  width: 14,
+                  height: 14,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isActive ? primaryColor : widget.theme.cardColor,
                     border: Border.all(color: color, width: 2.5),
                   ),
                 ),
-                if (!isBottom) Expanded(child: Container(width: 2, color: color)),
+                if (!isBottom)
+                  Expanded(child: Container(width: 2, color: color)),
               ],
             ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Padding(
-              padding: EdgeInsets.only(bottom: isBottom ? 0 : 24.0, top: isTop ? 0 : 0), 
+              padding: EdgeInsets.only(
+                bottom: isBottom ? 0 : 24.0,
+                top: isTop ? 0 : 0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start, 
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(
                     title,
                     style: TextStyle(
                       fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                      color: isActive ? widget.theme.textColor : widget.theme.subtextColor,
+                      color: isActive
+                          ? widget.theme.textColor
+                          : widget.theme.subtextColor,
                       fontSize: 15,
                       letterSpacing: -0.3,
                     ),
@@ -824,12 +1012,20 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
                   if (time != null)
                     Text(
                       DateFormat('MMM dd, yyyy • hh:mm a').format(time),
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 12, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: widget.theme.subtextColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     )
                   else if (isActive)
-                     Text(
-                      'Marked Active', 
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 12, fontWeight: FontWeight.w500),
+                    Text(
+                      'Marked Active',
+                      style: TextStyle(
+                        color: widget.theme.subtextColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                 ],
               ),
@@ -854,13 +1050,21 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
           child: ElevatedButton.icon(
             onPressed: _showAdminStatusUpdateDialog,
             icon: const Icon(Icons.edit_note_rounded, size: 20),
-            label: const Text('Update Request Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            label: const Text(
+              'Update Request Status',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: widget.theme.cardColor,
               foregroundColor: primaryColor,
-              side: BorderSide(color: primaryColor.withValues(alpha: 0.5), width: 1.5),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              elevation: 0, 
+              side: BorderSide(
+                color: primaryColor.withValues(alpha: 0.5),
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              elevation: 0,
             ),
           ),
         ),
@@ -879,7 +1083,12 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       ),
       child: Text(
         _currentRequest.status.name.toUpperCase(),
-        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10, letterSpacing: 0.5),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -890,7 +1099,11 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
       child: Center(
         child: Text(
           name.isNotEmpty ? name[0].toUpperCase() : '?',
-          style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 36,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
@@ -905,18 +1118,23 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
 
   Color _getStatusColor(RequestStatus status) {
     switch (status) {
-      case RequestStatus.pending: return const Color(0xFFF5A623);
-      case RequestStatus.accepted: return const Color(0xFF3B82F6);
-      case RequestStatus.inProgress: return const Color(0xFF8B5CF6);
-      case RequestStatus.completed: return const Color(0xFF10B981);
-      case RequestStatus.declined: return const Color(0xFFEF4444);
+      case RequestStatus.pending:
+        return const Color(0xFFF5A623);
+      case RequestStatus.accepted:
+        return const Color(0xFF3B82F6);
+      case RequestStatus.inProgress:
+        return const Color(0xFF8B5CF6);
+      case RequestStatus.completed:
+        return const Color(0xFF10B981);
+      case RequestStatus.declined:
+        return const Color(0xFFEF4444);
     }
   }
 
- String _formatShortTime(DateTime dt) {
+  String _formatShortTime(DateTime dt) {
     final now = DateTime.now();
     Duration diff = now.difference(dt);
-    
+
     if (diff.isNegative || diff.inSeconds < 10) {
       return 'Just now';
     }
@@ -925,6 +1143,6 @@ class _RequestDetailsScreenState extends State<RequestDetailsScreen> {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${diff.inDays ~/ 7}w ago'; 
+    return '${diff.inDays ~/ 7}w ago';
   }
 }

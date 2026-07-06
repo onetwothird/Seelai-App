@@ -8,21 +8,21 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RoboflowService {
   static String get _apiKey => dotenv.env['ROBOFLOW_API_KEY'] ?? '';
-  
+
   // Updated to the correct workspace IDs
   static const String _faceProjectId = 'seelai-face-eordb';
   static const String _objectProjectId = 'seelai-objects-s7rir';
 
   static Future<bool> uploadImage(XFile imageFile, String subjectType) async {
     try {
-      debugPrint('Starting upload to Roboflow...'); 
+      debugPrint('Starting upload to Roboflow...');
 
       // 1. Determine which project to send the image to
-      final String targetProjectId = (subjectType == 'face') 
-          ? _faceProjectId 
+      final String targetProjectId = (subjectType == 'face')
+          ? _faceProjectId
           : _objectProjectId;
 
-      debugPrint('Routing upload to project: $targetProjectId'); 
+      debugPrint('Routing upload to project: $targetProjectId');
 
       // 2. Convert image to Base64
       List<int> imageBytes = await imageFile.readAsBytes();
@@ -34,10 +34,10 @@ class RoboflowService {
 
       // 4. Build the API URL
       final Uri url = Uri.parse(
-          'https://api.roboflow.com/dataset/$targetProjectId/upload'
-          '?api_key=$_apiKey'
-          '&name=$filename'
-          '&split=train' 
+        'https://api.roboflow.com/dataset/$targetProjectId/upload'
+        '?api_key=$_apiKey'
+        '&name=$filename'
+        '&split=train',
       );
 
       // 5. Send to Roboflow
@@ -52,12 +52,12 @@ class RoboflowService {
         debugPrint('Success! Image uploaded to $targetProjectId.');
         return true;
       } else {
-        debugPrint('Upload Failed. Status Code: ${response.statusCode}'); 
-        debugPrint('Response: ${response.body}'); 
+        debugPrint('Upload Failed. Status Code: ${response.statusCode}');
+        debugPrint('Response: ${response.body}');
         return false;
       }
     } catch (e) {
-      debugPrint('Upload Error: $e'); 
+      debugPrint('Upload Error: $e');
       return false;
     }
   }

@@ -55,7 +55,9 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Face detection mode activated - Looking for caretakers'),
+            content: Text(
+              'Face detection mode activated - Looking for caretakers',
+            ),
             backgroundColor: Colors.purple,
             behavior: SnackBarBehavior.floating,
             duration: Duration(seconds: 2),
@@ -76,7 +78,8 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
     final screenSize = MediaQuery.of(context).size;
     final screenWidth = screenSize.width;
 
-    if (!widget.cameraService.isInitialized || widget.cameraService.controller == null) {
+    if (!widget.cameraService.isInitialized ||
+        widget.cameraService.controller == null) {
       return _buildLoadingScreen(screenWidth);
     }
 
@@ -96,10 +99,10 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           children: [
             // Camera Preview - Full Screen
             _buildCameraPreview(),
-            
+
             // Gradient Overlay
             _buildGradientOverlay(),
-            
+
             // Animated Bounding Boxes for Faces
             if (_state.isModelLoaded)
               FaceBoundingBoxes(
@@ -107,17 +110,15 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
                 cameraController: widget.cameraService.controller!,
                 screenSize: screenSize,
               ),
-            
+
             // Header
             Positioned(
               top: 0,
               left: 0,
               right: 0,
-              child: SafeArea(
-                child: _buildHeader(screenWidth),
-              ),
+              child: SafeArea(child: _buildHeader(screenWidth)),
             ),
-            
+
             // Bottom Controls
             Positioned(
               bottom: 0,
@@ -233,10 +234,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(radiusMedium),
-              border: Border.all(
-                color: white.withValues(alpha: 0.2),
-                width: 1,
-              ),
+              border: Border.all(color: white.withValues(alpha: 0.2), width: 1),
             ),
             child: Icon(
               Icons.arrow_back_rounded,
@@ -278,8 +276,8 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
 
   Widget _buildFlashToggle(double screenWidth) {
     return Semantics(
-      label: _state.isFlashOn 
-          ? 'Flashlight is on. Double tap to turn off' 
+      label: _state.isFlashOn
+          ? 'Flashlight is on. Double tap to turn off'
           : 'Flashlight is off. Double tap to turn on',
       button: true,
       child: Material(
@@ -304,7 +302,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
               vertical: screenWidth * 0.015,
             ),
             decoration: BoxDecoration(
-              color: _state.isFlashOn 
+              color: _state.isFlashOn
                   ? Colors.purple.withValues(alpha: 0.3)
                   : Colors.grey.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(radiusSmall),
@@ -464,13 +462,13 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
           _state.isReading
               ? Icons.volume_up
               : _state.recognitions.isNotEmpty
-                  ? Icons.face
-                  : Icons.face_outlined,
+              ? Icons.face
+              : Icons.face_outlined,
           color: _state.isReading
               ? Colors.purple.shade300
               : _state.recognitions.isNotEmpty
-                  ? Colors.purple
-                  : Colors.purple.shade200,
+              ? Colors.purple
+              : Colors.purple.shade200,
           size: screenWidth * 0.06,
         ),
         const SizedBox(width: spacingSmall),
@@ -479,8 +477,8 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
             _state.isReading
                 ? 'Announcing caretaker...'
                 : _state.recognitions.isNotEmpty
-                    ? 'Scanning caretakers...'
-                    : 'Looking for faces...',
+                ? 'Scanning caretakers...'
+                : 'Looking for faces...',
             style: bodyBold.copyWith(
               color: white.withValues(alpha: 0.9),
               fontSize: screenWidth * 0.035,
@@ -490,7 +488,7 @@ class _FaceDetectionScreenState extends State<FaceDetectionScreen> {
         const SizedBox(width: spacingLarge),
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.03, 
+            horizontal: screenWidth * 0.03,
             vertical: spacingSmall,
           ),
           decoration: BoxDecoration(
@@ -534,8 +532,8 @@ class FaceBoundingBoxes extends StatelessWidget {
     }
 
     final Size previewSize = cameraController.value.previewSize!;
-    double sourceWidth = previewSize.height; 
-    double sourceHeight = previewSize.width; 
+    double sourceWidth = previewSize.height;
+    double sourceHeight = previewSize.width;
 
     final double scaleX = screenSize.width / sourceWidth;
     final double scaleY = screenSize.height / sourceHeight;
@@ -552,7 +550,7 @@ class FaceBoundingBoxes extends StatelessWidget {
         int idx = entry.key;
         var recognition = entry.value;
         final box = recognition['box'];
-        
+
         if (box == null || box.length < 4) return const SizedBox.shrink();
 
         double x1 = box[0].toDouble();
@@ -574,7 +572,7 @@ class FaceBoundingBoxes extends StatelessWidget {
         final personName = (recognition['tag'] ?? 'unknown').toString();
         final confidence = box.length > 4 ? (box[4] ?? 0.0) : 0.0;
         final text = '$personName ${(confidence * 100).toStringAsFixed(0)}%';
-        const boxColor = Colors.purple; 
+        const boxColor = Colors.purple;
 
         return AnimatedPositioned(
           key: ValueKey('face_box_$idx'),
@@ -589,16 +587,17 @@ class FaceBoundingBoxes extends StatelessWidget {
             children: [
               // Boundary and Corners
               Positioned.fill(
-                child: CustomPaint(
-                  painter: CornersPainter(boxColor),
-                ),
+                child: CustomPaint(painter: CornersPainter(boxColor)),
               ),
               // Label
               Positioned(
                 left: 0,
                 top: -24,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   color: boxColor.withValues(alpha: 0.9),
                   child: Text(
                     text,
@@ -629,7 +628,7 @@ class CornersPainter extends CustomPainter {
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
-    
+
     final rect = Offset.zero & size;
     canvas.drawRect(rect, boxPaint);
 
@@ -638,19 +637,52 @@ class CornersPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4.0
       ..strokeCap = StrokeCap.round;
-    
+
     const markerLength = 15.0;
 
-    canvas.drawLine(rect.topLeft, rect.topLeft + const Offset(markerLength, 0), markerPaint);
-    canvas.drawLine(rect.topLeft, rect.topLeft + const Offset(0, markerLength), markerPaint);
-    canvas.drawLine(rect.topRight, rect.topRight + const Offset(-markerLength, 0), markerPaint);
-    canvas.drawLine(rect.topRight, rect.topRight + const Offset(0, markerLength), markerPaint);
-    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + const Offset(markerLength, 0), markerPaint);
-    canvas.drawLine(rect.bottomLeft, rect.bottomLeft + const Offset(0, -markerLength), markerPaint);
-    canvas.drawLine(rect.bottomRight, rect.bottomRight + const Offset(-markerLength, 0), markerPaint);
-    canvas.drawLine(rect.bottomRight, rect.bottomRight + const Offset(0, -markerLength), markerPaint);
+    canvas.drawLine(
+      rect.topLeft,
+      rect.topLeft + const Offset(markerLength, 0),
+      markerPaint,
+    );
+    canvas.drawLine(
+      rect.topLeft,
+      rect.topLeft + const Offset(0, markerLength),
+      markerPaint,
+    );
+    canvas.drawLine(
+      rect.topRight,
+      rect.topRight + const Offset(-markerLength, 0),
+      markerPaint,
+    );
+    canvas.drawLine(
+      rect.topRight,
+      rect.topRight + const Offset(0, markerLength),
+      markerPaint,
+    );
+    canvas.drawLine(
+      rect.bottomLeft,
+      rect.bottomLeft + const Offset(markerLength, 0),
+      markerPaint,
+    );
+    canvas.drawLine(
+      rect.bottomLeft,
+      rect.bottomLeft + const Offset(0, -markerLength),
+      markerPaint,
+    );
+    canvas.drawLine(
+      rect.bottomRight,
+      rect.bottomRight + const Offset(-markerLength, 0),
+      markerPaint,
+    );
+    canvas.drawLine(
+      rect.bottomRight,
+      rect.bottomRight + const Offset(0, -markerLength),
+      markerPaint,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant CornersPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant CornersPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

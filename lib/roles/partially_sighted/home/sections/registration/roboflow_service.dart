@@ -7,16 +7,16 @@ import 'package:camera/camera.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RoboflowService {
-  static String get _apiKey => dotenv.env['ROBOFLOW_API_KEY'] ?? '';  
-  
+  static String get _apiKey => dotenv.env['ROBOFLOW_API_KEY'] ?? '';
+
   // Updated with the correct SEELAI workspace project IDs
   static const String _faceProjectId = 'seelai-face-eordb';
   static const String _objectProjectId = 'seelai-objects-s7rir';
 
   static Future<bool> uploadImage(XFile imageFile, String subjectType) async {
     try {
-      final String targetProjectId = (subjectType == 'face') 
-          ? _faceProjectId 
+      final String targetProjectId = (subjectType == 'face')
+          ? _faceProjectId
           : _objectProjectId;
 
       List<int> imageBytes = await imageFile.readAsBytes();
@@ -26,10 +26,10 @@ class RoboflowService {
       final String filename = '${subjectType}_$timestamp.jpg';
 
       final Uri url = Uri.parse(
-          'https://api.roboflow.com/dataset/$targetProjectId/upload'
-          '?api_key=$_apiKey'
-          '&name=$filename'
-          '&split=train' 
+        'https://api.roboflow.com/dataset/$targetProjectId/upload'
+        '?api_key=$_apiKey'
+        '&name=$filename'
+        '&split=train',
       );
 
       final response = await http.post(

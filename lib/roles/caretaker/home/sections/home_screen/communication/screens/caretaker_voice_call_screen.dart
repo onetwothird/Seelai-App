@@ -15,7 +15,7 @@ class CaretakerVoiceCallScreen extends StatefulWidget {
   final void Function(bool wasConnected)? onClose;
 
   const CaretakerVoiceCallScreen({
-    super.key, 
+    super.key,
     required this.patientData,
     this.callId,
     this.isCaller = true,
@@ -23,21 +23,21 @@ class CaretakerVoiceCallScreen extends StatefulWidget {
     this.onClose,
   });
 
- static void startCall(
-    BuildContext context, 
+  static void startCall(
+    BuildContext context,
     Map<String, dynamic> patientData, {
     String? callId,
     bool isCaller = true,
     String callPath = 'caretaker_communication',
   }) {
     OverlayEntry? overlayEntry;
-    
+
     overlayEntry = OverlayEntry(
       builder: (overlayContext) => CaretakerVoiceCallScreen(
         patientData: patientData,
-        callId: callId,           
-        isCaller: isCaller,       
-        callPath: callPath,       
+        callId: callId,
+        isCaller: isCaller,
+        callPath: callPath,
         onClose: (bool wasConnected) {
           overlayEntry?.remove();
 
@@ -45,11 +45,10 @@ class CaretakerVoiceCallScreen extends StatefulWidget {
             Future.delayed(const Duration(milliseconds: 300), () {
               if (context.mounted) {
                 showDialog(
-                  context: context, 
+                  context: context,
                   barrierDismissible: false,
-                  builder: (dialogContext) => CallRatingDialog(
-                    onDismissed: () {},
-                  ),
+                  builder: (dialogContext) =>
+                      CallRatingDialog(onDismissed: () {}),
                 );
               }
             });
@@ -57,19 +56,21 @@ class CaretakerVoiceCallScreen extends StatefulWidget {
         },
       ),
     );
-    
+
     Overlay.of(context).insert(overlayEntry);
   }
 
   @override
-  State<CaretakerVoiceCallScreen> createState() => _CaretakerVoiceCallScreenState();
+  State<CaretakerVoiceCallScreen> createState() =>
+      _CaretakerVoiceCallScreenState();
 }
 
-class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _pulseController;
   bool _isMuted = false;
   bool _isSpeaker = false;
-  bool _isMinimized = false; 
+  bool _isMinimized = false;
 
   bool _isAccepted = false;
   bool _isEnding = false;
@@ -77,10 +78,10 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
 
   String? _currentCallId;
   StreamSubscription<DatabaseEvent>? _callSubscription;
-  Timer? _ringingTimeout; 
-  
+  Timer? _ringingTimeout;
+
   final WebRTCService _webrtcService = WebRTCService();
-  final Color _primaryColor = const Color(0xFF8B5CF6); 
+  final Color _primaryColor = const Color(0xFF8B5CF6);
   Offset _pipPosition = const Offset(20, 40);
 
   String _patientName = 'Patient';
@@ -89,8 +90,8 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); 
-    
+    WidgetsBinding.instance.addObserver(this);
+
     _patientName = widget.patientData['name'] ?? 'Patient';
     _patientImage = widget.patientData['profileImageUrl'];
 
@@ -106,16 +107,16 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
   Future<bool> didPopRoute() async {
     if (!_isMinimized && mounted) {
       setState(() => _isMinimized = true);
-      return true; 
+      return true;
     }
     return false;
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); 
+    WidgetsBinding.instance.removeObserver(this);
     _callSubscription?.cancel();
-    _ringingTimeout?.cancel(); 
+    _ringingTimeout?.cancel();
     if (_currentCallId != null && !_isEnding) {
       _isEnding = true;
       callTrackingService.updateCallStatus(
@@ -129,19 +130,19 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
     super.dispose();
   }
 
- Future<void> _startCallProcess() async {
+  Future<void> _startCallProcess() async {
     final micStatus = await Permission.microphone.request();
 
     if (!micStatus.isGranted) {
       debugPrint("Microphone Permission Denied! Ending call process.");
       if (mounted) _endCall();
-      return; 
+      return;
     }
 
     try {
       await _webrtcService.initRenderers();
-      await _webrtcService.openUserMedia(false); 
-      
+      await _webrtcService.openUserMedia(false);
+
       _webrtcService.onConnectionClosed = () {
         if (mounted) _endCall();
       };
@@ -149,15 +150,17 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
       await _handleCallConnection();
     } catch (e) {
       debugPrint("Failed to open mic: $e");
-      if (mounted) _endCall(); 
+      if (mounted) _endCall();
     }
   }
 
   Future<void> _handleCallConnection() async {
-    final currentUserId = databaseService.currentUserId ?? widget.patientData['caretakerId'];
+    final currentUserId =
+        databaseService.currentUserId ?? widget.patientData['caretakerId'];
     if (currentUserId == null) return;
 
-    final String receiverId = widget.patientData['userId'] ?? widget.patientData['id'] ?? ''; 
+    final String receiverId =
+        widget.patientData['userId'] ?? widget.patientData['id'] ?? '';
 
     if (widget.isCaller && widget.callId == null) {
       if (receiverId.isEmpty) return;
@@ -167,57 +170,62 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
         type: 'voice',
         path: widget.callPath,
       );
-      
+
       await _webrtcService.makeCall(widget.callPath, _currentCallId!, false);
 
       _ringingTimeout = Timer(const Duration(seconds: 40), () {
         if (mounted) _endCall();
       });
-
     } else if (widget.callId != null) {
       _currentCallId = widget.callId;
-      _isAccepted = true; 
+      _isAccepted = true;
       await callTrackingService.updateCallStatus(
         path: widget.callPath,
         callId: _currentCallId!,
         status: 'accepted',
       );
-      
+
       await _webrtcService.answerCall(widget.callPath, _currentCallId!, false);
     }
 
     if (_currentCallId != null) {
-      _callSubscription = callTrackingService.listenToCallStatus(widget.callPath, _currentCallId!).listen((event) {
-        if (event.snapshot.exists) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>;
+      _callSubscription = callTrackingService
+          .listenToCallStatus(widget.callPath, _currentCallId!)
+          .listen((event) {
+            if (event.snapshot.exists) {
+              final data = event.snapshot.value as Map<dynamic, dynamic>;
 
-          if (data['status'] == 'accepted') {
-            if (mounted) setState(() => _isAccepted = true);
-            _ringingTimeout?.cancel();
-          }
+              if (data['status'] == 'accepted') {
+                if (mounted) setState(() => _isAccepted = true);
+                _ringingTimeout?.cancel();
+              }
 
-          if (data['status'] == 'ended' || data['status'] == 'rejected' || data['status'] == 'missed') {
-            if (mounted) _endCall();
-          }
-        }
-      });
+              if (data['status'] == 'ended' ||
+                  data['status'] == 'rejected' ||
+                  data['status'] == 'missed') {
+                if (mounted) _endCall();
+              }
+            }
+          });
     }
   }
 
   Future<void> _endCall() async {
     if (_isEnding) return;
-    
+
     if (mounted) {
       setState(() => _isEnding = true);
     } else {
       _isEnding = true;
     }
-    
+
     _ringingTimeout?.cancel();
     _cleanupAndPop();
 
     if (_currentCallId != null) {
-      String finalStatus = (widget.isCaller && !_isAccepted) ? 'missed' : 'ended';
+      String finalStatus = (widget.isCaller && !_isAccepted)
+          ? 'missed'
+          : 'ended';
       try {
         await callTrackingService.updateCallStatus(
           path: widget.callPath,
@@ -234,14 +242,14 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
   void _cleanupAndPop() {
     if (!_hasPopped && widget.onClose != null) {
       _hasPopped = true;
-      widget.onClose!(_isAccepted); 
+      widget.onClose!(_isAccepted);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     double pipWidth = 120.0;
     double pipHeight = 180.0;
 
@@ -292,8 +300,12 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
-                    onPressed: () => setState(() => _isMinimized = true), 
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                    onPressed: () => setState(() => _isMinimized = true),
                   ),
                 ),
               ),
@@ -302,13 +314,15 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
                 animation: _pulseController,
                 builder: (context, child) {
                   return Container(
-                    width: 180, 
+                    width: 180,
                     height: 180,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: _primaryColor.withValues(alpha: 0.15 * _pulseController.value), 
+                          color: _primaryColor.withValues(
+                            alpha: 0.15 * _pulseController.value,
+                          ),
                           blurRadius: 50 * _pulseController.value,
                           spreadRadius: 20 * _pulseController.value,
                         ),
@@ -322,21 +336,38 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
               const SizedBox(height: 40),
               Text(
                 _patientName,
-                style: h3.copyWith(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                style: h3.copyWith(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Connected',
-                style: body.copyWith(color: _primaryColor, fontSize: 18, fontWeight: FontWeight.w500),
+                style: body.copyWith(
+                  color: _primaryColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const Spacer(),
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 40,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 24,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(40),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    width: 1,
+                  ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(40),
@@ -346,7 +377,9 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildCallAction(
-                          icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                          icon: _isMuted
+                              ? Icons.mic_off_rounded
+                              : Icons.mic_rounded,
                           isActive: _isMuted,
                           label: 'Mute',
                           onTap: () {
@@ -356,7 +389,9 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
                         ),
                         _buildEndCallButton(context),
                         _buildCallAction(
-                          icon: _isSpeaker ? Icons.volume_up_rounded : Icons.volume_down_rounded,
+                          icon: _isSpeaker
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_down_rounded,
                           isActive: _isSpeaker,
                           label: 'Speaker',
                           onTap: () {
@@ -383,17 +418,20 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
           final size = MediaQuery.of(context).size;
           double newX = _pipPosition.dx + details.delta.dx;
           double newY = _pipPosition.dy + details.delta.dy;
-          
-          newX = newX.clamp(10.0, size.width - pipWidth - 10.0); 
-          newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
-          
+
+          newX = newX.clamp(10.0, size.width - pipWidth - 10.0);
+          newY = newY.clamp(
+            MediaQuery.of(context).padding.top + 10,
+            size.height - pipHeight - 10.0,
+          );
+
           _pipPosition = Offset(newX, newY);
         });
       },
-      onTap: () => setState(() => _isMinimized = false), 
+      onTap: () => setState(() => _isMinimized = false),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B), 
+          color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(16),
         ),
         child: ClipRRect(
@@ -414,10 +452,10 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded, 
-                    color: _primaryColor, 
-                    size: 20
-                  ), 
+                    _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                    color: _primaryColor,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -435,12 +473,13 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
           Image.network(
             imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF334155)),
+            errorBuilder: (context, error, stackTrace) =>
+                Container(color: const Color(0xFF334155)),
           )
         else
           Container(color: const Color(0xFF334155)),
-        
-        Container(color: Colors.black.withValues(alpha: 0.3)), 
+
+        Container(color: Colors.black.withValues(alpha: 0.3)),
       ],
     );
   }
@@ -453,7 +492,11 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: ClipOval(
@@ -461,7 +504,8 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
             ? Image.network(
                 _patientImage!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildAvatarFallback(size * 0.4),
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildAvatarFallback(size * 0.4),
               )
             : _buildAvatarFallback(size * 0.4),
       ),
@@ -471,11 +515,22 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
   Widget _buildAvatarFallback(double iconSize) {
     return Container(
       decoration: const BoxDecoration(color: Color(0xFF1E293B)),
-      child: Center(child: Icon(Icons.person_rounded, color: Colors.white38, size: iconSize)),
+      child: Center(
+        child: Icon(
+          Icons.person_rounded,
+          color: Colors.white38,
+          size: iconSize,
+        ),
+      ),
     );
   }
 
-  Widget _buildCallAction({required IconData icon, required bool isActive, required String label, required VoidCallback onTap}) {
+  Widget _buildCallAction({
+    required IconData icon,
+    required bool isActive,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return Semantics(
       label: label,
       button: true,
@@ -485,7 +540,9 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isActive ? _primaryColor : Colors.white.withValues(alpha: 0.08),
+            color: isActive
+                ? _primaryColor
+                : Colors.white.withValues(alpha: 0.08),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.white, size: 28),
@@ -506,10 +563,18 @@ class _CaretakerVoiceCallScreenState extends State<CaretakerVoiceCallScreen> wit
             color: const Color(0xFFEF4444),
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 4)),
-            ]
-          ), 
-          child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 32),
+              BoxShadow(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.call_end_rounded,
+            color: Colors.white,
+            size: 32,
+          ),
         ),
       ),
     );

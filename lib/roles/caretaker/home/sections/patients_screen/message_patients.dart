@@ -22,10 +22,10 @@ Future<void> messagePatient(BuildContext context, {String? patientName}) async {
 
     await launchUrl(smsUri);
 
-    final msg = patientName != null 
-        ? 'Opening SMS for $patientName...' 
+    final msg = patientName != null
+        ? 'Opening SMS for $patientName...'
         : 'Opening SMS app...';
-        
+
     await flutterTts.speak(msg);
 
     messenger.showSnackBar(
@@ -39,7 +39,10 @@ Future<void> messagePatient(BuildContext context, {String? patientName}) async {
   }
 }
 
-Future<void> messagePatientWithBody(BuildContext context, String message) async {
+Future<void> messagePatientWithBody(
+  BuildContext context,
+  String message,
+) async {
   const String phoneNumber = '09385100460';
   final String smsUrl = 'sms:$phoneNumber?body=${Uri.encodeComponent(message)}';
   final Uri uri = Uri.parse(smsUrl);

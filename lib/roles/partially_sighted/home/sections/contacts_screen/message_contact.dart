@@ -27,10 +27,10 @@ class MessageContact {
   }) async {
     if (contact.phoneNumber == 'N/A' || contact.phoneNumber.isEmpty) {
       await _speak('Phone number not available');
-      
+
       // ADDED: Guard before using context after await _speak
-      if (!context.mounted) return; 
-      
+      if (!context.mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Phone number not available for ${contact.name}'),
@@ -46,16 +46,15 @@ class MessageContact {
 
     if (cleanPhoneNumber.startsWith('+63')) {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(3)}';
-    } else if (cleanPhoneNumber.startsWith('63') && cleanPhoneNumber.length == 12) {
+    } else if (cleanPhoneNumber.startsWith('63') &&
+        cleanPhoneNumber.length == 12) {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(2)}';
-    } else if (cleanPhoneNumber.length == 10 && !cleanPhoneNumber.startsWith('0')) {
+    } else if (cleanPhoneNumber.length == 10 &&
+        !cleanPhoneNumber.startsWith('0')) {
       cleanPhoneNumber = '0$cleanPhoneNumber';
     }
 
-    final Uri smsUri = Uri(
-      scheme: 'sms',
-      path: cleanPhoneNumber,
-    );
+    final Uri smsUri = Uri(scheme: 'sms', path: cleanPhoneNumber);
 
     try {
       if (await canLaunchUrl(smsUri)) {
@@ -70,7 +69,7 @@ class MessageContact {
 
         await launchUrl(smsUri);
         await _speak('Opening message for ${contact.name}');
-        
+
         // MOVED: Guard must be immediately before context usage, after all awaits
         if (!context.mounted) return;
 
@@ -80,9 +79,7 @@ class MessageContact {
               children: [
                 const Icon(Icons.check_circle_rounded, color: white),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Text('Opening SMS for ${contact.name}'),
-                ),
+                Expanded(child: Text('Opening SMS for ${contact.name}')),
               ],
             ),
             backgroundColor: Colors.green,
@@ -106,7 +103,7 @@ class MessageContact {
       }
     } catch (e) {
       debugPrint('Error opening SMS: $e');
-      
+
       if (!context.mounted) return;
 
       _showMessageOptions(
@@ -157,17 +154,17 @@ class MessageContact {
             const SizedBox(height: spacingSmall),
             Text(
               'SMS app could not be opened automatically.',
-              style: body.copyWith(
-                color: theme.subtextColor,
-                fontSize: 13,
-              ),
+              style: body.copyWith(color: theme.subtextColor, fontSize: 13),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: Text('Cancel', style: body.copyWith(color: theme.subtextColor)),
+            child: Text(
+              'Cancel',
+              style: body.copyWith(color: theme.subtextColor),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -196,10 +193,13 @@ class MessageContact {
     );
   }
 
-  static Future<void> _copyPhoneNumber(BuildContext context, String phoneNumber) async {
+  static Future<void> _copyPhoneNumber(
+    BuildContext context,
+    String phoneNumber,
+  ) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
     await _speak('Phone number copied to clipboard');
-    
+
     // MOVED: Guard must be immediately before context usage
     if (!context.mounted) return;
 
@@ -218,7 +218,7 @@ class MessageContact {
     ContactModel contact,
   ) async {
     final Uri alternativeUri = Uri.parse('sms:$phoneNumber');
-    
+
     try {
       if (await canLaunchUrl(alternativeUri)) {
         await launchUrl(alternativeUri);
@@ -233,14 +233,18 @@ class MessageContact {
         }
       }
     } catch (e) {
-      await _speak('Unable to open messaging app. Please use your device SMS app.');
-      
+      await _speak(
+        'Unable to open messaging app. Please use your device SMS app.',
+      );
+
       // MOVED: Guard must be immediately before context usage, after the await _speak
       if (!context.mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Unable to open messaging app. Please use your device\'s SMS app.'),
+          content: Text(
+            'Unable to open messaging app. Please use your device\'s SMS app.',
+          ),
           backgroundColor: error,
           duration: Duration(seconds: 3),
         ),

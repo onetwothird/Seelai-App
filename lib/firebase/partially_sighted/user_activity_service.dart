@@ -29,10 +29,8 @@ class UserActivityService {
   }) async {
     try {
       // Updated path: recent_activities is now at root level
-      final activityRef = _database
-          .ref('recent_activities/$userId')
-          .push();
-      
+      final activityRef = _database.ref('recent_activities/$userId').push();
+
       final activityData = {
         'title': title,
         'description': description,
@@ -44,7 +42,7 @@ class UserActivityService {
       };
 
       await activityRef.set(activityData);
-      
+
       // Also log to general activity_logs for admin
       await _logToActivityLogs(
         userId: userId,
@@ -78,7 +76,7 @@ class UserActivityService {
       }
 
       final activitiesMap = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       final activities = <Map<String, dynamic>>[];
 
@@ -118,51 +116,51 @@ class UserActivityService {
         .limitToLast(limit)
         .onValue
         .map((event) {
-      if (!event.snapshot.exists) {
-        return <Map<String, dynamic>>[];
-      }
+          if (!event.snapshot.exists) {
+            return <Map<String, dynamic>>[];
+          }
 
-      final activitiesMap = Map<String, dynamic>.from(
-        event.snapshot.value as Map
-      );
-      final activities = <Map<String, dynamic>>[];
+          final activitiesMap = Map<String, dynamic>.from(
+            event.snapshot.value as Map,
+          );
+          final activities = <Map<String, dynamic>>[];
 
-      activitiesMap.forEach((key, value) {
-        try {
-          final activity = Map<String, dynamic>.from(value as Map);
-          activity['activityId'] = key;
-          activities.add(activity);
-        } catch (e) {
-          debugPrint('Error parsing activity $key: $e');
-        }
-      });
+          activitiesMap.forEach((key, value) {
+            try {
+              final activity = Map<String, dynamic>.from(value as Map);
+              activity['activityId'] = key;
+              activities.add(activity);
+            } catch (e) {
+              debugPrint('Error parsing activity $key: $e');
+            }
+          });
 
-      // Sort by timestamp (newest first)
-      activities.sort((a, b) {
-        final aTime = DateTime.parse(a['timestamp'] as String);
-        final bTime = DateTime.parse(b['timestamp'] as String);
-        return bTime.compareTo(aTime);
-      });
+          // Sort by timestamp (newest first)
+          activities.sort((a, b) {
+            final aTime = DateTime.parse(a['timestamp'] as String);
+            final bTime = DateTime.parse(b['timestamp'] as String);
+            return bTime.compareTo(aTime);
+          });
 
-      return activities;
-    });
+          return activities;
+        });
   }
 
   /// Clear old activities (keep only last 50)
   Future<void> clearOldActivities(String userId) async {
     try {
       final activities = await getRecentActivities(userId, limit: 100);
-      
+
       if (activities.length > 50) {
         final toDelete = activities.skip(50).toList();
-        
+
         for (final activity in toDelete) {
           // Updated path: recent_activities/$userId/$activityId
           await _database
               .ref('recent_activities/$userId/${activity['activityId']}')
               .remove();
         }
-        
+
         debugPrint('✅ Cleared ${toDelete.length} old activities');
       }
     } catch (e) {
@@ -174,10 +172,8 @@ class UserActivityService {
   Future<bool> deleteActivity(String userId, String activityId) async {
     try {
       // Updated path: recent_activities/$userId/$activityId
-      await _database
-          .ref('recent_activities/$userId/$activityId')
-          .remove();
-      
+      await _database.ref('recent_activities/$userId/$activityId').remove();
+
       debugPrint('✅ Activity deleted: $activityId');
       return true;
     } catch (e) {
@@ -190,10 +186,8 @@ class UserActivityService {
   Future<bool> clearAllActivities(String userId) async {
     try {
       // Updated path: recent_activities/$userId
-      await _database
-          .ref('recent_activities/$userId')
-          .remove();
-      
+      await _database.ref('recent_activities/$userId').remove();
+
       debugPrint('✅ All activities cleared for user: $userId');
       return true;
     } catch (e) {
@@ -236,7 +230,7 @@ class UserActivityService {
   }) async {
     try {
       final logId = _database.ref('activity_logs').push().key!;
-      
+
       await _database.ref('activity_logs/$logId').set({
         'userId': userId,
         'action': action,
@@ -261,10 +255,7 @@ class UserActivityService {
       activityType: activityObjectScanned,
       title: 'Object Scanned',
       description: '$objectName - ${_getTimeAgo(DateTime.now())}',
-      metadata: {
-        'objectName': objectName,
-        'confidence': confidence,
-      },
+      metadata: {'objectName': objectName, 'confidence': confidence},
     );
   }
 
@@ -279,10 +270,7 @@ class UserActivityService {
       activityType: activityTextRead,
       title: 'Text Read',
       description: '$textType - ${_getTimeAgo(DateTime.now())}',
-      metadata: {
-        'textType': textType,
-        'wordCount': wordCount,
-      },
+      metadata: {'textType': textType, 'wordCount': wordCount},
     );
   }
 
@@ -297,10 +285,7 @@ class UserActivityService {
       activityType: activityColorDetected,
       title: 'Color Detected',
       description: '$colorName $objectType - ${_getTimeAgo(DateTime.now())}',
-      metadata: {
-        'colorName': colorName,
-        'objectType': objectType,
-      },
+      metadata: {'colorName': colorName, 'objectType': objectType},
     );
   }
 
@@ -316,10 +301,7 @@ class UserActivityService {
       title: 'Emergency Called',
       description: '$contactName contacted - ${_getTimeAgo(DateTime.now())}',
       isEmergency: true,
-      metadata: {
-        'contactName': contactName,
-        'contactType': contactType,
-      },
+      metadata: {'contactName': contactName, 'contactType': contactType},
     );
   }
 
@@ -334,17 +316,14 @@ class UserActivityService {
       activityType: activityCaretakerRequested,
       title: 'Caretaker Requested',
       description: '$requestType - ${_getTimeAgo(DateTime.now())}',
-      metadata: {
-        'requestType': requestType,
-        'priority': priority,
-      },
+      metadata: {'requestType': requestType, 'priority': priority},
     );
   }
 
   /// Format time ago
   String _getTimeAgo(DateTime timestamp) {
     final difference = DateTime.now().difference(timestamp);
-    
+
     if (difference.inSeconds < 60) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {

@@ -31,15 +31,17 @@ class ActionButton extends StatelessWidget {
       hint: 'Double tap to activate $label',
       child: Container(
         decoration: BoxDecoration(
-          boxShadow: isDarkMode 
-            ? [
-                BoxShadow(
-                  color: (isEmergency ? error : primary).withValues(alpha: 0.2),
-                  blurRadius: 16,
-                  offset: Offset(0, 6),
-                ),
-              ]
-            : softShadow,
+          boxShadow: isDarkMode
+              ? [
+                  BoxShadow(
+                    color: (isEmergency ? error : primary).withValues(
+                      alpha: 0.2,
+                    ),
+                    blurRadius: 16,
+                    offset: Offset(0, 6),
+                  ),
+                ]
+              : softShadow,
           borderRadius: BorderRadius.circular(radiusLarge),
         ),
         child: Material(
@@ -53,42 +55,46 @@ class ActionButton extends StatelessWidget {
               padding: EdgeInsets.symmetric(vertical: spacingLarge * 1.2),
               decoration: BoxDecoration(
                 gradient: isEmergency
-                  ? LinearGradient(
-                      colors: [
-                        error.withValues(alpha: isDarkMode ? 0.25 : 0.1), 
-                        error.withValues(alpha: isDarkMode ? 0.15 : 0.05)
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    )
-                  : null,
+                    ? LinearGradient(
+                        colors: [
+                          error.withValues(alpha: isDarkMode ? 0.25 : 0.1),
+                          error.withValues(alpha: isDarkMode ? 0.15 : 0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
                 borderRadius: BorderRadius.circular(radiusLarge),
-                border: isDarkMode 
-                  ? Border.all(
-                      color: isEmergency 
-                        ? error.withValues(alpha: 0.4)
-                        : primary.withValues(alpha: 0.3), 
-                      width: 1.5
-                    )
-                  : Border.all(
-                      color: isEmergency 
-                        ? error.withValues(alpha: 0.3)
-                        : greyLighter,
-                      width: 1.5,
-                    ),
+                border: isDarkMode
+                    ? Border.all(
+                        color: isEmergency
+                            ? error.withValues(alpha: 0.4)
+                            : primary.withValues(alpha: 0.3),
+                        width: 1.5,
+                      )
+                    : Border.all(
+                        color: isEmergency
+                            ? error.withValues(alpha: 0.3)
+                            : greyLighter,
+                        width: 1.5,
+                      ),
               ),
               child: Column(
                 children: [
                   Container(
                     padding: EdgeInsets.all(spacingMedium * 1.2),
                     decoration: BoxDecoration(
-                      gradient: isEmergency 
-                        ? LinearGradient(colors: [error, error.withValues(alpha: 0.8)])
-                        : primaryGradient,
+                      gradient: isEmergency
+                          ? LinearGradient(
+                              colors: [error, error.withValues(alpha: 0.8)],
+                            )
+                          : primaryGradient,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: (isEmergency ? error : primary).withValues(alpha: 0.4),
+                          color: (isEmergency ? error : primary).withValues(
+                            alpha: 0.4,
+                          ),
                           blurRadius: 12,
                           offset: Offset(0, 4),
                         ),

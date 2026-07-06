@@ -41,7 +41,7 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
 
   // Added TTS initialization method
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("en-US"); 
+    await _flutterTts.setLanguage("en-US");
     await _flutterTts.setSpeechRate(0.5);
     await _flutterTts.setVolume(1.0);
     await _flutterTts.setPitch(1.0);
@@ -57,7 +57,7 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
   void _speakMessage(String message) {
     _flutterTts.speak(message);
   }
-  
+
   IconData _getSafeIcon(String hexCode) {
     final Map<String, IconData> safeIcons = {
       '0xef4c': Icons.notifications,
@@ -67,21 +67,27 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
       '0xe3e3': Icons.info,
       '0xe047': Icons.campaign,
     };
-    
+
     String formattedCode = hexCode.toLowerCase().trim();
-    return safeIcons[formattedCode] ?? Icons.notifications; 
+    return safeIcons[formattedCode] ?? Icons.notifications;
   }
 
   Widget _buildSkeletonList() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: ListView.builder(
         padding: EdgeInsets.all(spacingLarge),
-        itemCount: widget.announcements.isEmpty ? 5 : widget.announcements.length,
+        itemCount: widget.announcements.isEmpty
+            ? 5
+            : widget.announcements.length,
         itemBuilder: (context, index) {
           return Padding(
             padding: EdgeInsets.only(bottom: spacingMedium),
@@ -96,24 +102,52 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
                 children: [
                   Row(
                     children: [
-                      Container(width: 40, height: 40, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusMedium))),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(radiusMedium),
+                        ),
+                      ),
                       SizedBox(width: spacingMedium),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(width: 150, height: 16, color: Colors.white),
+                            Container(
+                              width: 150,
+                              height: 16,
+                              color: Colors.white,
+                            ),
                             SizedBox(height: 8),
-                            Container(width: 80, height: 20, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(radiusSmall))),
+                            Container(
+                              width: 80,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(
+                                  radiusSmall,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                     ],
                   ),
                   SizedBox(height: spacingMedium),
-                  Container(width: double.infinity, height: 14, color: Colors.white),
+                  Container(
+                    width: double.infinity,
+                    height: 14,
+                    color: Colors.white,
+                  ),
                   SizedBox(height: 4),
-                  Container(width: double.infinity, height: 14, color: Colors.white),
+                  Container(
+                    width: double.infinity,
+                    height: 14,
+                    color: Colors.white,
+                  ),
                   SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -151,22 +185,22 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
           ),
         ),
       ),
-      body: _isSimulatingLoad 
-        ? _buildSkeletonList() 
-        : ListView.builder(
-            padding: EdgeInsets.all(spacingLarge),
-            itemCount: widget.announcements.length,
-            itemBuilder: (context, index) {
-              final announcement = widget.announcements[index];
-              return Padding(
-                padding: EdgeInsets.only(bottom: spacingMedium),
-                child: _buildAnnouncementCard(
-                  context: context,
-                  announcement: announcement,
-                ),
-              );
-            },
-          ),
+      body: _isSimulatingLoad
+          ? _buildSkeletonList()
+          : ListView.builder(
+              padding: EdgeInsets.all(spacingLarge),
+              itemCount: widget.announcements.length,
+              itemBuilder: (context, index) {
+                final announcement = widget.announcements[index];
+                return Padding(
+                  padding: EdgeInsets.only(bottom: spacingMedium),
+                  child: _buildAnnouncementCard(
+                    context: context,
+                    announcement: announcement,
+                  ),
+                );
+              },
+            ),
     );
   }
 
@@ -177,7 +211,7 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
     String timeAgo = _getTimeAgo(announcement.timestamp);
     IconData icon = _getSafeIcon(announcement.iconCodePoint);
     Color color = Color(announcement.colorValue);
-    
+
     return Container(
       padding: EdgeInsets.all(spacingMedium),
       decoration: BoxDecoration(
@@ -185,8 +219,8 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -202,11 +236,7 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
                   color: color.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(radiusMedium),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 24,
-                ),
+                child: Icon(icon, color: color, size: 24),
               ),
               SizedBox(width: spacingMedium),
               Expanded(
@@ -225,7 +255,10 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(radiusSmall),
@@ -307,10 +340,14 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
 
   IconData _getAudienceIcon(String audience) {
     switch (audience) {
-      case 'Caretakers': return Icons.volunteer_activism_rounded;
-      case 'Partially Sighted': return Icons.visibility_off_rounded;
-      case 'Specific Users': return Icons.person_rounded;
-      default: return Icons.people_rounded;
+      case 'Caretakers':
+        return Icons.volunteer_activism_rounded;
+      case 'Partially Sighted':
+        return Icons.visibility_off_rounded;
+      case 'Specific Users':
+        return Icons.person_rounded;
+      default:
+        return Icons.people_rounded;
     }
   }
 
@@ -346,20 +383,25 @@ class _AllAnnouncementsPageState extends State<AllAnnouncementsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel', style: bodyBold.copyWith(color: widget.theme.subtextColor)),
+              child: Text(
+                'Cancel',
+                style: bodyBold.copyWith(color: widget.theme.subtextColor),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
                 widget.onDelete(id);
-                Navigator.of(context).pop(); 
-                Navigator.of(context).pop(); 
-                
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+
                 _speakMessage('Announcement deleted');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radiusMedium)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
               ),
               child: Text('Delete'),
             ),

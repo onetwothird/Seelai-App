@@ -20,11 +20,11 @@ class ObjectDetectionService {
       // Create reference - EXACT same pattern as text_scan_service
       final detectionRef = _database.ref('detected_objects/$userId').push();
       final detectionId = detectionRef.key;
-      
+
       if (detectionId == null) {
         return false;
       }
-      
+
       // Prepare objects data
       final objectsList = detectedObjects.map((obj) {
         try {
@@ -46,7 +46,7 @@ class ObjectDetectionService {
           };
         }
       }).toList();
-      
+
       // Prepare data - EXACT same structure as text_scan_service
       final detectionData = {
         'userId': userId,
@@ -57,15 +57,16 @@ class ObjectDetectionService {
         'metadata': metadata ?? {},
         'createdAt': ServerValue.timestamp,
       };
-      
+
       // Save to Firebase - EXACT same method as text_scan_service
       await detectionRef.set(detectionData);
-      
+
       // Log to activity logs
       await _logToActivityLogs(
         userId: userId,
         action: 'objects_detected',
-        details: 'Detected $objectCount objects: ${objectsList.map((o) => o['label']).join(', ')}',
+        details:
+            'Detected $objectCount objects: ${objectsList.map((o) => o['label']).join(', ')}',
       );
 
       return true;
@@ -91,7 +92,7 @@ class ObjectDetectionService {
       }
 
       final objectsMap = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       final objects = <Map<String, dynamic>>[];
 
@@ -129,34 +130,34 @@ class ObjectDetectionService {
         .limitToLast(limit)
         .onValue
         .map((event) {
-      if (!event.snapshot.exists) {
-        return <Map<String, dynamic>>[];
-      }
+          if (!event.snapshot.exists) {
+            return <Map<String, dynamic>>[];
+          }
 
-      final objectsMap = Map<String, dynamic>.from(
-        event.snapshot.value as Map
-      );
-      final objects = <Map<String, dynamic>>[];
+          final objectsMap = Map<String, dynamic>.from(
+            event.snapshot.value as Map,
+          );
+          final objects = <Map<String, dynamic>>[];
 
-      objectsMap.forEach((key, value) {
-        try {
-          final objectData = Map<String, dynamic>.from(value as Map);
-          objectData['detectionId'] = key;
-          objects.add(objectData);
-        } catch (e) {
-          // Skip invalid entries
-        }
-      });
+          objectsMap.forEach((key, value) {
+            try {
+              final objectData = Map<String, dynamic>.from(value as Map);
+              objectData['detectionId'] = key;
+              objects.add(objectData);
+            } catch (e) {
+              // Skip invalid entries
+            }
+          });
 
-      // Sort by timestamp (newest first)
-      objects.sort((a, b) {
-        final aTime = DateTime.parse(a['timestamp'] as String);
-        final bTime = DateTime.parse(b['timestamp'] as String);
-        return bTime.compareTo(aTime);
-      });
+          // Sort by timestamp (newest first)
+          objects.sort((a, b) {
+            final aTime = DateTime.parse(a['timestamp'] as String);
+            final bTime = DateTime.parse(b['timestamp'] as String);
+            return bTime.compareTo(aTime);
+          });
 
-      return objects;
-    });
+          return objects;
+        });
   }
 
   /// Get a specific detection
@@ -174,7 +175,7 @@ class ObjectDetectionService {
       }
 
       final detectionData = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       detectionData['detectionId'] = detectionId;
 
@@ -187,10 +188,8 @@ class ObjectDetectionService {
   /// Delete a specific detection
   Future<bool> deleteDetection(String userId, String detectionId) async {
     try {
-      await _database
-          .ref('detected_objects/$userId/$detectionId')
-          .remove();
-      
+      await _database.ref('detected_objects/$userId/$detectionId').remove();
+
       return true;
     } catch (e) {
       return false;
@@ -200,10 +199,8 @@ class ObjectDetectionService {
   /// Clear all detections for a user
   Future<bool> clearAllDetections(String userId) async {
     try {
-      await _database
-          .ref('detected_objects/$userId')
-          .remove();
-      
+      await _database.ref('detected_objects/$userId').remove();
+
       return true;
     } catch (e) {
       return false;
@@ -214,10 +211,10 @@ class ObjectDetectionService {
   Future<void> clearOldDetections(String userId) async {
     try {
       final detections = await getDetectedObjects(userId, limit: 200);
-      
+
       if (detections.length > 100) {
         final toDelete = detections.skip(100).toList();
-        
+
         for (final detection in toDelete) {
           await _database
               .ref('detected_objects/$userId/${detection['detectionId']}')
@@ -235,15 +232,15 @@ class ObjectDetectionService {
   Future<Map<String, dynamic>> getDetectionStatistics(String userId) async {
     try {
       final detections = await getDetectedObjects(userId, limit: 1000);
-      
+
       int totalDetections = detections.length;
       int totalObjects = 0;
       Map<String, int> objectTypes = {};
-      
+
       for (final detection in detections) {
         final objects = detection['objects'] as List? ?? [];
         totalObjects += objects.length;
-        
+
         for (final obj in objects) {
           final objMap = obj as Map<String, dynamic>;
           String label = objMap['label'] ?? 'unknown';
@@ -254,9 +251,13 @@ class ObjectDetectionService {
       return {
         'totalDetections': totalDetections,
         'totalObjects': totalObjects,
-        'averageObjectsPerDetection': totalDetections > 0 ? (totalObjects / totalDetections).toStringAsFixed(1) : '0',
+        'averageObjectsPerDetection': totalDetections > 0
+            ? (totalObjects / totalDetections).toStringAsFixed(1)
+            : '0',
         'objectTypes': objectTypes,
-        'lastDetectionDate': detections.isNotEmpty ? detections.first['timestamp'] : null,
+        'lastDetectionDate': detections.isNotEmpty
+            ? detections.first['timestamp']
+            : null,
       };
     } catch (e) {
       return {
@@ -277,7 +278,7 @@ class ObjectDetectionService {
   }) async {
     try {
       final allDetections = await getDetectedObjects(userId, limit: limit);
-      
+
       final searchResults = allDetections.where((detection) {
         final objects = detection['objects'] as List? ?? [];
         return objects.any((obj) {
@@ -301,7 +302,7 @@ class ObjectDetectionService {
   }) async {
     try {
       final allDetections = await getDetectedObjects(userId, limit: 1000);
-      
+
       final filteredDetections = allDetections.where((detection) {
         final timestamp = DateTime.parse(detection['timestamp'] as String);
         return timestamp.isAfter(startDate) && timestamp.isBefore(endDate);
@@ -316,9 +317,7 @@ class ObjectDetectionService {
   // ==================== ADMIN FUNCTIONS ====================
 
   /// Get all detections across all users (Admin only)
-  Future<List<Map<String, dynamic>>> getAllDetections({
-    int limit = 100,
-  }) async {
+  Future<List<Map<String, dynamic>>> getAllDetections({int limit = 100}) async {
     try {
       final snapshot = await _database
           .ref('detected_objects')
@@ -330,7 +329,7 @@ class ObjectDetectionService {
       }
 
       final usersMap = Map<String, dynamic>.from(
-        snapshot.snapshot.value as Map
+        snapshot.snapshot.value as Map,
       );
       final allDetections = <Map<String, dynamic>>[];
 
@@ -373,7 +372,7 @@ class ObjectDetectionService {
   }) async {
     try {
       final logRef = _database.ref('activity_logs').push();
-      
+
       await logRef.set({
         'userId': userId,
         'action': action,
@@ -389,7 +388,7 @@ class ObjectDetectionService {
   /// Format time ago
   String getTimeAgo(DateTime timestamp) {
     final difference = DateTime.now().difference(timestamp);
-    
+
     if (difference.inSeconds < 60) {
       return 'Just now';
     } else if (difference.inMinutes < 60) {
@@ -408,7 +407,7 @@ class ObjectDetectionService {
     try {
       final snapshot = await _database.ref('.info/connected').once();
       final isConnected = snapshot.snapshot.value as bool? ?? false;
-      
+
       return isConnected;
     } catch (e) {
       return false;

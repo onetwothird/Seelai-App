@@ -28,7 +28,6 @@ class OverviewSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        
         const SizedBox(height: 16),
         Row(
           children: [
@@ -45,7 +44,7 @@ class OverviewSection extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _buildGridCard(
-                backgroundIcon: Icons.assignment_outlined, 
+                backgroundIcon: Icons.assignment_outlined,
                 title: 'Pending',
                 subtitle: 'Awaiting review',
                 bottomLabel: 'REQUESTS',
@@ -94,14 +93,12 @@ class OverviewSection extends StatelessWidget {
     required Color baseColor,
   }) {
     return Container(
-      height: 140, 
-      clipBehavior: Clip.hardEdge, 
+      height: 140,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: baseColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: baseColor.withValues(alpha: 0.15), 
-        ),
+        border: Border.all(color: baseColor.withValues(alpha: 0.15)),
       ),
       child: Stack(
         children: [
@@ -114,7 +111,7 @@ class OverviewSection extends StatelessWidget {
               color: baseColor.withValues(alpha: 0.12),
             ),
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -164,7 +161,8 @@ class OverviewSection extends StatelessWidget {
 
                 // This section aligns the number to the horizontal center of the bottomLabel
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.center, // Center the number relative to label
+                  crossAxisAlignment: CrossAxisAlignment
+                      .center, // Center the number relative to label
                   children: [
                     Text(
                       bottomLabel,
@@ -172,7 +170,7 @@ class OverviewSection extends StatelessWidget {
                         fontSize: 10,
                         color: theme.subtextColor,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2, 
+                        letterSpacing: 1.2,
                       ),
                     ),
                     const SizedBox(height: 4),

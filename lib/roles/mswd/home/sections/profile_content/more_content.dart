@@ -34,15 +34,15 @@ class _MoreContentState extends State<MoreContent> {
   late Map<String, dynamic> _userData;
   bool _isLoading = false;
   bool _isSimulatingLoad = true; // Added skeleton state
-  
+
   final FlutterTts _flutterTts = FlutterTts();
 
   // --- Color Palette ---
-  final Color _colVerifications = const Color(0xFF3B82F6); 
-  final Color _colTracking = const Color(0xFF8B5CF6);      
-  final Color _colSafety = const Color(0xFFEF4444);        
-  final Color _colSupport = const Color(0xFF06B6D4);       
-  final Color _colAdmin = const Color(0xFFF59E0B);         
+  final Color _colVerifications = const Color(0xFF3B82F6);
+  final Color _colTracking = const Color(0xFF8B5CF6);
+  final Color _colSafety = const Color(0xFFEF4444);
+  final Color _colSupport = const Color(0xFF06B6D4);
+  final Color _colAdmin = const Color(0xFFF59E0B);
   final Color _primaryColor = const Color(0xFF8B5CF6);
 
   @override
@@ -100,36 +100,68 @@ class _MoreContentState extends State<MoreContent> {
   // WIDGET: SKELETON
   // ==========================================
   Widget _buildSkeletonProfile() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Padding(
-        padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
+        padding: const EdgeInsets.only(
+          left: 20.0,
+          right: 20.0,
+          top: 24.0,
+          bottom: 120.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(width: 200, height: 32, color: Colors.white),
             const SizedBox(height: 24),
-            
+
             // Avatar
-            Center(child: Container(width: 100, height: 100, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white))),
+            Center(
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            ),
             const SizedBox(height: 20),
-            Center(child: Container(width: 150, height: 24, color: Colors.white)),
+            Center(
+              child: Container(width: 150, height: 24, color: Colors.white),
+            ),
             const SizedBox(height: 32),
-            
+
             // Group 1
             Container(width: 150, height: 12, color: Colors.white),
             const SizedBox(height: 8),
-            Container(height: 260, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 260,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
             const SizedBox(height: 24),
-            
+
             // Group 2
             Container(width: 130, height: 12, color: Colors.white),
             const SizedBox(height: 8),
-            Container(height: 130, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16))),
+            Container(
+              height: 130,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
           ],
         ),
       ),
@@ -143,7 +175,12 @@ class _MoreContentState extends State<MoreContent> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24.0, bottom: 120.0),
+      padding: const EdgeInsets.only(
+        left: 20.0,
+        right: 20.0,
+        top: 24.0,
+        bottom: 120.0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -165,7 +202,7 @@ class _MoreContentState extends State<MoreContent> {
 
           _buildCenteredProfileImage(),
           const SizedBox(height: 32),
-          
+
           _buildSettingsGroup(
             title: 'Administrative Details',
             children: [
@@ -179,23 +216,28 @@ class _MoreContentState extends State<MoreContent> {
                 title: 'Phone Number',
                 icon: Icons.phone_outlined,
                 iconColor: _colVerifications,
-                value: _userData['phone'] ?? _userData['contactNumber'] ?? 'Not provided',
+                value:
+                    _userData['phone'] ??
+                    _userData['contactNumber'] ??
+                    'Not provided',
               ),
               _buildSettingsTile(
                 title: 'Department',
                 icon: Icons.business_center_outlined,
                 iconColor: _colVerifications,
-                value: _userData['department']?.toString().isNotEmpty == true 
-                    ? _userData['department'] 
+                value: _userData['department']?.toString().isNotEmpty == true
+                    ? _userData['department']
                     : 'MSWD General',
               ),
               _buildSettingsTile(
                 title: 'Staff ID',
                 icon: Icons.badge_outlined,
                 iconColor: _colVerifications,
-                value: _userData['staffId']?.toString().isNotEmpty == true 
-                    ? _userData['staffId'] 
-                    : (_userData['idNumber']?.toString().isNotEmpty == true ? _userData['idNumber'] : 'Not provided'),
+                value: _userData['staffId']?.toString().isNotEmpty == true
+                    ? _userData['staffId']
+                    : (_userData['idNumber']?.toString().isNotEmpty == true
+                          ? _userData['idNumber']
+                          : 'Not provided'),
                 isLast: true,
               ),
             ],
@@ -274,13 +316,13 @@ class _MoreContentState extends State<MoreContent> {
               _buildSettingsTile(
                 title: 'Edit Profile',
                 icon: Icons.edit_outlined,
-                iconColor: _primaryColor, 
+                iconColor: _primaryColor,
                 onTap: _showEditProfileDialog,
               ),
               _buildSettingsTile(
                 title: 'Change Password',
                 icon: Icons.lock_outline_rounded,
-                iconColor: _primaryColor, 
+                iconColor: _primaryColor,
                 onTap: _showChangePasswordDialog,
                 isLast: true,
               ),
@@ -318,7 +360,7 @@ class _MoreContentState extends State<MoreContent> {
               _buildSettingsTile(
                 title: 'Sign Out',
                 icon: Icons.logout_rounded,
-                iconColor: _colSafety, 
+                iconColor: _colSafety,
                 isDestructive: true,
                 onTap: _showLogoutDialog,
                 isLast: true,
@@ -333,7 +375,9 @@ class _MoreContentState extends State<MoreContent> {
   Widget _buildCenteredProfileImage() {
     final profileUrl = _userData['profileImageUrl'] as String?;
     final name = _userData['name'] ?? 'Admin';
-    final initial = name.toString().isNotEmpty ? name.toString()[0].toUpperCase() : 'A';
+    final initial = name.toString().isNotEmpty
+        ? name.toString()[0].toUpperCase()
+        : 'A';
 
     return Center(
       child: Column(
@@ -379,11 +423,17 @@ class _MoreContentState extends State<MoreContent> {
               Positioned(
                 bottom: -8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _colTracking,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: widget.theme.backgroundColor, width: 2),
+                    border: Border.all(
+                      color: widget.theme.backgroundColor,
+                      width: 2,
+                    ),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -391,7 +441,11 @@ class _MoreContentState extends State<MoreContent> {
                       SizedBox(width: 4),
                       Text(
                         'MSWSD',
-                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -419,10 +473,7 @@ class _MoreContentState extends State<MoreContent> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            _colTracking,
-            _colTracking.withValues(alpha: 0.6),
-          ],
+          colors: [_colTracking, _colTracking.withValues(alpha: 0.6)],
         ),
       ),
       child: Center(
@@ -447,7 +498,10 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
-  Widget _buildSettingsGroup({required String title, required List<Widget> children}) {
+  Widget _buildSettingsGroup({
+    required String title,
+    required List<Widget> children,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 24.0),
       child: Column(
@@ -472,17 +526,21 @@ class _MoreContentState extends State<MoreContent> {
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
               ),
-              boxShadow: widget.isDarkMode 
-                  ? [] 
-                  : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
-            child: Column(
-              children: children,
-            ),
+            child: Column(children: children),
           ),
         ],
       ),
@@ -498,9 +556,11 @@ class _MoreContentState extends State<MoreContent> {
     bool isDestructive = false,
     bool isLast = false,
   }) {
-    final displayIconColor = isDestructive ? _colSafety : widget.theme.textColor;
-    final displayContainerColor = isDestructive 
-        ? _colSafety.withValues(alpha: 0.1) 
+    final displayIconColor = isDestructive
+        ? _colSafety
+        : widget.theme.textColor;
+    final displayContainerColor = isDestructive
+        ? _colSafety.withValues(alpha: 0.1)
         : widget.theme.textColor.withValues(alpha: 0.05);
 
     final textColor = isDestructive ? _colSafety : widget.theme.textColor;
@@ -509,13 +569,16 @@ class _MoreContentState extends State<MoreContent> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: isLast 
-            ? const BorderRadius.vertical(bottom: Radius.circular(16)) 
+        borderRadius: isLast
+            ? const BorderRadius.vertical(bottom: Radius.circular(16))
             : null,
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 14.0,
+              ),
               child: Row(
                 children: [
                   Container(
@@ -527,7 +590,7 @@ class _MoreContentState extends State<MoreContent> {
                     child: Icon(icon, size: 20, color: displayIconColor),
                   ),
                   const SizedBox(width: 16),
-                  
+
                   Expanded(
                     child: Text(
                       title,
@@ -538,11 +601,11 @@ class _MoreContentState extends State<MoreContent> {
                       ),
                     ),
                   ),
-                  
+
                   if (value != null) ...[
                     const SizedBox(width: 16),
                     Expanded(
-                      flex: 2, 
+                      flex: 2,
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
@@ -563,14 +626,14 @@ class _MoreContentState extends State<MoreContent> {
                       ),
                     ),
                   ],
-                  
+
                   if (onTap != null && value == null) ...[
                     Icon(
                       Icons.chevron_right_rounded,
                       size: 20,
                       color: widget.theme.subtextColor.withValues(alpha: 0.5),
                     ),
-                  ]
+                  ],
                 ],
               ),
             ),
@@ -579,7 +642,9 @@ class _MoreContentState extends State<MoreContent> {
                 height: 1,
                 thickness: 1,
                 indent: 56,
-                color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
               ),
           ],
         ),
@@ -587,7 +652,10 @@ class _MoreContentState extends State<MoreContent> {
     );
   }
 
-  Widget _buildDialogTextField(String label, TextEditingController controller, IconData icon, {
+  Widget _buildDialogTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
     bool isPassword = false,
     TextInputType inputType = TextInputType.text,
     Color? focusColor,
@@ -605,8 +673,13 @@ class _MoreContentState extends State<MoreContent> {
           labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
           prefixIcon: Icon(icon, color: widget.theme.subtextColor, size: 22),
           filled: true,
-          fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          fillColor: widget.isDarkMode
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
@@ -642,7 +715,10 @@ class _MoreContentState extends State<MoreContent> {
     // Removed TTS here so other snackbars (like logout) don't speak
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w500)),
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: color,
@@ -651,21 +727,48 @@ class _MoreContentState extends State<MoreContent> {
   }
 
   void _showAboutDialog() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => AboutSeelaiScreen(theme: widget.theme, isDarkMode: widget.isDarkMode)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AboutSeelaiScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
+        ),
+      ),
+    );
   }
 
   void _showPrivacyDialog() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyScreen(theme: widget.theme, isDarkMode: widget.isDarkMode)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrivacyPolicyScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
+        ),
+      ),
+    );
   }
 
   void _showEditProfileDialog() {
-    final parentContext = context; 
+    final parentContext = context;
 
     final nameController = TextEditingController(text: _userData['name']);
-    final phoneController = TextEditingController(text: _userData['phone'] ?? _userData['contactNumber']);
-    final departmentController = TextEditingController(text: _userData['department']);
-    final staffIdController = TextEditingController(text: _userData['staffId']?.toString() ?? _userData['idNumber']?.toString() ?? '');
-    final ageController = TextEditingController(text: _userData['age']?.toString() ?? '');
+    final phoneController = TextEditingController(
+      text: _userData['phone'] ?? _userData['contactNumber'],
+    );
+    final departmentController = TextEditingController(
+      text: _userData['department'],
+    );
+    final staffIdController = TextEditingController(
+      text:
+          _userData['staffId']?.toString() ??
+          _userData['idNumber']?.toString() ??
+          '',
+    );
+    final ageController = TextEditingController(
+      text: _userData['age']?.toString() ?? '',
+    );
     String? selectedSex = _userData['sex'];
 
     showDialog(
@@ -680,9 +783,17 @@ class _MoreContentState extends State<MoreContent> {
               decoration: BoxDecoration(
                 color: widget.theme.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? Colors.white10
+                      : Colors.transparent,
+                ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
                 ],
               ),
               child: SingleChildScrollView(
@@ -691,27 +802,61 @@ class _MoreContentState extends State<MoreContent> {
                   children: [
                     Text(
                       'Update Profile',
-                      style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                      style: TextStyle(
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Modify your official administrative details below.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+                      style: TextStyle(
+                        color: widget.theme.subtextColor,
+                        fontSize: 14,
+                      ),
                     ),
                     const SizedBox(height: 32),
-                    
-                    _buildDialogTextField('Full Name', nameController, Icons.person_outline, focusColor: _primaryColor),
-                    _buildDialogTextField('Phone Number', phoneController, Icons.phone_outlined, inputType: TextInputType.phone, focusColor: _primaryColor),
-                    _buildDialogTextField('Department', departmentController, Icons.business_center_outlined, focusColor: _primaryColor),
-                    
-                    _buildDialogTextField('Staff ID', staffIdController, Icons.badge_outlined, focusColor: _primaryColor),
-                    
+
+                    _buildDialogTextField(
+                      'Full Name',
+                      nameController,
+                      Icons.person_outline,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Phone Number',
+                      phoneController,
+                      Icons.phone_outlined,
+                      inputType: TextInputType.phone,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Department',
+                      departmentController,
+                      Icons.business_center_outlined,
+                      focusColor: _primaryColor,
+                    ),
+
+                    _buildDialogTextField(
+                      'Staff ID',
+                      staffIdController,
+                      Icons.badge_outlined,
+                      focusColor: _primaryColor,
+                    ),
+
                     Row(
                       children: [
                         Expanded(
                           flex: 1,
-                          child: _buildDialogTextField('Age', ageController, Icons.cake_outlined, inputType: TextInputType.number, focusColor: _primaryColor),
+                          child: _buildDialogTextField(
+                            'Age',
+                            ageController,
+                            Icons.cake_outlined,
+                            inputType: TextInputType.number,
+                            focusColor: _primaryColor,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -721,31 +866,68 @@ class _MoreContentState extends State<MoreContent> {
                             child: DropdownButtonFormField<String>(
                               initialValue: selectedSex,
                               dropdownColor: widget.theme.cardColor,
-                              icon: Icon(Icons.arrow_drop_down_rounded, color: widget.theme.subtextColor),
+                              icon: Icon(
+                                Icons.arrow_drop_down_rounded,
+                                color: widget.theme.subtextColor,
+                              ),
                               decoration: InputDecoration(
                                 labelText: 'Gender',
-                                labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
-                                prefixIcon: Icon(Icons.wc_outlined, color: widget.theme.subtextColor, size: 22),
+                                labelStyle: TextStyle(
+                                  color: widget.theme.subtextColor,
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.wc_outlined,
+                                  color: widget.theme.subtextColor,
+                                  size: 22,
+                                ),
                                 filled: true,
-                                fillColor: widget.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.grey.shade50,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                fillColor: widget.isDarkMode
+                                    ? Colors.black.withValues(alpha: 0.2)
+                                    : Colors.grey.shade50,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: widget.isDarkMode
+                                        ? Colors.white10
+                                        : Colors.grey.shade200,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200),
+                                  borderSide: BorderSide(
+                                    color: widget.isDarkMode
+                                        ? Colors.white10
+                                        : Colors.grey.shade200,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(16),
-                                  borderSide: BorderSide(color: _primaryColor, width: 2),
+                                  borderSide: BorderSide(
+                                    color: _primaryColor,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                               items: ['Male', 'Female', 'Not Specified']
-                                  .map((sex) => DropdownMenuItem(value: sex, child: Text(sex, style: TextStyle(color: widget.theme.textColor))))
+                                  .map(
+                                    (sex) => DropdownMenuItem(
+                                      value: sex,
+                                      child: Text(
+                                        sex,
+                                        style: TextStyle(
+                                          color: widget.theme.textColor,
+                                        ),
+                                      ),
+                                    ),
+                                  )
                                   .toList(),
-                              onChanged: (val) => setStateDialog(() => selectedSex = val),
+                              onChanged: (val) =>
+                                  setStateDialog(() => selectedSex = val),
                             ),
                           ),
                         ),
@@ -753,17 +935,25 @@ class _MoreContentState extends State<MoreContent> {
                     ),
 
                     const SizedBox(height: 16),
-                    
+
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             onPressed: () => Navigator.pop(dialogContext),
-                            child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -772,49 +962,76 @@ class _MoreContentState extends State<MoreContent> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               elevation: widget.isDarkMode ? 0 : 4,
                               shadowColor: _primaryColor.withValues(alpha: 0.4),
                             ),
-                            onPressed: _isLoading ? null : () async {
-                              setStateDialog(() => _isLoading = true);
-                              
-                              try {
-                                await databaseService.updateUserProfile(
-                                  userId: databaseService.currentUserId!,
-                                  role: 'admin',
-                                  name: nameController.text.trim(),
-                                  phone: phoneController.text.trim(),
-                                  contactNumber: phoneController.text.trim(),
-                                  department: departmentController.text.trim(),
-                                  staffId: staffIdController.text.trim(),
-                                  age: int.tryParse(ageController.text.trim()),
-                                  sex: selectedSex,
-                                );
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    setStateDialog(() => _isLoading = true);
 
-                                await _refreshUserData();
+                                    try {
+                                      await databaseService.updateUserProfile(
+                                        userId: databaseService.currentUserId!,
+                                        role: 'admin',
+                                        name: nameController.text.trim(),
+                                        phone: phoneController.text.trim(),
+                                        contactNumber: phoneController.text
+                                            .trim(),
+                                        department: departmentController.text
+                                            .trim(),
+                                        staffId: staffIdController.text.trim(),
+                                        age: int.tryParse(
+                                          ageController.text.trim(),
+                                        ),
+                                        sex: selectedSex,
+                                      );
 
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(dialogContext);
-                                }
-                                if (mounted) {
-                                  // ONLY TTS, removed _showSnackbar
-                                  _flutterTts.speak('Profile updated successfully');
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  // ONLY TTS, removed _showSnackbar
-                                  _flutterTts.speak('Error updating profile');
-                                }
-                              } finally {
-                                if (dialogContext.mounted) {
-                                  setStateDialog(() => _isLoading = false);
-                                }
-                              }
-                            },
+                                      await _refreshUserData();
+
+                                      if (dialogContext.mounted) {
+                                        Navigator.pop(dialogContext);
+                                      }
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Profile updated successfully',
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Error updating profile',
+                                        );
+                                      }
+                                    } finally {
+                                      if (dialogContext.mounted) {
+                                        setStateDialog(
+                                          () => _isLoading = false,
+                                        );
+                                      }
+                                    }
+                                  },
                             child: _isLoading
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Save Changes',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -846,9 +1063,17 @@ class _MoreContentState extends State<MoreContent> {
               decoration: BoxDecoration(
                 color: widget.theme.cardColor,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? Colors.white10
+                      : Colors.transparent,
+                ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
                 ],
               ),
               child: SingleChildScrollView(
@@ -857,7 +1082,11 @@ class _MoreContentState extends State<MoreContent> {
                   children: [
                     Text(
                       'Change Password',
-                      style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                      style: TextStyle(
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -867,35 +1096,69 @@ class _MoreContentState extends State<MoreContent> {
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline_rounded, color: widget.theme.subtextColor, size: 20),
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: widget.theme.subtextColor,
+                            size: 20,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               'For security, you will be required to sign in again after changing your password.',
-                              style: TextStyle(color: widget.theme.subtextColor, fontSize: 13, height: 1.4),
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 24),
-                    
-                    _buildDialogTextField('Current Password', currentPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
-                    _buildDialogTextField('New Password', newPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
-                    _buildDialogTextField('Confirm Password', confirmPassController, Icons.lock_outline, isPassword: true, focusColor: _primaryColor),
-                    
+
+                    _buildDialogTextField(
+                      'Current Password',
+                      currentPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'New Password',
+                      newPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Confirm Password',
+                      confirmPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+
                     const SizedBox(height: 16),
-                    
+
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             onPressed: () => Navigator.pop(builderContext),
-                            child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -904,51 +1167,81 @@ class _MoreContentState extends State<MoreContent> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               elevation: widget.isDarkMode ? 0 : 4,
                               shadowColor: _primaryColor.withValues(alpha: 0.4),
                             ),
-                            onPressed: _isLoading ? null : () async {
-                              if (newPassController.text != confirmPassController.text) {
-                                // ONLY TTS, removed _showSnackbar
-                                _flutterTts.speak('New passwords do not match');
-                                return;
-                              }
-                              if (newPassController.text.length < 6) {
-                                // ONLY TTS, removed _showSnackbar
-                                _flutterTts.speak('Password must be at least 6 characters');
-                                return;
-                              }
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    if (newPassController.text !=
+                                        confirmPassController.text) {
+                                      // ONLY TTS, removed _showSnackbar
+                                      _flutterTts.speak(
+                                        'New passwords do not match',
+                                      );
+                                      return;
+                                    }
+                                    if (newPassController.text.length < 6) {
+                                      // ONLY TTS, removed _showSnackbar
+                                      _flutterTts.speak(
+                                        'Password must be at least 6 characters',
+                                      );
+                                      return;
+                                    }
 
-                              setStateDialog(() => _isLoading = true);
-                              try {
-                                await authService.value.resetPasswordFromCurrentPassword(
-                                  email: _userData['email'],
-                                  currentPassword: currentPassController.text,
-                                  newPassword: newPassController.text,
-                                );
-                                
-                                if (builderContext.mounted) {
-                                  Navigator.pop(builderContext);
-                                }
-                                if (mounted) {
-                                  // ONLY TTS, removed _showSnackbar
-                                  _flutterTts.speak('Password changed successfully');
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  // ONLY TTS, removed _showSnackbar
-                                  _flutterTts.speak('Failed to change password. Check current password.');
-                                }
-                              } finally {
-                                if (builderContext.mounted) {
-                                  setStateDialog(() => _isLoading = false);
-                                }
-                              }
-                            },
+                                    setStateDialog(() => _isLoading = true);
+                                    try {
+                                      await authService.value
+                                          .resetPasswordFromCurrentPassword(
+                                            email: _userData['email'],
+                                            currentPassword:
+                                                currentPassController.text,
+                                            newPassword: newPassController.text,
+                                          );
+
+                                      if (builderContext.mounted) {
+                                        Navigator.pop(builderContext);
+                                      }
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Password changed successfully',
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Failed to change password. Check current password.',
+                                        );
+                                      }
+                                    } finally {
+                                      if (builderContext.mounted) {
+                                        setStateDialog(
+                                          () => _isLoading = false,
+                                        );
+                                      }
+                                    }
+                                  },
                             child: _isLoading
-                                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                : const Text('Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Update',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -958,7 +1251,7 @@ class _MoreContentState extends State<MoreContent> {
               ),
             ),
           );
-        }
+        },
       ),
     );
   }
@@ -976,9 +1269,15 @@ class _MoreContentState extends State<MoreContent> {
           decoration: BoxDecoration(
             color: widget.theme.cardColor,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: widget.isDarkMode ? Colors.white10 : Colors.transparent),
+            border: Border.all(
+              color: widget.isDarkMode ? Colors.white10 : Colors.transparent,
+            ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
             ],
           ),
           child: Column(
@@ -986,19 +1285,29 @@ class _MoreContentState extends State<MoreContent> {
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: _colSafety.withValues(alpha: 0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: _colSafety.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(Icons.logout_rounded, color: _colSafety, size: 32),
               ),
               const SizedBox(height: 16),
               Text(
                 'Sign Out',
-                style: TextStyle(color: widget.theme.textColor, fontWeight: FontWeight.w800, fontSize: 22),
+                style: TextStyle(
+                  color: widget.theme.textColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Are you sure you want to sign out of the Admin Portal?',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: widget.theme.subtextColor, fontSize: 15),
+                style: TextStyle(
+                  color: widget.theme.subtextColor,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 32),
               Row(
@@ -1007,33 +1316,56 @@ class _MoreContentState extends State<MoreContent> {
                     child: TextButton(
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       onPressed: () => Navigator.pop(dialogContext),
-                      child: Text('Cancel', style: TextStyle(color: widget.theme.subtextColor, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: widget.theme.subtextColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () async {
-                        Navigator.pop(dialogContext); 
-                        await authService.value.signOut(); 
+                        Navigator.pop(dialogContext);
+                        await authService.value.signOut();
                         if (!parentContext.mounted) return;
                         Navigator.of(parentContext).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const OnboardingScreen(),
+                          ),
                           (route) => false,
                         );
-                        if (mounted) _showSnackbar('Successfully signed out', _primaryColor);
+                        if (mounted) {
+                          _showSnackbar(
+                            'Successfully signed out',
+                            _primaryColor,
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _colSafety,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         elevation: widget.isDarkMode ? 0 : 4,
                         shadowColor: _colSafety.withValues(alpha: 0.4),
                       ),
-                      child: const Text('Sign Out', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1080,67 +1412,78 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic1.png",
       "title": "Role Selection",
-      "description": "Select the MSWD category to begin your admin session."
+      "description": "Select the MSWD category to begin your admin session.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic2.png",
       "title": "Login",
-      "description": "Securely log in to your existing Seelai MSWD account."
+      "description": "Securely log in to your existing Seelai MSWD account.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic3.png",
       "title": "Register",
-      "description": "Fill out official details to register a new MSWD staff account."
+      "description":
+          "Fill out official details to register a new MSWD staff account.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic4.png",
       "title": "Dashboard",
-      "description": "View overall statistics including Total Users, Active Now, Partially Sighted, and Caretakers."
+      "description":
+          "View overall statistics including Total Users, Active Now, Partially Sighted, and Caretakers.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic5.png",
       "title": "Command Center",
-      "description": "Monitor activity trends, urgent alerts, and access shortcuts like Live Map, Broadcast, and Requests."
+      "description":
+          "Monitor activity trends, urgent alerts, and access shortcuts like Live Map, Broadcast, and Requests.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic6.png",
       "title": "Announcements",
-      "description": "Review all active announcements broadcasted across the entire system."
+      "description":
+          "Review all active announcements broadcasted across the entire system.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic7.png",
       "title": "Create Announcement",
-      "description": "Publish new alerts and control visibility targeting Partially Sighted, Caretakers, or All Users."
+      "description":
+          "Publish new alerts and control visibility targeting Partially Sighted, Caretakers, or All Users.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic8.png",
       "title": "Add New Registry",
-      "description": "Capture and manage custom object detection and caretaker face recognition data."
+      "description":
+          "Capture and manage custom object detection and caretaker face recognition data.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic9.png",
       "title": "Directory",
-      "description": "Manage registered patients, caretakers, and approve or decline pending account requests."
+      "description":
+          "Manage registered patients, caretakers, and approve or decline pending account requests.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic10.png",
       "title": "Location Tracker",
-      "description": "Select any Partially Sighted user or Caretaker from the active directory to track them."
+      "description":
+          "Select any Partially Sighted user or Caretaker from the active directory to track them.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic11.png",
       "title": "Live Map",
-      "description": "View the exact real-time location and distance of the selected user relative to you."
+      "description":
+          "View the exact real-time location and distance of the selected user relative to you.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic12.png",
       "title": "System Requests",
-      "description": "Monitor all assistance requests. As an MSWD Admin, you can intervene and assist directly."
+      "description":
+          "Monitor all assistance requests. As an MSWD Admin, you can intervene and assist directly.",
     },
     {
       "image": "assets/how-to-use-seelai_images/mswd/pic13.png",
       "title": "Request Details",
-      "description": "Review complete request logs, including user info, messages, assigned responders, and timeline events."
+      "description":
+          "Review complete request logs, including user info, messages, assigned responders, and timeline events.",
     },
   ];
 
@@ -1177,16 +1520,16 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.85, 
+        height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(32), 
+          borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 40,
               offset: const Offset(0, 20),
-            )
+            ),
           ],
         ),
         child: Column(
@@ -1199,10 +1542,16 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
                   icon: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade100,
+                      color: widget.isDarkMode
+                          ? Colors.white10
+                          : Colors.grey.shade100,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.close_rounded, color: widget.theme.subtextColor, size: 18),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: widget.theme.subtextColor,
+                      size: 18,
+                    ),
                   ),
                   onPressed: () => Navigator.pop(context),
                 ),
@@ -1228,31 +1577,42 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
                           child: Container(
                             width: double.infinity,
                             margin: const EdgeInsets.only(bottom: 24),
-                            color: Colors.transparent, 
+                            color: Colors.transparent,
                             child: Padding(
-                              padding: const EdgeInsets.all(8.0), 
+                              padding: const EdgeInsets.all(8.0),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(16),
                                 child: Image.asset(
                                   item['image']!,
-                                  fit: BoxFit.contain, 
+                                  fit: BoxFit.contain,
                                   errorBuilder: (context, error, stackTrace) {
                                     return Center(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          Icon(Icons.image_not_supported_rounded, size: 40, color: widget.theme.subtextColor),
+                                          Icon(
+                                            Icons.image_not_supported_rounded,
+                                            size: 40,
+                                            color: widget.theme.subtextColor,
+                                          ),
                                           const SizedBox(height: 12),
                                           Text(
                                             'Image missing:\n${item['image']}',
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 12),
+                                            style: TextStyle(
+                                              color: widget.theme.subtextColor,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
                                             '(Check pubspec.yaml)',
                                             textAlign: TextAlign.center,
-                                            style: TextStyle(color: widget.theme.subtextColor, fontSize: 10),
+                                            style: TextStyle(
+                                              color: widget.theme.subtextColor,
+                                              fontSize: 10,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -1269,7 +1629,7 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 22,
-                            fontWeight: FontWeight.w800, 
+                            fontWeight: FontWeight.w800,
                             color: widget.theme.textColor,
                             letterSpacing: -0.5,
                           ),
@@ -1283,7 +1643,7 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
                             style: TextStyle(
                               fontSize: 14,
                               color: widget.theme.subtextColor,
-                              height: 1.5, 
+                              height: 1.5,
                             ),
                           ),
                         ),
@@ -1327,23 +1687,24 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
 
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(
-                      _guideData.length,
-                      (index) {
-                        final isActive = _currentPage == index;
-                        return AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeOutCubic,
-                          margin: const EdgeInsets.symmetric(horizontal: 2.5),
-                          height: 6,
-                          width: isActive ? 18 : 6,
-                          decoration: BoxDecoration(
-                            color: isActive ? _brandPurple : widget.theme.subtextColor.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        );
-                      },
-                    ),
+                    children: List.generate(_guideData.length, (index) {
+                      final isActive = _currentPage == index;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                        height: 6,
+                        width: isActive ? 18 : 6,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? _brandPurple
+                              : widget.theme.subtextColor.withValues(
+                                  alpha: 0.2,
+                                ),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
                   ),
 
                   Expanded(
@@ -1354,8 +1715,11 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeOutCubic,
-                          padding: isLastPage 
-                              ? const EdgeInsets.symmetric(horizontal: 20, vertical: 12)
+                          padding: isLastPage
+                              ? const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                )
                               : const EdgeInsets.all(12),
                           decoration: BoxDecoration(
                             color: _brandPurple,
@@ -1365,22 +1729,22 @@ class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
                                 color: _brandPurple.withValues(alpha: 0.3),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
-                              )
+                              ),
                             ],
                           ),
                           child: isLastPage
                               ? const Text(
-                                  "Done", 
+                                  "Done",
                                   style: TextStyle(
-                                    color: Colors.white, 
+                                    color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
                                 )
                               : const Icon(
-                                  Icons.arrow_forward_rounded, 
-                                  color: Colors.white, 
-                                  size: 20
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
                         ),
                       ),

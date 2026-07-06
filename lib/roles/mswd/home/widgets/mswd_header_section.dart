@@ -10,10 +10,10 @@ class HeaderSection extends StatefulWidget {
   final String adminName;
   final String? profileImageUrl;
   final bool isDarkMode;
-  final int pendingRequestsCount; 
+  final int pendingRequestsCount;
   final VoidCallback onToggleDarkMode;
   final VoidCallback? onProfileTap;
-  final VoidCallback? onNotificationTap; 
+  final VoidCallback? onNotificationTap;
   final Color textColor;
   final Color subtextColor;
 
@@ -22,10 +22,10 @@ class HeaderSection extends StatefulWidget {
     required this.adminName,
     this.profileImageUrl,
     required this.isDarkMode,
-    required this.pendingRequestsCount, 
+    required this.pendingRequestsCount,
     required this.onToggleDarkMode,
     this.onProfileTap,
-    this.onNotificationTap, 
+    this.onNotificationTap,
     required this.textColor,
     required this.subtextColor,
   });
@@ -34,9 +34,10 @@ class HeaderSection extends StatefulWidget {
   State<HeaderSection> createState() => _HeaderSectionState();
 }
 
-class _HeaderSectionState extends State<HeaderSection> with SingleTickerProviderStateMixin {
+class _HeaderSectionState extends State<HeaderSection>
+    with SingleTickerProviderStateMixin {
   bool _showDoubleCheck = false;
-  
+
   Timer? _messageTimer;
   int _currentMessageIndex = 0;
 
@@ -59,25 +60,45 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     );
 
     _topRowOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
     );
-    _topRowSlide = Tween<Offset>(begin: const Offset(0, -0.4), end: Offset.zero).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
-    );
+    _topRowSlide = Tween<Offset>(begin: const Offset(0, -0.4), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+      ),
     );
-    _textSlide = Tween<Offset>(begin: const Offset(-0.15, 0), end: Offset.zero).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic)),
-    );
+    _textSlide = Tween<Offset>(begin: const Offset(-0.15, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.2, 0.6, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.8, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.4, 0.8, curve: Curves.easeOutBack),
+      ),
     );
 
     _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.5, 1.0, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.5, 1.0, curve: Curves.easeOutBack),
+      ),
     );
 
     _entryController.forward();
@@ -86,12 +107,12 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
   @override
   void dispose() {
     _messageTimer?.cancel();
-    _entryController.dispose(); 
+    _entryController.dispose();
     super.dispose();
   }
 
   void _startMessageTimer() {
-    _messageTimer?.cancel(); 
+    _messageTimer?.cancel();
     _messageTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
       if (mounted) {
         setState(() {
@@ -118,17 +139,17 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     if (widget.pendingRequestsCount == 0) {
       return [
         'Hello, ${_getFirstName()}! You\'re all caught up. The dashboard is looking great.',
-        'Did you know? You can double tap the moon icon to toggle dark mode.'
+        'Did you know? You can double tap the moon icon to toggle dark mode.',
       ];
     } else if (widget.pendingRequestsCount == 1) {
       return [
         'Hello, ${_getFirstName()}! You have 1 pending request awaiting approval.',
-        'Tap the bell icon in the top right to check it out and respond.'
+        'Tap the bell icon in the top right to check it out and respond.',
       ];
     } else {
       return [
         'Hello, ${_getFirstName()}! You have ${widget.pendingRequestsCount} pending requests awaiting approval.',
-        'Tap the bell icon in the top right to review the alerts.'
+        'Tap the bell icon in the top right to review the alerts.',
       ];
     }
   }
@@ -147,7 +168,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
         }
       });
     }
-    
+
     if (widget.onNotificationTap != null) {
       widget.onNotificationTap!();
     }
@@ -158,26 +179,29 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
     final now = DateTime.now();
     final formattedDate = DateFormat('EEEE, MMMM d').format(now).toUpperCase();
 
-    final Color buttonBgColor = widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC);
-    final Color iconTint = primary; 
+    final Color buttonBgColor = widget.isDarkMode
+        ? Colors.white10
+        : const Color(0xFFF8FAFC);
+    final Color iconTint = primary;
 
     final messages = _getMascotMessages();
     final safeIndex = _currentMessageIndex % messages.length;
     final displayMessage = messages[safeIndex];
-    
-    final longestMessage = messages.isNotEmpty 
-        ? messages.reduce((a, b) => a.length > b.length ? a : b) 
+
+    final longestMessage = messages.isNotEmpty
+        ? messages.reduce((a, b) => a.length > b.length ? a : b)
         : '';
 
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     final double mascotSize = (screenWidth * 0.32).clamp(90.0, 130.0);
-    
-    final double tailBottomMargin = mascotSize * 0.25; 
-    final double bubbleBottomMargin = mascotSize * 0.133; 
+
+    final double tailBottomMargin = mascotSize * 0.25;
+    final double bubbleBottomMargin = mascotSize * 0.133;
 
     return Semantics(
-      label: 'Header section. ${_getGreeting()}, ${_getFirstName()}. Today is $formattedDate',
+      label:
+          'Header section. ${_getGreeting()}, ${_getFirstName()}. Today is $formattedDate',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -192,7 +216,9 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                   children: [
                     // === INTEGRATED PREMIUM THEME TOGGLE ===
                     Semantics(
-                      label: widget.isDarkMode ? 'Dark mode is on' : 'Light mode is on',
+                      label: widget.isDarkMode
+                          ? 'Dark mode is on'
+                          : 'Light mode is on',
                       hint: 'Double tap to toggle theme mode',
                       button: true,
                       child: PremiumThemeToggle(
@@ -203,28 +229,31 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                       ),
                     ),
                     const SizedBox(width: 8),
-                    
+
                     Semantics(
-                      label: widget.pendingRequestsCount > 0 
-                        ? 'Notifications. You have ${widget.pendingRequestsCount} pending request${widget.pendingRequestsCount > 1 ? 's' : ''}' 
-                        : 'Notifications',
+                      label: widget.pendingRequestsCount > 0
+                          ? 'Notifications. You have ${widget.pendingRequestsCount} pending request${widget.pendingRequestsCount > 1 ? 's' : ''}'
+                          : 'Notifications',
                       hint: 'Double tap to view notifications',
                       button: true,
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
                           _buildActionButton(
-                            icon: _showDoubleCheck 
-                                ? Icons.done_all_rounded 
-                                : (widget.pendingRequestsCount > 0 
-                                    ? Icons.notifications_active_rounded 
-                                    : Icons.notifications_none_rounded),
+                            icon: _showDoubleCheck
+                                ? Icons.done_all_rounded
+                                : (widget.pendingRequestsCount > 0
+                                      ? Icons.notifications_active_rounded
+                                      : Icons.notifications_none_rounded),
                             bgColor: buttonBgColor,
-                            iconColor: _showDoubleCheck ? Colors.green : iconTint,
+                            iconColor: _showDoubleCheck
+                                ? Colors.green
+                                : iconTint,
                             onTap: _handleNotificationTap,
                           ),
-                          
-                          if (widget.pendingRequestsCount > 0 && !_showDoubleCheck)
+
+                          if (widget.pendingRequestsCount > 0 &&
+                              !_showDoubleCheck)
                             Positioned(
                               top: -2,
                               right: -2,
@@ -234,7 +263,9 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                   color: const Color(0xFFEF4444),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                                    color: widget.isDarkMode
+                                        ? const Color(0xFF1A1F3A)
+                                        : Colors.white,
                                     width: 2,
                                   ),
                                 ),
@@ -244,9 +275,10 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                 ),
                                 child: Center(
                                   child: Text(
-                                    widget.pendingRequestsCount > 9 
-                                        ? '9+' 
-                                        : widget.pendingRequestsCount.toString(),
+                                    widget.pendingRequestsCount > 9
+                                        ? '9+'
+                                        : widget.pendingRequestsCount
+                                              .toString(),
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -261,7 +293,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                       ),
                     ),
                     const SizedBox(width: 8),
-                    
+
                     Semantics(
                       label: 'Profile',
                       hint: 'Double tap to view profile',
@@ -269,28 +301,37 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                       child: GestureDetector(
                         onTap: widget.onProfileTap,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: buttonBgColor,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.person_outline_rounded, size: 18, color: iconTint),
+                              Icon(
+                                Icons.person_outline_rounded,
+                                size: 18,
+                                color: iconTint,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Profile',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
-                                  color: widget.subtextColor.withValues(alpha: 0.9),
+                                  color: widget.subtextColor.withValues(
+                                    alpha: 0.9,
+                                  ),
                                 ),
-                              )
+                              ),
                             ],
                           ),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -365,14 +406,16 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  top: 0, 
+                  top: 0,
                   child: FadeTransition(
                     opacity: _textOpacity,
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            primary.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                            primary.withValues(
+                              alpha: widget.isDarkMode ? 0.25 : 0.15,
+                            ),
                             primary.withValues(alpha: 0.0),
                           ],
                           begin: Alignment.topCenter,
@@ -382,7 +425,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                     ),
                   ),
                 ),
-                
+
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
@@ -393,35 +436,38 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                         alignment: Alignment.bottomCenter,
                         child: Image.asset(
                           'assets/seelai-icons/seelai0.png',
-                          height: mascotSize, 
+                          height: mascotSize,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            width: mascotSize * 0.75,
-                            height: mascotSize * 0.75,
-                            decoration: BoxDecoration(
-                              color: primary.withValues(alpha: 0.15),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.smart_toy_outlined,
-                              color: primary,
-                              size: mascotSize * 0.3, 
-                            ),
-                          ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                width: mascotSize * 0.75,
+                                height: mascotSize * 0.75,
+                                decoration: BoxDecoration(
+                                  color: primary.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.smart_toy_outlined,
+                                  color: primary,
+                                  size: mascotSize * 0.3,
+                                ),
+                              ),
                         ),
                       ),
-                      
+
                       const SizedBox(width: 4),
-                      
+
                       Container(
-                        margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                        margin: EdgeInsets.only(bottom: tailBottomMargin),
                         child: ScaleTransition(
                           scale: _bubbleScale,
                           alignment: Alignment.bottomRight,
                           child: CustomPaint(
                             size: const Size(12, 16),
                             painter: _TailPainter(
-                              color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                              color: widget.isDarkMode
+                                  ? const Color(0xFF1A1F3A)
+                                  : Colors.white,
                             ),
                           ),
                         ),
@@ -429,18 +475,22 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
 
                       Expanded(
                         child: Container(
-                          margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                          margin: EdgeInsets.only(bottom: bubbleBottomMargin),
                           child: ScaleTransition(
                             scale: _bubbleScale,
                             alignment: Alignment.bottomLeft,
                             child: Container(
                               padding: const EdgeInsets.all(21),
                               decoration: BoxDecoration(
-                                color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                                color: widget.isDarkMode
+                                    ? const Color(0xFF1A1F3A)
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: widget.isDarkMode ? 0.3 : 0.05),
+                                    color: Colors.black.withValues(
+                                      alpha: widget.isDarkMode ? 0.3 : 0.05,
+                                    ),
                                     blurRadius: 10,
                                     offset: const Offset(0, 4),
                                   ),
@@ -459,7 +509,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                     ),
                                   ),
                                   const SizedBox(height: 6),
-                                  
+
                                   Stack(
                                     children: [
                                       Text(
@@ -467,7 +517,7 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                         style: const TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
-                                          color: Colors.transparent, 
+                                          color: Colors.transparent,
                                           height: 1.4,
                                         ),
                                       ),
@@ -478,7 +528,11 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
-                                            color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                            color: widget.isDarkMode
+                                                ? Colors.white.withValues(
+                                                    alpha: 0.85,
+                                                  )
+                                                : Colors.black87,
                                             height: 1.4,
                                           ),
                                         ),
@@ -513,15 +567,8 @@ class _HeaderSectionState extends State<HeaderSection> with SingleTickerProvider
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: iconColor,
-        ),
+        decoration: BoxDecoration(color: bgColor, shape: BoxShape.circle),
+        child: Icon(icon, size: 20, color: iconColor),
       ),
     );
   }
@@ -548,7 +595,8 @@ class PremiumThemeToggle extends StatefulWidget {
   State<PremiumThemeToggle> createState() => _PremiumThemeToggleState();
 }
 
-class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProviderStateMixin {
+class _PremiumThemeToggleState extends State<PremiumThemeToggle>
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotationAnimation;
@@ -556,21 +604,30 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
 
     _scaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.7).chain(CurveTween(curve: Curves.easeOutQuad)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.7,
+        ).chain(CurveTween(curve: Curves.easeOutQuad)),
         weight: 30,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.7, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)),
+        tween: Tween<double>(
+          begin: 0.7,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
         weight: 70,
       ),
     ]).animate(_controller);
 
     _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack)
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack),
     );
   }
 
@@ -592,8 +649,8 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          final double glowOpacity = _controller.isAnimating 
-              ? (1.0 - _controller.value).clamp(0.0, 0.4) 
+          final double glowOpacity = _controller.isAnimating
+              ? (1.0 - _controller.value).clamp(0.0, 0.4)
               : 0.0;
 
           return Transform.scale(
@@ -611,7 +668,7 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
                       color: widget.iconColor.withValues(alpha: glowOpacity),
                       blurRadius: 20 * _controller.value,
                       spreadRadius: 8 * _controller.value,
-                    )
+                    ),
                   ],
                 ),
                 child: AnimatedSwitcher(
@@ -621,7 +678,9 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
                     child: ScaleTransition(scale: animation, child: child),
                   ),
                   child: Icon(
-                    widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    widget.isDarkMode
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded,
                     key: ValueKey<bool>(widget.isDarkMode),
                     size: 20,
                     color: widget.iconColor,
@@ -645,12 +704,12 @@ class _TailPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
     final path = Path();
-    
-    path.moveTo(size.width, 0); 
-    path.lineTo(0, size.height / 2); 
-    path.lineTo(size.width, size.height); 
+
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
     path.close();
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -662,30 +721,27 @@ class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
 
-  const TypewriterText({
-    super.key,
-    required this.text,
-    required this.style,
-  });
+  const TypewriterText({super.key, required this.text, required this.style});
 
   @override
   State<TypewriterText> createState() => _TypewriterTextState();
 }
 
-class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+class _TypewriterTextState extends State<TypewriterText>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<int> _characterCount;
 
   @override
   void initState() {
     super.initState();
-    int msDuration = widget.text.length * 40; 
+    int msDuration = widget.text.length * 40;
     _controller = AnimationController(
-      vsync: this, 
+      vsync: this,
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    
+
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _controller.forward();
     });
@@ -695,7 +751,7 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   void didUpdateWidget(TypewriterText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
-      int msDuration = widget.text.length * 40; 
+      int msDuration = widget.text.length * 40;
       _controller.duration = Duration(milliseconds: msDuration);
       _setupAnimation();
       _controller.reset();
@@ -704,9 +760,10 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   }
 
   void _setupAnimation() {
-    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _characterCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
   }
 
   @override
@@ -723,11 +780,8 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
         int end = _characterCount.value;
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
-        
-        return Text(
-          widget.text.substring(0, end),
-          style: widget.style,
-        );
+
+        return Text(widget.text.substring(0, end), style: widget.style);
       },
     );
   }

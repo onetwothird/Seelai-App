@@ -13,10 +13,10 @@ import 'package:seelai_app/storage/cloudinary_service.dart';
 class ObjectDetectionController {
   final CameraService cameraService;
   final Function(ObjectDetectionState) onStateChanged;
-  
+
   late FlutterVision _vision;
   late FlutterTts _flutterTts;
-  
+
   List<Map<String, dynamic>> recognitions = [];
   bool isDetecting = false;
   bool isModelLoaded = false;
@@ -24,25 +24,25 @@ class ObjectDetectionController {
   bool readingCompleted = false;
   bool isStreamRunning = false;
   bool isDisposing = false;
-  
+
   int frameCount = 0;
   DateTime? lastFrameTime;
-  double fps = 0.0; 
-  
-  int _cameraFrameCounter = 0; 
+  double fps = 0.0;
+
+  int _cameraFrameCounter = 0;
 
   int _consecutiveFrames = 0;
-  final int _requiredFrames = 2; 
-  String _lastTagsHash = ''; 
-  
+  final int _requiredFrames = 2;
+  String _lastTagsHash = '';
+
   bool isLowLight = false;
   bool isFlashOn = false;
   bool showFlashIndicator = false;
   Timer? _flashIndicatorTimer;
-  
+
   String lastDetectedObjects = '';
   DateTime? lastSpeakTime;
-  
+
   int _darkFrameCount = 0;
   int _brightFrameCount = 0;
 
@@ -54,7 +54,7 @@ class ObjectDetectionController {
   Future<void> initialize() async {
     _vision = FlutterVision();
     _flutterTts = FlutterTts();
-    
+
     await _initializeTts();
     loadModel();
     _announceMode();
@@ -70,22 +70,28 @@ class ObjectDetectionController {
       _flashIndicatorTimer?.cancel();
       await _flutterTts.stop();
       await turnOffFlash();
-      
-      if (isStreamRunning && 
+
+      if (isStreamRunning &&
           cameraService.controller != null &&
           cameraService.controller!.value.isStreamingImages) {
         try {
           await cameraService.controller!.stopImageStream();
           isStreamRunning = false;
-        } catch (_) { /* Ignored */ }
+        } catch (_) {
+          /* Ignored */
+        }
       }
-      
+
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       try {
         await _vision.closeYoloModel();
-      } catch (_) { /* Ignored */ }
-    } catch (_) { /* Ignored */ }
+      } catch (_) {
+        /* Ignored */
+      }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> _initializeTts() async {
@@ -118,7 +124,9 @@ class ObjectDetectionController {
           _notifyStateChanged();
         }
       });
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   void _announceMode() {
@@ -132,33 +140,37 @@ class ObjectDetectionController {
   Future<void> loadModel() async {
     try {
       await _vision.loadYoloModel(
-        labels: 'assets/object_model/labels.txt',
-        modelPath: 'assets/object_model/object_detection.tflite',
+        labels: 'assets/models/object_labels.txt',
+        modelPath: 'assets/models/object_detection.tflite',
         modelVersion: "yolov8",
-        quantization: true, 
-        useGpu: true, 
-        numThreads: 4, 
+        quantization: true,
+        useGpu: true,
+        numThreads: 4,
       );
-      
+
       if (!isDisposing) {
         isModelLoaded = true;
         _notifyStateChanged();
         await startObjectDetection();
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> startObjectDetection() async {
     if (isDisposing) return;
-    if (!cameraService.isInitialized || cameraService.controller == null) return;
+    if (!cameraService.isInitialized || cameraService.controller == null) {
+      return;
+    }
     if (!isModelLoaded) return;
-    
+
     if (cameraService.controller!.value.isStreamingImages) return;
 
     try {
       await cameraService.controller!.startImageStream((image) {
         _cameraFrameCounter++;
-        
+
         if (_cameraFrameCounter % 3 != 0) return;
 
         if (!isDetecting && isModelLoaded && !isDisposing) {
@@ -169,7 +181,9 @@ class ObjectDetectionController {
       });
       isStreamRunning = true;
       _notifyStateChanged();
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> detectObjects(CameraImage image) async {
@@ -185,8 +199,8 @@ class ObjectDetectionController {
         bytesList: image.planes.map((plane) => plane.bytes).toList(),
         imageHeight: image.height,
         imageWidth: image.width,
-        iouThreshold: 0.40, 
-        confThreshold: 0.50, 
+        iouThreshold: 0.40,
+        confThreshold: 0.50,
         classThreshold: 0.50,
       );
 
@@ -194,13 +208,15 @@ class ObjectDetectionController {
         final currentValidDetections = result.where((detection) {
           if (detection['box'] != null && detection['box'].length > 4) {
             double confidence = detection['box'][4] ?? 0.0;
-            return confidence >= 0.50; 
+            return confidence >= 0.50;
           }
           return false;
         }).toList();
 
         if (currentValidDetections.isNotEmpty) {
-          var currentTags = currentValidDetections.map((r) => r['tag'].toString()).toList()..sort();
+          var currentTags =
+              currentValidDetections.map((r) => r['tag'].toString()).toList()
+                ..sort();
           String currentTagsHash = currentTags.join(',');
 
           if (currentTagsHash == _lastTagsHash) {
@@ -213,7 +229,7 @@ class ObjectDetectionController {
           if (_consecutiveFrames >= _requiredFrames) {
             recognitions = currentValidDetections;
           } else {
-            recognitions = []; 
+            recognitions = [];
           }
         } else {
           _lastTagsHash = '';
@@ -235,23 +251,27 @@ class ObjectDetectionController {
           await _detectAndReadObjects();
         }
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
 
     isDetecting = false;
   }
 
   Future<void> _detectAndReadObjects() async {
     if (isDisposing || isReading) return;
-    
+
     final now = DateTime.now();
-    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 1) return;
-    
+    if (lastSpeakTime != null && now.difference(lastSpeakTime!).inSeconds < 1) {
+      return;
+    }
+
     try {
       final objectCount = recognitions.length;
       final previewSize = cameraService.controller?.value.previewSize;
-      
+
       if (objectCount > 0 && previewSize != null) {
-        double sourceWidth = previewSize.height; 
+        double sourceWidth = previewSize.height;
         double sourceHeight = previewSize.width;
 
         List<String> objectStatements = [];
@@ -261,7 +281,9 @@ class ObjectDetectionController {
           var r = recognitions[i];
           var box = r['box'];
           String tag = r['tag'] ?? 'object';
-          tag = tag.isNotEmpty ? '${tag[0].toUpperCase()}${tag.substring(1)}' : tag;
+          tag = tag.isNotEmpty
+              ? '${tag[0].toUpperCase()}${tag.substring(1)}'
+              : tag;
 
           if (box != null && box.length > 4) {
             double x1 = box[0].toDouble();
@@ -271,7 +293,7 @@ class ObjectDetectionController {
 
             double centerX = (x1 + x2) / 2;
             String positionStr;
-            
+
             // Concise Positioning
             if (centerX < sourceWidth * 0.35) {
               positionStr = "left";
@@ -284,7 +306,7 @@ class ObjectDetectionController {
             double boxHeight = y2 - y1;
             double heightRatio = boxHeight / sourceHeight;
             String distanceStr;
-            
+
             if (heightRatio > 0.6) {
               distanceStr = "1 meter";
             } else if (heightRatio > 0.3) {
@@ -300,18 +322,22 @@ class ObjectDetectionController {
         }
 
         String speechText = objectStatements.join(". ");
-        String detectedObjectsText = recognitions.map((r) => '${r['tag']}').join(', ');
-        
+        String detectedObjectsText = recognitions
+            .map((r) => '${r['tag']}')
+            .join(', ');
+
         lastDetectedObjects = detectedObjectsText;
         lastSpeakTime = now;
         readingCompleted = false;
-        
+
         _flutterTts.speak(speechText);
         _notifyStateChanged();
 
         _captureAndUploadInBackground(objectCount);
-      } 
-    } catch (_) { /* Ignored */ }
+      }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> _captureAndUploadInBackground(int objectCount) async {
@@ -325,19 +351,21 @@ class ObjectDetectionController {
         await controller.stopImageStream();
         isStreamRunning = false;
       }
-      
-      final xFile = await controller.takePicture();
-      
-      startObjectDetection();
-      
-      final uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
-        File(xFile.path), 
-        userId, 
-        'object'
-      );
-      
-      await _saveDetectedObjectsToFirebase(objectCount, imageUrl: uploadedImageUrl);
 
+      final xFile = await controller.takePicture();
+
+      startObjectDetection();
+
+      final uploadedImageUrl = await cloudinaryService.uploadDetectionImage(
+        File(xFile.path),
+        userId,
+        'object',
+      );
+
+      await _saveDetectedObjectsToFirebase(
+        objectCount,
+        imageUrl: uploadedImageUrl,
+      );
     } catch (_) {
       if (!isStreamRunning && !isDisposing) {
         startObjectDetection();
@@ -345,7 +373,10 @@ class ObjectDetectionController {
     }
   }
 
-  Future<void> _saveDetectedObjectsToFirebase(int objectCount, {String? imageUrl}) async {
+  Future<void> _saveDetectedObjectsToFirebase(
+    int objectCount, {
+    String? imageUrl,
+  }) async {
     try {
       final userId = authService.value.currentUser?.uid;
       if (userId == null) return;
@@ -362,7 +393,9 @@ class ObjectDetectionController {
           'deviceInfo': 'mobile_camera',
         },
       );
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   void _checkBrightnessAndManageFlash(CameraImage image) {
@@ -379,9 +412,9 @@ class ObjectDetectionController {
     }
 
     double averageBrightness = totalBrightness / sampleCount;
-    const int kDarkThreshold = 40; 
-    const int kBrightThreshold = 150; 
-    
+    const int kDarkThreshold = 40;
+    const int kBrightThreshold = 150;
+
     if (!isFlashOn) {
       if (averageBrightness < kDarkThreshold) {
         _darkFrameCount++;
@@ -417,17 +450,19 @@ class ObjectDetectionController {
         isFlashOn = true;
         isLowLight = true;
         showFlashIndicator = true;
-        
+
         _notifyStateChanged();
         _flutterTts.speak('Turning on light.');
-        
+
         _flashIndicatorTimer?.cancel();
         _flashIndicatorTimer = Timer(const Duration(seconds: 3), () {
           showFlashIndicator = false;
           _notifyStateChanged();
         });
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> turnOffFlash() async {
@@ -441,7 +476,9 @@ class ObjectDetectionController {
         _flashIndicatorTimer?.cancel();
         _notifyStateChanged();
       }
-    } catch (_) { /* Ignored */ }
+    } catch (_) {
+      /* Ignored */
+    }
   }
 
   Future<void> toggleFlashManually() async {
@@ -455,18 +492,20 @@ class ObjectDetectionController {
 
   void _notifyStateChanged() {
     if (!isDisposing) {
-      onStateChanged(ObjectDetectionState(
-        recognitions: recognitions,
-        isDetecting: isDetecting,
-        isModelLoaded: isModelLoaded,
-        isReading: isReading,
-        readingCompleted: readingCompleted,
-        fps: fps,
-        isFlashOn: isFlashOn,
-        isLowLight: isLowLight,
-        showFlashIndicator: showFlashIndicator,
-        lastDetectedObjects: lastDetectedObjects,
-      ));
+      onStateChanged(
+        ObjectDetectionState(
+          recognitions: recognitions,
+          isDetecting: isDetecting,
+          isModelLoaded: isModelLoaded,
+          isReading: isReading,
+          readingCompleted: readingCompleted,
+          fps: fps,
+          isFlashOn: isFlashOn,
+          isLowLight: isLowLight,
+          showFlashIndicator: showFlashIndicator,
+          lastDetectedObjects: lastDetectedObjects,
+        ),
+      );
     }
   }
 

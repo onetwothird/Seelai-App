@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart'; // Added shimmer
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
-import 'package:intl/intl.dart'; 
+import 'package:intl/intl.dart';
 
 class AllAnnouncementsCaretakerPage extends StatefulWidget {
   final bool isDarkMode;
@@ -21,10 +21,12 @@ class AllAnnouncementsCaretakerPage extends StatefulWidget {
   });
 
   @override
-  State<AllAnnouncementsCaretakerPage> createState() => _AllAnnouncementsCaretakerPageState();
+  State<AllAnnouncementsCaretakerPage> createState() =>
+      _AllAnnouncementsCaretakerPageState();
 }
 
-class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretakerPage> {
+class _AllAnnouncementsCaretakerPageState
+    extends State<AllAnnouncementsCaretakerPage> {
   bool _isSimulatingLoad = true;
 
   @override
@@ -40,8 +42,12 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
   // WIDGET: SKELETON
   // ==========================================
   Widget _buildSkeletonList() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
@@ -58,8 +64,8 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: widget.isDarkMode 
-                      ? Colors.white.withValues(alpha: 0.05) 
+                  color: widget.isDarkMode
+                      ? Colors.white.withValues(alpha: 0.05)
                       : Colors.black.withValues(alpha: 0.05),
                   width: 1,
                 ),
@@ -83,9 +89,17 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(width: 160, height: 16, color: Colors.white),
+                            Container(
+                              width: 160,
+                              height: 16,
+                              color: Colors.white,
+                            ),
                             const SizedBox(height: 8),
-                            Container(width: 80, height: 12, color: Colors.white),
+                            Container(
+                              width: 80,
+                              height: 12,
+                              color: Colors.white,
+                            ),
                           ],
                         ),
                       ),
@@ -93,21 +107,29 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
                   ),
                   const SizedBox(height: 16),
                   Divider(
-                    color: widget.isDarkMode ? Colors.white10 : Colors.black12, 
+                    color: widget.isDarkMode ? Colors.white10 : Colors.black12,
                     height: 1,
                   ),
                   const SizedBox(height: 16),
-                  Container(width: double.infinity, height: 12, color: Colors.white),
+                  Container(
+                    width: double.infinity,
+                    height: 12,
+                    color: Colors.white,
+                  ),
                   const SizedBox(height: 6),
-                  Container(width: double.infinity, height: 12, color: Colors.white),
+                  Container(
+                    width: double.infinity,
+                    height: 12,
+                    color: Colors.white,
+                  ),
                   const SizedBox(height: 6),
                   Container(width: 200, height: 12, color: Colors.white),
                   const SizedBox(height: 12),
                   Container(
-                    width: 100, 
-                    height: 20, 
+                    width: 100,
+                    height: 20,
                     decoration: BoxDecoration(
-                      color: Colors.white, 
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -122,14 +144,16 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
 
   @override
   Widget build(BuildContext context) {
-    final backgroundColor = widget.isDarkMode ? const Color(0xFF0A0E27) : const Color(0xFFF8F9FE);
+    final backgroundColor = widget.isDarkMode
+        ? const Color(0xFF0A0E27)
+        : const Color(0xFFF8F9FE);
 
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: AppBar(
         backgroundColor: backgroundColor,
-        surfaceTintColor: Colors.transparent, 
-        scrolledUnderElevation: 0,            
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -139,13 +163,17 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
               color: widget.theme.cardColor,
               shape: BoxShape.circle,
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
             ),
-            child: Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: widget.theme.textColor),
+            child: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              size: 18,
+              color: widget.theme.textColor,
+            ),
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -158,21 +186,21 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
           ),
         ),
       ),
-      body: _isSimulatingLoad 
+      body: _isSimulatingLoad
           ? _buildSkeletonList()
           : widget.announcements.isEmpty
-              ? _buildEmptyState()
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  itemCount: widget.announcements.length,
-                  itemBuilder: (context, index) {
-                    final announcement = widget.announcements[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildModernCard(announcement),
-                    );
-                  },
-                ),
+          ? _buildEmptyState()
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              itemCount: widget.announcements.length,
+              itemBuilder: (context, index) {
+                final announcement = widget.announcements[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: _buildModernCard(announcement),
+                );
+              },
+            ),
     );
   }
 
@@ -187,7 +215,7 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
       '0xe3e3': Icons.info,
       // Add more known icons here...
     };
-    
+
     // Normalize string to match map keys
     String formattedCode = hexCode.toLowerCase().trim();
     return safeIcons[formattedCode] ?? Icons.notifications; // Fallback icon
@@ -213,8 +241,8 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
                 ),
               ],
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -250,7 +278,11 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        Icon(Icons.access_time_rounded, size: 12, color: widget.theme.subtextColor),
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 12,
+                          color: widget.theme.subtextColor,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           _getTimeAgo(announcement.timestamp),
@@ -269,7 +301,9 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
           ),
           const SizedBox(height: 16),
           Divider(
-            color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05), 
+            color: widget.isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
             height: 1,
           ),
           const SizedBox(height: 16),
@@ -315,18 +349,18 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               shape: BoxShape.circle,
-              boxShadow: widget.isDarkMode 
-                ? [] 
-                : [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    )
-                  ],
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
@@ -349,9 +383,7 @@ class _AllAnnouncementsCaretakerPageState extends State<AllAnnouncementsCaretake
           const SizedBox(height: 8),
           Text(
             'No new announcements at the moment.',
-            style: body.copyWith(
-              color: widget.theme.subtextColor,
-            ),
+            style: body.copyWith(color: widget.theme.subtextColor),
           ),
         ],
       ),

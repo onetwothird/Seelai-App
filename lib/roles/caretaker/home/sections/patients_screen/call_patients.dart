@@ -22,7 +22,9 @@ Future<void> callPatient(BuildContext context, {String? patientName}) async {
 
     await launchUrl(phoneUri);
 
-    final msg = patientName != null ? 'Calling $patientName...' : 'Initiating phone call...';
+    final msg = patientName != null
+        ? 'Calling $patientName...'
+        : 'Initiating phone call...';
     await flutterTts.speak(msg);
 
     messenger.showSnackBar(

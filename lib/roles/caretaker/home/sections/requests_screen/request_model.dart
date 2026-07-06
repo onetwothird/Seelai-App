@@ -1,19 +1,8 @@
 import 'package:flutter/material.dart';
 
-enum RequestStatus {
-  pending,
-  accepted,
-  inProgress,
-  completed,
-  declined,
-}
+enum RequestStatus { pending, accepted, inProgress, completed, declined }
 
-enum RequestPriority {
-  low,
-  medium,
-  high,
-  emergency,
-}
+enum RequestPriority { low, medium, high, emergency }
 
 class RequestModel {
   final String id;
@@ -105,8 +94,8 @@ class RequestModel {
       'caretakerId': caretakerId,
       'requestType': requestType,
       'message': message,
-      'status': status.name, 
-      'priority': priority.name, 
+      'status': status.name,
+      'priority': priority.name,
       'timestamp': timestamp.toIso8601String(),
       'location': location,
       'caretakerResponse': caretakerResponse,

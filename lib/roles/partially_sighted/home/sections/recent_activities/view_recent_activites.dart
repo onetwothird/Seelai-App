@@ -2,9 +2,9 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; 
-import 'package:flutter_staggered_animations/flutter_staggered_animations.dart'; 
-import 'package:flutter_tts/flutter_tts.dart'; 
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -15,35 +15,36 @@ class ViewRecentActivities extends StatefulWidget {
   final bool isDarkMode;
   final dynamic theme;
   final String userId;
-  final VoidCallback onToggleDarkMode; 
+  final VoidCallback onToggleDarkMode;
 
   const ViewRecentActivities({
     super.key,
     required this.isDarkMode,
     required this.theme,
     required this.userId,
-    required this.onToggleDarkMode, 
+    required this.onToggleDarkMode,
   });
 
   @override
   State<ViewRecentActivities> createState() => _ViewRecentActivitiesState();
 }
 
-class _ViewRecentActivitiesState extends State<ViewRecentActivities> with TickerProviderStateMixin {
+class _ViewRecentActivitiesState extends State<ViewRecentActivities>
+    with TickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF7C3AED);
-  final FlutterTts _flutterTts = FlutterTts(); 
+  final FlutterTts _flutterTts = FlutterTts();
 
   final int maxDisplayedDetections = 5;
   String _selectedFilter = 'All';
   bool _isRefreshing = false;
   bool _isLoading = true;
-  
+
   bool _isSimulatingLoad = true;
 
   List<Map<String, dynamic>> _faces = [];
   List<Map<String, dynamic>> _objects = [];
   List<Map<String, dynamic>> _texts = [];
-  
+
   List<Map<String, dynamic>> _allDetections = [];
   List<Map<String, dynamic>> _archivedDetections = [];
 
@@ -67,34 +68,50 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     super.initState();
     _setupRealtimeStreams();
     _startMessageTimer();
-    _initTts(); 
-    
+    _initTts();
+
     _entryController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
     );
 
     _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
     );
-    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)),
-    );
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
+          ),
+        );
 
     _gradientOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.6, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.2, 0.6, curve: Curves.easeOut),
+      ),
     );
 
     _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack),
+      ),
     );
 
     _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack),
+      ),
     );
 
     _entryController.forward();
-    
+
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -113,57 +130,77 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (mounted) {
         setState(() {
-          _currentMessageIndex = (_currentMessageIndex + 1) % 2; 
+          _currentMessageIndex = (_currentMessageIndex + 1) % 2;
         });
       }
     });
   }
 
   void _setupRealtimeStreams() {
-    _facesSub = faceDetectionService.streamDetectedFaces(widget.userId).listen((faces) {
-      _faces = faces.map((face) => {
-        ...face,
-        'type': 'face',
-        'icon': Icons.face_rounded,
-        'color': _primaryColor,
-      }).toList();
+    _facesSub = faceDetectionService.streamDetectedFaces(widget.userId).listen((
+      faces,
+    ) {
+      _faces = faces
+          .map(
+            (face) => {
+              ...face,
+              'type': 'face',
+              'icon': Icons.face_rounded,
+              'color': _primaryColor,
+            },
+          )
+          .toList();
       _combineAndSortDetections();
     });
 
-    _objectsSub = objectDetectionService.streamDetectedObjects(widget.userId).listen((objects) {
-      _objects = objects.map((obj) => {
-        ...obj,
-        'type': 'object',
-        'icon': Icons.search_rounded,
-        'color': Colors.green,
-      }).toList();
-      _combineAndSortDetections();
-    });
+    _objectsSub = objectDetectionService
+        .streamDetectedObjects(widget.userId)
+        .listen((objects) {
+          _objects = objects
+              .map(
+                (obj) => {
+                  ...obj,
+                  'type': 'object',
+                  'icon': Icons.search_rounded,
+                  'color': Colors.green,
+                },
+              )
+              .toList();
+          _combineAndSortDetections();
+        });
 
-    _textsSub = textScanService.streamScannedTexts(widget.userId).listen((texts) {
-      _texts = texts.map((text) => {
-        ...text,
-        'type': 'text',
-        'icon': Icons.document_scanner_rounded,
-        'color': Colors.orange,
-      }).toList();
+    _textsSub = textScanService.streamScannedTexts(widget.userId).listen((
+      texts,
+    ) {
+      _texts = texts
+          .map(
+            (text) => {
+              ...text,
+              'type': 'text',
+              'icon': Icons.document_scanner_rounded,
+              'color': Colors.orange,
+            },
+          )
+          .toList();
       _combineAndSortDetections();
     });
   }
 
   void _combineAndSortDetections() {
     final combined = [..._faces, ..._objects, ..._texts];
-    
+
     combined.sort((a, b) {
       final aTime = DateTime.parse(a['timestamp'] as String);
       final bTime = DateTime.parse(b['timestamp'] as String);
-      return bTime.compareTo(aTime); 
+      return bTime.compareTo(aTime);
     });
 
     if (mounted) {
       setState(() {
         _allDetections = combined.where((d) => d['isDeleted'] != true).toList();
-        _archivedDetections = combined.where((d) => d['isDeleted'] == true).toList();
+        _archivedDetections = combined
+            .where((d) => d['isDeleted'] == true)
+            .toList();
         _isLoading = false;
       });
     }
@@ -181,13 +218,19 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     try {
       if (type == 'face') {
         final docId = detection['detectionId'];
-        await dbRef.child('detected_faces/${widget.userId}/$docId').update({'isDeleted': true});
+        await dbRef.child('detected_faces/${widget.userId}/$docId').update({
+          'isDeleted': true,
+        });
       } else if (type == 'object') {
         final docId = detection['detectionId'];
-        await dbRef.child('detected_objects/${widget.userId}/$docId').update({'isDeleted': true});
+        await dbRef.child('detected_objects/${widget.userId}/$docId').update({
+          'isDeleted': true,
+        });
       } else if (type == 'text') {
         final docId = detection['scanId'];
-        await dbRef.child('scanned_texts/${widget.userId}/$docId').update({'isDeleted': true});
+        await dbRef.child('scanned_texts/${widget.userId}/$docId').update({
+          'isDeleted': true,
+        });
       }
     } catch (e) {
       debugPrint('Error moving to history: $e');
@@ -198,19 +241,27 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     final type = detection['type'] as String?;
 
     setState(() {
-      _archivedDetections.removeWhere((d) => d['timestamp'] == detection['timestamp']);
+      _archivedDetections.removeWhere(
+        (d) => d['timestamp'] == detection['timestamp'],
+      );
     });
 
     try {
       if (type == 'face') {
         final docId = detection['detectionId'] as String?;
-        if (docId != null) await faceDetectionService.deleteDetection(widget.userId, docId); 
+        if (docId != null) {
+          await faceDetectionService.deleteDetection(widget.userId, docId);
+        }
       } else if (type == 'object') {
         final docId = detection['detectionId'] as String?;
-        if (docId != null) await objectDetectionService.deleteDetection(widget.userId, docId);
+        if (docId != null) {
+          await objectDetectionService.deleteDetection(widget.userId, docId);
+        }
       } else if (type == 'text') {
-        final docId = detection['scanId'] as String?; 
-        if (docId != null) await textScanService.deleteScannedText(widget.userId, docId);
+        final docId = detection['scanId'] as String?;
+        if (docId != null) {
+          await textScanService.deleteScannedText(widget.userId, docId);
+        }
       }
     } catch (e) {
       debugPrint('Error permanently deleting: $e');
@@ -218,25 +269,36 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   }
 
   Future<void> _deleteAllHistoryPermanently({String typeFilter = 'all'}) async {
-    setState(() { _isLoading = true; });
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       List<Map<String, dynamic>> itemsToDelete = _archivedDetections;
-      
+
       if (typeFilter != 'all') {
-        itemsToDelete = _archivedDetections.where((d) => d['type'] == typeFilter).toList();
+        itemsToDelete = _archivedDetections
+            .where((d) => d['type'] == typeFilter)
+            .toList();
       }
 
       for (var item in itemsToDelete) {
         await _deletePermanently(item);
       }
-      
-      if (mounted) setState(() { _isLoading = false; });
+
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
       _flutterTts.speak('Selected history has been permanently deleted');
-      
     } catch (e) {
       debugPrint('Error permanently deleting history: $e');
-      if (mounted) setState(() { _isLoading = false; });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -265,7 +327,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
               ),
             ),
             const SizedBox(height: 24),
-            
+
             // Titles
             Text(
               'Clear Detections',
@@ -278,41 +340,38 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
             const SizedBox(height: 8),
             Text(
               'Select a category to permanently delete its records',
-              style: TextStyle(
-                fontSize: 14,
-                color: widget.theme.subtextColor,
-              ),
+              style: TextStyle(fontSize: 14, color: widget.theme.subtextColor),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            
+
             // Options
             _buildClearOptionCard(
               title: 'Clear All Detections',
               subtitle: 'Permanently delete everything',
               icon: Icons.delete_sweep_rounded,
-              color: const Color(0xFFF87171), 
+              color: const Color(0xFFF87171),
               type: 'all',
             ),
             _buildClearOptionCard(
               title: 'Clear Faces Only',
               subtitle: 'Keep objects and texts',
               icon: Icons.face_rounded,
-              color: const Color(0xFF8B5CF6), 
+              color: const Color(0xFF8B5CF6),
               type: 'face',
             ),
             _buildClearOptionCard(
               title: 'Clear Objects Only',
               subtitle: 'Keep faces and texts',
               icon: Icons.search_rounded,
-              color: const Color(0xFF34D399), 
+              color: const Color(0xFF34D399),
               type: 'object',
             ),
             _buildClearOptionCard(
               title: 'Clear Texts Only',
               subtitle: 'Keep faces and objects',
               icon: Icons.document_scanner_rounded,
-              color: const Color(0xFFFBBF24), 
+              color: const Color(0xFFFBBF24),
               type: 'text',
             ),
           ],
@@ -334,8 +393,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            Navigator.pop(context); 
-            _deleteAllHistoryPermanently(typeFilter: type); 
+            Navigator.pop(context);
+            _deleteAllHistoryPermanently(typeFilter: type);
           },
           borderRadius: BorderRadius.circular(20),
           child: Container(
@@ -354,13 +413,13 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha:0.12),
+                    color: color.withValues(alpha: 0.12),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 24),
                 ),
                 const SizedBox(width: 16),
-                
+
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +443,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                     ],
                   ),
                 ),
-                
+
                 Icon(
                   Icons.chevron_right_rounded,
                   color: widget.theme.subtextColor.withOpacity(0.4),
@@ -405,20 +464,28 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     _textsSub?.cancel();
     _messageTimer?.cancel();
     _entryController.dispose();
-    _flutterTts.stop(); 
+    _flutterTts.stop();
     super.dispose();
   }
 
-  List<String> _getMascotMessages(int faceCount, int objectCount, int textCount) {
+  List<String> _getMascotMessages(
+    int faceCount,
+    int objectCount,
+    int textCount,
+  ) {
     return [
       'Hello! You have scanned $faceCount face${faceCount != 1 ? 's' : ''}, $objectCount object${objectCount != 1 ? 's' : ''}, and $textCount text block${textCount != 1 ? 's' : ''}.',
       'Tip: You can tap on any detection card below to view its full details.',
     ];
   }
-  
+
   Widget _buildSkeletonList(double width) {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: width * 0.06),
@@ -427,42 +494,48 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         children: [
           const SizedBox(height: spacingMedium),
           Row(
-            children: List.generate(4, (index) => Padding(
-              padding: const EdgeInsets.only(right: 8.0),
+            children: List.generate(
+              4,
+              (index) => Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: Shimmer.fromColors(
+                  baseColor: baseColor,
+                  highlightColor: highlightColor,
+                  child: Container(
+                    width: 70,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: spacingLarge),
+          ...List.generate(
+            3,
+            (index) => Padding(
+              padding: const EdgeInsets.only(bottom: spacingMedium),
               child: Shimmer.fromColors(
                 baseColor: baseColor,
                 highlightColor: highlightColor,
                 child: Container(
-                  width: 70, 
-                  height: 36, 
+                  height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.white, 
-                    borderRadius: BorderRadius.circular(24)
-                  )
-                ),
-              ),
-            )),
-          ),
-          const SizedBox(height: spacingLarge),
-          ...List.generate(3, (index) => Padding(
-            padding: const EdgeInsets.only(bottom: spacingMedium),
-            child: Shimmer.fromColors(
-              baseColor: baseColor,
-              highlightColor: highlightColor,
-              child: Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(radiusLarge),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(radiusLarge),
+                  ),
                 ),
               ),
             ),
-          )),
+          ),
         ],
       ),
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
@@ -506,7 +579,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 13, 
+                            fontSize: 13,
                             color: widget.theme.subtextColor,
                           ),
                         ),
@@ -519,7 +592,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                       PremiumThemeToggle(
                         isDarkMode: widget.isDarkMode,
                         onToggle: widget.onToggleDarkMode,
-                        buttonBgColor: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
+                        buttonBgColor: widget.isDarkMode
+                            ? Colors.white10
+                            : const Color(0xFFF8FAFC),
                         iconColor: _primaryColor,
                       ),
                       const SizedBox(width: 6),
@@ -533,7 +608,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                             duration: const Duration(milliseconds: 300),
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: widget.isDarkMode ? Colors.white10 : const Color(0xFFF8FAFC),
+                              color: widget.isDarkMode
+                                  ? Colors.white10
+                                  : const Color(0xFFF8FAFC),
                               shape: BoxShape.circle,
                             ),
                             child: AnimatedRotation(
@@ -542,7 +619,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                               child: Icon(
                                 Icons.refresh_rounded,
                                 color: _primaryColor,
-                                size: 18, 
+                                size: 18,
                               ),
                             ),
                           ),
@@ -555,18 +632,18 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                         button: true,
                         hint: 'Double tap to clear history',
                         child: GestureDetector(
-                          onTap: _showClearHistorySheet, 
+                          onTap: _showClearHistorySheet,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.redAccent.withValues(alpha: 0.1), 
+                              color: Colors.redAccent.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
                               Icons.delete_sweep_rounded,
                               color: Colors.redAccent,
-                              size: 18, 
+                              size: 18,
                             ),
                           ),
                         ),
@@ -578,9 +655,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
             ),
           ),
         ),
-        
+
         const SizedBox(height: spacingLarge),
-        
+
         // 2. SCROLLABLE CONTENT AREA
         Expanded(
           child: SingleChildScrollView(
@@ -588,8 +665,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildMascotBanner(_allDetections), 
-                
+                _buildMascotBanner(_allDetections),
+
                 if (showSkeleton)
                   _buildSkeletonList(width)
                 else
@@ -599,11 +676,11 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: spacingMedium),
-                        
+
                         _buildFilterTabs(),
-                        
+
                         const SizedBox(height: spacingLarge),
-                        
+
                         _buildDetectionsList(_allDetections),
                       ],
                     ),
@@ -623,14 +700,16 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
     final messages = _getMascotMessages(faceCount, objectCount, textCount);
     final displayMessage = messages[_currentMessageIndex % messages.length];
-    
-    final longestMessage = messages.reduce((a, b) => a.length > b.length ? a : b);
+
+    final longestMessage = messages.reduce(
+      (a, b) => a.length > b.length ? a : b,
+    );
 
     final double screenWidth = MediaQuery.of(context).size.width;
-    
+
     final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
-    
-    final double tailBottomMargin = mascotSize * 0.285; 
+
+    final double tailBottomMargin = mascotSize * 0.285;
     final double bubbleBottomMargin = mascotSize * 0.242;
 
     return Stack(
@@ -647,7 +726,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(
+                      alpha: widget.isDarkMode ? 0.25 : 0.15,
+                    ),
                     _primaryColor.withValues(alpha: 0.0),
                   ],
                   begin: Alignment.topCenter,
@@ -657,7 +738,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
             ),
           ),
         ),
-        
+
         Padding(
           padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
           child: Row(
@@ -668,7 +749,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                 alignment: Alignment.bottomCenter,
                 child: Image.asset(
                   'assets/seelai-icons/seelai3.png',
-                  height: mascotSize, 
+                  height: mascotSize,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Container(
                     width: mascotSize * 0.65,
@@ -680,21 +761,23 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                     child: Icon(
                       Icons.smart_toy_outlined,
                       color: _primaryColor,
-                      size: mascotSize * 0.25, 
+                      size: mascotSize * 0.25,
                     ),
                   ),
                 ),
               ),
-              
+
               Container(
-                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                margin: EdgeInsets.only(bottom: tailBottomMargin),
                 child: ScaleTransition(
                   scale: _bubbleScale,
                   alignment: Alignment.bottomRight,
                   child: CustomPaint(
                     size: const Size(14, 16),
                     painter: _TailPainter(
-                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                      color: widget.isDarkMode
+                          ? const Color(0xFF1A1F3A)
+                          : Colors.white,
                     ),
                   ),
                 ),
@@ -702,26 +785,33 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
               Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin),
                   child: ScaleTransition(
                     scale: _bubbleScale,
                     alignment: Alignment.bottomLeft,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 22,
+                      ),
                       decoration: BoxDecoration(
-                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF1A1F3A)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: widget.isDarkMode ? [] : [
-                          BoxShadow(
-                            color: _primaryColor.withValues(alpha: 0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          )
-                        ],
+                        boxShadow: widget.isDarkMode
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: _primaryColor.withValues(alpha: 0.1),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min, 
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             'Seelai',
@@ -733,7 +823,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                             ),
                           ),
                           const SizedBox(height: 6),
-                          
+
                           Stack(
                             children: [
                               Text(
@@ -741,7 +831,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.transparent, 
+                                  color: Colors.transparent,
                                   height: 1.4,
                                 ),
                               ),
@@ -751,7 +841,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                                   style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
-                                    color: widget.isDarkMode ? Colors.white.withValues(alpha: 0.85) : Colors.black87,
+                                    color: widget.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : Colors.black87,
                                     height: 1.4,
                                   ),
                                 ),
@@ -798,29 +890,36 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected ? _primaryColor : widget.theme.cardColor,
-                  borderRadius: BorderRadius.circular(24), 
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: isSelected 
-                        ? _primaryColor 
+                    color: isSelected
+                        ? _primaryColor
                         : (widget.isDarkMode ? Colors.white10 : Colors.black12),
                     width: 1.5,
                   ),
-                  boxShadow: isSelected ? [
-                    BoxShadow(
-                      color: _primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    )
-                  ] : [],
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: _primaryColor.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : [],
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : widget.theme.subtextColor,
+                    color: isSelected
+                        ? Colors.white
+                        : widget.theme.subtextColor,
                     fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                     fontSize: 13,
                     letterSpacing: 0.3,
@@ -835,7 +934,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
   }
 
   Widget _buildDetectionsList(List<Map<String, dynamic>> allDetections) {
-    final sourceList = _selectedFilter == 'History' ? _archivedDetections : allDetections;
+    final sourceList = _selectedFilter == 'History'
+        ? _archivedDetections
+        : allDetections;
 
     if (sourceList.isEmpty) {
       return _buildEmptyState();
@@ -847,11 +948,14 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
       return _buildNoResultsState();
     }
 
-    final displayedDetections = filteredDetections.take(maxDisplayedDetections).toList();
-    final hasMoreDetections = filteredDetections.length > maxDisplayedDetections;
+    final displayedDetections = filteredDetections
+        .take(maxDisplayedDetections)
+        .toList();
+    final hasMoreDetections =
+        filteredDetections.length > maxDisplayedDetections;
 
     return AnimationLimiter(
-      key: ValueKey(_selectedFilter), 
+      key: ValueKey(_selectedFilter),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: AnimationConfiguration.toStaggeredList(
@@ -878,11 +982,13 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
     );
   }
 
-  List<Map<String, dynamic>> _filterDetections(List<Map<String, dynamic>> detections) {
+  List<Map<String, dynamic>> _filterDetections(
+    List<Map<String, dynamic>> detections,
+  ) {
     if (_selectedFilter == 'All' || _selectedFilter == 'History') {
       return detections;
     }
-    
+
     return detections.where((detection) {
       switch (_selectedFilter) {
         case 'Faces':
@@ -906,14 +1012,15 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
     String title = '';
     String description = '';
-    String detectedLabel = ''; 
+    String detectedLabel = '';
 
     switch (type) {
       case 'face':
         final faceCount = detection['faceCount'] as int;
         title = 'Face Detection';
         detectedLabel = 'Face';
-        description = 'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
+        description =
+            'Detected $faceCount ${faceCount == 1 ? 'face' : 'faces'}';
         break;
       case 'object':
         final objectCount = detection['objectCount'] as int;
@@ -921,20 +1028,25 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         title = 'Object Detection';
         if (objects.isNotEmpty) {
           final firstObject = objects.first['label'] as String;
-          detectedLabel = '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
-          
+          detectedLabel =
+              '${firstObject[0].toUpperCase()}${firstObject.substring(1).toLowerCase()}';
+
           if (objectCount > 1) {
-            final otherNames = objects.skip(1).take(2).map((o) => (o as Map)['label']).join(', ');
-            description = objectCount > 3 
+            final otherNames = objects
+                .skip(1)
+                .take(2)
+                .map((o) => (o as Map)['label'])
+                .join(', ');
+            description = objectCount > 3
                 ? '+$otherNames, +${objectCount - 3} more'
                 : '+$otherNames';
           } else {
-             final conf = objects.first['confidence'];
-             if (conf != null) {
-                description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
-             } else {
-                description = 'Detected 1 object';
-             }
+            final conf = objects.first['confidence'];
+            if (conf != null) {
+              description = 'Confidence: ${(conf * 100).toStringAsFixed(1)}%';
+            } else {
+              description = 'Detected 1 object';
+            }
           }
         } else {
           detectedLabel = 'Object';
@@ -948,7 +1060,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         detectedLabel = 'Document';
         description = text.length > 40 ? '${text.substring(0, 40)}...' : text;
         if (description.isEmpty) {
-          description = 'Scanned $textBlockCount ${textBlockCount == 1 ? 'block' : 'blocks'}';
+          description =
+              'Scanned $textBlockCount ${textBlockCount == 1 ? 'block' : 'blocks'}';
         }
         break;
     }
@@ -963,15 +1076,19 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
           color: Colors.red.shade400,
           borderRadius: BorderRadius.circular(radiusLarge),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 28),
+        child: const Icon(
+          Icons.delete_outline_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
       onDismissed: (direction) {
         if (_selectedFilter == 'History') {
-          _deletePermanently(detection); 
-          _flutterTts.speak('$title deleted permanently'); 
+          _deletePermanently(detection);
+          _flutterTts.speak('$title deleted permanently');
         } else {
-          _moveToHistory(detection); 
-          _flutterTts.speak('$title moved to history'); 
+          _moveToHistory(detection);
+          _flutterTts.speak('$title moved to history');
         }
       },
       child: Semantics(
@@ -1001,8 +1118,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                 borderRadius: BorderRadius.circular(radiusLarge),
                 boxShadow: widget.isDarkMode ? [] : softShadow,
                 border: Border.all(
-                  color: widget.isDarkMode 
-                      ? Colors.white.withValues(alpha: 0.05) 
+                  color: widget.isDarkMode
+                      ? Colors.white.withValues(alpha: 0.05)
                       : Colors.black.withValues(alpha: 0.05),
                   width: 1,
                 ),
@@ -1017,8 +1134,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                       color: color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(radiusMedium),
                       border: Border.all(
-                        color: widget.isDarkMode 
-                            ? Colors.white.withValues(alpha: 0.05) 
+                        color: widget.isDarkMode
+                            ? Colors.white.withValues(alpha: 0.05)
                             : Colors.black.withValues(alpha: 0.05),
                         width: 1,
                       ),
@@ -1029,19 +1146,21 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                             imageUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) => Icon(
-                              detection['icon'] as IconData? ?? Icons.image_rounded,
+                              detection['icon'] as IconData? ??
+                                  Icons.image_rounded,
                               color: color,
                               size: 30,
                             ),
                           )
                         : Icon(
-                            detection['icon'] as IconData? ?? Icons.image_rounded,
+                            detection['icon'] as IconData? ??
+                                Icons.image_rounded,
                             color: color,
                             size: 30,
                           ),
                   ),
                   const SizedBox(width: spacingMedium),
-                  
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1066,7 +1185,9 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                               timeAgo,
                               style: caption.copyWith(
                                 fontSize: 11,
-                                color: widget.theme.subtextColor.withOpacity(0.8),
+                                color: widget.theme.subtextColor.withOpacity(
+                                  0.8,
+                                ),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -1112,8 +1233,10 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
 
   Widget _buildViewAllButton(List<Map<String, dynamic>> filteredDetections) {
     final totalCount = filteredDetections.length;
-    final categoryLabel = _selectedFilter == 'All' ? 'Detections' : _selectedFilter;
-    
+    final categoryLabel = _selectedFilter == 'All'
+        ? 'Detections'
+        : _selectedFilter;
+
     return Semantics(
       label: 'View all $totalCount $categoryLabel',
       button: true,
@@ -1141,8 +1264,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
               color: widget.theme.cardColor,
               borderRadius: BorderRadius.circular(radiusMedium),
               border: Border.all(
-                color: widget.isDarkMode 
-                    ? Colors.white.withValues(alpha: 0.05) 
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
                     : Colors.black.withValues(alpha: 0.05),
                 width: 1,
               ),
@@ -1161,7 +1284,11 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
                   ),
                 ),
                 const SizedBox(width: spacingSmall),
-                const Icon(Icons.arrow_forward_rounded, color: primary, size: 18),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: primary,
+                  size: 18,
+                ),
               ],
             ),
           ),
@@ -1182,8 +1309,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -1237,8 +1364,8 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
         borderRadius: BorderRadius.circular(radiusLarge),
         boxShadow: widget.isDarkMode ? [] : softShadow,
         border: Border.all(
-          color: widget.isDarkMode 
-              ? Colors.white.withValues(alpha: 0.05) 
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
               : Colors.black.withValues(alpha: 0.05),
           width: 1,
         ),
@@ -1303,7 +1430,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities> with Ticker
       _isRefreshing = true;
       _isSimulatingLoad = true;
     });
-    
+
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) {
         setState(() {
@@ -1324,12 +1451,12 @@ class _TailPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
     final path = Path();
-    
-    path.moveTo(size.width, 0); 
-    path.lineTo(0, size.height / 2); 
-    path.lineTo(size.width, size.height); 
+
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
     path.close();
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -1341,31 +1468,28 @@ class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
 
-  const TypewriterText({
-    super.key,
-    required this.text,
-    required this.style,
-  });
+  const TypewriterText({super.key, required this.text, required this.style});
 
   @override
   State<TypewriterText> createState() => _TypewriterTextState();
 }
 
-class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+class _TypewriterTextState extends State<TypewriterText>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<int> _characterCount;
 
   @override
   void initState() {
     super.initState();
-    int msDuration = widget.text.length * 40; 
-    
+    int msDuration = widget.text.length * 40;
+
     _controller = AnimationController(
-      vsync: this, 
+      vsync: this,
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    
+
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _controller.forward();
     });
@@ -1375,7 +1499,7 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   void didUpdateWidget(TypewriterText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
-      int msDuration = widget.text.length * 40; 
+      int msDuration = widget.text.length * 40;
       _controller.duration = Duration(milliseconds: msDuration);
       _setupAnimation();
       _controller.reset();
@@ -1384,9 +1508,10 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   }
 
   void _setupAnimation() {
-    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _characterCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
   }
 
   @override
@@ -1407,11 +1532,8 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
         if (end < 0) {
           end = 0;
         }
-        
-        return Text(
-          widget.text.substring(0, end),
-          style: widget.style,
-        );
+
+        return Text(widget.text.substring(0, end), style: widget.style);
       },
     );
   }
@@ -1435,7 +1557,8 @@ class PremiumThemeToggle extends StatefulWidget {
   State<PremiumThemeToggle> createState() => _PremiumThemeToggleState();
 }
 
-class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProviderStateMixin {
+class _PremiumThemeToggleState extends State<PremiumThemeToggle>
+    with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _rotationAnimation;
@@ -1443,21 +1566,30 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
 
     _scaleAnimation = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.7).chain(CurveTween(curve: Curves.easeOutQuad)),
+        tween: Tween<double>(
+          begin: 1.0,
+          end: 0.7,
+        ).chain(CurveTween(curve: Curves.easeOutQuad)),
         weight: 30,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.7, end: 1.0).chain(CurveTween(curve: Curves.elasticOut)),
+        tween: Tween<double>(
+          begin: 0.7,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.elasticOut)),
         weight: 70,
       ),
     ]).animate(_controller);
 
     _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack)
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack),
     );
   }
 
@@ -1479,8 +1611,8 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          final double glowOpacity = _controller.isAnimating 
-              ? (1.0 - _controller.value).clamp(0.0, 0.4) 
+          final double glowOpacity = _controller.isAnimating
+              ? (1.0 - _controller.value).clamp(0.0, 0.4)
               : 0.0;
 
           return Transform.scale(
@@ -1498,7 +1630,7 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
                       color: widget.iconColor.withValues(alpha: glowOpacity),
                       blurRadius: 20 * _controller.value,
                       spreadRadius: 8 * _controller.value,
-                    )
+                    ),
                   ],
                 ),
                 child: AnimatedSwitcher(
@@ -1508,7 +1640,9 @@ class _PremiumThemeToggleState extends State<PremiumThemeToggle> with TickerProv
                     child: ScaleTransition(scale: animation, child: child),
                   ),
                   child: Icon(
-                    widget.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                    widget.isDarkMode
+                        ? Icons.dark_mode_rounded
+                        : Icons.light_mode_rounded,
                     key: ValueKey<bool>(widget.isDarkMode),
                     size: 20,
                     color: widget.iconColor,

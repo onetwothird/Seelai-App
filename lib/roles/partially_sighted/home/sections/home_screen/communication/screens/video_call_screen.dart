@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:permission_handler/permission_handler.dart'; 
+import 'package:permission_handler/permission_handler.dart';
 import 'package:seelai_app/firebase/firebase_services.dart';
 import 'package:seelai_app/shared/widgets/call_rating_dialog.dart';
 
@@ -12,10 +12,10 @@ class VideoCallScreen extends StatefulWidget {
   final String? callId;
   final bool isCaller;
   final String callPath;
-  final void Function(bool wasConnected)? onClose; 
-  
+  final void Function(bool wasConnected)? onClose;
+
   const VideoCallScreen({
-    super.key, 
+    super.key,
     required this.userData,
     this.callId,
     this.isCaller = true,
@@ -23,15 +23,15 @@ class VideoCallScreen extends StatefulWidget {
     this.onClose,
   });
 
- static void startCall(
-    BuildContext context, 
+  static void startCall(
+    BuildContext context,
     Map<String, dynamic> userData, {
     String? callId,
     bool isCaller = true,
     String callPath = 'partially_sighted_communication',
   }) {
     OverlayEntry? overlayEntry;
-    
+
     overlayEntry = OverlayEntry(
       builder: (overlayContext) => VideoCallScreen(
         userData: userData,
@@ -40,16 +40,15 @@ class VideoCallScreen extends StatefulWidget {
         callPath: callPath,
         onClose: (bool wasConnected) {
           overlayEntry?.remove();
-          
+
           if (wasConnected) {
             Future.delayed(const Duration(milliseconds: 300), () {
               if (context.mounted) {
                 showDialog(
-                  context: context, 
+                  context: context,
                   barrierDismissible: false,
-                  builder: (dialogContext) => CallRatingDialog(
-                    onDismissed: () {},
-                  ),
+                  builder: (dialogContext) =>
+                      CallRatingDialog(onDismissed: () {}),
                 );
               }
             });
@@ -57,7 +56,7 @@ class VideoCallScreen extends StatefulWidget {
         },
       ),
     );
-    
+
     Overlay.of(context).insert(overlayEntry);
   }
 
@@ -65,11 +64,12 @@ class VideoCallScreen extends StatefulWidget {
   State<VideoCallScreen> createState() => _VideoCallScreenState();
 }
 
-class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+class _VideoCallScreenState extends State<VideoCallScreen>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   bool _isMuted = false;
   bool _isVideoOff = false;
-  bool _hasRemoteStream = false; 
-  bool _isMinimized = false;     
+  bool _hasRemoteStream = false;
+  bool _isMinimized = false;
 
   bool _isAccepted = false;
   bool _isEnding = false;
@@ -77,8 +77,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
 
   String? _currentCallId;
   StreamSubscription<DatabaseEvent>? _callSubscription;
-  Timer? _ringingTimeout; 
-  
+  Timer? _ringingTimeout;
+
   final WebRTCService _webrtcService = WebRTCService();
   bool _isConnectionReady = false;
 
@@ -90,7 +90,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); 
+    WidgetsBinding.instance.addObserver(this);
     _startCallProcess();
   }
 
@@ -98,17 +98,17 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
   Future<bool> didPopRoute() async {
     if (!_isMinimized && mounted) {
       setState(() => _isMinimized = true);
-      return true; 
+      return true;
     }
-    return false; 
+    return false;
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); 
+    WidgetsBinding.instance.removeObserver(this);
     _callSubscription?.cancel();
-    _ringingTimeout?.cancel(); 
-    
+    _ringingTimeout?.cancel();
+
     if (_currentCallId != null && !_isEnding) {
       _isEnding = true;
       callTrackingService.updateCallStatus(
@@ -117,23 +117,23 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
         status: 'ended',
       );
     }
-    
+
     // Ensure hangUp fires even during a force-dispose
     if (_currentCallId != null) {
-      _webrtcService.hangUp(widget.callPath, _currentCallId!); 
+      _webrtcService.hangUp(widget.callPath, _currentCallId!);
     }
-    
+
     super.dispose();
   }
 
- Future<void> _startCallProcess() async {
+  Future<void> _startCallProcess() async {
     final cameraStatus = await Permission.camera.request();
     final micStatus = await Permission.microphone.request();
 
     if (!cameraStatus.isGranted || !micStatus.isGranted) {
       debugPrint("Permissions Denied! Ending call process.");
       if (mounted) _endCall();
-      return; 
+      return;
     }
 
     try {
@@ -143,7 +143,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
       _webrtcService.onAddRemoteStream = (stream) {
         if (mounted) setState(() => _hasRemoteStream = true);
       };
-      
+
       _webrtcService.onConnectionClosed = () {
         if (mounted) _endCall();
       };
@@ -153,19 +153,22 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
       await _handleCallConnection();
     } catch (e) {
       debugPrint("Failed to open camera/mic: $e");
-      if (mounted) _endCall(); 
+      if (mounted) _endCall();
     }
   }
 
   Future<void> _handleCallConnection() async {
-    final currentUserId = databaseService.currentUserId ?? widget.userData['uid'] ?? widget.userData['userId'];
+    final currentUserId =
+        databaseService.currentUserId ??
+        widget.userData['uid'] ??
+        widget.userData['userId'];
     if (currentUserId == null) return;
 
-    String receiverId = ''; 
+    String receiverId = '';
     final ac = widget.userData['assignedCaretakers'];
     if (ac is Map && ac.isNotEmpty) {
       receiverId = ac.keys.first.toString();
-      
+
       final caretakerData = await databaseService.getUserData(receiverId);
       if (caretakerData != null && mounted) {
         setState(() {
@@ -176,7 +179,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
     }
 
     if (widget.isCaller && widget.callId == null) {
-      if (receiverId.isEmpty) return; 
+      if (receiverId.isEmpty) return;
       _currentCallId = await callTrackingService.initiateCall(
         callerId: currentUserId,
         receiverId: receiverId,
@@ -188,10 +191,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
       _ringingTimeout = Timer(const Duration(seconds: 40), () {
         if (mounted) _endCall();
       });
-
     } else if (widget.callId != null) {
       _currentCallId = widget.callId;
-      _isAccepted = true; 
+      _isAccepted = true;
       await callTrackingService.updateCallStatus(
         path: widget.callPath,
         callId: _currentCallId!,
@@ -201,37 +203,43 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
     }
 
     if (_currentCallId != null) {
-      _callSubscription = callTrackingService.listenToCallStatus(widget.callPath, _currentCallId!).listen((event) {
-        if (event.snapshot.exists) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>;
+      _callSubscription = callTrackingService
+          .listenToCallStatus(widget.callPath, _currentCallId!)
+          .listen((event) {
+            if (event.snapshot.exists) {
+              final data = event.snapshot.value as Map<dynamic, dynamic>;
 
-          if (data['status'] == 'accepted') {
-            if (mounted) setState(() => _isAccepted = true);
-            _ringingTimeout?.cancel();
-          }
+              if (data['status'] == 'accepted') {
+                if (mounted) setState(() => _isAccepted = true);
+                _ringingTimeout?.cancel();
+              }
 
-          if (data['status'] == 'ended' || data['status'] == 'rejected' || data['status'] == 'missed') {
-            if (mounted) _endCall();
-          }
-        }
-      });
+              if (data['status'] == 'ended' ||
+                  data['status'] == 'rejected' ||
+                  data['status'] == 'missed') {
+                if (mounted) _endCall();
+              }
+            }
+          });
     }
   }
 
   Future<void> _endCall() async {
     if (_isEnding) return;
-    
+
     if (mounted) {
       setState(() => _isEnding = true);
     } else {
       _isEnding = true;
     }
-    
-    _ringingTimeout?.cancel(); 
-    _cleanupAndPop(); 
+
+    _ringingTimeout?.cancel();
+    _cleanupAndPop();
 
     if (_currentCallId != null) {
-      String finalStatus = (widget.isCaller && !_isAccepted) ? 'missed' : 'ended';
+      String finalStatus = (widget.isCaller && !_isAccepted)
+          ? 'missed'
+          : 'ended';
       try {
         await callTrackingService.updateCallStatus(
           path: widget.callPath,
@@ -248,16 +256,16 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
   void _cleanupAndPop() {
     if (!_hasPopped && widget.onClose != null) {
       _hasPopped = true;
-      widget.onClose!(_hasRemoteStream); 
+      widget.onClose!(_hasRemoteStream);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     double pipWidth = 120.0;
-    double pipHeight = 180.0; 
+    double pipHeight = 180.0;
 
     if (_hasRemoteStream) {
       final videoWidth = _webrtcService.remoteRenderer.videoWidth.toDouble();
@@ -295,14 +303,19 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
   }
 
   Widget _buildProfileAvatar(double size) {
-    final hasProfileImage = _caretakerImage != null && _caretakerImage!.isNotEmpty;
+    final hasProfileImage =
+        _caretakerImage != null && _caretakerImage!.isNotEmpty;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: ClipOval(
@@ -310,7 +323,8 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
             ? Image.network(
                 _caretakerImage!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildAvatarFallback(size * 0.4),
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildAvatarFallback(size * 0.4),
               )
             : _buildAvatarFallback(size * 0.4),
       ),
@@ -335,11 +349,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
             Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(color: const Color(0xFF334155)),
+              errorBuilder: (context, error, stackTrace) =>
+                  Container(color: const Color(0xFF334155)),
             )
           else
             Container(color: const Color(0xFF334155)),
-          
+
           Container(color: Colors.black.withValues(alpha: 0.2)),
         ],
       ),
@@ -353,24 +368,28 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
       children: [
         Positioned.fill(
           child: _hasRemoteStream
-              ? (!_isEnding 
-                  ? RTCVideoView(
-                      _webrtcService.remoteRenderer,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      key: const ValueKey('remoteVideo'),
-                    )
-                  : Container(color: Colors.black))
+              ? (!_isEnding
+                    ? RTCVideoView(
+                        _webrtcService.remoteRenderer,
+                        objectFit:
+                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey('remoteVideo'),
+                      )
+                    : Container(color: Colors.black))
               : (_isConnectionReady && !_isVideoOff && !_isEnding
-                  ? RTCVideoView(
-                      _webrtcService.localRenderer,
-                      mirror: true,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                      key: const ValueKey('local_video_renderer'), // FIX: Standardized key
-                    )
-                  : Container(
-                      key: const ValueKey('clearLocalBackground'),
-                      child: _buildUserVideoFallback(currentUserImage),
-                    )),
+                    ? RTCVideoView(
+                        _webrtcService.localRenderer,
+                        mirror: true,
+                        objectFit:
+                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey(
+                          'local_video_renderer',
+                        ), // FIX: Standardized key
+                      )
+                    : Container(
+                        key: const ValueKey('clearLocalBackground'),
+                        child: _buildUserVideoFallback(currentUserImage),
+                      )),
         ),
 
         if (!_hasRemoteStream)
@@ -389,7 +408,12 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
                 const SizedBox(height: 24),
                 Text(
                   _caretakerName,
-                  style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -406,7 +430,11 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
                 onPressed: () => setState(() => _isMinimized = true),
               ),
             ),
@@ -415,7 +443,7 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
 
         if (_hasRemoteStream && _isConnectionReady)
           Positioned(
-            bottom: 120, 
+            bottom: 120,
             right: 20,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -424,17 +452,26 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
               decoration: BoxDecoration(
                 color: const Color(0xFF334155),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 15, offset: const Offset(0, 5))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(16), 
-                child: _isVideoOff || _isEnding 
+                borderRadius: BorderRadius.circular(16),
+                child: _isVideoOff || _isEnding
                     ? _buildUserVideoFallback(currentUserImage)
                     : RTCVideoView(
                         _webrtcService.localRenderer,
                         mirror: true,
-                        objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                        key: const ValueKey('local_video_renderer'), // FIX: Matched key
+                        objectFit:
+                            RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                        key: const ValueKey(
+                          'local_video_renderer',
+                        ), // FIX: Matched key
                       ),
               ),
             ),
@@ -463,7 +500,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
                       onTap: () => _webrtcService.switchCamera(),
                     ),
                     _buildCallAction(
-                      icon: _isVideoOff ? Icons.videocam_off_rounded : Icons.videocam_rounded,
+                      icon: _isVideoOff
+                          ? Icons.videocam_off_rounded
+                          : Icons.videocam_rounded,
                       isActive: _isVideoOff,
                       onTap: () {
                         setState(() => _isVideoOff = !_isVideoOff);
@@ -471,7 +510,9 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
                       },
                     ),
                     _buildCallAction(
-                      icon: _isMuted ? Icons.mic_off_rounded : Icons.mic_rounded,
+                      icon: _isMuted
+                          ? Icons.mic_off_rounded
+                          : Icons.mic_rounded,
                       isActive: _isMuted,
                       onTap: () {
                         setState(() => _isMuted = !_isMuted);
@@ -499,30 +540,34 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
           final size = MediaQuery.of(context).size;
           double newX = _pipPosition.dx + details.delta.dx;
           double newY = _pipPosition.dy + details.delta.dy;
-          
+
           newX = newX.clamp(10.0, size.width - pipWidth - 10.0);
-          newY = newY.clamp(MediaQuery.of(context).padding.top + 10, size.height - pipHeight - 10.0);
-          
+          newY = newY.clamp(
+            MediaQuery.of(context).padding.top + 10,
+            size.height - pipHeight - 10.0,
+          );
+
           _pipPosition = Offset(newX, newY);
         });
       },
-      onTap: () => setState(() => _isMinimized = false), 
+      onTap: () => setState(() => _isMinimized = false),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF1E293B),
           borderRadius: BorderRadius.circular(16),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.0), 
+          borderRadius: BorderRadius.circular(16.0),
           child: Stack(
             fit: StackFit.expand,
             children: [
               _hasRemoteStream && !_isEnding
                   ? RTCVideoView(
                       _webrtcService.remoteRenderer,
-                      objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                      objectFit:
+                          RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                     )
-                  : _buildUserVideoFallback(_caretakerImage, iconSize: 0), 
+                  : _buildUserVideoFallback(_caretakerImage, iconSize: 0),
 
               Positioned(
                 top: 8,
@@ -535,15 +580,21 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8), 
+                    borderRadius: BorderRadius.circular(8),
                     child: (_isConnectionReady && !_isVideoOff && !_isEnding)
                         ? RTCVideoView(
                             _webrtcService.localRenderer,
                             mirror: true,
-                            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-                            key: const ValueKey('local_video_renderer'), // FIX: Matched key
+                            objectFit: RTCVideoViewObjectFit
+                                .RTCVideoViewObjectFitCover,
+                            key: const ValueKey(
+                              'local_video_renderer',
+                            ), // FIX: Matched key
                           )
-                        : _buildUserVideoFallback(currentUserImage, iconSize: 0), 
+                        : _buildUserVideoFallback(
+                            currentUserImage,
+                            iconSize: 0,
+                          ),
                   ),
                 ),
               ),
@@ -554,14 +605,20 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
     );
   }
 
-  Widget _buildCallAction({required IconData icon, required bool isActive, required VoidCallback onTap}) {
+  Widget _buildCallAction({
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isActive ? Colors.white.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.08),
+          color: isActive
+              ? Colors.white.withValues(alpha: 0.3)
+              : Colors.white.withValues(alpha: 0.08),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.white, size: 24),
@@ -578,10 +635,18 @@ class _VideoCallScreenState extends State<VideoCallScreen> with SingleTickerProv
           color: const Color(0xFFEF4444),
           shape: BoxShape.circle,
           boxShadow: [
-            BoxShadow(color: const Color(0xFFEF4444).withValues(alpha: 0.3), blurRadius: 12, offset: const Offset(0, 4)),
-          ]
+            BoxShadow(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        child: const Icon(Icons.call_end_rounded, color: Colors.white, size: 28),
+        child: const Icon(
+          Icons.call_end_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
       ),
     );
   }

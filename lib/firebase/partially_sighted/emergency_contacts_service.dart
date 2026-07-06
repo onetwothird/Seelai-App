@@ -21,9 +21,9 @@ class EmergencyContactsService {
       final contactRef = _database
           .ref('user_info/partially_sighted/$userId/emergencyContacts')
           .push();
-      
+
       final contactId = contactRef.key!;
-      
+
       final contactData = {
         'contactId': contactId,
         'name': contactName,
@@ -51,9 +51,7 @@ class EmergencyContactsService {
     String? profileImageUrl,
   }) async {
     try {
-      Map<String, dynamic> updates = {
-        'updatedAt': ServerValue.timestamp,
-      };
+      Map<String, dynamic> updates = {'updatedAt': ServerValue.timestamp};
 
       if (contactName != null) updates['name'] = contactName;
       if (contactPhone != null) updates['phone'] = contactPhone;
@@ -61,7 +59,9 @@ class EmergencyContactsService {
       if (profileImageUrl != null) updates['profileImageUrl'] = profileImageUrl;
 
       await _database
-          .ref('user_info/partially_sighted/$userId/emergencyContacts/$contactId')
+          .ref(
+            'user_info/partially_sighted/$userId/emergencyContacts/$contactId',
+          )
           .update(updates);
     } catch (e) {
       throw Exception('Failed to update emergency contact: $e');
@@ -75,7 +75,9 @@ class EmergencyContactsService {
   }) async {
     try {
       await _database
-          .ref('user_info/partially_sighted/$userId/emergencyContacts/$contactId')
+          .ref(
+            'user_info/partially_sighted/$userId/emergencyContacts/$contactId',
+          )
           .remove();
     } catch (e) {
       throw Exception('Failed to remove emergency contact: $e');
@@ -112,19 +114,21 @@ class EmergencyContactsService {
         .ref('user_info/partially_sighted/$userId/emergencyContacts')
         .onValue
         .map((event) {
-      if (!event.snapshot.exists) return [];
+          if (!event.snapshot.exists) return [];
 
-      Map<dynamic, dynamic> contactsMap = event.snapshot.value as Map;
-      List<Map<String, dynamic>> contacts = [];
+          Map<dynamic, dynamic> contactsMap = event.snapshot.value as Map;
+          List<Map<String, dynamic>> contacts = [];
 
-      contactsMap.forEach((key, value) {
-        Map<String, dynamic> contact = Map<String, dynamic>.from(value as Map);
-        contact['contactId'] = key;
-        contacts.add(contact);
-      });
+          contactsMap.forEach((key, value) {
+            Map<String, dynamic> contact = Map<String, dynamic>.from(
+              value as Map,
+            );
+            contact['contactId'] = key;
+            contacts.add(contact);
+          });
 
-      return contacts;
-    });
+          return contacts;
+        });
   }
 
   /// Get specific emergency contact
@@ -134,13 +138,15 @@ class EmergencyContactsService {
   }) async {
     try {
       DatabaseEvent event = await _database
-          .ref('user_info/partially_sighted/$userId/emergencyContacts/$contactId')
+          .ref(
+            'user_info/partially_sighted/$userId/emergencyContacts/$contactId',
+          )
           .once();
 
       if (!event.snapshot.exists) return null;
 
       Map<String, dynamic> contact = Map<String, dynamic>.from(
-        event.snapshot.value as Map
+        event.snapshot.value as Map,
       );
       contact['contactId'] = contactId;
       return contact;
@@ -151,4 +157,5 @@ class EmergencyContactsService {
 }
 
 // Create a singleton instance
-final EmergencyContactsService emergencyContactsService = EmergencyContactsService();
+final EmergencyContactsService emergencyContactsService =
+    EmergencyContactsService();

@@ -17,29 +17,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<Map<String, String>> _onboardingData = [
     {
-      "image": "assets/onboarding_icons/onboarding_0.png", 
+      "image": "assets/onboarding_icons/onboarding_0.png",
       "title": "Empowering\nIndependence",
-      "desc": "Your daily assistant. Navigate safely with real-time detection of objects, face, and text documents."
+      "desc":
+          "Your daily assistant. Navigate safely with real-time detection of objects, face, and text documents.",
     },
     {
-      "image": "assets/onboarding_icons/onboarding_1.png", 
+      "image": "assets/onboarding_icons/onboarding_1.png",
       "title": "Stay connected\nand in control",
-      "desc": "Caretakers can track the real-time location of partially sighted users, ensuring safety, quick assistance, and peace of mind wherever they go."
+      "desc":
+          "Caretakers can track the real-time location of partially sighted users, ensuring safety, quick assistance, and peace of mind wherever they go.",
     },
     {
-      "image": "assets/onboarding_icons/onboarding_2.png", 
+      "image": "assets/onboarding_icons/onboarding_2.png",
       "title": "Manage Network\n& SOS",
-      "desc": ""
+      "desc": "",
     },
     {
-      "image": "assets/onboarding_icons/onboarding_3.png", 
+      "image": "assets/onboarding_icons/onboarding_3.png",
       "title": "Users Assistance\nRequests",
-      "desc": ""
+      "desc": "",
     },
-     {
-      "image": "assets/onboarding_icons/onboarding_4.png", 
+    {
+      "image": "assets/onboarding_icons/onboarding_4.png",
       "title": "MSWD Centralized\nMonitoring",
-      "desc": ""
+      "desc": "",
     },
   ];
 
@@ -58,7 +60,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   // Logic to auto-slide every 5 seconds
   void _startTimer() {
-    _timer?.cancel(); 
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_currentPage < _onboardingData.length - 1) {
         _pageController.nextPage(
@@ -78,7 +80,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeOutQuart,
       );
     } else {
-      Navigator.pushReplacement( 
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
       );
@@ -104,7 +106,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: [
             const TextSpan(text: "Your daily "),
             TextSpan(text: "assistant", style: boldStyle),
-            const TextSpan(text: ". Navigate safely with real-time detection of "),
+            const TextSpan(
+              text: ". Navigate safely with real-time detection of ",
+            ),
             TextSpan(text: "objects", style: boldStyle),
             const TextSpan(text: ", "),
             TextSpan(text: "face", style: boldStyle),
@@ -143,8 +147,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final primaryColor = Theme.of(context).primaryColor != Colors.blue
         ? Theme.of(context).primaryColor
         : const Color(0xFF200E4B);
-        
-    final darkPurple = const Color(0xFF3B0764); 
+
+    final darkPurple = const Color(0xFF3B0764);
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -165,43 +169,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return Stack(
                 children: [
                   Positioned.fill(
-                    child: isSvg 
-                      ? SvgPicture.asset(
-                          imagePath,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center, 
-                        )
-                      : Image.asset(
-                          imagePath,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center, 
-                        ),
+                    child: isSvg
+                        ? SvgPicture.asset(
+                            imagePath,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          )
+                        : Image.asset(
+                            imagePath,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          ),
                   ),
 
                   Positioned(
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    height: size.height * 0.4, 
+                    height: size.height * 0.4,
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                           colors: [
-                            darkPurple.withValues(alpha: 0.0),   
-                            darkPurple.withValues(alpha: 0.3),   
-                            darkPurple.withValues(alpha: 0.8),   
-                            darkPurple,                          
+                            darkPurple.withValues(alpha: 0.0),
+                            darkPurple.withValues(alpha: 0.3),
+                            darkPurple.withValues(alpha: 0.8),
+                            darkPurple,
                           ],
-                          stops: const [0.0, 0.4, 0.75, 1.0], 
+                          stops: const [0.0, 0.4, 0.75, 1.0],
                         ),
                       ),
                     ),
                   ),
 
                   Positioned(
-                    top: size.height * 0.09, 
+                    top: size.height * 0.09,
                     left: 32,
                     right: 32,
                     child: Column(
@@ -213,7 +217,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 34,
-                              fontWeight: FontWeight.w800, 
+                              fontWeight: FontWeight.w800,
                               height: 1.2,
                             ),
                           ),
@@ -240,7 +244,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const RoleSelectionScreen()),
+                            builder: (context) => const RoleSelectionScreen(),
+                          ),
                         );
                       },
                       child: const Text(
@@ -256,7 +261,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
 
                 Padding(
-                  padding: const EdgeInsets.only(left: 32, right: 32, bottom: 40),
+                  padding: const EdgeInsets.only(
+                    left: 32,
+                    right: 32,
+                    bottom: 40,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -270,7 +279,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       TextButton(
                         onPressed: _nextPage,
                         style: TextButton.styleFrom(
-                          backgroundColor: Colors.transparent, 
+                          backgroundColor: Colors.transparent,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
@@ -278,7 +287,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
-                            side: const BorderSide(color: Colors.white60, width: 1.5), 
+                            side: const BorderSide(
+                              color: Colors.white60,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                         child: Row(
@@ -296,7 +308,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             if (_currentPage != _onboardingData.length - 1) ...[
                               const SizedBox(width: 8),
                               const Icon(Icons.arrow_forward_rounded, size: 20),
-                            ]
+                            ],
                           ],
                         ),
                       ),
@@ -318,9 +330,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       height: 8,
       width: _currentPage == index ? 28 : 8,
       decoration: BoxDecoration(
-        color: _currentPage == index
-            ? activeColor 
-            : Colors.white30, 
+        color: _currentPage == index ? activeColor : Colors.white30,
         borderRadius: BorderRadius.circular(4),
       ),
     );

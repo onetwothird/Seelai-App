@@ -1,7 +1,7 @@
 // File: lib/roles/caretaker/home/sections/patients_screen/patients_content.dart
 
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart'; 
+import 'package:shimmer/shimmer.dart';
 import 'package:seelai_app/themes/constants.dart';
 import 'package:seelai_app/roles/caretaker/home/sections/patients_screen/patient_model.dart';
 import 'package:seelai_app/roles/caretaker/services/location_service.dart';
@@ -18,7 +18,7 @@ class PatientsContent extends StatefulWidget {
   final dynamic theme;
   final Map<String, dynamic> userData;
   final LocationService locationService;
-  final ScrollController? scrollController; 
+  final ScrollController? scrollController;
 
   const PatientsContent({
     super.key,
@@ -26,14 +26,15 @@ class PatientsContent extends StatefulWidget {
     required this.theme,
     required this.userData,
     required this.locationService,
-    this.scrollController, 
+    this.scrollController,
   });
 
   @override
   State<PatientsContent> createState() => _PatientsContentState();
 }
 
-class _PatientsContentState extends State<PatientsContent> with SingleTickerProviderStateMixin {
+class _PatientsContentState extends State<PatientsContent>
+    with SingleTickerProviderStateMixin {
   final Color _primaryColor = const Color(0xFF7C3AED);
 
   StreamSubscription? _patientsSubscription;
@@ -69,12 +70,33 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
     );
 
     // Header fades & slides in
-    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOut)));
-    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic)));
-    
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
+          ),
+        );
+
     // Mascot and Bubble pop in
-    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack)));
-    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _entryController, curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack)));
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack),
+      ),
+    );
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack),
+      ),
+    );
 
     // Start header animations immediately
     _entryController.forward();
@@ -111,7 +133,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
   List<String> _getMascotMessages() {
     final onlineCount = _patients.where((p) => p.isOnline).length;
     final totalCount = _patients.length;
-    
+
     return [
       'Hello, ${_getFirstName()}! You are currently caring for $totalCount patient${totalCount != 1 ? 's' : ''}${totalCount > 0 ? ', with $onlineCount online right now.' : '.'}',
       'Did you know? You can tap on a patient\'s card to view their full details and location.',
@@ -120,13 +142,15 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
   }
 
   Future<void> _initializeCaretakerId() async {
-    String? caretakerId = widget.userData['userId'] as String? ?? widget.userData['uid'] as String?;
-    
+    String? caretakerId =
+        widget.userData['userId'] as String? ??
+        widget.userData['uid'] as String?;
+
     if (caretakerId == null || caretakerId.isEmpty) {
       final user = FirebaseAuth.instance.currentUser;
       caretakerId = user?.uid;
     }
-    
+
     if (caretakerId == null || caretakerId.isEmpty) {
       setState(() {
         _error = 'Caretaker ID not found. Please log in again.';
@@ -151,45 +175,50 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
     _patientsSubscription = caretakerPatientService
         .streamCaretakerPatients(_caretakerId!)
         .listen(
-      (patientsData) {
-        if (mounted) {
-          setState(() {
-            _patients = patientsData.map((patientData) {
-              int parsedAge = 0;
-              if (patientData['age'] != null) {
-                parsedAge = patientData['age'] is int 
-                    ? patientData['age'] 
-                    : int.tryParse(patientData['age'].toString()) ?? 0;
-              }
+          (patientsData) {
+            if (mounted) {
+              setState(() {
+                _patients = patientsData.map((patientData) {
+                  int parsedAge = 0;
+                  if (patientData['age'] != null) {
+                    parsedAge = patientData['age'] is int
+                        ? patientData['age']
+                        : int.tryParse(patientData['age'].toString()) ?? 0;
+                  }
 
-              return PatientModel(
-                id: patientData['userId']?.toString() ?? '',
-                name: patientData['name']?.toString() ?? 'Unknown',
-                age: parsedAge,
-                disabilityType: patientData['disabilityType']?.toString() ?? 'Not specified',
-                contactNumber: (patientData['contactNumber'] ?? patientData['phone'])?.toString() ?? 'N/A',
-                address: patientData['address']?.toString() ?? 'No address',
-                isOnline: false, 
-                lastActive: DateTime.now(),
-                profileImageUrl: patientData['profileImageUrl']?.toString(),
-              );
-            }).toList();
-            
-            _isLoading = false;
-            _error = null;
-          });
-        }
-      },
-      onError: (error) {
-        debugPrint('Error loading patients: $error');
-        if (mounted) {
-          setState(() {
-            _error = 'Failed to load patients: $error';
-            _isLoading = false;
-          });
-        }
-      },
-    );
+                  return PatientModel(
+                    id: patientData['userId']?.toString() ?? '',
+                    name: patientData['name']?.toString() ?? 'Unknown',
+                    age: parsedAge,
+                    disabilityType:
+                        patientData['disabilityType']?.toString() ??
+                        'Not specified',
+                    contactNumber:
+                        (patientData['contactNumber'] ?? patientData['phone'])
+                            ?.toString() ??
+                        'N/A',
+                    address: patientData['address']?.toString() ?? 'No address',
+                    isOnline: false,
+                    lastActive: DateTime.now(),
+                    profileImageUrl: patientData['profileImageUrl']?.toString(),
+                  );
+                }).toList();
+
+                _isLoading = false;
+                _error = null;
+              });
+            }
+          },
+          onError: (error) {
+            debugPrint('Error loading patients: $error');
+            if (mounted) {
+              setState(() {
+                _error = 'Failed to load patients: $error';
+                _isLoading = false;
+              });
+            }
+          },
+        );
   }
 
   @override
@@ -206,10 +235,10 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
       await _initializeCaretakerId();
       return;
     }
-    
+
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -217,10 +246,12 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
 
   List<PatientModel> get _filteredPatients {
     if (_searchQuery.isEmpty) return _patients;
-    
+
     return _patients.where((patient) {
       return patient.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-             patient.disabilityType.toLowerCase().contains(_searchQuery.toLowerCase());
+          patient.disabilityType.toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          );
     }).toList();
   }
 
@@ -228,14 +259,18 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
   // WIDGETS: Skeleton Loaders
   // ==========================================
   Widget _buildSkeletonSearchBar() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
-    
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Container(
-        height: 56, 
+        height: 56,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -245,23 +280,30 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
   }
 
   Widget _buildSkeletonPatientsList() {
-    final baseColor = widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.grey.shade300;
-    final highlightColor = widget.isDarkMode ? const Color(0xFF2A2F4A) : Colors.grey.shade100;
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
 
     return Shimmer.fromColors(
       baseColor: baseColor,
       highlightColor: highlightColor,
       child: Column(
-        children: List.generate(3, (index) => Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: Container(
-            height: 180, 
-            decoration: BoxDecoration(
-              color: Colors.white, 
-              borderRadius: BorderRadius.circular(24)
+        children: List.generate(
+          3,
+          (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Container(
+              height: 180,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
             ),
           ),
-        )),
+        ),
       ),
     );
   }
@@ -269,13 +311,14 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final bool showSkeleton = _isSimulatingLoad || (_isLoading && _patients.isEmpty);
+    final bool showSkeleton =
+        _isSimulatingLoad || (_isLoading && _patients.isEmpty);
 
     return RefreshIndicator(
       onRefresh: _refreshPatients,
       color: _primaryColor,
       child: CustomScrollView(
-        controller: widget.scrollController, 
+        controller: widget.scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           // 1. Top Section (Header & Mascot) - Always Animates In
@@ -302,7 +345,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
               ],
             ),
           ),
-          
+
           // 2. Middle Section (Search & List) - Skeleton shows instantly
           SliverPadding(
             padding: EdgeInsets.symmetric(horizontal: width * 0.05),
@@ -311,15 +354,15 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: spacingMedium),
-                  
+
                   // Search Bar conditionally shows skeleton
-                  if (showSkeleton) 
+                  if (showSkeleton)
                     _buildSkeletonSearchBar()
                   else if (_patients.isNotEmpty)
                     _buildSearchBar(),
-                  
+
                   const SizedBox(height: spacingLarge),
-                  
+
                   // Content conditionally shows skeleton
                   if (_error != null && _patients.isEmpty && !showSkeleton)
                     _buildErrorState()
@@ -333,10 +376,8 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
               ),
             ),
           ),
-          
-          const SliverToBoxAdapter(
-            child: SizedBox(height: 100),
-          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
     );
@@ -358,10 +399,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
         const SizedBox(height: 4),
         Text(
           'Manage and monitor your paired users',
-          style: TextStyle(
-            fontSize: 14,
-            color: widget.theme.subtextColor,
-          ),
+          style: TextStyle(fontSize: 14, color: widget.theme.subtextColor),
         ),
       ],
     );
@@ -371,14 +409,14 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
     final messages = _getMascotMessages();
     final safeIndex = _currentMessageIndex % messages.length;
     final displayMessage = messages[safeIndex];
-    
-    final longestMessage = messages.isNotEmpty 
-        ? messages.reduce((a, b) => a.length > b.length ? a : b) 
+
+    final longestMessage = messages.isNotEmpty
+        ? messages.reduce((a, b) => a.length > b.length ? a : b)
         : '';
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
-    final double tailBottomMargin = mascotSize * 0.285; 
+    final double tailBottomMargin = mascotSize * 0.285;
     final double bubbleBottomMargin = mascotSize * 0.142;
 
     return Stack(
@@ -395,7 +433,9 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    _primaryColor.withValues(alpha: widget.isDarkMode ? 0.25 : 0.15),
+                    _primaryColor.withValues(
+                      alpha: widget.isDarkMode ? 0.25 : 0.15,
+                    ),
                     _primaryColor.withValues(alpha: 0.0),
                   ],
                   begin: Alignment.topCenter,
@@ -405,11 +445,9 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
             ),
           ),
         ),
-        
+
         Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.05,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -418,10 +456,10 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                 alignment: Alignment.bottomCenter,
                 child: Image.asset(
                   'assets/seelai-icons/seelai2.png',
-                  height: mascotSize, 
+                  height: mascotSize,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    height: mascotSize * 0.7, 
+                    height: mascotSize * 0.7,
                     width: mascotSize * 0.7,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
@@ -429,23 +467,25 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.image_not_supported, 
-                      color: widget.theme.subtextColor, 
-                      size: mascotSize * 0.25
+                      Icons.image_not_supported,
+                      color: widget.theme.subtextColor,
+                      size: mascotSize * 0.25,
                     ),
                   ),
                 ),
               ),
-              
+
               Container(
-                margin: EdgeInsets.only(bottom: tailBottomMargin), 
+                margin: EdgeInsets.only(bottom: tailBottomMargin),
                 child: ScaleTransition(
                   scale: _bubbleScale,
                   alignment: Alignment.bottomRight,
                   child: CustomPaint(
                     size: const Size(12, 16),
                     painter: _TailPainter(
-                      color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                      color: widget.isDarkMode
+                          ? const Color(0xFF1A1F3A)
+                          : Colors.white,
                     ),
                   ),
                 ),
@@ -453,26 +493,33 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
 
               Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(bottom: bubbleBottomMargin), 
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin),
                   child: ScaleTransition(
                     scale: _bubbleScale,
                     alignment: Alignment.bottomLeft,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
                       decoration: BoxDecoration(
-                        color: widget.isDarkMode ? const Color(0xFF1A1F3A) : Colors.white,
+                        color: widget.isDarkMode
+                            ? const Color(0xFF1A1F3A)
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: widget.isDarkMode ? [] : [
-                          BoxShadow(
-                            color: _primaryColor.withValues(alpha: 0.1),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          )
-                        ],
+                        boxShadow: widget.isDarkMode
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: _primaryColor.withValues(alpha: 0.1),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min, 
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             'Seelai',
@@ -484,7 +531,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                             ),
                           ),
                           const SizedBox(height: 6),
-                          
+
                           Stack(
                             children: [
                               Text(
@@ -492,7 +539,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                                 style: const TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w500,
-                                  color: Colors.transparent, 
+                                  color: Colors.transparent,
                                   height: 1.4,
                                 ),
                               ),
@@ -531,19 +578,19 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusLarge),
         border: Border.all(
-          color: widget.isDarkMode 
-            ? Colors.white.withValues(alpha: 0.1)
-            : Colors.black.withValues(alpha: 0.06),
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.06),
         ),
         boxShadow: widget.isDarkMode
-          ? []
-          : [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: TextField(
         controller: _searchController,
@@ -558,14 +605,17 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
             size: 22,
           ),
           suffixIcon: _searchQuery.isNotEmpty
-            ? IconButton(
-                icon: Icon(Icons.clear_rounded, color: widget.theme.subtextColor),
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() => _searchQuery = '');
-                },
-              )
-            : null,
+              ? IconButton(
+                  icon: Icon(
+                    Icons.clear_rounded,
+                    color: widget.theme.subtextColor,
+                  ),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+              : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: spacingMedium,
@@ -648,9 +698,9 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
         color: widget.theme.cardColor,
         borderRadius: BorderRadius.circular(radiusXLarge),
         border: Border.all(
-          color: widget.isDarkMode 
-            ? _primaryColor.withValues(alpha: 0.2)
-            : Colors.black.withValues(alpha: 0.06),
+          color: widget.isDarkMode
+              ? _primaryColor.withValues(alpha: 0.2)
+              : Colors.black.withValues(alpha: 0.06),
         ),
       ),
       child: Column(
@@ -701,7 +751,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
 
   Widget _buildPatientsList() {
     final filteredPatients = _filteredPatients;
-    
+
     if (filteredPatients.isEmpty && _searchQuery.isNotEmpty) {
       return Center(
         child: Padding(
@@ -734,7 +784,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
         ),
       );
     }
-    
+
     return Column(
       children: filteredPatients.map((patient) {
         return Padding(
@@ -818,7 +868,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                       ],
                     ),
                     const SizedBox(width: spacingMedium),
-                    
+
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -834,7 +884,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 6),
-                          
+
                           SizedBox(
                             width: double.infinity,
                             child: ShaderMask(
@@ -842,8 +892,12 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                                 return const LinearGradient(
                                   begin: Alignment.centerLeft,
                                   end: Alignment.centerRight,
-                                  colors: [Colors.white, Colors.white, Colors.transparent],
-                                  stops: [0.0, 0.85, 1.0], 
+                                  colors: [
+                                    Colors.white,
+                                    Colors.white,
+                                    Colors.transparent,
+                                  ],
+                                  stops: [0.0, 0.85, 1.0],
                                 ).createShader(bounds);
                               },
                               blendMode: BlendMode.dstIn,
@@ -860,17 +914,27 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: _primaryColor.withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: _primaryColor.withValues(
+                                            alpha: 0.12,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           border: Border.all(
-                                            color: _primaryColor.withValues(alpha: 0.2),
+                                            color: _primaryColor.withValues(
+                                              alpha: 0.2,
+                                            ),
                                             width: 0.5,
                                           ),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Icon(Icons.cake_rounded, size: 12, color: _primaryColor),
+                                            Icon(
+                                              Icons.cake_rounded,
+                                              size: 12,
+                                              color: _primaryColor,
+                                            ),
                                             const SizedBox(width: 4),
                                             Text(
                                               '${patient.age} y/o',
@@ -883,9 +947,9 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                                           ],
                                         ),
                                       ),
-                                      
+
                                       const SizedBox(width: 8),
-                                      
+
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -893,16 +957,24 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                                         ),
                                         decoration: BoxDecoration(
                                           color: accent.withValues(alpha: 0.12),
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           border: Border.all(
-                                            color: accent.withValues(alpha: 0.2),
+                                            color: accent.withValues(
+                                              alpha: 0.2,
+                                            ),
                                             width: 0.5,
                                           ),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.visibility_off_rounded, size: 12, color: accent),
+                                            const Icon(
+                                              Icons.visibility_off_rounded,
+                                              size: 12,
+                                              color: accent,
+                                            ),
                                             const SizedBox(width: 4),
                                             Text(
                                               patient.disabilityType,
@@ -922,7 +994,8 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                             ),
                           ),
 
-                          if (patient.address != null && patient.address != 'No address') ...[
+                          if (patient.address != null &&
+                              patient.address != 'No address') ...[
                             const SizedBox(height: 6),
                             Row(
                               children: [
@@ -950,7 +1023,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                         ],
                       ),
                     ),
-                    
+
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       color: widget.theme.subtextColor.withValues(alpha: 0.5),
@@ -958,11 +1031,14 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: spacingMedium),
-                Divider(height: 1, color: widget.theme.subtextColor.withValues(alpha: 0.15)),
+                Divider(
+                  height: 1,
+                  color: widget.theme.subtextColor.withValues(alpha: 0.15),
+                ),
                 const SizedBox(height: spacingMedium),
-                
+
                 Row(
                   children: [
                     Expanded(
@@ -970,7 +1046,8 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                         icon: Icons.phone_rounded,
                         label: 'Call',
                         color: Colors.green,
-                        onTap: () => callPatient(context, patientName: patient.name),
+                        onTap: () =>
+                            callPatient(context, patientName: patient.name),
                       ),
                     ),
                     const SizedBox(width: spacingSmall),
@@ -980,7 +1057,8 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                         label: 'Message',
                         color: _primaryColor,
                         isOutlined: true,
-                        onTap: () => messagePatient(context, patientName: patient.name),
+                        onTap: () =>
+                            messagePatient(context, patientName: patient.name),
                       ),
                     ),
                   ],
@@ -1015,11 +1093,7 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isOutlined ? color : white,
-              ),
+              Icon(icon, size: 18, color: isOutlined ? color : white),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -1036,8 +1110,8 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
   }
 
   Widget _buildProfileAvatar(PatientModel patient) {
-    final hasProfileImage = patient.profileImageUrl != null && 
-                            patient.profileImageUrl!.isNotEmpty;
+    final hasProfileImage =
+        patient.profileImageUrl != null && patient.profileImageUrl!.isNotEmpty;
 
     return Hero(
       tag: 'patient_avatar_${patient.id}',
@@ -1050,9 +1124,9 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: widget.isDarkMode 
-                ? Colors.white.withValues(alpha: 0.1) 
-                : Colors.black.withValues(alpha: 0.05),
+              color: widget.isDarkMode
+                  ? Colors.white.withValues(alpha: 0.1)
+                  : Colors.black.withValues(alpha: 0.05),
               width: 1,
             ),
             color: widget.isDarkMode ? Colors.grey[800] : Colors.grey[200],
@@ -1062,10 +1136,11 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
                 ? Image.network(
                     patient.profileImageUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => _buildAvatarPlaceholder(),
+                    errorBuilder: (context, error, stackTrace) =>
+                        _buildAvatarPlaceholder(),
                     loadingBuilder: (context, child, loadingProgress) {
-                       if (loadingProgress == null) return child;
-                       return _buildAvatarPlaceholder(isLoading: true);
+                      if (loadingProgress == null) return child;
+                      return _buildAvatarPlaceholder(isLoading: true);
                     },
                   )
                 : _buildAvatarPlaceholder(),
@@ -1081,19 +1156,19 @@ class _PatientsContentState extends State<PatientsContent> with SingleTickerProv
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF9333EA), 
-            Color(0xFF7C3AED), 
-          ],
+          colors: [Color(0xFF9333EA), Color(0xFF7C3AED)],
         ),
       ),
       child: Center(
-        child: isLoading 
-          ? const Padding(
-              padding: EdgeInsets.all(12),
-              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-            )
-          : const Icon(Icons.person_rounded, color: Colors.white, size: 32),
+        child: isLoading
+            ? const Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Icon(Icons.person_rounded, color: Colors.white, size: 32),
       ),
     );
   }
@@ -1108,12 +1183,12 @@ class _TailPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
     final path = Path();
-    
-    path.moveTo(size.width, 0); 
-    path.lineTo(0, size.height / 2); 
-    path.lineTo(size.width, size.height); 
+
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
     path.close();
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -1125,31 +1200,28 @@ class TypewriterText extends StatefulWidget {
   final String text;
   final TextStyle style;
 
-  const TypewriterText({
-    super.key,
-    required this.text,
-    required this.style,
-  });
+  const TypewriterText({super.key, required this.text, required this.style});
 
   @override
   State<TypewriterText> createState() => _TypewriterTextState();
 }
 
-class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
+class _TypewriterTextState extends State<TypewriterText>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<int> _characterCount;
 
   @override
   void initState() {
     super.initState();
-    int msDuration = widget.text.length * 40; 
-    
+    int msDuration = widget.text.length * 40;
+
     _controller = AnimationController(
-      vsync: this, 
+      vsync: this,
       duration: Duration(milliseconds: msDuration),
     );
     _setupAnimation();
-    
+
     // Sync with bubble pop-in
     Future.delayed(const Duration(milliseconds: 600), () {
       if (mounted) _controller.forward();
@@ -1160,7 +1232,7 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   void didUpdateWidget(TypewriterText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
-      int msDuration = widget.text.length * 40; 
+      int msDuration = widget.text.length * 40;
       _controller.duration = Duration(milliseconds: msDuration);
       _setupAnimation();
       _controller.reset();
@@ -1169,9 +1241,10 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   }
 
   void _setupAnimation() {
-    _characterCount = StepTween(begin: 0, end: widget.text.length).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _characterCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
   }
 
   @override
@@ -1188,11 +1261,8 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
         int end = _characterCount.value;
         if (end > widget.text.length) end = widget.text.length;
         if (end < 0) end = 0;
-        
-        return Text(
-          widget.text.substring(0, end),
-          style: widget.style,
-        );
+
+        return Text(widget.text.substring(0, end), style: widget.style);
       },
     );
   }

@@ -18,11 +18,13 @@ class MswdCallService {
     required dynamic theme,
   }) async {
     final phoneNumber = user['contactNumber'] as String?;
-    
+
     if (phoneNumber == null || phoneNumber.isEmpty || phoneNumber == 'N/A') {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Phone number not available for ${user['name'] ?? 'this user'}'),
+          content: Text(
+            'Phone number not available for ${user['name'] ?? 'this user'}',
+          ),
           backgroundColor: error,
           duration: Duration(seconds: 2),
         ),
@@ -40,12 +42,13 @@ class MswdCallService {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(3)}';
     } else if (cleanPhoneNumber.startsWith('63')) {
       cleanPhoneNumber = '0${cleanPhoneNumber.substring(2)}';
-    } else if (cleanPhoneNumber.length == 10 && !cleanPhoneNumber.startsWith('0')) {
-      cleanPhoneNumber = '0$cleanPhoneNumber'; 
+    } else if (cleanPhoneNumber.length == 10 &&
+        !cleanPhoneNumber.startsWith('0')) {
+      cleanPhoneNumber = '0$cleanPhoneNumber';
     }
 
     final Uri telUri = Uri(scheme: 'tel', path: cleanPhoneNumber);
-    
+
     try {
       if (await canLaunchUrl(telUri)) {
         final currentUser = FirebaseAuth.instance.currentUser;
@@ -63,7 +66,9 @@ class MswdCallService {
           );
 
           // 2. Store in mswd_communication/calls
-          final callsRef = FirebaseDatabase.instance.ref('mswd_communication/calls');
+          final callsRef = FirebaseDatabase.instance.ref(
+            'mswd_communication/calls',
+          );
           final newCallRef = callsRef.push();
           await newCallRef.set({
             'callerId': currentUser.uid,
@@ -76,7 +81,9 @@ class MswdCallService {
           });
 
           // 3. Store in mswd_communication/call_logs
-          final callLogsRef = FirebaseDatabase.instance.ref('mswd_communication/call_logs');
+          final callLogsRef = FirebaseDatabase.instance.ref(
+            'mswd_communication/call_logs',
+          );
           final newLogRef = callLogsRef.push();
           await newLogRef.set({
             'mswdId': currentUser.uid,
@@ -91,16 +98,14 @@ class MswdCallService {
         }
 
         await launchUrl(telUri);
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 Icon(Icons.phone_rounded, color: white, size: 20),
                 SizedBox(width: 8),
-                Expanded(
-                  child: Text('Calling ${user['name'] ?? 'user'}...'),
-                ),
+                Expanded(child: Text('Calling ${user['name'] ?? 'user'}...')),
               ],
             ),
             backgroundColor: Colors.green,
@@ -116,9 +121,16 @@ class MswdCallService {
       }
     } catch (e) {
       debugPrint('Error making call: $e');
-      
+
       // Show fallback options
-      _showCallOptions(context, user, cleanPhoneNumber, phoneNumber, isDarkMode, theme);
+      _showCallOptions(
+        context,
+        user,
+        cleanPhoneNumber,
+        phoneNumber,
+        isDarkMode,
+        theme,
+      );
     }
   }
 
@@ -131,7 +143,7 @@ class MswdCallService {
     dynamic theme,
   ) {
     final userName = user['name'] ?? 'User';
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -157,10 +169,7 @@ class MswdCallService {
           children: [
             Text(
               'Phone number:',
-              style: bodyBold.copyWith(
-                color: theme.textColor,
-                fontSize: 14,
-              ),
+              style: bodyBold.copyWith(color: theme.textColor, fontSize: 14),
             ),
             SizedBox(height: 6),
             Container(
@@ -169,23 +178,19 @@ class MswdCallService {
                 vertical: spacingSmall,
               ),
               decoration: BoxDecoration(
-                color: theme.isDarkMode 
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.black.withOpacity(0.03),
+                color: theme.isDarkMode
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.black.withOpacity(0.03),
                 borderRadius: BorderRadius.circular(radiusMedium),
                 border: Border.all(
                   color: theme.isDarkMode
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.black.withOpacity(0.06),
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.06),
                 ),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.phone_rounded,
-                    size: 16,
-                    color: primary,
-                  ),
+                  Icon(Icons.phone_rounded, size: 16, color: primary),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -202,10 +207,7 @@ class MswdCallService {
             SizedBox(height: spacingLarge),
             Text(
               'Choose an option:',
-              style: bodyBold.copyWith(
-                color: theme.subtextColor,
-                fontSize: 13,
-              ),
+              style: bodyBold.copyWith(color: theme.subtextColor, fontSize: 13),
             ),
           ],
         ),
@@ -271,7 +273,7 @@ class MswdCallService {
     String phoneNumber,
   ) async {
     await Clipboard.setData(ClipboardData(text: phoneNumber));
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -298,11 +300,11 @@ class MswdCallService {
   ) async {
     // Try alternative method
     final Uri alternativeUri = Uri.parse('tel://$phoneNumber');
-    
+
     try {
       if (await canLaunchUrl(alternativeUri)) {
         await launchUrl(alternativeUri);
-        
+
         // Log the call activity
         final currentUser = FirebaseAuth.instance.currentUser;
         if (currentUser != null) {
@@ -319,7 +321,9 @@ class MswdCallService {
           );
 
           // Store in mswd_communication/calls
-          final callsRef = FirebaseDatabase.instance.ref('mswd_communication/calls');
+          final callsRef = FirebaseDatabase.instance.ref(
+            'mswd_communication/calls',
+          );
           final newCallRef = callsRef.push();
           await newCallRef.set({
             'callerId': currentUser.uid,
@@ -333,7 +337,9 @@ class MswdCallService {
           });
 
           // Store in mswd_communication/call_logs
-          final callLogsRef = FirebaseDatabase.instance.ref('mswd_communication/call_logs');
+          final callLogsRef = FirebaseDatabase.instance.ref(
+            'mswd_communication/call_logs',
+          );
           final newLogRef = callLogsRef.push();
           await newLogRef.set({
             'mswdId': currentUser.uid,
@@ -351,7 +357,7 @@ class MswdCallService {
       }
     } catch (e) {
       debugPrint('Alternative call failed: $e');
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -359,7 +365,9 @@ class MswdCallService {
               Icon(Icons.error_outline_rounded, color: white, size: 20),
               SizedBox(width: 8),
               Expanded(
-                child: Text('Unable to make call. Please use your phone dialer.'),
+                child: Text(
+                  'Unable to make call. Please use your phone dialer.',
+                ),
               ),
             ],
           ),

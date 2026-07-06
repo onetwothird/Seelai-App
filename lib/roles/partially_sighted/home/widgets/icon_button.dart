@@ -23,21 +23,23 @@ class CustomIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        boxShadow: isDarkMode 
-          ? [
-              BoxShadow(
-                color: (isSpecial ? accent : primary).withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ]
-          : softShadow,
+        boxShadow: isDarkMode
+            ? [
+                BoxShadow(
+                  color: (isSpecial ? accent : primary).withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ]
+            : softShadow,
         borderRadius: BorderRadius.circular(radiusMedium),
       ),
       child: Material(
-        color: isDarkMode 
-          ? (isSpecial ? accent.withValues(alpha: 0.25) : primary.withValues(alpha: 0.2))
-          : primaryLight.withValues(alpha: 0.12),
+        color: isDarkMode
+            ? (isSpecial
+                  ? accent.withValues(alpha: 0.25)
+                  : primary.withValues(alpha: 0.2))
+            : primaryLight.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(radiusMedium),
         child: InkWell(
           onTap: onPressed,
@@ -48,9 +50,7 @@ class CustomIconButton extends StatelessWidget {
             child: Icon(
               icon,
               size: size,
-              color: isDarkMode 
-                ? (isSpecial ? accent : primaryLight)
-                : primary,
+              color: isDarkMode ? (isSpecial ? accent : primaryLight) : primary,
             ),
           ),
         ),

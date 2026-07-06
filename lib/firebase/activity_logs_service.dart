@@ -15,7 +15,7 @@ class ActivityLogsService {
   }) async {
     try {
       String logId = _database.ref('activity_logs').push().key!;
-      
+
       await _database.ref('activity_logs/$logId').set({
         'userId': userId,
         'action': action,
@@ -39,21 +39,21 @@ class ActivityLogsService {
           .equalTo(userId)
           .limitToLast(limit)
           .once();
-      
+
       if (!event.snapshot.exists) return [];
-      
+
       Map<dynamic, dynamic> logsMap = event.snapshot.value as Map;
       List<Map<String, dynamic>> logs = [];
-      
+
       logsMap.forEach((key, value) {
         Map<String, dynamic> log = Map<String, dynamic>.from(value as Map);
         log['logId'] = key;
         logs.add(log);
       });
-      
+
       // Sort by timestamp descending
       logs.sort((a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0));
-      
+
       return logs;
     } catch (e) {
       throw Exception('Failed to get activity logs: $e');
@@ -61,27 +61,29 @@ class ActivityLogsService {
   }
 
   /// Get all activity logs (Admin only)
-  Future<List<Map<String, dynamic>>> getAllActivityLogs({int limit = 100}) async {
+  Future<List<Map<String, dynamic>>> getAllActivityLogs({
+    int limit = 100,
+  }) async {
     try {
       DatabaseEvent event = await _database
           .ref('activity_logs')
           .limitToLast(limit)
           .once();
-      
+
       if (!event.snapshot.exists) return [];
-      
+
       Map<dynamic, dynamic> logsMap = event.snapshot.value as Map;
       List<Map<String, dynamic>> logs = [];
-      
+
       logsMap.forEach((key, value) {
         Map<String, dynamic> log = Map<String, dynamic>.from(value as Map);
         log['logId'] = key;
         logs.add(log);
       });
-      
+
       // Sort by timestamp descending
       logs.sort((a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0));
-      
+
       return logs;
     } catch (e) {
       throw Exception('Failed to get all activity logs: $e');
@@ -100,20 +102,22 @@ class ActivityLogsService {
         .limitToLast(limit)
         .onValue
         .map((event) {
-      if (!event.snapshot.exists) return [];
-      
-      Map<dynamic, dynamic> logsMap = event.snapshot.value as Map;
-      List<Map<String, dynamic>> logs = [];
-      
-      logsMap.forEach((key, value) {
-        Map<String, dynamic> log = Map<String, dynamic>.from(value as Map);
-        log['logId'] = key;
-        logs.add(log);
-      });
-      
-      logs.sort((a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0));
-      return logs;
-    });
+          if (!event.snapshot.exists) return [];
+
+          Map<dynamic, dynamic> logsMap = event.snapshot.value as Map;
+          List<Map<String, dynamic>> logs = [];
+
+          logsMap.forEach((key, value) {
+            Map<String, dynamic> log = Map<String, dynamic>.from(value as Map);
+            log['logId'] = key;
+            logs.add(log);
+          });
+
+          logs.sort(
+            (a, b) => (b['timestamp'] ?? 0).compareTo(a['timestamp'] ?? 0),
+          );
+          return logs;
+        });
   }
 
   /// Delete activity logs for a specific user
@@ -124,10 +128,10 @@ class ActivityLogsService {
           .orderByChild('userId')
           .equalTo(userId)
           .once();
-      
+
       if (event.snapshot.exists) {
         Map<dynamic, dynamic> logsMap = event.snapshot.value as Map;
-        
+
         for (String logId in logsMap.keys) {
           await _database.ref('activity_logs/$logId').remove();
         }

@@ -19,7 +19,8 @@ class CustomButton extends StatefulWidget {
   State<CustomButton> createState() => _CustomButtonState();
 }
 
-class _CustomButtonState extends State<CustomButton> with SingleTickerProviderStateMixin {
+class _CustomButtonState extends State<CustomButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   bool _isPressed = false;
@@ -68,16 +69,15 @@ class _CustomButtonState extends State<CustomButton> with SingleTickerProviderSt
             gradient: widget.isTransparent ? null : primaryGradient,
             borderRadius: BorderRadius.circular(radiusLarge),
             border: widget.isTransparent
-                ? Border.all(
-                    color: primary,
-                    width: 2.5,
-                  )
+                ? Border.all(color: primary, width: 2.5)
                 : Border.all(
-                    color: widget.isTransparent ? Colors.transparent : white.withValues(alpha: 0.2),
+                    color: widget.isTransparent
+                        ? Colors.transparent
+                        : white.withValues(alpha: 0.2),
                     width: 1,
                   ),
-            boxShadow: widget.isTransparent || _isPressed 
-                ? [] 
+            boxShadow: widget.isTransparent || _isPressed
+                ? []
                 : [
                     BoxShadow(
                       color: primary.withValues(alpha: 0.3),
@@ -175,7 +175,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
           suffixIcon: widget.isPassword
               ? IconButton(
                   icon: Icon(
-                    _obscureText ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                    _obscureText
+                        ? Icons.visibility_off_rounded
+                        : Icons.visibility_rounded,
                     color: greyLight,
                     size: 22,
                   ),
@@ -202,11 +204,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
 }
 
 class SocialButton extends StatefulWidget {
-  const SocialButton({
-    super.key,
-    required this.icon,
-    this.onPressed,
-  });
+  const SocialButton({super.key, required this.icon, this.onPressed});
 
   final IconData icon;
   final VoidCallback? onPressed;
@@ -215,7 +213,8 @@ class SocialButton extends StatefulWidget {
   State<SocialButton> createState() => _SocialButtonState();
 }
 
-class _SocialButtonState extends State<SocialButton> with SingleTickerProviderStateMixin {
+class _SocialButtonState extends State<SocialButton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   bool _isHovered = false;
@@ -267,7 +266,9 @@ class _SocialButtonState extends State<SocialButton> with SingleTickerProviderSt
                 width: 96,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: _isHovered ? primary.withValues(alpha: 0.4) : greyLighter,
+                    color: _isHovered
+                        ? primary.withValues(alpha: 0.4)
+                        : greyLighter,
                     width: _isHovered ? 2 : 1.5,
                   ),
                   borderRadius: BorderRadius.circular(radiusLarge),

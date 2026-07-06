@@ -21,7 +21,9 @@ class CommunicationService {
       if (currentUserId == null) throw Exception('User not authenticated');
 
       // FIX: Use correct path structure with /calls/
-      final callId = _database.ref('partially_sighted_communication/calls').push().key ?? '';
+      final callId =
+          _database.ref('partially_sighted_communication/calls').push().key ??
+          '';
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
       final callData = {
@@ -39,7 +41,9 @@ class CommunicationService {
       };
 
       // FIX: Write to /calls/$callId path
-      await _database.ref('partially_sighted_communication/calls/$callId').set(callData);
+      await _database
+          .ref('partially_sighted_communication/calls/$callId')
+          .set(callData);
       return callData;
     } catch (e) {
       debugPrint('Error initiating call: $e');
@@ -55,10 +59,9 @@ class CommunicationService {
   }) async {
     try {
       // FIX: Use correct path
-      await _database.ref('partially_sighted_communication/calls/$callId').update({
-        'status': status,
-        'duration': duration,
-      });
+      await _database
+          .ref('partially_sighted_communication/calls/$callId')
+          .update({'status': status, 'duration': duration});
     } catch (e) {
       debugPrint('Error updating call status: $e');
       rethrow;
@@ -66,10 +69,7 @@ class CommunicationService {
   }
 
   /// End a call
-  Future<void> endCall({
-    required String callId,
-    required int duration,
-  }) async {
+  Future<void> endCall({required String callId, required int duration}) async {
     try {
       await updateCallStatus(
         callId: callId,
@@ -104,10 +104,12 @@ class CommunicationService {
 
       callsMap.forEach((key, value) {
         Map<String, dynamic> call = Map<String, dynamic>.from(value as Map);
-        
+
         // Filter calls between current user and other user
-        if ((call['callerId'] == currentUserId && call['receiverId'] == otherUserId) ||
-            (call['callerId'] == otherUserId && call['receiverId'] == currentUserId)) {
+        if ((call['callerId'] == currentUserId &&
+                call['receiverId'] == otherUserId) ||
+            (call['callerId'] == otherUserId &&
+                call['receiverId'] == currentUserId)) {
           callHistory.add(call);
         }
       });
@@ -133,10 +135,12 @@ class CommunicationService {
           if (!event.snapshot.exists) return null;
 
           Map<dynamic, dynamic> callsMap = event.snapshot.value as Map;
-          
+
           // Get the most recent incoming call
           for (var entry in callsMap.entries.toList().reversed) {
-            Map<String, dynamic> call = Map<String, dynamic>.from(entry.value as Map);
+            Map<String, dynamic> call = Map<String, dynamic>.from(
+              entry.value as Map,
+            );
             if (call['status'] == 'incoming') {
               return call;
             }
@@ -155,9 +159,17 @@ class CommunicationService {
     try {
       if (currentUserId == null) throw Exception('User not authenticated');
 
-      final messageId = _database.ref('partially_sighted_communication/messages').push().key ?? '';
+      final messageId =
+          _database
+              .ref('partially_sighted_communication/messages')
+              .push()
+              .key ??
+          '';
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final conversationId = _generateConversationId(currentUserId!, receiverId);
+      final conversationId = _generateConversationId(
+        currentUserId!,
+        receiverId,
+      );
 
       final messageData = {
         'messageId': messageId,
@@ -170,8 +182,10 @@ class CommunicationService {
         'conversationId': conversationId,
       };
 
-      await _database.ref('partially_sighted_communication/messages/$messageId').set(messageData);
-      
+      await _database
+          .ref('partially_sighted_communication/messages/$messageId')
+          .set(messageData);
+
       // Update conversation
       await _updateConversation(
         conversationId: conversationId,
@@ -195,7 +209,10 @@ class CommunicationService {
     try {
       if (currentUserId == null) throw Exception('User not authenticated');
 
-      final conversationId = _generateConversationId(currentUserId!, otherUserId);
+      final conversationId = _generateConversationId(
+        currentUserId!,
+        otherUserId,
+      );
 
       DatabaseEvent event = await _database
           .ref('partially_sighted_communication/messages')
@@ -241,7 +258,9 @@ class CommunicationService {
           Map<dynamic, dynamic> messagesMap = event.snapshot.value as Map;
 
           messagesMap.forEach((key, value) {
-            Map<String, dynamic> message = Map<String, dynamic>.from(value as Map);
+            Map<String, dynamic> message = Map<String, dynamic>.from(
+              value as Map,
+            );
             messages.add(message);
           });
 
@@ -265,7 +284,9 @@ class CommunicationService {
           Map<dynamic, dynamic> conversationsMap = event.snapshot.value as Map;
 
           conversationsMap.forEach((key, value) {
-            Map<String, dynamic> conversation = Map<String, dynamic>.from(value as Map);
+            Map<String, dynamic> conversation = Map<String, dynamic>.from(
+              value as Map,
+            );
             conversations.add(conversation);
           });
 
@@ -283,9 +304,9 @@ class CommunicationService {
   /// Mark message as read
   Future<void> markMessageAsRead(String messageId) async {
     try {
-      await _database.ref('partially_sighted_communication/messages/$messageId').update({
-        'isRead': true,
-      });
+      await _database
+          .ref('partially_sighted_communication/messages/$messageId')
+          .update({'isRead': true});
     } catch (e) {
       debugPrint('Error marking message as read: $e');
     }
@@ -313,14 +334,16 @@ class CommunicationService {
       final senderName = _auth.currentUser?.displayName ?? 'Unknown';
       final receiverName = 'User'; // You might want to fetch this
 
-      await _database.ref('partially_sighted_communication/conversations/$conversationId').update({
-        'participant1': currentUserId,
-        'participant2': receiverId,
-        'participant1Name': senderName,
-        'participant2Name': receiverName,
-        'lastMessage': lastMessage,
-        'lastMessageTime': timestamp,
-      });
+      await _database
+          .ref('partially_sighted_communication/conversations/$conversationId')
+          .update({
+            'participant1': currentUserId,
+            'participant2': receiverId,
+            'participant1Name': senderName,
+            'participant2Name': receiverName,
+            'lastMessage': lastMessage,
+            'lastMessageTime': timestamp,
+          });
     } catch (e) {
       debugPrint('Error updating conversation: $e');
     }

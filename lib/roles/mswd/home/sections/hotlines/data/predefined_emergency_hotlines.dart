@@ -4,23 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:seelai_app/roles/partially_sighted/models/emergency_hotline_model.dart';
 
 class PredefinedEmergencyHotlines {
-  static List<EmergencyHotline> getNaicHotlines() { 
+  static List<EmergencyHotline> getNaicHotlines() {
     final now = DateTime.now();
-    
+
     return [
       EmergencyHotline(
-        id: 'predefined_police_naic', 
+        id: 'predefined_police_naic',
         departmentName: 'Municipal Police Station',
         phoneNumber: '09564118101',
         address: '',
         description: 'PNP Naic',
-        icon: Icons.local_police_rounded, 
+        icon: Icons.local_police_rounded,
         color: Colors.blue,
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/pnp.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/pnp.png',
       ),
       EmergencyHotline(
         id: 'predefined_fire_naic',
@@ -33,12 +33,12 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/bfp.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/bfp.png',
       ),
       EmergencyHotline(
         id: 'predefined_mdrrmo_naic',
-        departmentName: 'MDRRMO Naic', 
+        departmentName: 'MDRRMO Naic',
         phoneNumber: '4105725',
         address: '',
         description: 'Naic Emergency Response Unit',
@@ -47,8 +47,8 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/mdrrmo.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/mdrrmo.png',
       ),
       EmergencyHotline(
         id: 'predefined_dilg_naic',
@@ -61,8 +61,8 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/dilg.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/dilg.png',
       ),
       EmergencyHotline(
         id: 'predefined_mswdo_naic',
@@ -75,8 +75,8 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/mswd.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/mswd.png',
       ),
       EmergencyHotline(
         id: 'predefined_menro_naic',
@@ -89,8 +89,8 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/menro.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/menro.png',
       ),
       EmergencyHotline(
         id: 'predefined_rhu_naic',
@@ -103,8 +103,8 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/rural_health.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/rural_health.png',
       ),
       EmergencyHotline(
         id: 'predefined_mayor_naic',
@@ -117,8 +117,8 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/office_mayor.png', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/office_mayor.png',
       ),
       EmergencyHotline(
         id: 'predefined_naic_doctors',
@@ -131,15 +131,17 @@ class PredefinedEmergencyHotlines {
         isActive: true,
         createdAt: now,
         updatedAt: now,
-        isPredefined: true, 
-        imageAsset: 'assets/emergency_images/naic_doctors.jpg', 
+        isPredefined: true,
+        imageAsset: 'assets/emergency_images/naic_doctors.jpg',
       ),
     ];
   }
-  
+
   static bool needsInitialization(List<EmergencyHotline> existingHotlines) {
     // If the global list has less than 9 predefined items, it needs initialization
-    final predefinedCount = existingHotlines.where((h) => h.isPredefined == true).length;
-    return predefinedCount < 9; 
+    final predefinedCount = existingHotlines
+        .where((h) => h.isPredefined == true)
+        .length;
+    return predefinedCount < 9;
   }
 }
