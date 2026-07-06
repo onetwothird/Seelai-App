@@ -1,121 +1,88 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/onetwothird/Seelai/main/seelai/assets/images/preview.png" alt="Seelai App Preview" width="600;" />
-</p>
+# Seelai — Mobile assistant for partially sighted users
 
-<h1 align="center">👁️‍🗨️ Seelai: A Mobile Assistant for Partially Sighted Individuals</h1>
+Seelai is a Flutter mobile application that provides object detection, voice assistance, and role-based features for partially sighted users, caretakers, and system administrators. This README focuses on getting developers up and running, explains the repository layout, and documents the cleanup and optimization steps included in this branch.
 
-## 📖 Description
+## Quick start
 
-**Seelai** is a mobile assistant application designed to enhance the daily lives of **partially sighted users**.  
-It leverages the **YOLO Algorithm** and **TensorFlow Lite** for real-time **object detection**, and integrates **voice interaction** for accessible and intuitive user experiences.  
-The system includes three main user roles — **Partially Sighted Userr**, **Caretaker**, and **MSDWD Admin** — to ensure safety, assistance, and efficient management.
+1. Clone the repository:
 
----
+```bash
+git clone https://github.com/onetwothird/Seelai-App.git
+cd seelai_app
+```
 
-## 📚 Table of Contents
+2. Install dependencies:
 
-- [✨ Features](#-features)
-- [🛠️ Technologies Used](#-technologies-used)
-- [🚀 How to Run](#-how-to-run)
-- [📱 User Roles](#-user-roles)
-- [🤝 Contributing](#-contributing)
-- [📬 Contact](#-contact)
-- [🔗 Links](#-links)
-- [👤 Author](#-author)
+```bash
+flutter pub get
+```
 
----
+3. Run on a connected device or emulator:
 
-## ✨ Features
+```bash
+flutter run
+```
 
-- 🔍 **Real-time Object Detection** using YOLO and TensorFlow Lite  
-- 🎙️ **Voice Assistance** for user interaction and feedback  
-- 📍 **Location Tracking** for caretakers to monitor partially sighted users  
-- 🧭 **Role-based System** (Partially Sighted, Caretaker, MSDWD Admin)  
-- 📱 **User-friendly Interface** optimized for accessibility and simplicity  
-- ☁️ **Cloud-based Data Storage and Management**
+4. Build a release APK (after verifying everything works):
 
----
+```bash
+flutter build apk --release
+```
 
-## 🛠️ Technologies Used
+## Project structure (selected)
 
-- 🧠 **TensorFlow Lite** – On-device machine learning and object detection  
-- 🪶 **YOLO Algorithm** – Real-time object recognition  
-- 📱 **Flutter (Dart)** – Cross-platform mobile development  
-- 🔥 **Firebase** – Authentication, real-time database, and cloud storage  
-- 🌍 **Google Maps API** – Location tracking and visualization  
+- `lib/` — application source code. Role-specific screens live under `lib/roles/{caretaker,mswd,partially_sighted}`.
+- `assets/models/` — TFLite models and labels used by object/face detection (`object_detection.tflite`, `face_detection.tflite`).
+- `assets/seelai-icons/`, `assets/onboarding_icons/`, `assets/emergency_images/` — optimized image assets (WebP preferred).
+- `scripts/` — helper scripts (image optimization, moving models, installing git hooks).
+- `.github/workflows/ci.yml` — CI checks (analyze and tests).
 
----
+## Notes about recent cleanup and asset optimization
 
-## 🚀 How to Run
+- Large PNG/JPEG assets were converted to WebP and originals moved to `assets/_backup_images/` to reduce package size. If you need an original, it is stored there.
+- Models were consolidated to `assets/models/`. Update any hardcoded asset paths in code if you add or replace a model.
+- `pubspec.yaml` now lists only the asset directories and necessary files to avoid packaging unused files. If your build complains about missing assets, run `flutter pub get` and check `pubspec.yaml` entries.
 
-To set up and run **Seelai** on your local environment:
+Scripts added in `scripts/`:
+- `optimize_images.py` — batch converts PNG/JPG -> WebP (has dry-run mode).
+- `move_models.ps1` — moves models to `assets/models/` (Windows PowerShell).
+- `install_git_hooks.ps1` — installs pre-commit hooks that run `flutter analyze`.
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/onetwothird/Seelai.git
-2. **Navigate to the project folder:**
-   
-   ```bash
-   cd seelai_app
-   ```
+## CI
 
-3. **Install dependencies:**
-   
-   ```bash
-   flutter pub get
-   ```
+- The GitHub Actions workflow runs `flutter analyze` and the test job (`flutter test --coverage`). The workflow uses `subosito/flutter-action@v2` with `channel: stable`.
+- If CI fails on Flutter setup, consider pinning a specific version in the workflow, for example:
 
-4. **Run the mobile app:**
-   
-   ```bash
-   flutter run
-   ```
+```yaml
+- uses: subosito/flutter-action@v2
+  with:
+    channel: stable
+# or
+    flutter-version: '3.10.5'
+```
 
----
+## Common troubleshooting
 
-## 📱 User Roles
+- Missing asset errors after optimization: confirm the file exists under `assets/` and that `pubspec.yaml` includes the directory or filename, then run `flutter pub get`.
+- Release build errors: run `flutter build apk --release -v` to get verbose logs.
+- If git hooks fail locally due to missing PowerShell (`pwsh`) on non-Windows runners, install PowerShell or run commits with `--no-verify` temporarily.
 
-👩‍🦯 Partially Sighted User
+## Development tips
 
-Uses object detection and voice feedback to assist in navigation and object recognition.
+- Run `flutter analyze` before committing. A pre-commit hook is included to help enforce this.
+- When changing or replacing models, update `assets/models/` and the code that loads them (search for `object_detection.tflite` or `face_detection.tflite`).
+- Keep backups of originals in `assets/_backup_images/` — scripts created during cleanup preserve them.
 
-🧑‍🤝‍🧑 Caretaker
+## Branch & merge notes
 
-Monitors and tracks the real-time location of partially sighted users for safety and assistance.
+- The `cleanup/best-practices` branch consolidated models, optimized assets, and added CI/hooks. It was merged into `main` locally and pushed after validation. Protect `main` with branch rules and require PRs for future changes.
 
-🏢 MSDWD Admin
+## License & contact
 
-Manages user accounts, permissions, and system activities through a centralized interface.
+If you need help or want to discuss changes, open an issue or contact the author:
+
+- Email: angelitodecatoriaa@gmail.com
+- GitHub: https://github.com/onetwothird
 
 ---
-
-## 🤝 Contributing
-
-Feedback and suggestions are welcome!  
-Feel free to open issues for bugs or ideas to improve the game.
-
----
-
-## 📬 Contact
-
-For questions or feedback, reach out via:
-
-- 📧 Email: [angelitodecatoriaa@gmail.com](mailto:angelitodecatoriaa@gmail.com)
-- 💬 Facebook: [angelo.decatoria.5](https://facebook.com/angelo.decatoria.5)
-- 📸 Instagram: [@hmptyy_dmpty](https://instagram.com/hmptyy_dmpty)
-- 🎵 TikTok: [@terdeh](https://www.tiktok.com/@terdeh)
-- 💼 LinkedIn: [in/angelitodecatoria](https://linkedin.com/in/angelitodecatoria)
-
----
-
-## 🔗 Links
-
-- 📂 [GitHub Repository](https://github.com/RandomThirdy/Snake-Game)
-
----
-
-## 👤 Author
-
-**Random Thirdy (Angelito Decatoria III)**
-
-- 🐙 GitHub: [@RandomThirdy](https://github.com/onetwothird)
+Generated/edited by automation to improve developer onboarding. If anything is inaccurate, please open an issue or edit this file.
