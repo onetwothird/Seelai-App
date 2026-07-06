@@ -4,14 +4,14 @@ import 'package:flutter/material.dart';
 class ActivityModel {
   final String title;
   final String description;
-  final IconData icon;
+  final int iconCode;
   final bool isEmergency;
   final DateTime? timestamp;
 
   ActivityModel({
     required this.title,
     required this.description,
-    required this.icon,
+    required this.iconCode,
     this.isEmergency = false,
     DateTime? timestamp,
   }) : timestamp = timestamp ?? DateTime.now();
@@ -21,7 +21,7 @@ class ActivityModel {
     return ActivityModel(
       title: json['title'] as String,
       description: json['description'] as String,
-      icon: IconData(json['iconCode'] as int, fontFamily: 'MaterialIcons'),
+      iconCode: json['iconCode'] as int,
       isEmergency: json['isEmergency'] as bool? ?? false,
       timestamp: json['timestamp'] != null
           ? DateTime.parse(json['timestamp'] as String)
@@ -33,7 +33,7 @@ class ActivityModel {
     return {
       'title': title,
       'description': description,
-      'iconCode': icon.codePoint,
+      'iconCode': iconCode,
       'isEmergency': isEmergency,
       'timestamp': timestamp?.toIso8601String(),
     };
@@ -43,14 +43,14 @@ class ActivityModel {
   ActivityModel copyWith({
     String? title,
     String? description,
-    IconData? icon,
+    int? icon,
     bool? isEmergency,
     DateTime? timestamp,
   }) {
     return ActivityModel(
       title: title ?? this.title,
       description: description ?? this.description,
-      icon: icon ?? this.icon,
+      iconCode: icon ?? this.iconCode,
       isEmergency: isEmergency ?? this.isEmergency,
       timestamp: timestamp ?? this.timestamp,
     );
