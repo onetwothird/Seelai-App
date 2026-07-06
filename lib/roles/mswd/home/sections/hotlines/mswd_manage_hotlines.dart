@@ -278,9 +278,9 @@ class _MswdManageHotlinesScreenState extends State<MswdManageHotlinesScreen> {
               onSelected: (value) {
                 if (value == 'edit') {
                   _editHotline(hotline);
-                  // ignore: curly_braces_in_flow_control_structures
-                } else if (value == 'delete')
+                } else if (value == 'delete') {
                   _deleteHotline(hotline);
+                }
               },
               itemBuilder: (context) => [
                 PopupMenuItem(

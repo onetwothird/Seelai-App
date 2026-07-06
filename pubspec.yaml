@@ -65,13 +65,8 @@ flutter:
     - assets/icons/
     - assets/models/
     - assets/emergency_images/
-    # Only include the seelai icons that are referenced to avoid packaging unused images
-    - assets/seelai-icons/seelai0.png
-    - assets/seelai-icons/seelai2.png
-    - assets/seelai-icons/seelai3.png
-    - assets/seelai-icons/seelai4.png
-    - assets/seelai-icons/seelai_model.gif
-    - assets/seelai-icons/seelai_loaders.gif
+    # Include seelai icons directory (WebP/PNG as present)
+    - assets/seelai-icons/
     - assets/onboarding_icons/
     - assets/seelai_app_logo/
     - assets/how-to-use-seelai_images/partially_sighted/
@@ -82,10 +77,10 @@ flutter_launcher_icons:
   android: true
   ios: true
 
-  image_path: "assets/seelai_app_logo/seelai_app_logo.png"
+  image_path: "assets/seelai_app_logo/seelai_app_logo.webp"
 
   adaptive_icon_background: "#8B5CF6"
-  adaptive_icon_foreground: "assets/seelai_app_logo/seelai_app_logo.png"
+  adaptive_icon_foreground: "assets/seelai_app_logo/seelai_app_logo.webp"
 
 flutter_native_splash:
   color: "#FAF5FF"

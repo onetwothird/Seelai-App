@@ -748,7 +748,7 @@ class _ViewRecentActivitiesState extends State<ViewRecentActivities>
                 scale: _mascotScale,
                 alignment: Alignment.bottomCenter,
                 child: Image.asset(
-                  'assets/seelai-icons/seelai3.png',
+                  'assets/seelai-icons/seelai3.webp',
                   height: mascotSize,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Container(

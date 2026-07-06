@@ -647,7 +647,7 @@ class _RequestsContentState extends State<RequestsContent>
                 scale: _mascotScale,
                 alignment: Alignment.bottomCenter,
                 child: Image.asset(
-                  'assets/seelai-icons/seelai4.png',
+                  'assets/seelai-icons/seelai4.webp',
                   height: mascotSize,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Container(
