@@ -61,7 +61,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - .env
+    - assets/.env
     - assets/icons/
     - assets/models/
     - assets/emergency_images/
