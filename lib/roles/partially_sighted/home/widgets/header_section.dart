@@ -460,7 +460,7 @@ class _HeaderSectionState extends State<HeaderSection>
                       scale: _mascotScale,
                       alignment: Alignment.bottomCenter,
                       child: Image.asset(
-                        'assets/seelai-icons/seelai0.png',
+                        'assets/seelai-icons/seelai0.webp',
                         height: mascotSize,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) => Container(
