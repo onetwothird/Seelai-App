@@ -483,7 +483,7 @@ class _UsersContentState extends State<UsersContent>
                 scale: _mascotScale,
                 alignment: Alignment.bottomCenter,
                 child: Image.asset(
-                  'assets/seelai-icons/seelai2.png',
+                  'assets/seelai-icons/seelai2.webp',
                   height: mascotSize,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) => Container(
