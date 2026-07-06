@@ -1,5 +1,5 @@
 // File: lib/roles/partially_sighted/models/activity_model.dart
-import 'package:flutter/material.dart';
+// No Flutter imports required here; keep model pure Dart to simplify analysis
 
 class ActivityModel {
   final String title;
@@ -41,18 +41,18 @@ class ActivityModel {
 
   // Copy with method for immutable updates
   ActivityModel copyWith({
-    String? title,
-    String? description,
+    String? newTitle,
+    String? newDescription,
     int? icon,
-    bool? isEmergency,
-    DateTime? timestamp,
+    bool? newIsEmergency,
+    DateTime? newTimestamp,
   }) {
     return ActivityModel(
-      title: title ?? this.title,
-      description: description ?? this.description,
-      iconCode: icon ?? this.iconCode,
-      isEmergency: isEmergency ?? this.isEmergency,
-      timestamp: timestamp ?? this.timestamp,
+      title: newTitle ?? title,
+      description: newDescription ?? description,
+      iconCode: icon ?? iconCode,
+      isEmergency: newIsEmergency ?? isEmergency,
+      timestamp: newTimestamp ?? timestamp,
     );
   }
 
