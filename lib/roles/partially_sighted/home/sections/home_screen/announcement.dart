@@ -1,0 +1,614 @@
+// File: lib/roles/partially_sighted/home/sections/home_screen/announcement.dart
+
+import 'dart:async'; // --- ADDED FOR STREAM SUBSCRIPTION ---
+import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:flutter_tts/flutter_tts.dart'; // --- ADDED TTS ---
+import 'package:seelai_app/themes/constants.dart';
+import 'package:seelai_app/firebase/mswd/announcement_service.dart';
+import 'package:seelai_app/roles/mswd/home/model/announcement_model.dart';
+import 'package:seelai_app/roles/partially_sighted/home/sections/home_screen/screens/all_announcements.dart';
+
+class AnnouncementSection extends StatefulWidget {
+  final bool isDarkMode;
+  final dynamic theme;
+  final String userId;
+
+  const AnnouncementSection({
+    super.key,
+    required this.isDarkMode,
+    required this.theme,
+    required this.userId,
+  });
+
+  @override
+  State<AnnouncementSection> createState() => _AnnouncementSectionState();
+}
+
+class _AnnouncementSectionState extends State<AnnouncementSection> {
+  final AnnouncementService _announcementService = AnnouncementService();
+  late Stream<List<AnnouncementModel>> _announcementStream;
+  final int maxDisplayedAnnouncements = 5;
+
+  // --- NEW TTS VARIABLES ---
+  final FlutterTts _flutterTts = FlutterTts();
+  StreamSubscription<List<AnnouncementModel>>? _announcementSubscription;
+  bool _isInitialLoad = true;
+  DateTime? _latestTimestamp;
+  String?
+  _currentlySpeakingId; // To track which announcement is playing manually
+
+  @override
+  void initState() {
+    super.initState();
+    _initTts();
+    _initializeStream();
+  }
+
+  // --- NEW TTS INITIALIZATION ---
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.awaitSpeakCompletion(true);
+
+    // Reset speaking state when TTS finishes
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) setState(() => _currentlySpeakingId = null);
+    });
+  }
+
+  void _initializeStream() {
+    // --- ADD .asBroadcastStream() TO THE END OF THIS CALL ---
+    _announcementStream = _announcementService
+        .getAnnouncementsForUser(widget.userId, 'Partially Sighted')
+        .asBroadcastStream(); // <--- THIS IS THE FIX
+
+    // --- BACKGROUND LISTENER FOR AUTO-TTS ---
+    _announcementSubscription?.cancel();
+    _announcementSubscription = _announcementStream.listen((announcements) {
+      if (announcements.isEmpty) return;
+
+      if (_isInitialLoad) {
+        // Record the newest timestamp on first load without speaking
+        _latestTimestamp = announcements.first.timestamp;
+        _isInitialLoad = false;
+      } else {
+        // Check if there's a new announcement
+        final newest = announcements.first;
+        if (_latestTimestamp == null ||
+            newest.timestamp.isAfter(_latestTimestamp!)) {
+          _latestTimestamp = newest.timestamp;
+          _speakAnnouncement(
+            "New announcement: ${newest.title}. ${newest.message}",
+            newest.id,
+          );
+        }
+      }
+    });
+  }
+
+  // --- NEW TTS PLAYBACK METHOD ---
+  Future<void> _speakAnnouncement(String text, String id) async {
+    if (_currentlySpeakingId == id) {
+      // If tapping the same one, stop it
+      await _flutterTts.stop();
+      if (mounted) setState(() => _currentlySpeakingId = null);
+    } else {
+      // Stop anything playing, update state, and speak new text
+      await _flutterTts.stop();
+      if (mounted) setState(() => _currentlySpeakingId = id);
+      await _flutterTts.speak(text);
+    }
+  }
+
+  @override
+  void dispose() {
+    _announcementSubscription?.cancel();
+    _flutterTts.stop();
+    super.dispose();
+  }
+
+  void _refreshStream() {
+    setState(() {
+      _isInitialLoad =
+          true; // Reset so we don't accidentally auto-play older data
+      _initializeStream();
+    });
+  }
+
+  IconData _getSafeIcon(String hexCode) {
+    final Map<String, IconData> safeIcons = {
+      '0xef4c': Icons.notifications,
+      '0xe000': Icons.warning,
+      '0xe3fc': Icons.event,
+      '0xe88a': Icons.home,
+      '0xe3e3': Icons.info,
+      '0xe047': Icons.campaign,
+    };
+
+    String formattedCode = hexCode.toLowerCase().trim();
+    return safeIcons[formattedCode] ?? Icons.notifications;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Announcements',
+                style: h3.copyWith(
+                  fontSize: 20,
+                  color: widget.theme.textColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _refreshStream,
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(
+                      Icons.refresh_rounded,
+                      color: primary,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: spacingMedium),
+        StreamBuilder<List<AnnouncementModel>>(
+          stream: _announcementStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return _buildSkeletonList();
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(spacingMedium),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Error loading announcements',
+                        style: body.copyWith(color: Colors.red),
+                      ),
+                      const SizedBox(height: spacingSmall),
+                      TextButton(
+                        onPressed: _refreshStream,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final allAnnouncements = snapshot.data ?? [];
+
+            if (allAnnouncements.isEmpty) {
+              return _buildEmptyAnnouncementsCard();
+            }
+
+            final displayedAnnouncements = allAnnouncements
+                .take(maxDisplayedAnnouncements)
+                .toList();
+            final hasMoreAnnouncements =
+                allAnnouncements.length > maxDisplayedAnnouncements;
+
+            return AnimationLimiter(
+              child: Column(
+                children: AnimationConfiguration.toStaggeredList(
+                  duration: const Duration(milliseconds: 375),
+                  childAnimationBuilder: (widget) => SlideAnimation(
+                    verticalOffset: 50.0,
+                    child: FadeInAnimation(child: widget),
+                  ),
+                  children: [
+                    ...displayedAnnouncements.map((announcement) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: spacingMedium),
+                        child: _buildAnnouncementCard(announcement),
+                      );
+                    }),
+
+                    if (hasMoreAnnouncements)
+                      Padding(
+                        padding: const EdgeInsets.only(top: spacingSmall),
+                        child: _buildViewAllButton(allAnnouncements),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // (Skeleton list, view all button, navigation, and empty card widgets remain the same)
+  Widget _buildSkeletonList() {
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
+    return Column(
+      children: List.generate(
+        3,
+        (index) => Padding(
+          padding: const EdgeInsets.only(bottom: spacingMedium),
+          child: Shimmer.fromColors(
+            baseColor: baseColor,
+            highlightColor: highlightColor,
+            child: Container(
+              padding: const EdgeInsets.all(spacingMedium),
+              decoration: BoxDecoration(
+                color: widget.isDarkMode ? Colors.black : Colors.white,
+                borderRadius: BorderRadius.circular(radiusLarge),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(radiusMedium),
+                    ),
+                  ),
+                  const SizedBox(width: spacingMedium),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 8),
+                        Container(width: 100, height: 12, color: Colors.white),
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          height: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 4),
+                        Container(width: 150, height: 12, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewAllButton(List<AnnouncementModel> allAnnouncements) {
+    return Semantics(
+      label: 'View all ${allAnnouncements.length} announcements',
+      button: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _navigateToAllAnnouncements(context, allAnnouncements),
+          borderRadius: BorderRadius.circular(radiusMedium),
+          child: Container(
+            padding: const EdgeInsets.all(spacingMedium),
+            decoration: BoxDecoration(
+              color: widget.theme.cardColor,
+              borderRadius: BorderRadius.circular(radiusMedium),
+              border: Border.all(
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.view_list_rounded, color: primary, size: 20),
+                const SizedBox(width: spacingSmall),
+                Text(
+                  'View All Announcements (${allAnnouncements.length})',
+                  style: bodyBold.copyWith(
+                    fontSize: 14,
+                    color: primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(width: spacingSmall),
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: primary,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAllAnnouncements(
+    BuildContext context,
+    List<AnnouncementModel> announcements,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AllAnnouncementsVIPage(
+          isDarkMode: widget.isDarkMode,
+          theme: widget.theme,
+          announcements: announcements,
+          userId: widget.userId,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyAnnouncementsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        vertical: spacingXLarge,
+        horizontal: spacingLarge,
+      ),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusLarge),
+        boxShadow: widget.isDarkMode ? [] : softShadow,
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.notifications_none_rounded,
+            color: widget.theme.subtextColor.withValues(alpha: 0.5),
+            size: 48,
+          ),
+          const SizedBox(height: spacingMedium),
+          Text(
+            'No announcements yet',
+            style: bodyBold.copyWith(
+              fontSize: 16,
+              color: widget.theme.textColor,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: spacingSmall),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: spacingMedium),
+            child: Text(
+              'Check back later for updates from MSWD',
+              style: caption.copyWith(
+                fontSize: 13,
+                color: widget.theme.subtextColor,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnnouncementCard(AnnouncementModel announcement) {
+    String timeAgo = _getTimeAgo(announcement.timestamp);
+    IconData icon = _getSafeIcon(announcement.iconCodePoint);
+    Color color = Color(announcement.colorValue);
+    bool isSpeaking =
+        _currentlySpeakingId ==
+        announcement.id; // Check if this card is playing
+
+    return Semantics(
+      label:
+          'Announcement: ${announcement.title}. ${announcement.message}. Posted $timeAgo',
+      readOnly: true,
+      child: Container(
+        padding: const EdgeInsets.all(spacingMedium),
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(radiusLarge),
+          boxShadow: widget.isDarkMode ? [] : softShadow,
+          border: Border.all(
+            color: widget.isDarkMode
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.05),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start, // Align to top to fit button nicely
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(spacingSmall),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(radiusMedium),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                const SizedBox(width: spacingMedium),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        announcement.title,
+                        style: bodyBold.copyWith(
+                          fontSize: 15,
+                          color: widget.theme.textColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(radiusSmall),
+                          border: Border.all(
+                            color: color.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getAudienceIcon(announcement.targetAudience),
+                              color: color,
+                              size: 12,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _getAudienceLabel(announcement),
+                              style: caption.copyWith(
+                                fontSize: 11,
+                                color: color,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // --- NEW TTS PLAY/STOP BUTTON ---
+                IconButton(
+                  icon: Icon(
+                    isSpeaking
+                        ? Icons.stop_circle_rounded
+                        : Icons.volume_up_rounded,
+                    color: isSpeaking ? Colors.red : primary,
+                    size: 28,
+                  ),
+                  onPressed: () => _speakAnnouncement(
+                    "${announcement.title}. ${announcement.message}",
+                    announcement.id,
+                  ),
+                  tooltip: isSpeaking
+                      ? 'Stop playback'
+                      : 'Listen to announcement',
+                ),
+              ],
+            ),
+            const SizedBox(height: spacingMedium),
+            Text(
+              announcement.message,
+              style: caption.copyWith(
+                fontSize: 13,
+                color: widget.theme.subtextColor,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: spacingSmall),
+            Row(
+              children: [
+                Icon(
+                  Icons.access_time_rounded,
+                  color: widget.theme.subtextColor.withValues(alpha: 0.7),
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  timeAgo,
+                  style: caption.copyWith(
+                    fontSize: 11,
+                    color: widget.theme.subtextColor.withValues(alpha: 0.7),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getAudienceIcon(String audience) {
+    switch (audience) {
+      case 'Caretakers':
+        return Icons.volunteer_activism_rounded;
+      case 'Partially Sighted':
+        return Icons.visibility_off_rounded;
+      case 'Specific Users':
+        return Icons.person_rounded;
+      default:
+        return Icons.people_rounded;
+    }
+  }
+
+  String _getAudienceLabel(AnnouncementModel announcement) {
+    if (announcement.targetAudience == 'Partially Sighted') {
+      return 'For All Partially Sighted';
+    } else if (announcement.targetAudience == 'Specific Users' &&
+        announcement.specificUsers.contains(widget.userId)) {
+      return 'For You';
+    }
+    return announcement.targetAudience;
+  }
+
+  String _getTimeAgo(DateTime timestamp) {
+    Duration difference = DateTime.now().difference(timestamp);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
+    } else {
+      final months = (difference.inDays / 30).floor();
+      return '$months ${months == 1 ? 'month' : 'months'} ago';
+    }
+  }
+}
