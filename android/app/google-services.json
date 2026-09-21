@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "697931553557",
+    "firebase_url": "https://seelai-4b026-default-rtdb.firebaseio.com",
+    "project_id": "seelai-4b026",
+    "storage_bucket": "seelai-4b026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:697931553557:android:4a747185ba437d8015a71c",
+        "android_client_info": {
+          "package_name": "com.example.seelai_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "697931553557-6d84f0ganfkldeok55mesmc0qk7trqdv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.seelai_app",
+            "certificate_hash": "b0448745e3284fe283971ab46196b6b34f832538"
+          }
+        },
+        {
+          "client_id": "697931553557-304p5dirv4gm14ihl6fhb38gso704gcs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCpdRUgnEgn3Ox81MQGEe07ydZoTIWNk9M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "697931553557-304p5dirv4gm14ihl6fhb38gso704gcs.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "697931553557-ok92n1gvfigdvvr2afggb0410g3hoe6f.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.seelaiApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
