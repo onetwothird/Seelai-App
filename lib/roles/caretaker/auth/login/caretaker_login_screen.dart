@@ -1,0 +1,690 @@
+// File: lib/roles/caretaker/auth/login/login_screen.dart
+
+import 'package:flutter/material.dart';
+import 'package:seelai_app/themes/constants.dart';
+import 'package:seelai_app/roles/caretaker/auth/signup/caretaker_signup_screen.dart';
+import 'package:seelai_app/roles/caretaker/home/caretaker_home_screen.dart';
+import 'package:seelai_app/firebase/auth_service.dart';
+import 'package:seelai_app/firebase/database_service.dart';
+import 'package:seelai_app/firebase/activity_logs_service.dart';
+import 'package:seelai_app/mobile/loading_overlay.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+class CaretakerLoginScreen extends StatefulWidget {
+  const CaretakerLoginScreen({super.key});
+
+  @override
+  State<CaretakerLoginScreen> createState() => _CaretakerLoginScreenState();
+}
+
+class _CaretakerLoginScreenState extends State<CaretakerLoginScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _entryController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  bool _obscurePassword = true;
+  bool _isLoading = false;
+
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _entryController, curve: Curves.easeOutQuart),
+        );
+
+    _entryController.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final Color brandColor = primary;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          // 1. Top Section: Hero Animation
+          Positioned(
+            top: -60, // Try -60, -80, or -100 to pull it up more
+            left: 0,
+            right: 0,
+            height:
+                (size.height * 0.40) +
+                60, // Remember to add that exact amount back here
+            child: Image.asset(
+              'assets/seelai-icons/seelai_model.gif',
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // 2. Back Button (High Contrast & Clear UX)
+          Positioned(
+            top: 50,
+            left: 20,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(
+                  alpha: 0.3,
+                ), // Semi-transparent dark circle
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                color: Colors.white, // Crisp white arrow
+                iconSize: 22,
+                tooltip: 'Go back',
+              ),
+            ),
+          ),
+
+          // 3. Bottom Section: The Card
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Container(
+                  height: size.height * 0.60,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(40),
+                      topRight: Radius.circular(40),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 30,
+                        offset: const Offset(0, -10),
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Background Texture
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(40),
+                            topRight: Radius.circular(40),
+                          ),
+                          child: Opacity(
+                            opacity: 0.08,
+                            child: Image.asset(
+                              'assets/icons/eye background.jpg',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      // Content
+                      SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(32, 40, 32, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Welcome, Caretaker!",
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1E293B),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              "Sign in to manage and support your patients.",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF64748B),
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Standard Login Fields
+                            _buildTextField(
+                              controller: _emailController,
+                              hint: "Email address",
+                              icon: Icons.email_outlined,
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            _buildTextField(
+                              controller: _passwordController,
+                              hint: "Password",
+                              icon: Icons.lock_outline_rounded,
+                              isPassword: true,
+                            ),
+
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : _showForgotPasswordDialog,
+                                child: Text(
+                                  "Forgot password?",
+                                  style: TextStyle(
+                                    color: brandColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _handleLogin,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: brandColor,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Sign In",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // --- GOOGLE SECTION ---
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Divider(color: Color(0xFFE2E8F0)),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: const Text(
+                                    "OR",
+                                    style: TextStyle(color: Color(0xFF94A3B8)),
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Divider(color: Color(0xFFE2E8F0)),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: OutlinedButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : _handleGoogleLogin,
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Color(0xFFE2E8F0),
+                                    width: 1.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF1E293B),
+                                  elevation: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      'assets/icons/google.png',
+                                      height: 24,
+                                      width: 24,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Text(
+                                      "Continue with Google",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF1E293B),
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // --- END GOOGLE SECTION ---
+                            const SizedBox(height: 24),
+
+                            Center(
+                              child: TextButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const CaretakerSignupScreen(),
+                                          ),
+                                        );
+                                      },
+                                child: RichText(
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      color: Color(0xFF64748B),
+                                      fontSize: 15,
+                                    ),
+                                    children: [
+                                      const TextSpan(
+                                        text: "Don't have an account? ",
+                                      ),
+                                      TextSpan(
+                                        text: "Sign Up",
+                                        style: TextStyle(
+                                          color: brandColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_isLoading) LoadingOverlay(message: '', isVisible: _isLoading),
+        ],
+      ),
+    );
+  }
+
+  // --- Widgets ---
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: isPassword && _obscurePassword,
+        style: const TextStyle(fontSize: 16, color: Color(0xFF1E293B)),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+          prefixIcon: Icon(icon, color: const Color(0xFF64748B)),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    // FIXED: Save parent context
+    final parentContext = context;
+    final TextEditingController emailController = TextEditingController();
+
+    showDialog(
+      context: parentContext,
+      // FIXED: Rename builder context
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Reset Password'),
+          content: TextField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              hintText: 'Enter your email',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final email = emailController.text.trim();
+
+                if (email.isEmpty) {
+                  Navigator.pop(dialogContext);
+                  if (parentContext.mounted) {
+                    ScaffoldMessenger.of(parentContext).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter your email'),
+                        backgroundColor: error,
+                      ),
+                    );
+                  }
+                  return;
+                }
+
+                try {
+                  await authService.value.sendPasswordResetEmail(email: email);
+
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+
+                  if (!parentContext.mounted) return;
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('Password reset email sent!'),
+                      backgroundColor: success,
+                    ),
+                  );
+                } catch (e) {
+                  if (!dialogContext.mounted) return;
+                  Navigator.pop(dialogContext);
+
+                  if (!parentContext.mounted) return;
+                  ScaffoldMessenger.of(parentContext).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: ${e.toString()}'),
+                      backgroundColor: error,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Send'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ==================== GOOGLE LOGIN LOGIC ====================
+  Future<void> _handleGoogleLogin() async {
+    setState(() => _isLoading = true);
+
+    try {
+      UserCredential? userCredential = await authService.value
+          .signInWithGoogle();
+
+      if (userCredential == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      Map<String, dynamic>? userData = await databaseService.getUserData(
+        userCredential.user!.uid,
+      );
+
+      if (userData != null) {
+        if (userData['role'] != 'caretaker') {
+          await authService.value.signOut();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Not a registered Caretaker account'),
+              backgroundColor: error,
+            ),
+          );
+          return;
+        }
+
+        bool isApproved = userData['approved'] == true;
+
+        if (!isApproved) {
+          await authService.value.signOut();
+          if (!mounted) return;
+          _showPendingVerificationDialog();
+          setState(() => _isLoading = false);
+          return;
+        }
+
+        await activityLogsService.logActivity(
+          userId: userCredential.user!.uid,
+          action: 'login',
+          details: 'Caretaker logged in via Google',
+        );
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CaretakerHomeScreen(userData: userData),
+          ),
+        );
+      } else {
+        // User not in DB, route to Signup
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                CaretakerSignupScreen(googleUser: userCredential.user),
+          ),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Almost there! Please complete your profile.'),
+            backgroundColor: primary,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // ==================== STANDARD LOGIN LOGIC ====================
+  Future<void> _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill in all fields'),
+          backgroundColor: error,
+        ),
+      );
+      return;
+    }
+    if (!_emailController.text.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address'),
+          backgroundColor: error,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      UserCredential userCredential = await authService.value.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      Map<String, dynamic>? userData = await databaseService.getUserData(
+        userCredential.user!.uid,
+      );
+
+      if (userData != null && userData['role'] == 'caretaker') {
+        bool isApproved = userData['approved'] == true;
+
+        if (!isApproved) {
+          await authService.value.signOut();
+          if (!mounted) return;
+          _showPendingVerificationDialog();
+          setState(() => _isLoading = false);
+          return;
+        }
+
+        await activityLogsService.logActivity(
+          userId: userCredential.user!.uid,
+          action: 'login',
+          details: 'Caretaker logged in',
+        );
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CaretakerHomeScreen(userData: userData),
+          ),
+        );
+      } else {
+        await authService.value.signOut();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Not a registered Caretaker account'),
+            backgroundColor: error,
+          ),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'An error occurred';
+
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found with this email';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Wrong password';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (e.code == 'user-disabled') {
+        errorMessage = 'Account disabled';
+      } else if (e.code == 'too-many-requests') {
+        errorMessage = 'Too many attempts. Try again later';
+      } else {
+        errorMessage = e.message ?? 'Login failed';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage), backgroundColor: error),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showPendingVerificationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.verified_user_outlined, color: Colors.orange, size: 28),
+            SizedBox(width: 10),
+            Text('Pending Verification'),
+          ],
+        ),
+        content: const Text(
+          'Your account is currently under review by MSWD.\n\nYou cannot access the system until your account has been verified and approved.',
+          style: TextStyle(fontSize: 15, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'OK',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
