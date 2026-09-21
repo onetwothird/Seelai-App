@@ -1,0 +1,1790 @@
+// File: lib/roles/caretaker/home/sections/requests_screen/requests_content.dart
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:seelai_app/themes/constants.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_model.dart';
+import 'package:seelai_app/firebase/caretaker/request_service.dart';
+import 'package:seelai_app/roles/caretaker/home/sections/requests_screen/request_details_screen.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
+
+class RequestsContent extends StatefulWidget {
+  final bool isDarkMode;
+  final dynamic theme;
+  final Map<String, dynamic> userData;
+  final RequestService requestService;
+  final Function(int) onRequestCountChange;
+  final ScrollController? scrollController;
+
+  const RequestsContent({
+    super.key,
+    required this.isDarkMode,
+    required this.theme,
+    required this.userData,
+    required this.requestService,
+    required this.onRequestCountChange,
+    this.scrollController,
+  });
+
+  @override
+  State<RequestsContent> createState() => _RequestsContentState();
+}
+
+class _RequestsContentState extends State<RequestsContent>
+    with TickerProviderStateMixin {
+  final Color _primaryColor = const Color(0xFF8B5CF6);
+
+  late TabController _tabController;
+  List<RequestModel> _pendingRequests = [];
+  List<RequestModel> _activeRequests = [];
+  List<RequestModel> _completedRequests = [];
+
+  bool _isLoading = true;
+  String? _error;
+  String? _caretakerId;
+  StreamSubscription<List<RequestModel>>? _requestsSubscription;
+  final Map<String, String?> _profileImageCache = {};
+
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
+  final Set<String> _hiddenRequestIds = {};
+  final Map<int, int> _tabPages = {0: 1, 1: 1, 2: 1, 3: 1};
+  final int _itemsPerPage = 5;
+
+  final FlutterTts _flutterTts = FlutterTts();
+
+  bool _isSimulatingLoad = true;
+
+  late AnimationController _entryController;
+  late Animation<double> _headerOpacity;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
+
+    _initializeTts();
+
+    _initializeCaretakerId().then((_) {
+      if (_caretakerId != null) {
+        databaseService.saveUserFCMToken(_caretakerId!, 'caretaker');
+      }
+    });
+
+    _startMessageTimer();
+
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
+          ),
+        );
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack),
+      ),
+    );
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack),
+      ),
+    );
+
+    _entryController.forward();
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingLoad = false;
+        });
+      }
+    });
+
+    FlutterCallkitIncoming.onEvent.listen((CallEvent? event) {
+      switch (event!.event) {
+        case Event.actionCallAccept:
+          break;
+        case Event.actionCallDecline:
+          debugPrint("Alarm dismissed by user.");
+          break;
+        default:
+          break;
+      }
+    });
+  }
+
+  Future<void> _initializeTts() async {
+    try {
+      await _flutterTts.setLanguage("en-US");
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+    } catch (e) {
+      debugPrint("Error initializing TTS: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _flutterTts.stop();
+    _messageTimer?.cancel();
+    _tabController.dispose();
+    _requestsSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _startMessageTimer() {
+    _messageTimer = Timer.periodic(const Duration(seconds: 8), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex++;
+        });
+      }
+    });
+  }
+
+  String _getFirstName() {
+    final name = widget.userData['name'] as String? ?? 'Caretaker';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    return parts.isNotEmpty ? parts.first : 'Caretaker';
+  }
+
+  List<String> _getMascotMessages() {
+    int pendingCount = _pendingRequests.length;
+    int activeCount = _activeRequests.length;
+
+    List<String> messages = [];
+
+    if (pendingCount > 0 || activeCount > 0) {
+      messages.add(
+        'Hello, ${_getFirstName()}! You have $pendingCount pending request${pendingCount != 1 ? 's' : ''} and $activeCount active task${activeCount != 1 ? 's' : ''} right now.',
+      );
+    } else {
+      messages.add(
+        'Hello, ${_getFirstName()}! You\'re all caught up. No pending or active requests at the moment.',
+      );
+    }
+
+    messages.add(
+      'Remember to check the priority labels on requests. Red signifies an urgent need!',
+    );
+    messages.add(
+      'You can quickly switch between the Pending, Active, and History tabs to manage your workflow.',
+    );
+
+    return messages;
+  }
+
+  Future<void> _initializeCaretakerId() async {
+    String? caretakerId = widget.userData['uid'] as String?;
+
+    if (caretakerId == null || caretakerId.isEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      caretakerId = user?.uid;
+    }
+
+    if (caretakerId == null || caretakerId.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _error = 'Caretaker ID not found.';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _caretakerId = caretakerId;
+      });
+    }
+
+    _setupRequestsStream();
+  }
+
+  void _setupRequestsStream() {
+    if (_caretakerId == null) return;
+
+    _requestsSubscription = widget.requestService
+        .streamRequests(_caretakerId!)
+        .listen(
+          (requests) {
+            if (mounted) {
+              setState(() {
+                _pendingRequests = requests
+                    .where((req) => req.status == RequestStatus.pending)
+                    .toList();
+
+                _activeRequests = requests
+                    .where(
+                      (req) =>
+                          req.status == RequestStatus.accepted ||
+                          req.status == RequestStatus.inProgress,
+                    )
+                    .toList();
+
+                _completedRequests = requests
+                    .where(
+                      (req) =>
+                          req.status == RequestStatus.completed ||
+                          req.status == RequestStatus.declined,
+                    )
+                    .toList();
+
+                _isLoading = false;
+                _error = null;
+
+                widget.onRequestCountChange(_pendingRequests.length);
+              });
+
+              _preloadProfileImages(requests);
+            }
+          },
+          onError: (error) {
+            debugPrint('Error loading requests: $error');
+            if (mounted) {
+              setState(() {
+                _error = 'Failed to load requests';
+                _isLoading = false;
+              });
+            }
+          },
+        );
+  }
+
+  Future<void> _preloadProfileImages(List<RequestModel> requests) async {
+    for (var request in requests) {
+      if (!_profileImageCache.containsKey(request.patientId)) {
+        _getProfileImage(request.patientId);
+      }
+    }
+  }
+
+  Future<String?> _getProfileImage(String patientId) async {
+    if (_profileImageCache.containsKey(patientId)) {
+      return _profileImageCache[patientId];
+    }
+
+    try {
+      final userData = await databaseService.getUserData(patientId);
+      final profileImageUrl = userData?['profileImageUrl'] as String?;
+
+      if (mounted) {
+        setState(() {
+          _profileImageCache[patientId] = profileImageUrl;
+        });
+      }
+      return profileImageUrl;
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _profileImageCache[patientId] = null;
+        });
+      }
+      return null;
+    }
+  }
+
+  Future<void> _refreshRequests() async {
+    if (_caretakerId == null) {
+      await _initializeCaretakerId();
+      return;
+    }
+    await Future.delayed(const Duration(milliseconds: 500));
+  }
+
+  Future<void> _permanentlyDeleteRequest(RequestModel request) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: widget.theme.cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Text(
+              'Permanent Delete',
+              style: TextStyle(color: widget.theme.textColor, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Text(
+          'This will permanently remove the request from the Firebase database. This action cannot be undone. Are you sure?',
+          style: TextStyle(color: widget.theme.subtextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final success = await assistanceRequestService.deleteRequest(request.id);
+      if (success && mounted) {
+        setState(() {
+          _hiddenRequestIds.remove(request.id);
+          _completedRequests.removeWhere((r) => r.id == request.id);
+        });
+        _flutterTts.speak('Request permanently deleted.');
+      } else if (mounted) {
+        _flutterTts.speak('Failed to delete request.');
+      }
+    }
+  }
+
+  Widget _buildSkeletonStats() {
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  height: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonTabs() {
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        height: 50,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(25),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonRequestList() {
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        children: List.generate(
+          4,
+          (index) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Container(
+              height: 140,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final bool showSkeleton =
+        _isSimulatingLoad || (_isLoading && _pendingRequests.isEmpty);
+
+    return RefreshIndicator(
+      onRefresh: _refreshRequests,
+      color: _primaryColor,
+      child: CustomScrollView(
+        controller: widget.scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FadeTransition(
+                  opacity: _headerOpacity,
+                  child: SlideTransition(
+                    position: _headerSlide,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.05,
+                        right: width * 0.05,
+                        top: spacingLarge,
+                      ),
+                      child: _buildHeader(),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: spacingMedium),
+                _buildMascotBanner(),
+                const SizedBox(height: spacingMedium),
+              ],
+            ),
+          ),
+
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+            sliver: SliverToBoxAdapter(
+              child: showSkeleton
+                  ? _buildSkeletonStats()
+                  : _buildMinimalStats(),
+            ),
+          ),
+
+          SliverPadding(
+            padding: EdgeInsets.only(
+              left: width * 0.05,
+              right: width * 0.05,
+              top: spacingLarge,
+              bottom: spacingMedium,
+            ),
+            sliver: SliverToBoxAdapter(
+              child: showSkeleton ? _buildSkeletonTabs() : _buildMinimalTabs(),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: _error != null && !_isLoading && !showSkeleton
+                ? _buildErrorState()
+                : showSkeleton
+                ? Padding(
+                    padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+                    child: _buildSkeletonRequestList(),
+                  )
+                : _buildRequestListContainer(),
+          ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Assistance Requests',
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            color: widget.theme.textColor,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Manage incoming help requests',
+          style: TextStyle(fontSize: 14, color: widget.theme.subtextColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMascotBanner() {
+    final messages = _getMascotMessages();
+    final safeIndex = _currentMessageIndex % messages.length;
+    final displayMessage = messages[safeIndex];
+
+    final longestMessage = messages.isNotEmpty
+        ? messages.reduce((a, b) => a.length > b.length ? a : b)
+        : '';
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double mascotSize = (screenWidth * 0.32).clamp(100.0, 140.0);
+    final double tailBottomMargin = mascotSize * 0.285;
+    final double bubbleBottomMargin = mascotSize * 0.107;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: FadeTransition(
+            opacity: _headerOpacity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryColor.withValues(
+                      alpha: widget.isDarkMode ? 0.25 : 0.15,
+                    ),
+                    _primaryColor.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              ScaleTransition(
+                scale: _mascotScale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai4.webp',
+                  height: mascotSize,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: mascotSize * 0.7,
+                    width: mascotSize * 0.7,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.image_not_supported,
+                      color: widget.theme.subtextColor,
+                      size: mascotSize * 0.25,
+                    ),
+                  ),
+                ),
+              ),
+
+              Container(
+                margin: EdgeInsets.only(bottom: tailBottomMargin),
+                child: ScaleTransition(
+                  scale: _bubbleScale,
+                  alignment: Alignment.bottomRight,
+                  child: CustomPaint(
+                    size: const Size(12, 16),
+                    painter: _TailPainter(
+                      color: widget.isDarkMode
+                          ? const Color(0xFF1A1F3A)
+                          : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin),
+                  child: ScaleTransition(
+                    scale: _bubbleScale,
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 18,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode
+                            ? const Color(0xFF1A1F3A)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: widget.isDarkMode
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: _primaryColor.withValues(alpha: 0.1),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Seelai',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: _primaryColor,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+
+                          Stack(
+                            children: [
+                              Text(
+                                longestMessage,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.transparent,
+                                  height: 1.4,
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: TypewriterText(
+                                  text: displayMessage,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : Colors.black87,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMinimalStats() {
+    final int totalRequests =
+        _pendingRequests.length +
+        _activeRequests.length +
+        _completedRequests.length;
+
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                count: totalRequests,
+                title: 'Total',
+                subtitle: 'All requests',
+                bottomLabel: 'TOTAL',
+                baseColor: _primaryColor,
+                backgroundIcon: Icons.all_inbox_outlined,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatItem(
+                count: _pendingRequests.length,
+                title: 'Pending',
+                subtitle: 'Awaiting review',
+                bottomLabel: 'REQUESTS',
+                baseColor: const Color(0xFFF5A623),
+                backgroundIcon: Icons.assignment_outlined,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatItem(
+                count: _activeRequests.length,
+                title: 'In Progress',
+                subtitle: 'Active sessions',
+                bottomLabel: 'ONGOING',
+                baseColor: const Color(0xFF60A5FA),
+                backgroundIcon: Icons.touch_app_outlined,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatItem(
+                count: _completedRequests.length,
+                title: 'Completed',
+                subtitle: 'Finished tasks',
+                bottomLabel: 'TOTAL',
+                baseColor: const Color(0xFF34D399),
+                backgroundIcon: Icons.task_alt_outlined,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem({
+    required int count,
+    required String title,
+    required String subtitle,
+    required String bottomLabel,
+    required Color baseColor,
+    required IconData backgroundIcon,
+  }) {
+    return Container(
+      height: 140,
+      clipBehavior: Clip.hardEdge,
+      decoration: BoxDecoration(
+        color: baseColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: baseColor.withValues(alpha: 0.15)),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -15,
+            bottom: -10,
+            child: Icon(
+              backgroundIcon,
+              size: 110,
+              color: baseColor.withValues(alpha: 0.12),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: widget.theme.textColor,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: -0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: widget.theme.subtextColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.more_horiz_rounded,
+                      color: widget.theme.subtextColor,
+                      size: 20,
+                    ),
+                  ],
+                ),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      bottomLabel,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: widget.theme.subtextColor,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      count.toString(),
+                      style: TextStyle(
+                        fontSize: 26,
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1,
+                        height: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMinimalTabs() {
+    return Container(
+      height: 50,
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(25),
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white10
+              : Colors.black.withValues(alpha: 0.04),
+        ),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          color: _primaryColor,
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: widget.theme.subtextColor,
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+          letterSpacing: -0.2,
+        ),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+        indicatorSize: TabBarIndicatorSize.tab,
+        dividerColor: Colors.transparent,
+        padding: const EdgeInsets.all(4),
+        tabs: const [
+          Tab(text: 'Pending'),
+          Tab(text: 'Active'),
+          Tab(text: 'History'),
+          Tab(text: 'Deleted'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRequestListContainer() {
+    List<RequestModel> visibleRequests;
+    final currentTabIndex = _tabController.index;
+
+    switch (currentTabIndex) {
+      case 0:
+        visibleRequests = _pendingRequests;
+        break;
+      case 1:
+        visibleRequests = _activeRequests;
+        break;
+      case 2:
+        visibleRequests = _completedRequests
+            .where((req) => !_hiddenRequestIds.contains(req.id))
+            .toList();
+        break;
+      case 3:
+        visibleRequests = _completedRequests
+            .where((req) => _hiddenRequestIds.contains(req.id))
+            .toList();
+        break;
+      default:
+        visibleRequests = _pendingRequests;
+    }
+
+    if (visibleRequests.isEmpty) {
+      return SizedBox(height: 300, child: _buildEmptyState());
+    }
+
+    final int totalItems = visibleRequests.length;
+    final int totalPages = (totalItems / _itemsPerPage).ceil();
+
+    int currentPage = _tabPages[currentTabIndex] ?? 1;
+
+    if (currentPage > totalPages && totalPages > 0) {
+      currentPage = totalPages;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          _tabPages[currentTabIndex] = currentPage;
+        });
+      });
+    }
+
+    final int startIndex = (currentPage - 1) * _itemsPerPage;
+    int endIndex = startIndex + _itemsPerPage;
+    if (endIndex > totalItems) endIndex = totalItems;
+
+    final paginatedRequests = visibleRequests.sublist(startIndex, endIndex);
+    final width = MediaQuery.of(context).size.width;
+
+    return Column(
+      children: [
+        ListView.builder(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: paginatedRequests.length,
+          itemBuilder: (context, index) {
+            final request = paginatedRequests[index];
+            return Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: width * 0.05,
+                vertical: 6,
+              ),
+              child: _buildCardForCurrentTab(request, currentTabIndex),
+            );
+          },
+        ),
+
+        if (totalPages > 1)
+          _buildPaginationControls(currentPage, totalPages, currentTabIndex),
+      ],
+    );
+  }
+
+  Widget _buildCardForCurrentTab(RequestModel request, int currentTabIndex) {
+    if (currentTabIndex == 2) {
+      return _buildDismissibleCard(request);
+    } else if (currentTabIndex == 3) {
+      return _buildDeletedCard(request);
+    } else {
+      return _buildMinimalRequestCard(request);
+    }
+  }
+
+  Widget _buildDeletedCard(RequestModel request) {
+    final priorityColor = request.getPriorityColor();
+    final cachedImage = _profileImageCache[request.patientId];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white10
+              : Colors.black.withValues(alpha: 0.04),
+        ),
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: (cachedImage != null && cachedImage.isNotEmpty)
+                        ? (widget.isDarkMode ? Colors.white10 : Colors.white)
+                        : _primaryColor.withValues(alpha: 0.1),
+                    border: Border.all(
+                      color: _primaryColor.withValues(alpha: 0.2),
+                      width: 1.5,
+                    ),
+                    image: cachedImage != null
+                        ? DecorationImage(
+                            image: NetworkImage(cachedImage),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: cachedImage == null
+                      ? Icon(
+                          Icons.person_rounded,
+                          color: _primaryColor,
+                          size: 24,
+                        )
+                      : null,
+                ),
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        request.patientName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: widget.theme.textColor,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            request.getIcon(),
+                            size: 14,
+                            color: widget.theme.subtextColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            request.requestType,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: widget.theme.subtextColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: priorityColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    request.priority.name.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: priorityColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            Text(
+              request.message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                color: widget.theme.textColor.withOpacity(0.85),
+                height: 1.4,
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: widget.isDarkMode
+                        ? Colors.white10
+                        : Colors.grey.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.access_time_rounded,
+                    size: 14,
+                    color: widget.theme.subtextColor,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _getTimeAgo(request.timestamp),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: widget.theme.subtextColor,
+                  ),
+                ),
+
+                const Spacer(),
+
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.delete_forever_rounded, size: 20),
+                    color: Colors.red,
+                    onPressed: () => _permanentlyDeleteRequest(request),
+                    tooltip: 'Permanently Delete',
+                  ),
+                ),
+
+                const SizedBox(width: 8),
+
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.withValues(alpha: 0.1),
+                    foregroundColor: Colors.green,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 0,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.restore_rounded, size: 16),
+                  label: const Text(
+                    'Restore',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _hiddenRequestIds.remove(request.id);
+                    });
+                    _flutterTts.speak("Request restored");
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls(
+    int currentPage,
+    int totalPages,
+    int tabIndex,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded),
+            color: currentPage > 1
+                ? _primaryColor
+                : widget.theme.subtextColor.withOpacity(0.3),
+            onPressed: currentPage > 1
+                ? () {
+                    setState(() {
+                      _tabPages[tabIndex] = currentPage - 1;
+                    });
+                  }
+                : null,
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Page $currentPage of $totalPages',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: _primaryColor,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right_rounded),
+            color: currentPage < totalPages
+                ? _primaryColor
+                : widget.theme.subtextColor.withOpacity(0.3),
+            onPressed: currentPage < totalPages
+                ? () {
+                    setState(() {
+                      _tabPages[tabIndex] = currentPage + 1;
+                    });
+                  }
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDismissibleCard(RequestModel request) {
+    return Dismissible(
+      key: Key(request.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 24.0),
+        decoration: BoxDecoration(
+          color: Colors.red[400],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(
+          Icons.delete_sweep_rounded,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+      onDismissed: (direction) {
+        setState(() {
+          _hiddenRequestIds.add(request.id);
+        });
+
+        _flutterTts.speak("Moved to deleted");
+      },
+      child: _buildMinimalRequestCard(request),
+    );
+  }
+
+  Widget _buildMinimalRequestCard(RequestModel request) {
+    final priorityColor = request.getPriorityColor();
+    final cachedImage = _profileImageCache[request.patientId];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white10
+              : Colors.black.withValues(alpha: 0.04),
+        ),
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => RequestDetailsScreen(
+                  request: request,
+                  isDarkMode: widget.isDarkMode,
+                  requestService: widget.requestService,
+                  preloadedProfileImage: cachedImage,
+                ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Hero(
+                      tag: 'avatar_${request.id}',
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: (cachedImage != null && cachedImage.isNotEmpty)
+                              ? (widget.isDarkMode
+                                    ? Colors.white10
+                                    : Colors.white)
+                              : _primaryColor.withValues(alpha: 0.1),
+                          border: Border.all(
+                            color: _primaryColor.withValues(alpha: 0.2),
+                            width: 1.5,
+                          ),
+                          image: cachedImage != null
+                              ? DecorationImage(
+                                  image: NetworkImage(cachedImage),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: cachedImage == null
+                            ? Icon(
+                                Icons.person_rounded,
+                                color: _primaryColor,
+                                size: 24,
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            request.patientName,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: widget.theme.textColor,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                request.getIcon(),
+                                size: 14,
+                                color: widget.theme.subtextColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                request.requestType,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: widget.theme.subtextColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: priorityColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        request.priority.name.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: priorityColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                Text(
+                  request.message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: widget.theme.textColor.withOpacity(0.85),
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode
+                            ? Colors.white10
+                            : Colors.grey.shade100,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.access_time_rounded,
+                        size: 14,
+                        color: widget.theme.subtextColor,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _getTimeAgo(request.timestamp),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: widget.theme.subtextColor,
+                      ),
+                    ),
+                    if (request.location != null) ...[
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 12,
+                              color: Colors.green[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Location',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.green[600],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    IconData icon;
+    String title;
+    String sub;
+
+    switch (_tabController.index) {
+      case 0:
+        icon = Icons.inbox_rounded;
+        title = "All Caught Up!";
+        sub = "No pending requests at the moment.";
+        break;
+      case 1:
+        icon = Icons.assignment_turned_in_rounded;
+        title = "No Active Tasks";
+        sub = "Accept a request to see it here.";
+        break;
+      case 2:
+        icon = Icons.history_edu_rounded;
+        title = "No History";
+        sub = "Completed requests will appear here.";
+        break;
+      case 3:
+        icon = Icons.delete_outline_rounded;
+        title = "Trash is Empty";
+        sub = "Deleted requests will appear here.";
+        break;
+      default:
+        icon = Icons.inbox;
+        title = "No Data";
+        sub = "";
+    }
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: widget.isDarkMode
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.03),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 48,
+              color: widget.theme.subtextColor.withOpacity(0.5),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+              color: widget.theme.textColor,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            sub,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: widget.theme.subtextColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline_rounded, size: 48, color: Colors.red[300]),
+          const SizedBox(height: 16),
+          Text(
+            _error ?? 'Something went wrong',
+            style: TextStyle(
+              color: widget.theme.subtextColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _isLoading = true;
+                _error = null;
+              });
+              _initializeCaretakerId();
+            },
+            style: TextButton.styleFrom(
+              backgroundColor: _primaryColor.withValues(alpha: 0.1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Try Again',
+              style: TextStyle(
+                color: _primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================
+  // UPDATED DEVICE SKEW TIME METHOD
+  // ==========================================
+  String _getTimeAgo(DateTime timestamp) {
+    final now = DateTime.now();
+    Duration diff = now.difference(timestamp);
+
+    if (diff.isNegative || diff.inSeconds < 10) {
+      return 'Just now';
+    }
+
+    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${diff.inDays ~/ 7}w ago';
+  }
+}
+
+class _TailPainter extends CustomPainter {
+  final Color color;
+
+  _TailPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path();
+
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const TypewriterText({super.key, required this.text, required this.style});
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    int msDuration = widget.text.length * 40;
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: msDuration),
+    );
+    _setupAnimation();
+
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40;
+      _controller.duration = Duration(milliseconds: msDuration);
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        int end = _characterCount.value;
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+
+        return Text(widget.text.substring(0, end), style: widget.style);
+      },
+    );
+  }
+}
