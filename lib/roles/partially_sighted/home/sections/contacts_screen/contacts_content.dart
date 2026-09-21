@@ -1,0 +1,1693 @@
+// File: lib/roles/partially_sighted/home/sections/contacts_screen/contacts_content.dart
+
+import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:seelai_app/themes/constants.dart';
+import 'package:seelai_app/firebase/firebase_services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'dart:async';
+import 'contact_model.dart';
+import 'adding_contact.dart';
+import 'call_contact.dart';
+import 'message_contact.dart';
+import 'edit_contact.dart';
+
+class ContactsContent extends StatefulWidget {
+  final bool isDarkMode;
+  final dynamic theme;
+  final Map<String, dynamic> userData;
+
+  const ContactsContent({
+    super.key,
+    required this.isDarkMode,
+    required this.theme,
+    required this.userData,
+  });
+
+  @override
+  State<ContactsContent> createState() => _ContactsContentState();
+}
+
+class _ContactsContentState extends State<ContactsContent>
+    with TickerProviderStateMixin {
+  final Color _primaryColor = const Color(0xFF7C3AED);
+  final FlutterTts _flutterTts = FlutterTts();
+
+  StreamSubscription? _caretakersSubscription;
+  StreamSubscription? _emergencyContactsSubscription;
+
+  List<ContactModel> _caretakerContacts = [];
+  List<ContactModel> _emergencyContacts = [];
+
+  bool _isLoadingCaretakers = true;
+  bool _isLoadingEmergency = true;
+  bool _isSimulatingLoad = true;
+
+  String? _error;
+  String? _patientId;
+  final String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  int _selectedFilterIndex = 0;
+  Timer? _messageTimer;
+  int _currentMessageIndex = 0;
+
+  // === ANIMATION CONTROLLERS (Header & Mascot Only) ===
+  late AnimationController _entryController;
+  late Animation<double> _headerOpacity;
+  late Animation<Offset> _headerSlide;
+  late Animation<double> _mascotScale;
+  late Animation<double> _bubbleScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePatientId();
+    _startMessageTimer();
+    _initTts();
+
+    // === Initialize Animations ===
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    // Header fades & slides in
+    _headerOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+      ),
+    );
+    _headerSlide = Tween<Offset>(begin: const Offset(-0.1, 0), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _entryController,
+            curve: const Interval(0.0, 0.4, curve: Curves.easeOutCubic),
+          ),
+        );
+
+    // Mascot and Bubble pop in
+    _mascotScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack),
+      ),
+    );
+    _bubbleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.4, 0.9, curve: Curves.easeOutBack),
+      ),
+    );
+
+    // Start header animations immediately
+    _entryController.forward();
+
+    // Trigger the skeleton animation for 600ms on load
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        setState(() {
+          _isSimulatingLoad = false;
+        });
+      }
+    });
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  Future<void> _speakMessage(String message) async {
+    await _flutterTts.stop();
+    await _flutterTts.speak(message);
+  }
+
+  void _startMessageTimer() {
+    _messageTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (mounted) {
+        setState(() {
+          _currentMessageIndex = (_currentMessageIndex + 1) % 2;
+        });
+      }
+    });
+  }
+
+  String _getFirstName() {
+    final name = widget.userData['name'] as String? ?? 'User';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isNotEmpty) {
+      return parts.first;
+    } else {
+      return 'User';
+    }
+  }
+
+  List<String> _getMascotMessages() {
+    return [
+      'Hello, ${_getFirstName()}! You have ${_caretakerContacts.length} caretaker${_caretakerContacts.length != 1 ? 's' : ''} and ${_emergencyContacts.length} SOS contact${_emergencyContacts.length != 1 ? 's' : ''} in your network.',
+      'Did you know? You can tap on a contact card to quickly call or send them a message.',
+    ];
+  }
+
+  Future<void> _initializePatientId() async {
+    String? patientId = widget.userData['uid'] as String?;
+
+    if (patientId == null || patientId.isEmpty) {
+      final user = FirebaseAuth.instance.currentUser;
+      patientId = user?.uid;
+    }
+
+    if (patientId == null || patientId.isEmpty) {
+      setState(() {
+        _error = 'Patient ID not found. Please log in again.';
+        _isLoadingCaretakers = false;
+        _isLoadingEmergency = false;
+      });
+      return;
+    }
+
+    setState(() => _patientId = patientId);
+    _setupCaretakersStream();
+    _setupEmergencyContactsStream();
+  }
+
+  void _setupCaretakersStream() {
+    if (_patientId == null) {
+      setState(() {
+        _error = 'Patient ID not found';
+        _isLoadingCaretakers = false;
+      });
+      return;
+    }
+
+    _caretakersSubscription = caretakerPatientService
+        .streamPatientCaretakers(_patientId!)
+        .listen(
+          (caretakersData) {
+            if (mounted) {
+              setState(() {
+                _caretakerContacts = caretakersData.map((caretaker) {
+                  return ContactModel(
+                    id: caretaker['userId'] ?? '',
+                    name: caretaker['name'] ?? 'Unknown',
+                    relationship: caretaker['relationship'] ?? 'Caretaker',
+                    phoneNumber:
+                        caretaker['phone'] ??
+                        caretaker['contactNumber'] ??
+                        'N/A',
+                    isEmergencyContact: false,
+                    isCaretaker: true,
+                    avatar: Icons.favorite_rounded,
+                    color: _primaryColor,
+                    profileImageUrl: caretaker['profileImageUrl'] as String?,
+                  );
+                }).toList();
+                _isLoadingCaretakers = false;
+                _error = null;
+              });
+            }
+          },
+          onError: (error) {
+            if (mounted) {
+              setState(() {
+                _error = 'Failed to load caretakers: $error';
+                _isLoadingCaretakers = false;
+              });
+            }
+          },
+        );
+  }
+
+  void _setupEmergencyContactsStream() {
+    if (_patientId == null) {
+      setState(() {
+        _error = 'Patient ID not found';
+        _isLoadingEmergency = false;
+      });
+      return;
+    }
+
+    _emergencyContactsSubscription = emergencyContactsService
+        .streamEmergencyContacts(_patientId!)
+        .listen(
+          (contactsData) {
+            if (mounted) {
+              setState(() {
+                _emergencyContacts = contactsData.map((contact) {
+                  return ContactModel(
+                    id: contact['contactId'] ?? '',
+                    name: contact['name'] ?? 'Unknown',
+                    relationship: contact['relationship'] ?? 'Contact',
+                    phoneNumber: contact['phone'] ?? 'N/A',
+                    isEmergencyContact: true,
+                    isCaretaker: false,
+                    avatar: Icons.medical_services_rounded,
+                    color: error,
+                    profileImageUrl: contact['profileImageUrl'] as String?,
+                  );
+                }).toList();
+                _isLoadingEmergency = false;
+                _error = null;
+              });
+            }
+          },
+          onError: (err) {
+            if (mounted) {
+              setState(() {
+                _error = 'Failed to load emergency contacts: $err';
+                _isLoadingEmergency = false;
+              });
+            }
+          },
+        );
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _flutterTts.stop();
+    _caretakersSubscription?.cancel();
+    _emergencyContactsSubscription?.cancel();
+    _searchController.dispose();
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshContacts() async {
+    if (_patientId == null) {
+      await _initializePatientId();
+      return;
+    }
+
+    setState(() {
+      _isLoadingCaretakers = true;
+      _isLoadingEmergency = true;
+      _isSimulatingLoad = true;
+    });
+
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    if (mounted) {
+      setState(() {
+        _isLoadingCaretakers = false;
+        _isLoadingEmergency = false;
+        _isSimulatingLoad = false;
+      });
+      _entryController.reset();
+      _entryController.forward();
+    }
+  }
+
+  List<ContactModel> get _allContacts => [
+    ..._caretakerContacts,
+    ..._emergencyContacts,
+  ];
+
+  List<ContactModel> get _filteredContacts {
+    List<ContactModel> baseList = _allContacts;
+
+    if (_selectedFilterIndex == 1) {
+      baseList = _caretakerContacts;
+    } else if (_selectedFilterIndex == 2) {
+      baseList = _emergencyContacts;
+    }
+
+    if (_searchQuery.isEmpty) {
+      return baseList;
+    }
+
+    return baseList.where((contact) {
+      return contact.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          contact.relationship.toLowerCase().contains(
+            _searchQuery.toLowerCase(),
+          ) ||
+          contact.phoneNumber.contains(_searchQuery);
+    }).toList();
+  }
+
+  Future<void> _showAddContactDialog() async {
+    if (_patientId != null) {
+      await showDialog(
+        context: context,
+        builder: (dialogContext) => AddContactDialog(
+          patientId: _patientId!,
+          isDarkMode: widget.isDarkMode,
+          theme: widget.theme,
+          onContactAdded: () {
+            if (mounted) {
+              _speakMessage('Contact added');
+            }
+          },
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleCall(ContactModel contact) async {
+    if (contact.phoneNumber == 'N/A') {
+      _speakMessage('Phone number not available for ${contact.name}');
+      return;
+    }
+
+    await CallContact.call(
+      context: context,
+      contact: contact,
+      isDarkMode: widget.isDarkMode,
+      theme: widget.theme,
+    );
+  }
+
+  Future<void> _handleMessage(ContactModel contact) async {
+    if (contact.phoneNumber == 'N/A') {
+      _speakMessage('Phone number not available for ${contact.name}');
+      return;
+    }
+
+    await MessageContact.message(
+      context: context,
+      contact: contact,
+      isDarkMode: widget.isDarkMode,
+      theme: widget.theme,
+    );
+  }
+
+  Future<void> _editContact(ContactModel contact) async {
+    if (_patientId != null && !contact.isCaretaker) {
+      await showDialog(
+        context: context,
+        builder: (dialogContext) => EditContactDialog(
+          patientId: _patientId!,
+          contact: contact,
+          isDarkMode: widget.isDarkMode,
+          theme: widget.theme,
+          onContactUpdated: () {
+            if (mounted) {
+              _speakMessage('Contact updated successfully');
+            }
+          },
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteContact(ContactModel contact) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: widget.theme.cardColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusXLarge),
+        ),
+        title: Text(
+          contact.isCaretaker ? 'Remove Caretaker' : 'Delete Contact',
+          style: h3.copyWith(color: widget.theme.textColor),
+        ),
+        content: Text(
+          contact.isCaretaker
+              ? 'Are you sure you want to remove ${contact.name} as your caretaker?'
+              : 'Are you sure you want to delete ${contact.name}?',
+          style: body.copyWith(color: widget.theme.subtextColor),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(
+              'Cancel',
+              style: body.copyWith(color: widget.theme.subtextColor),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: error,
+              foregroundColor: white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(radiusMedium),
+              ),
+            ),
+            child: Text(contact.isCaretaker ? 'Remove' : 'Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && _patientId != null) {
+      try {
+        if (contact.isCaretaker) {
+          await caretakerPatientService.removeCaretakerFromPatient(
+            caretakerId: contact.id,
+            patientId: _patientId!,
+          );
+          if (mounted) {
+            _speakMessage('Caretaker removed successfully');
+          }
+        } else {
+          await emergencyContactsService.removeEmergencyContact(
+            userId: _patientId!,
+            contactId: contact.id,
+          );
+          if (mounted) {
+            _speakMessage('Contact deleted successfully');
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          _speakMessage('Failed to delete contact');
+        }
+      }
+    }
+  }
+
+  // ==========================================
+  // WIDGETS: Skeleton Loaders
+  // ==========================================
+  Widget _buildSkeletonTabs() {
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              flex: 2,
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonContactsList(bool isSmallScreen) {
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(width: 150, height: 20, color: Colors.white),
+          const SizedBox(height: spacingMedium),
+          ...List.generate(
+            3,
+            (index) => Padding(
+              padding: const EdgeInsets.only(bottom: spacingMedium),
+              child: Container(
+                padding: EdgeInsets.all(
+                  isSmallScreen ? spacingMedium : spacingLarge,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(radiusXLarge),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: isSmallScreen ? 50 : 64,
+                          height: isSmallScreen ? 50 : 64,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: spacingMedium),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                height: 16,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 100,
+                                height: 12,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                width: 120,
+                                height: 12,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: spacingMedium),
+                    Container(
+                      width: double.infinity,
+                      height: 1,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: spacingMedium),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(radiusMedium),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: spacingSmall),
+                        Expanded(
+                          child: Container(
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(radiusMedium),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final bool isSmallScreen = width < 360;
+
+    final isLoading =
+        _isSimulatingLoad ||
+        ((_isLoadingCaretakers || _isLoadingEmergency) && _allContacts.isEmpty);
+
+    return RefreshIndicator(
+      onRefresh: _refreshContacts,
+      color: _primaryColor,
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // 1. Top Section (Header & Mascot) - Always animates immediately
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FadeTransition(
+                  opacity: _headerOpacity,
+                  child: SlideTransition(
+                    position: _headerSlide,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: width * 0.05,
+                        right: width * 0.05,
+                        top: spacingLarge,
+                      ),
+                      child: _buildHeader(isSmallScreen),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: spacingMedium),
+
+                _buildMascotBanner(width, isSmallScreen),
+              ],
+            ),
+          ),
+
+          // 2. Main Content Area - Instantly shows skeleton or data
+          SliverPadding(
+            padding: EdgeInsets.symmetric(horizontal: width * 0.05),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: spacingMedium),
+
+                  // Filter Tabs
+                  if (isLoading)
+                    _buildSkeletonTabs()
+                  else if (_allContacts.isNotEmpty)
+                    _buildFilterTabs(),
+
+                  const SizedBox(height: spacingLarge),
+
+                  // Content List
+                  if (isLoading)
+                    _buildSkeletonContactsList(isSmallScreen)
+                  else if (_error != null && _allContacts.isEmpty)
+                    _buildErrorState()
+                  else if (_allContacts.isEmpty)
+                    _buildEmptyState()
+                  else
+                    _buildContactsList(isSmallScreen),
+
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(bool isSmallScreen) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Contacts',
+                  style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w900,
+                    color: widget.theme.textColor,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: _showAddContactDialog,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isSmallScreen ? 12 : 16,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: _primaryColor.withValues(
+                    alpha: widget.isDarkMode ? 0.2 : 0.1,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, color: _primaryColor, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Add Contact',
+                      style: TextStyle(
+                        color: _primaryColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: isSmallScreen ? 12 : 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Manage your network and SOS',
+          style: TextStyle(
+            fontSize: isSmallScreen ? 12 : 14,
+            color: widget.theme.subtextColor,
+          ),
+        ),
+        const SizedBox(height: 4),
+      ],
+    );
+  }
+
+  Widget _buildMascotBanner(double width, bool isSmallScreen) {
+    final messages = _getMascotMessages();
+    final displayMessage = messages[_currentMessageIndex % messages.length];
+    final longestMessage = messages.reduce(
+      (a, b) => a.length > b.length ? a : b,
+    );
+
+    final double mascotSize = (width * 0.32).clamp(100.0, 140.0);
+    final double tailBottomMargin = mascotSize * 0.214;
+    final double bubbleBottomMargin = mascotSize * 0.128;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          top: 0,
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: FadeTransition(
+            opacity: _headerOpacity,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    _primaryColor.withValues(
+                      alpha: widget.isDarkMode ? 0.25 : 0.15,
+                    ),
+                    _primaryColor.withValues(alpha: 0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: width * 0.06),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              ScaleTransition(
+                scale: _mascotScale,
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/seelai-icons/seelai2.webp',
+                  height: mascotSize,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: mascotSize * 0.7,
+                    height: mascotSize * 0.65,
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.smart_toy_outlined,
+                      color: _primaryColor,
+                      size: mascotSize * 0.3,
+                    ),
+                  ),
+                ),
+              ),
+
+              Container(
+                margin: EdgeInsets.only(bottom: tailBottomMargin),
+                child: ScaleTransition(
+                  scale: _bubbleScale,
+                  alignment: Alignment.bottomRight,
+                  child: CustomPaint(
+                    size: const Size(12, 16),
+                    painter: _TailPainter(
+                      color: widget.isDarkMode
+                          ? const Color(0xFF1A1F3A)
+                          : Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(bottom: bubbleBottomMargin),
+                  child: ScaleTransition(
+                    scale: _bubbleScale,
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isSmallScreen ? 12 : 18,
+                        vertical: isSmallScreen ? 10 : 20,
+                      ),
+                      decoration: BoxDecoration(
+                        color: widget.isDarkMode
+                            ? const Color(0xFF1A1F3A)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: widget.isDarkMode
+                            ? []
+                            : [
+                                BoxShadow(
+                                  color: _primaryColor.withValues(alpha: 0.1),
+                                  blurRadius: 15,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Seelai',
+                            style: TextStyle(
+                              fontSize: isSmallScreen ? 12 : 14,
+                              fontWeight: FontWeight.w800,
+                              color: _primaryColor,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+
+                          Stack(
+                            children: [
+                              Text(
+                                longestMessage,
+                                style: TextStyle(
+                                  fontSize: isSmallScreen ? 11 : 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.transparent,
+                                  height: 1.4,
+                                ),
+                              ),
+                              Positioned.fill(
+                                child: TypewriterText(
+                                  text: displayMessage,
+                                  style: TextStyle(
+                                    fontSize: isSmallScreen ? 11 : 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: widget.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.85)
+                                        : Colors.black87,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterTabs() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(child: _buildFilterPill('All', 0)),
+          const SizedBox(width: 8),
+          Expanded(flex: 2, child: _buildFilterPill('Caretakers', 1)),
+          const SizedBox(width: 8),
+          Expanded(child: _buildFilterPill('SOS', 2)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterPill(String label, int index) {
+    bool isSelected = _selectedFilterIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedFilterIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? _primaryColor : widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected
+                ? _primaryColor
+                : (widget.isDarkMode ? Colors.white10 : Colors.black12),
+            width: 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: _primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [],
+        ),
+        alignment: Alignment.center,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : widget.theme.subtextColor,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 13,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 20),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(spacingXLarge),
+              decoration: BoxDecoration(
+                color: error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: error.withValues(alpha: 0.5),
+              ),
+            ),
+            const SizedBox(height: spacingLarge),
+            Text(
+              'Failed to load contacts',
+              style: bodyBold.copyWith(
+                color: widget.theme.textColor,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: spacingSmall),
+            Text(
+              _error ?? 'An error occurred',
+              style: body.copyWith(
+                color: widget.theme.subtextColor,
+                fontSize: 14,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: spacingLarge),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _isLoadingCaretakers = true;
+                  _isLoadingEmergency = true;
+                  _error = null;
+                });
+                _initializePatientId();
+              },
+              icon: const Icon(Icons.refresh_rounded),
+              label: const Text('Try Again'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _primaryColor,
+                foregroundColor: white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: spacingXLarge,
+                  vertical: spacingMedium,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(radiusMedium),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(spacingXLarge * 1.5),
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusXLarge),
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(spacingXLarge),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _primaryColor.withValues(alpha: 0.2),
+                  _primaryColor.withValues(alpha: 0.1),
+                ],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.contacts_rounded,
+              size: 64,
+              color: _primaryColor.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: spacingLarge),
+          Text(
+            'No contacts yet',
+            style: bodyBold.copyWith(
+              color: widget.theme.textColor,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: spacingSmall),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Add your emergency contacts and caretakers to stay connected',
+              style: body.copyWith(
+                color: widget.theme.subtextColor,
+                fontSize: 14,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContactsList(bool isSmallScreen) {
+    final filteredContacts = _filteredContacts;
+
+    if (filteredContacts.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 60),
+          child: Column(
+            children: [
+              Icon(
+                Icons.filter_list_off_rounded,
+                size: 64,
+                color: widget.theme.subtextColor.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: spacingLarge),
+              Text(
+                'No contacts in this category',
+                style: bodyBold.copyWith(
+                  color: widget.theme.textColor,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final caretakers = filteredContacts.where((c) => c.isCaretaker).toList();
+    final emergencyContacts = filteredContacts
+        .where((c) => c.isEmergencyContact)
+        .toList();
+
+    int globalIndex = 0;
+
+    return AnimationLimiter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (caretakers.isNotEmpty) ...[
+            if (_selectedFilterIndex == 0)
+              _buildSectionLabel('My Caretakers', _primaryColor),
+            const SizedBox(height: spacingMedium),
+            ...caretakers.map((contact) {
+              final widget = AnimationConfiguration.staggeredList(
+                position: globalIndex++,
+                duration: const Duration(milliseconds: 375),
+                child: SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: spacingMedium),
+                      child: _buildContactCard(contact, isSmallScreen),
+                    ),
+                  ),
+                ),
+              );
+              return widget;
+            }),
+            if (emergencyContacts.isNotEmpty && _selectedFilterIndex == 0)
+              const SizedBox(height: spacingLarge),
+          ],
+
+          if (emergencyContacts.isNotEmpty) ...[
+            if (_selectedFilterIndex == 0)
+              _buildSectionLabel('Emergency Contacts', error),
+            const SizedBox(height: spacingMedium),
+            ...emergencyContacts.map((contact) {
+              final widget = AnimationConfiguration.staggeredList(
+                position: globalIndex++,
+                duration: const Duration(milliseconds: 375),
+                child: SlideAnimation(
+                  verticalOffset: 50.0,
+                  child: FadeInAnimation(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: spacingMedium),
+                      child: _buildContactCard(contact, isSmallScreen),
+                    ),
+                  ),
+                ),
+              );
+              return widget;
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String title, Color color) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 16,
+        color: widget.theme.textColor,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+
+  Widget _buildContactCard(ContactModel contact, bool isSmallScreen) {
+    return Container(
+      decoration: BoxDecoration(
+        color: widget.theme.cardColor,
+        borderRadius: BorderRadius.circular(radiusXLarge),
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showContactOptions(contact),
+          borderRadius: BorderRadius.circular(radiusXLarge),
+          child: Padding(
+            padding: EdgeInsets.all(
+              isSmallScreen ? spacingMedium : spacingLarge,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    _buildProfileAvatar(contact, isSmallScreen),
+                    const SizedBox(width: spacingMedium),
+
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  contact.name,
+                                  style: bodyBold.copyWith(
+                                    fontSize: isSmallScreen ? 16 : 18,
+                                    color: widget.theme.textColor,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: spacingSmall,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: contact.color.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(
+                                    radiusSmall,
+                                  ),
+                                ),
+                                child: Text(
+                                  contact.isCaretaker ? 'CARETAKER' : 'SOS',
+                                  style: caption.copyWith(
+                                    fontSize: isSmallScreen ? 9 : 10,
+                                    color: contact.color,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 6),
+
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.badge_rounded,
+                                size: isSmallScreen ? 12 : 14,
+                                color: widget.theme.subtextColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  contact.relationship,
+                                  style: caption.copyWith(
+                                    fontSize: isSmallScreen ? 12 : 13,
+                                    color: widget.theme.subtextColor,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.phone_rounded,
+                                size: isSmallScreen ? 12 : 14,
+                                color: widget.theme.subtextColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  contact.phoneNumber,
+                                  style: caption.copyWith(
+                                    fontSize: isSmallScreen ? 12 : 13,
+                                    color: widget.theme.subtextColor,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: widget.theme.subtextColor.withValues(alpha: 0.5),
+                      size: isSmallScreen ? 14 : 18,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: spacingMedium),
+                Divider(
+                  height: 1,
+                  color: widget.theme.subtextColor.withValues(alpha: 0.15),
+                ),
+                const SizedBox(height: spacingMedium),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.phone_rounded,
+                        label: 'Call',
+                        color: Colors.green,
+                        isSmallScreen: isSmallScreen,
+                        onTap: () => _handleCall(contact),
+                      ),
+                    ),
+                    const SizedBox(width: spacingSmall),
+                    Expanded(
+                      child: _buildActionButton(
+                        icon: Icons.message_rounded,
+                        label: 'Message',
+                        color: contact.color,
+                        isOutlined: true,
+                        isSmallScreen: isSmallScreen,
+                        onTap: () => _handleMessage(contact),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    bool isOutlined = false,
+    required bool isSmallScreen,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isOutlined ? Colors.transparent : color,
+      borderRadius: BorderRadius.circular(radiusMedium),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radiusMedium),
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 10 : 12),
+          decoration: BoxDecoration(
+            border: isOutlined ? Border.all(color: color, width: 1.5) : null,
+            borderRadius: BorderRadius.circular(radiusMedium),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: isSmallScreen ? 16 : 18,
+                color: isOutlined ? color : white,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: bodyBold.copyWith(
+                      fontSize: isSmallScreen ? 12 : 14,
+                      color: isOutlined ? color : white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showContactOptions(ContactModel contact) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: widget.theme.cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(radiusXLarge)),
+      ),
+      builder: (bottomSheetContext) => Padding(
+        padding: const EdgeInsets.all(spacingLarge),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: widget.theme.subtextColor.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: spacingLarge),
+            if (!contact.isCaretaker)
+              ListTile(
+                leading: Icon(Icons.edit_rounded, color: _primaryColor),
+                title: Text(
+                  'Edit Contact',
+                  style: body.copyWith(color: widget.theme.textColor),
+                ),
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  _editContact(contact);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_rounded, color: error),
+              title: Text(
+                contact.isCaretaker ? 'Remove Caretaker' : 'Delete Contact',
+                style: body.copyWith(color: widget.theme.textColor),
+              ),
+              onTap: () {
+                Navigator.pop(bottomSheetContext);
+                _deleteContact(contact);
+              },
+            ),
+            const SizedBox(height: spacingSmall),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar(ContactModel contact, bool isSmallScreen) {
+    final hasProfileImage =
+        contact.profileImageUrl != null && contact.profileImageUrl!.isNotEmpty;
+    final double avatarSize = isSmallScreen ? 50 : 64;
+
+    return Container(
+      width: avatarSize,
+      height: avatarSize,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: widget.isDarkMode
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.05),
+          width: 1,
+        ),
+        boxShadow: widget.isDarkMode
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 4,
+                ),
+              ],
+      ),
+      child: ClipOval(
+        child: hasProfileImage
+            ? Image.network(
+                contact.profileImageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          _primaryColor,
+                          _primaryColor.withValues(alpha: 0.8),
+                        ],
+                      ),
+                    ),
+                    child: Icon(
+                      contact.avatar,
+                      color: Colors.white,
+                      size: isSmallScreen ? 22 : 28,
+                    ),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          _primaryColor,
+                          _primaryColor.withValues(alpha: 0.8),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                            : null,
+                        strokeWidth: 2,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Colors.white,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _primaryColor,
+                      _primaryColor.withValues(alpha: 0.8),
+                    ],
+                  ),
+                ),
+                child: Icon(
+                  contact.avatar,
+                  color: Colors.white,
+                  size: isSmallScreen ? 22 : 28,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _TailPainter extends CustomPainter {
+  final Color color;
+
+  _TailPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path();
+
+    path.moveTo(size.width, 0);
+    path.lineTo(0, size.height / 2);
+    path.lineTo(size.width, size.height);
+    path.close();
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class TypewriterText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+
+  const TypewriterText({super.key, required this.text, required this.style});
+
+  @override
+  State<TypewriterText> createState() => _TypewriterTextState();
+}
+
+class _TypewriterTextState extends State<TypewriterText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<int> _characterCount;
+
+  @override
+  void initState() {
+    super.initState();
+    int msDuration = widget.text.length * 40;
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: msDuration),
+    );
+    _setupAnimation();
+
+    // Delay typewriter to sync with bubble pop-in
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void didUpdateWidget(TypewriterText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      int msDuration = widget.text.length * 40;
+      _controller.duration = Duration(milliseconds: msDuration);
+      _setupAnimation();
+      _controller.reset();
+      _controller.forward();
+    }
+  }
+
+  void _setupAnimation() {
+    _characterCount = StepTween(
+      begin: 0,
+      end: widget.text.length,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _characterCount,
+      builder: (context, child) {
+        int end = _characterCount.value;
+        if (end > widget.text.length) end = widget.text.length;
+        if (end < 0) end = 0;
+
+        return Text(widget.text.substring(0, end), style: widget.style);
+      },
+    );
+  }
+}
