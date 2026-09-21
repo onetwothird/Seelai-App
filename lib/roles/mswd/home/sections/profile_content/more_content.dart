@@ -1,0 +1,1761 @@
+// File: lib/roles/mswd/home/sections/profile_content/more_content.dart
+
+import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:shimmer/shimmer.dart'; // Added shimmer
+import 'package:seelai_app/firebase/auth_service.dart';
+import 'package:seelai_app/firebase/database_service.dart';
+import 'package:seelai_app/screens/onboarding_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:seelai_app/roles/mswd/home/sections/profile_content/system_activity_logs.dart';
+import 'package:seelai_app/roles/mswd/home/sections/profile_content/export_system_report.dart';
+import 'package:seelai_app/roles/mswd/home/sections/profile_content/about_seelai_screen.dart';
+import 'package:seelai_app/roles/mswd/home/sections/profile_content/privacy_policy_screen.dart';
+
+class MoreContent extends StatefulWidget {
+  final Map<String, dynamic> userData;
+  final bool isDarkMode;
+  final dynamic theme;
+  final VoidCallback onToggleDarkMode;
+
+  const MoreContent({
+    super.key,
+    required this.userData,
+    required this.isDarkMode,
+    required this.theme,
+    required this.onToggleDarkMode,
+  });
+
+  @override
+  State<MoreContent> createState() => _MoreContentState();
+}
+
+class _MoreContentState extends State<MoreContent> {
+  late Map<String, dynamic> _userData;
+  bool _isLoading = false;
+  bool _isSimulatingLoad = true; // Added skeleton state
+
+  final FlutterTts _flutterTts = FlutterTts();
+
+  // --- Color Palette ---
+  final Color _colVerifications = const Color(0xFF3B82F6);
+  final Color _colTracking = const Color(0xFF8B5CF6);
+  final Color _colSafety = const Color(0xFFEF4444);
+  final Color _colSupport = const Color(0xFF06B6D4);
+  final Color _colAdmin = const Color(0xFFF59E0B);
+  final Color _primaryColor = const Color(0xFF8B5CF6);
+
+  @override
+  void initState() {
+    super.initState();
+    _userData = Map<String, dynamic>.from(widget.userData);
+    _initTts();
+
+    // Trigger skeleton loader
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        setState(() => _isSimulatingLoad = false);
+      }
+    });
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setSpeechRate(0.5);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+  }
+
+  @override
+  void dispose() {
+    _flutterTts.stop();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant MoreContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.userData != oldWidget.userData) {
+      setState(() {
+        _userData = Map<String, dynamic>.from(widget.userData);
+      });
+    }
+  }
+
+  Future<void> _refreshUserData() async {
+    if (databaseService.currentUserId != null) {
+      final freshData = await databaseService.getUserDataByRole(
+        databaseService.currentUserId!,
+        'admin',
+      );
+      if (freshData != null && mounted) {
+        setState(() {
+          _userData = freshData;
+        });
+      }
+    }
+  }
+
+  // ==========================================
+  // WIDGET: SKELETON
+  // ==========================================
+  Widget _buildSkeletonProfile() {
+    final baseColor = widget.isDarkMode
+        ? const Color(0xFF1A1F3A)
+        : Colors.grey.shade300;
+    final highlightColor = widget.isDarkMode
+        ? const Color(0xFF2A2F4A)
+        : Colors.grey.shade100;
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: 20.0,
+          right: 20.0,
+          top: 24.0,
+          bottom: 120.0,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(width: 200, height: 32, color: Colors.white),
+            const SizedBox(height: 24),
+
+            // Avatar
+            Center(
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: Container(width: 150, height: 24, color: Colors.white),
+            ),
+            const SizedBox(height: 32),
+
+            // Group 1
+            Container(width: 150, height: 12, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(
+              height: 260,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Group 2
+            Container(width: 130, height: 12, color: Colors.white),
+            const SizedBox(height: 8),
+            Container(
+              height: 130,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isSimulatingLoad) {
+      return _buildSkeletonProfile();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(
+        left: 20.0,
+        right: 20.0,
+        top: 24.0,
+        bottom: 120.0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Profile & Settings',
+                style: TextStyle(
+                  color: widget.theme.textColor,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          _buildCenteredProfileImage(),
+          const SizedBox(height: 32),
+
+          _buildSettingsGroup(
+            title: 'Administrative Details',
+            children: [
+              _buildSettingsTile(
+                title: 'Email Address',
+                icon: Icons.email_outlined,
+                iconColor: _colVerifications,
+                value: _userData['email'] ?? 'Not provided',
+              ),
+              _buildSettingsTile(
+                title: 'Phone Number',
+                icon: Icons.phone_outlined,
+                iconColor: _colVerifications,
+                value:
+                    _userData['phone'] ??
+                    _userData['contactNumber'] ??
+                    'Not provided',
+              ),
+              _buildSettingsTile(
+                title: 'Department',
+                icon: Icons.business_center_outlined,
+                iconColor: _colVerifications,
+                value: _userData['department']?.toString().isNotEmpty == true
+                    ? _userData['department']
+                    : 'MSWD General',
+              ),
+              _buildSettingsTile(
+                title: 'Staff ID',
+                icon: Icons.badge_outlined,
+                iconColor: _colVerifications,
+                value: _userData['staffId']?.toString().isNotEmpty == true
+                    ? _userData['staffId']
+                    : (_userData['idNumber']?.toString().isNotEmpty == true
+                          ? _userData['idNumber']
+                          : 'Not provided'),
+                isLast: true,
+              ),
+            ],
+          ),
+
+          _buildSettingsGroup(
+            title: 'System Management',
+            children: [
+              _buildSettingsTile(
+                title: 'System Activity Logs',
+                icon: Icons.manage_search_rounded,
+                iconColor: _colAdmin,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SystemActivityLogsScreen(
+                        theme: widget.theme,
+                        isDarkMode: widget.isDarkMode,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              _buildSettingsTile(
+                title: 'Export System Report',
+                icon: Icons.file_download_outlined,
+                iconColor: _colAdmin,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ExportSystemReportScreen(
+                        theme: widget.theme,
+                        isDarkMode: widget.isDarkMode,
+                        userData: _userData,
+                      ),
+                    ),
+                  );
+                },
+                isLast: true,
+              ),
+            ],
+          ),
+
+          _buildSettingsGroup(
+            title: 'Demographic Information',
+            children: [
+              _buildSettingsTile(
+                title: 'Age',
+                icon: Icons.cake_outlined,
+                iconColor: _colTracking,
+                value: _userData['age'] != null && _userData['age'] > 0
+                    ? '${_userData['age']} years old'
+                    : 'Not specified',
+              ),
+              _buildSettingsTile(
+                title: 'Gender',
+                icon: Icons.wc_outlined,
+                iconColor: _colTracking,
+                value: _userData['sex'] ?? 'Not specified',
+              ),
+              _buildSettingsTile(
+                title: 'Date of Birth',
+                icon: Icons.calendar_today_outlined,
+                iconColor: _colTracking,
+                value: _formatBirthdate(_userData['birthdate'] ?? ''),
+                isLast: true,
+              ),
+            ],
+          ),
+
+          _buildSettingsGroup(
+            title: 'Account Actions',
+            children: [
+              _buildSettingsTile(
+                title: 'Edit Profile',
+                icon: Icons.edit_outlined,
+                iconColor: _primaryColor,
+                onTap: _showEditProfileDialog,
+              ),
+              _buildSettingsTile(
+                title: 'Change Password',
+                icon: Icons.lock_outline_rounded,
+                iconColor: _primaryColor,
+                onTap: _showChangePasswordDialog,
+                isLast: true,
+              ),
+            ],
+          ),
+
+          _buildSettingsGroup(
+            title: 'Support & Information',
+            children: [
+              _buildSettingsTile(
+                title: 'How to Use Seelai',
+                icon: Icons.info_outline_rounded,
+                iconColor: _colSupport,
+                onTap: _showHowToUseDialog,
+              ),
+              _buildSettingsTile(
+                title: 'About Seelai',
+                icon: Icons.info_outline_rounded,
+                iconColor: _colSupport,
+                onTap: _showAboutDialog,
+              ),
+              _buildSettingsTile(
+                title: 'Privacy Policy',
+                icon: Icons.privacy_tip_outlined,
+                iconColor: _colSupport,
+                onTap: _showPrivacyDialog,
+                isLast: true,
+              ),
+            ],
+          ),
+
+          _buildSettingsGroup(
+            title: 'Danger Zone',
+            children: [
+              _buildSettingsTile(
+                title: 'Sign Out',
+                icon: Icons.logout_rounded,
+                iconColor: _colSafety,
+                isDestructive: true,
+                onTap: _showLogoutDialog,
+                isLast: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCenteredProfileImage() {
+    final profileUrl = _userData['profileImageUrl'] as String?;
+    final name = _userData['name'] ?? 'Admin';
+    final initial = name.toString().isNotEmpty
+        ? name.toString()[0].toUpperCase()
+        : 'A';
+
+    return Center(
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                height: 100,
+                width: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: widget.isDarkMode ? Colors.white24 : Colors.black,
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: (profileUrl != null && profileUrl.isNotEmpty)
+                      ? Image.network(
+                          profileUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildGradientFallback(initial);
+                          },
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return _buildGradientFallback('', isLoading: true);
+                          },
+                        )
+                      : _buildGradientFallback(initial),
+                ),
+              ),
+              // MSWD Verified Badge
+              Positioned(
+                bottom: -8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _colTracking,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: widget.theme.backgroundColor,
+                      width: 2,
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(width: 4),
+                      Text(
+                        'MSWSD',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: widget.theme.textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGradientFallback(String initial, {bool isLoading = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_colTracking, _colTracking.withValues(alpha: 0.6)],
+        ),
+      ),
+      child: Center(
+        child: isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : Text(
+                initial,
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildSettingsGroup({
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (title.isNotEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
+              child: Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: widget.theme.subtextColor.withValues(alpha: 0.8),
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+          ],
+          Container(
+            decoration: BoxDecoration(
+              color: widget.theme.cardColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+              boxShadow: widget.isDarkMode
+                  ? []
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+            ),
+            child: Column(children: children),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsTile({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    String? value,
+    VoidCallback? onTap,
+    bool isDestructive = false,
+    bool isLast = false,
+  }) {
+    final displayIconColor = isDestructive
+        ? _colSafety
+        : widget.theme.textColor;
+    final displayContainerColor = isDestructive
+        ? _colSafety.withValues(alpha: 0.1)
+        : widget.theme.textColor.withValues(alpha: 0.05);
+
+    final textColor = isDestructive ? _colSafety : widget.theme.textColor;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: isLast
+            ? const BorderRadius.vertical(bottom: Radius.circular(16))
+            : null,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 14.0,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: displayContainerColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, size: 20, color: displayIconColor),
+                  ),
+                  const SizedBox(width: 16),
+
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+
+                  if (value != null) ...[
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Flexible(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Text(
+                                value,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: widget.theme.subtextColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  if (onTap != null && value == null) ...[
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: widget.theme.subtextColor.withValues(alpha: 0.5),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (!isLast)
+              Divider(
+                height: 1,
+                thickness: 1,
+                indent: 56,
+                color: widget.isDarkMode
+                    ? Colors.white.withValues(alpha: 0.05)
+                    : Colors.black.withValues(alpha: 0.05),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogTextField(
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    bool isPassword = false,
+    TextInputType inputType = TextInputType.text,
+    Color? focusColor,
+  }) {
+    final activeColor = focusColor ?? _primaryColor;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextField(
+        controller: controller,
+        keyboardType: inputType,
+        obscureText: isPassword,
+        style: TextStyle(color: widget.theme.textColor, fontSize: 15),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: widget.theme.subtextColor, fontSize: 14),
+          prefixIcon: Icon(icon, color: widget.theme.subtextColor, size: 22),
+          filled: true,
+          fillColor: widget.isDarkMode
+              ? Colors.black.withValues(alpha: 0.2)
+              : Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(
+              color: widget.isDarkMode ? Colors.white10 : Colors.grey.shade200,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: activeColor, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatBirthdate(String birthdate) {
+    if (birthdate.isEmpty) return 'Not specified';
+    try {
+      final date = DateTime.parse(birthdate);
+      return DateFormat('MMMM dd, yyyy').format(date);
+    } catch (e) {
+      return birthdate;
+    }
+  }
+
+  void _showSnackbar(String message, Color color) {
+    // Removed TTS here so other snackbars (like logout) don't speak
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: color,
+      ),
+    );
+  }
+
+  void _showAboutDialog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AboutSeelaiScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
+        ),
+      ),
+    );
+  }
+
+  void _showPrivacyDialog() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PrivacyPolicyScreen(
+          theme: widget.theme,
+          isDarkMode: widget.isDarkMode,
+        ),
+      ),
+    );
+  }
+
+  void _showEditProfileDialog() {
+    final parentContext = context;
+
+    final nameController = TextEditingController(text: _userData['name']);
+    final phoneController = TextEditingController(
+      text: _userData['phone'] ?? _userData['contactNumber'],
+    );
+    final departmentController = TextEditingController(
+      text: _userData['department'],
+    );
+    final staffIdController = TextEditingController(
+      text:
+          _userData['staffId']?.toString() ??
+          _userData['idNumber']?.toString() ??
+          '',
+    );
+    final ageController = TextEditingController(
+      text: _userData['age']?.toString() ?? '',
+    );
+    String? selectedSex = _userData['sex'];
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setStateDialog) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: widget.theme.cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? Colors.white10
+                      : Colors.transparent,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Update Profile',
+                      style: TextStyle(
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Modify your official administrative details below.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: widget.theme.subtextColor,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    _buildDialogTextField(
+                      'Full Name',
+                      nameController,
+                      Icons.person_outline,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Phone Number',
+                      phoneController,
+                      Icons.phone_outlined,
+                      inputType: TextInputType.phone,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Department',
+                      departmentController,
+                      Icons.business_center_outlined,
+                      focusColor: _primaryColor,
+                    ),
+
+                    _buildDialogTextField(
+                      'Staff ID',
+                      staffIdController,
+                      Icons.badge_outlined,
+                      focusColor: _primaryColor,
+                    ),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: _buildDialogTextField(
+                            'Age',
+                            ageController,
+                            Icons.cake_outlined,
+                            inputType: TextInputType.number,
+                            focusColor: _primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 16.0),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: selectedSex,
+                              dropdownColor: widget.theme.cardColor,
+                              icon: Icon(
+                                Icons.arrow_drop_down_rounded,
+                                color: widget.theme.subtextColor,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: 'Gender',
+                                labelStyle: TextStyle(
+                                  color: widget.theme.subtextColor,
+                                  fontSize: 14,
+                                ),
+                                prefixIcon: Icon(
+                                  Icons.wc_outlined,
+                                  color: widget.theme.subtextColor,
+                                  size: 22,
+                                ),
+                                filled: true,
+                                fillColor: widget.isDarkMode
+                                    ? Colors.black.withValues(alpha: 0.2)
+                                    : Colors.grey.shade50,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                    color: widget.isDarkMode
+                                        ? Colors.white10
+                                        : Colors.grey.shade200,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                    color: widget.isDarkMode
+                                        ? Colors.white10
+                                        : Colors.grey.shade200,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  borderSide: BorderSide(
+                                    color: _primaryColor,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              items: ['Male', 'Female', 'Not Specified']
+                                  .map(
+                                    (sex) => DropdownMenuItem(
+                                      value: sex,
+                                      child: Text(
+                                        sex,
+                                        style: TextStyle(
+                                          color: widget.theme.textColor,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (val) =>
+                                  setStateDialog(() => selectedSex = val),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: widget.isDarkMode ? 0 : 4,
+                              shadowColor: _primaryColor.withValues(alpha: 0.4),
+                            ),
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    setStateDialog(() => _isLoading = true);
+
+                                    try {
+                                      await databaseService.updateUserProfile(
+                                        userId: databaseService.currentUserId!,
+                                        role: 'admin',
+                                        name: nameController.text.trim(),
+                                        phone: phoneController.text.trim(),
+                                        contactNumber: phoneController.text
+                                            .trim(),
+                                        department: departmentController.text
+                                            .trim(),
+                                        staffId: staffIdController.text.trim(),
+                                        age: int.tryParse(
+                                          ageController.text.trim(),
+                                        ),
+                                        sex: selectedSex,
+                                      );
+
+                                      await _refreshUserData();
+
+                                      if (dialogContext.mounted) {
+                                        Navigator.pop(dialogContext);
+                                      }
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Profile updated successfully',
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Error updating profile',
+                                        );
+                                      }
+                                    } finally {
+                                      if (dialogContext.mounted) {
+                                        setStateDialog(
+                                          () => _isLoading = false,
+                                        );
+                                      }
+                                    }
+                                  },
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Save Changes',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (builderContext, setStateDialog) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.all(20),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: widget.theme.cardColor,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: widget.isDarkMode
+                      ? Colors.white10
+                      : Colors.transparent,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Change Password',
+                      style: TextStyle(
+                        color: widget.theme.textColor,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 22,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: widget.theme.subtextColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'For security, you will be required to sign in again after changing your password.',
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    _buildDialogTextField(
+                      'Current Password',
+                      currentPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'New Password',
+                      newPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+                    _buildDialogTextField(
+                      'Confirm Password',
+                      confirmPassController,
+                      Icons.lock_outline,
+                      isPassword: true,
+                      focusColor: _primaryColor,
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(builderContext),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: widget.theme.subtextColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _primaryColor,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: widget.isDarkMode ? 0 : 4,
+                              shadowColor: _primaryColor.withValues(alpha: 0.4),
+                            ),
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    if (newPassController.text !=
+                                        confirmPassController.text) {
+                                      // ONLY TTS, removed _showSnackbar
+                                      _flutterTts.speak(
+                                        'New passwords do not match',
+                                      );
+                                      return;
+                                    }
+                                    if (newPassController.text.length < 6) {
+                                      // ONLY TTS, removed _showSnackbar
+                                      _flutterTts.speak(
+                                        'Password must be at least 6 characters',
+                                      );
+                                      return;
+                                    }
+
+                                    setStateDialog(() => _isLoading = true);
+                                    try {
+                                      await authService.value
+                                          .resetPasswordFromCurrentPassword(
+                                            email: _userData['email'],
+                                            currentPassword:
+                                                currentPassController.text,
+                                            newPassword: newPassController.text,
+                                          );
+
+                                      if (builderContext.mounted) {
+                                        Navigator.pop(builderContext);
+                                      }
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Password changed successfully',
+                                        );
+                                      }
+                                    } catch (e) {
+                                      if (mounted) {
+                                        // ONLY TTS, removed _showSnackbar
+                                        _flutterTts.speak(
+                                          'Failed to change password. Check current password.',
+                                        );
+                                      }
+                                    } finally {
+                                      if (builderContext.mounted) {
+                                        setStateDialog(
+                                          () => _isLoading = false,
+                                        );
+                                      }
+                                    }
+                                  },
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Update',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showLogoutDialog() {
+    final parentContext = context;
+
+    showDialog(
+      context: parentContext,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: widget.theme.cardColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: widget.isDarkMode ? Colors.white10 : Colors.transparent,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _colSafety.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.logout_rounded, color: _colSafety, size: 32),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Sign Out',
+                style: TextStyle(
+                  color: widget.theme.textColor,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 22,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Are you sure you want to sign out of the Admin Portal?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: widget.theme.subtextColor,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: widget.theme.subtextColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        Navigator.pop(dialogContext);
+                        await authService.value.signOut();
+                        if (!parentContext.mounted) return;
+                        Navigator.of(parentContext).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                            builder: (context) => const OnboardingScreen(),
+                          ),
+                          (route) => false,
+                        );
+                        if (mounted) {
+                          _showSnackbar(
+                            'Successfully signed out',
+                            _primaryColor,
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _colSafety,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: widget.isDarkMode ? 0 : 4,
+                        shadowColor: _colSafety.withValues(alpha: 0.4),
+                      ),
+                      child: const Text(
+                        'Sign Out',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showHowToUseDialog() {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (context) => MSWDGuideSliderDialog(
+        theme: widget.theme,
+        isDarkMode: widget.isDarkMode,
+      ),
+    );
+  }
+}
+
+class MSWDGuideSliderDialog extends StatefulWidget {
+  final dynamic theme;
+  final bool isDarkMode;
+
+  const MSWDGuideSliderDialog({
+    super.key,
+    required this.theme,
+    required this.isDarkMode,
+  });
+
+  @override
+  State<MSWDGuideSliderDialog> createState() => _MSWDGuideSliderDialogState();
+}
+
+class _MSWDGuideSliderDialogState extends State<MSWDGuideSliderDialog> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  final Color _brandPurple = const Color(0xFF8B5CF6);
+
+  final List<Map<String, String>> _guideData = [
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic1.png",
+      "title": "Role Selection",
+      "description": "Select the MSWD category to begin your admin session.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic2.png",
+      "title": "Login",
+      "description": "Securely log in to your existing Seelai MSWD account.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic3.png",
+      "title": "Register",
+      "description":
+          "Fill out official details to register a new MSWD staff account.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic4.png",
+      "title": "Dashboard",
+      "description":
+          "View overall statistics including Total Users, Active Now, Partially Sighted, and Caretakers.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic5.png",
+      "title": "Command Center",
+      "description":
+          "Monitor activity trends, urgent alerts, and access shortcuts like Live Map, Broadcast, and Requests.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic6.png",
+      "title": "Announcements",
+      "description":
+          "Review all active announcements broadcasted across the entire system.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic7.png",
+      "title": "Create Announcement",
+      "description":
+          "Publish new alerts and control visibility targeting Partially Sighted, Caretakers, or All Users.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic8.png",
+      "title": "Add New Registry",
+      "description":
+          "Capture and manage custom object detection and caretaker face recognition data.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic9.png",
+      "title": "Directory",
+      "description":
+          "Manage registered patients, caretakers, and approve or decline pending account requests.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic10.png",
+      "title": "Location Tracker",
+      "description":
+          "Select any Partially Sighted user or Caretaker from the active directory to track them.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic11.png",
+      "title": "Live Map",
+      "description":
+          "View the exact real-time location and distance of the selected user relative to you.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic12.png",
+      "title": "System Requests",
+      "description":
+          "Monitor all assistance requests. As an MSWD Admin, you can intervene and assist directly.",
+    },
+    {
+      "image": "assets/how-to-use-seelai_images/mswd/pic13.png",
+      "title": "Request Details",
+      "description":
+          "Review complete request logs, including user info, messages, assigned responders, and timeline events.",
+    },
+  ];
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _nextPage() {
+    if (_currentPage < _guideData.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.fastOutSlowIn,
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  void _skipToEnd() {
+    _pageController.animateToPage(
+      _guideData.length - 1,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.fastOutSlowIn,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isLastPage = _currentPage == _guideData.length - 1;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: BoxDecoration(
+          color: widget.theme.cardColor,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 40,
+              offset: const Offset(0, 20),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0, top: 8.0),
+              child: Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: widget.isDarkMode
+                          ? Colors.white10
+                          : Colors.grey.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      color: widget.theme.subtextColor,
+                      size: 18,
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: _guideData.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentPage = index;
+                  });
+                },
+                itemBuilder: (context, index) {
+                  final item = _guideData[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 24),
+                            color: Colors.transparent,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  item['image']!,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.image_not_supported_rounded,
+                                            size: 40,
+                                            color: widget.theme.subtextColor,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Image missing:\n${item['image']}',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: widget.theme.subtextColor,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            '(Check pubspec.yaml)',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: widget.theme.subtextColor,
+                                              fontSize: 10,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        Text(
+                          item['title']!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: widget.theme.textColor,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            item['description']!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: widget.theme.subtextColor,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 200),
+                        opacity: isLastPage ? 0.0 : 1.0,
+                        child: TextButton(
+                          onPressed: isLastPage ? null : _skipToEnd,
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: widget.theme.subtextColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(_guideData.length, (index) {
+                      final isActive = _currentPage == index;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                        height: 6,
+                        width: isActive ? 18 : 6,
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? _brandPurple
+                              : widget.theme.subtextColor.withValues(
+                                  alpha: 0.2,
+                                ),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: GestureDetector(
+                        onTap: _nextPage,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                          padding: isLastPage
+                              ? const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                )
+                              : const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _brandPurple,
+                            borderRadius: BorderRadius.circular(30),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _brandPurple.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: isLastPage
+                              ? const Text(
+                                  "Done",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
